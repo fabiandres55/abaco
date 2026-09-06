@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ábaco">
 <meta name="application-name" content="Ábaco">
-<title>Ábaco · Punto de venta</title>
+<title>Abanico · Bodega y Local</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap">
@@ -219,13 +219,34 @@
   .permcard .pa button{border:none;background:transparent;color:var(--pri-d);font-family:var(--ui);font-weight:600;font-size:14px;padding:9px 14px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em}
   .permcard .pa button.pri{color:#fff;background:var(--pri)}
   .permcard .pa button:active{opacity:.85}
+  /* onboarding */
+  .drawer-foot{flex:none;border-top:1px solid var(--line2);padding:4px 0}
+  .drawer-foot .di{color:var(--muted)}
+  .onbo{position:absolute;inset:0;z-index:20;background:var(--bg);display:none;flex-direction:column}
+  .onbo.on{display:flex}
+  .onbo-inner{flex:1;overflow-y:auto;padding:28px 22px 26px;display:flex;flex-direction:column;gap:16px}
+  .onbo h2{font-size:23px;font-weight:800;margin:0;text-wrap:balance}
+  .onbo .osub{font-size:14px;color:var(--muted);margin-top:-6px}
+  .onbo .ologo{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .onbo .ologo .mk{width:66px;height:66px}
+  .onbo .ologo .nm{font-size:27px;font-weight:900;letter-spacing:.01em}
+  .ocard{display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;text-align:left;width:100%;font-family:var(--ui)}
+  .ocard:active{background:var(--sel)}
+  .ocard .oic{width:48px;height:48px;border-radius:12px;background:var(--sel);display:grid;place-items:center;flex:none}
+  .ocard .oic svg{width:26px;height:26px;stroke:var(--pri-d);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .ocard .ot{font-size:16px;font-weight:700}
+  .ocard .od{font-size:13px;color:var(--muted);margin-top:2px}
+  .obtn{margin-top:auto}
+  .idbox{background:var(--card);border:1.5px dashed var(--pri);border-radius:12px;padding:18px;text-align:center}
+  .idbox .idl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .idbox .idv{font-family:ui-monospace,monospace;font-size:26px;font-weight:700;margin-top:5px;color:var(--pri-d);letter-spacing:.02em}
 </style>
 
 <div class="device" id="device">
 
   <div class="appbar">
     <button class="iconbtn" data-drawer="open"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-    <div class="title"><div class="t1">Tienda La Esquina</div><div class="t2" id="barSection"></div></div>
+    <div class="title"><div class="t1" id="barShop">Abanico</div><div class="t2" id="barSection"></div></div>
     <button class="iconbtn" data-act="toast:notif" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg><span class="badge-dot"></span></button>
     <button class="iconbtn" data-act="toast:more"><svg viewBox="0 0 24 24" style="stroke-width:2.6"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
   </div>
@@ -278,12 +299,15 @@
         <rect x="66" y="48" width="4" height="4" fill="#d7dade"/><rect x="74" y="49" width="20" height="2.5" fill="#c3c7cc"/>
         <path d="M92 24l6 30 5-4-4-27z" fill="#e0a92e"/><path d="M92 24l7 2-1 4-6-2z" fill="#c98f22"/>
       </svg>
-      <div class="logo"><svg class="mk" viewBox="0 0 48 48"><rect x="4" y="6" width="40" height="36" rx="7" fill="none" stroke="#fff" stroke-width="3"/><line x1="15" y1="6" x2="15" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="24" y1="6" x2="24" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="33" y1="6" x2="33" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><circle class="bead" cx="15" cy="16" r="3.8"/><circle class="bead" cx="24" cy="31" r="3.8"/><circle class="bead" cx="33" cy="21" r="3.8"/></svg><span class="nm">Ábaco</span></div>
-      <div class="shop">Tienda La Esquina</div>
+      <div class="logo"><svg class="mk" viewBox="0 0 48 48"><rect x="4" y="6" width="40" height="36" rx="7" fill="none" stroke="#fff" stroke-width="3"/><line x1="15" y1="6" x2="15" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="24" y1="6" x2="24" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="33" y1="6" x2="33" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><circle class="bead" cx="15" cy="16" r="3.8"/><circle class="bead" cx="24" cy="31" r="3.8"/><circle class="bead" cx="33" cy="21" r="3.8"/></svg><span class="nm">Abanico</span></div>
+      <div class="shop" id="drawerShop">Abanico</div>
       <div class="sub"><span class="on"></span> <span id="drawerSync"></span></div>
     </div>
     <nav class="dl" id="drawerList"></nav>
+    <div class="drawer-foot"><div class="di" data-act="logout"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg><span id="logoutLbl">Salir</span></div></div>
   </aside>
+
+  <div class="onbo" id="onbo"><div class="onbo-inner" id="onboBody"></div></div>
 </div>
 
 <script>
@@ -305,7 +329,8 @@ const I18N={
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
     perm_title:"Permitir notificaciones",perm_body:"Ábaco necesita permiso para avisarte cuando el producto esté por vencer.",perm_allow:"Permitir",perm_deny:"Ahora no",
-    save:"Guardar",saved:"Producto guardado",editProduct:"Editar producto",updated:"Producto actualizado",del:"Eliminar producto",deleted:"Producto eliminado",needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
+    save:"Guardar",saved:"Producto guardado",editProduct:"Editar producto",updated:"Producto actualizado",del:"Eliminar producto",deleted:"Producto eliminado",
+    ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
@@ -322,7 +347,8 @@ const I18N={
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
     perm_title:"Allow notifications",perm_body:"Ábaco needs permission to alert you when the product is about to expire.",perm_allow:"Allow",perm_deny:"Not now",
-    save:"Save",saved:"Product saved",editProduct:"Edit product",updated:"Product updated",del:"Delete product",deleted:"Product deleted",needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
+    save:"Save",saved:"Product saved",editProduct:"Edit product",updated:"Product updated",del:"Delete product",deleted:"Product deleted",
+    ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
 };
 const L=(new URLSearchParams(location.search).get("lang")||navigator.language||"es").slice(0,2).toLowerCase();
 const LANG=I18N[L]?L:"en";
@@ -334,7 +360,7 @@ function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</
 const IC={inventario:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>',servicios:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/>',ventas:'<path d="M6 8h12l-1 11H7z"/><path d="M9 8a3 3 0 016 0"/>',compras:'<path d="M6 6h15l-1.5 9H8z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H3"/>',caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',reportes:'<path d="M5 20V4M5 20h15M9 16v-5M13 16v-9M17 16v-3"/>',empleados:'<circle cx="12" cy="8" r="3"/><rect x="5" y="14" width="14" height="6" rx="3"/>',proveedores:'<circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M16 6a3 3 0 010 6"/>',clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>',calendario:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',respaldo:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>'};
 const DRAWER=[{id:'inventario'},{id:'servicios',soon:1},{sep:1},{id:'ventas'},{id:'compras',soon:1},{id:'caja'},{sep:1},{id:'reportes'},{sep:1},{id:'empleados',soon:1},{id:'proveedores',soon:1},{id:'clientes',soon:1},{sep:1},{id:'calendario',soon:1},{id:'respaldo',soon:1}];
 
-const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null};
+const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}}};
 const LOW=5;
 const P=id=>state.products.find(p=>p.id===id);
 const saleTotal=s=>s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
@@ -367,10 +393,12 @@ function scInventario(){
   if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   items.sort((a,b)=>a.stock-b.stock);
   const warnSvg='<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="#f0b90b"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>';
+  const bod=state.profile&&state.profile.type==='bodega';
   const cards=items.map(p=>{
     const flag=p.stock<=LOW||p.reserve>0;
     const img=p.img?`<img src="${p.img}" alt="">`:svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div></div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${p.stock<=LOW?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
+    const det=bod&&(p.loc||p.lot)?`<div class="pc-name" style="font-size:12px;margin-top:1px">${[p.loc?(t('f_location').split(' ')[0]+' '+p.loc):'',p.lot?(t('f_lote')+' '+p.lot):''].filter(Boolean).join(' · ')}</div>`:'';
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}</div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${p.stock<=LOW?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
   return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount()}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>`;
@@ -415,6 +443,7 @@ const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes
 /* ---------------- add product form ---------------- */
 function formHTML(){
   const f=state.form;
+  const bod=state.profile&&state.profile.type==='bodega';
   const units=UNITS.map(u=>`<option value="${u}" ${f.unit===u?'selected':''}>${t(u)}</option>`).join("");
   const cats=[...new Set([...state.cats])].map(c=>`<option value="${c}">`).join("");
   const img=f.img?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img src="${f.img}" alt=""></div>`
@@ -434,6 +463,14 @@ function formHTML(){
     <div class="fld"><span class="fl">${t('f_qty')}</span><input class="inp num" id="f_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
     <div class="fld"><span class="fl">${t('f_qtyreserve')}</span><input class="inp num" id="f_reserve" type="number" inputmode="numeric" value="${f.reserve??''}" placeholder="0"></div>
   </div>
+  ${bod?`<div class="two">
+    <div class="fld"><span class="fl">${t('f_stockmin')}</span><input class="inp num" id="f_min" type="number" inputmode="numeric" value="${f.min??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_stockmax')}</span><input class="inp num" id="f_max" type="number" inputmode="numeric" value="${f.max??''}" placeholder="0"></div>
+  </div>
+  <div class="two">
+    <div class="fld"><span class="fl">${t('f_location')}</span><input class="inp" id="f_loc" value="${f.loc||''}" placeholder="A-01"></div>
+    <div class="fld"><span class="fl">${t('f_lote')}</span><input class="inp" id="f_lot" value="${f.lot||''}" placeholder="L-2026"></div>
+  </div>`:''}
   <div class="fld"><span class="fl">${t('f_image')} <span class="opt">${t('optional')}</span></span>${img}</div>
   <div>
     <div class="switchrow"><div class="sw-l"><div class="t">${t('f_expiry')} <span class="opt" style="font-weight:400;color:var(--faint)">${t('optional')}</span></div><div class="s">${t('f_expiry_sub')}</div></div>
@@ -443,7 +480,7 @@ function formHTML(){
   ${f.editId?`<button class="delbtn" data-act="del-product">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('del')}</button>`:''}`;
 }
 function openForm(editId){
-  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:p.unit,purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,expiry:p.expiry||'',expiryOn:!!p.expiry};}
+  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:p.unit,purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
   else state.form={unit:'u_piece'};
   document.getElementById('formTitle').textContent=editId?t('editProduct'):t('newProduct');
   document.getElementById('saveBtn').textContent=t('save');
@@ -466,6 +503,7 @@ function readForm(){
   if(g('f_unit'))f.unit=g('f_unit').value; if(g('f_purchase'))f.purchase=g('f_purchase').value; if(g('f_sale'))f.sale=g('f_sale').value;
   if(g('f_addsale'))f.addsale=g('f_addsale').value; if(g('f_qty'))f.qty=g('f_qty').value; if(g('f_reserve'))f.reserve=g('f_reserve').value;
   if(g('f_expiry'))f.expiry=g('f_expiry').value;
+  if(g('f_min'))f.min=g('f_min').value; if(g('f_max'))f.max=g('f_max').value; if(g('f_loc'))f.loc=g('f_loc').value; if(g('f_lot'))f.lot=g('f_lot').value;
 }
 function closeForm(){document.getElementById('device').classList.remove('form-open');document.getElementById('fab').style.display='grid';}
 function genKey(){readForm();const ex=new Set(state.products.map(p=>p.key));let k;do{k='SKU-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(k));state.form.key=k;document.getElementById('formBody').innerHTML=formHTML();attachForm();}
@@ -477,7 +515,7 @@ function saveProduct(){
   readForm();const f=state.form;
   if(!f.name||!f.name.trim()||!f.key||!f.key.trim()){toast(t('needNameKey'));return;}
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
-  const data={key:f.key.trim(),name:f.name.trim(),cat,unit:f.unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,expiry:f.expiryOn?f.expiry:null};
+  const data={key:f.key.trim(),name:f.name.trim(),cat,unit:f.unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';render();toast(t('updated'));}
   else{state.products.push({id:state.seq++,...data});closeForm();state.screen='inventario';render();toast(t('saved'));}
 }
@@ -497,8 +535,16 @@ function openCatFilter(){
 function closeCat(){document.getElementById('catdlg').classList.remove('on');}
 
 /* ---------------- drawer / render ---------------- */
+function modeLabel(p){
+  if(!p)return t('sync');
+  if(p.type==='bodega')return t('mode_bodega')+' · '+p.id;
+  if(p.localKind==='anclada')return t('mode_local_ancla')+' '+(p.linkedId||'');
+  return t('mode_local_propia');
+}
 function renderDrawer(){
-  document.getElementById('drawerSync').textContent=t('sync');
+  document.getElementById('drawerShop').textContent=(state.profile&&state.profile.name)||'Abanico';
+  document.getElementById('drawerSync').textContent=modeLabel(state.profile)+' · offline';
+  document.getElementById('logoutLbl').textContent=t('logout');
   document.getElementById('drawerList').innerHTML=DRAWER.map(d=>{
     if(d.sep)return '<div class="dsep"></div>';
     return `<div class="di ${d.id===state.screen?'on':''} ${d.soon?'soon':''}" data-di="${d.id}" data-soon="${d.soon?1:0}">${svg(IC[d.id])}<span>${t('m_'+d.id)}</span>${d.soon?`<span class="soonx">${t('soon')}</span>`:''}</div>`;
@@ -508,6 +554,7 @@ function render(){
   const body=document.getElementById("body");const isNueva=state.screen==="nueva";
   document.getElementById("screen").firstElementChild.className=isNueva?"":"pad";
   body.className=isNueva?"":"pad";body.innerHTML=SCREENS[state.screen]();
+  document.getElementById("barShop").textContent=(state.profile&&state.profile.name)||'Abanico';
   document.getElementById("barSection").textContent=t(secKey[state.screen]||'m_inventario');
   document.getElementById("fab").style.display=(isNueva||document.getElementById('device').classList.contains('form-open'))?"none":"grid";
   document.getElementById("cartL").textContent=t('total');document.getElementById("cobrarL").textContent=t('charge');
@@ -523,6 +570,58 @@ let toastT;function toast(m){const t2=document.getElementById("toast");document.
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
 function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.screen=s;drawer(false);render();}
 function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});state.cart={};state.screen="ventas";render();toast(`Venta #${id} · ${money(tot)}`);}
+
+/* ---------------- onboarding + perfil ---------------- */
+function saveProfile(){try{localStorage.setItem('abanico.profile',JSON.stringify(state.profile))}catch(_){}}
+function clearProfile(){try{localStorage.removeItem('abanico.profile')}catch(_){}}
+function genBodegaId(){return 'BOD-'+Math.random().toString(36).slice(2,6).toUpperCase();}
+const OB_ABACUS='<rect x="4" y="6" width="40" height="36" rx="7" fill="none" stroke="#565b60" stroke-width="3"/><line x1="15" y1="6" x2="15" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><line x1="24" y1="6" x2="24" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><line x1="33" y1="6" x2="33" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><circle cx="15" cy="16" r="3.8" fill="#565b60"/><circle cx="24" cy="31" r="3.8" fill="#565b60"/><circle cx="33" cy="21" r="3.8" fill="#565b60"/>';
+function obGo(step){state.onbo.step=step;renderOnbo();}
+function renderOnbo(){
+  const s=state.onbo.step,tmp=state.onbo.tmp;let h='';
+  const fld=(id,label,ph,val)=>`<div class="fld"><span class="fl">${label}</span><input class="inp" id="${id}" placeholder="${ph}" value="${val||''}"></div>`;
+  if(s==='welcome'){
+    h=`<div style="margin:auto 0"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Abanico</div><div class="osub" style="text-align:center;margin-top:2px">${t('ob_role_sub')}</div></div></div>
+    <button class="btn obtn" data-act="ob:role">${t('ob_start')}</button>`;
+  }else if(s==='role'){
+    h=`<h2>${t('ob_role_q')}</h2><div class="osub">${t('ob_role_sub')}</div>
+    <button class="ocard" data-act="ob:bodega"><div class="oic">${svg(IC.inventario)}</div><div><div class="ot">${t('ob_bodega')}</div><div class="od">${t('ob_bodega_d')}</div></div></button>
+    <button class="ocard" data-act="ob:local"><div class="oic">${svg('<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>')}</div><div><div class="ot">${t('ob_local')}</div><div class="od">${t('ob_local_d')}</div></div></button>`;
+  }else if(s==='bodega_name'){
+    h=`<h2>${t('ob_bodega_create')}</h2>${fld('ob_name',t('ob_bodega_name'),t('ob_bodega_name_ph'),tmp.name)}<button class="btn obtn" data-act="ob:bodega_id">${t('ob_continue')}</button>`;
+  }else if(s==='bodega_id'){
+    h=`<h2>${t('ob_id_title')}</h2><div class="idbox"><div class="idl">${t('ob_id_label')}</div><div class="idv">${tmp.id}</div></div><div class="osub">${t('ob_id_sub')}</div><button class="btn obtn" data-act="ob:finishBodega">${t('ob_enter')}</button>`;
+  }else if(s==='local_choose'){
+    h=`<h2>${t('ob_local_q')}</h2>
+    <button class="ocard" data-act="ob:local_ancla"><div class="oic">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 12l3 3 5-5"/>')}</div><div><div class="ot">${t('ob_local_ancla')}</div><div class="od">${t('ob_local_ancla_d')}</div></div></button>
+    <button class="ocard" data-act="ob:local_propia"><div class="oic">${svg(IC.inventario)}</div><div><div class="ot">${t('ob_local_propia')}</div><div class="od">${t('ob_local_propia_d')}</div></div></button>`;
+  }else if(s==='local_ancla'){
+    h=`<h2>${t('ob_local_ancla')}</h2>${fld('ob_name',t('ob_local_name'),t('ob_local_name_ph'),tmp.name)}${fld('ob_id',t('ob_enter_id'),t('ob_enter_id_ph'),tmp.linkedId)}<button class="btn obtn" data-act="ob:finishLocalAncla">${t('ob_enter')}</button>`;
+  }else if(s==='local_propia'){
+    h=`<h2>${t('ob_local_propia')}</h2>${fld('ob_name',t('ob_local_name'),t('ob_local_name_ph'),tmp.name)}<button class="btn obtn" data-act="ob:finishLocalPropia">${t('ob_enter')}</button>`;
+  }
+  document.getElementById('onboBody').innerHTML=h;
+}
+function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function finishOnbo(p){state.profile=p;saveProfile();document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();}
+function obAction(sub){
+  const tmp=state.onbo.tmp;
+  if(sub==='role')return obGo('role');
+  if(sub==='bodega')return obGo('bodega_name');
+  if(sub==='local')return obGo('local_choose');
+  if(sub==='bodega_id'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}tmp.name=n;tmp.id=genBodegaId();return obGo('bodega_id');}
+  if(sub==='finishBodega')return finishOnbo({type:'bodega',name:tmp.name,id:tmp.id});
+  if(sub==='local_ancla')return obGo('local_ancla');
+  if(sub==='local_propia')return obGo('local_propia');
+  if(sub==='finishLocalAncla'){const n=obVal('ob_name'),id=obVal('ob_id');if(!n){toast(t('ob_need_name'));return;}if(!id){toast(t('ob_need_id'));return;}return finishOnbo({type:'local',localKind:'anclada',name:n,linkedId:id.toUpperCase()});}
+  if(sub==='finishLocalPropia'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}return finishOnbo({type:'local',localKind:'propia',name:n,id:genBodegaId()});}
+}
+function doLogout(){clearProfile();state.profile=null;drawer(false);state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
+function boot(){
+  let p=null;try{p=JSON.parse(localStorage.getItem('abanico.profile')||'null')}catch(_){}
+  state.profile=p;renderDrawer();render();
+  if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
+}
 
 const TOASTS={notif:'notif',more:'more',scanner:'scanner',categories:'categories',filters:'filters',addmove:'addMove',closereg:'closeRegDemo'};
 document.getElementById("device").addEventListener("click",e=>{
@@ -550,8 +649,10 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="rm-img"){readForm();state.form.img=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="perm-allow")return permResult(true);
     if(a==="perm-deny")return permResult(false);
+    if(a==="ob")return obAction(el.dataset.act.split(":")[1]);
+    if(a==="logout")return doLogout();
     if(a==="toast"){const key=el.dataset.act.split(":")[1];return toast(t(TOASTS[key]||'more'));}
   }
 });
-renderDrawer();render();
+boot();
 </script>

@@ -724,8 +724,10 @@ function requestAccess(){
 }
 function seedDemo(){
   const ID='BOD-FERRE';
-  if(getEntity('bodega',ID))return;
-  upsertEntity('bodega',{id:ID,name:'Ferretería El Tornillo',logo:null,pass:'ferre',open:true});
+  const ex=getEntity('bodega',ID);
+  if(ex&&ex.open){saveReq(loadReq().filter(r=>r.bodegaId!==ID));} /* migrar demo previa auto-aprobada -> flujo normal */
+  upsertEntity('bodega',{id:ID,name:'Ferretería El Tornillo',logo:(ex&&ex.logo)||null,pass:'ferre',open:false});
+  if(loadDataOf(ID).products.length)return;
   const base={
     'Tornillería':['Tornillo','Tuerca','Arandela','Clavo','Perno','Grapa','Taco fischer','Remache','Chazo'],
     'Herramientas':['Martillo','Destornillador','Llave fija','Alicate','Serrucho','Cinta métrica','Nivel','Taladro','Juego de brocas','Playo','Pinza','Lima'],

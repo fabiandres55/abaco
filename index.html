@@ -627,8 +627,9 @@ function _docPath(key){
   if(key.indexOf('data.')===0)return 'inv/'+key.slice(5);
   return 'shared/'+key;
 }
+function _clone(x){try{return x==null?x:JSON.parse(JSON.stringify(x));}catch(_){return x;}}
 function _get(key,def){
-  if(key in CACHE)return CACHE[key];
+  if(key in CACHE)return _clone(CACHE[key]);
   try{const v=JSON.parse(localStorage.getItem('abanico.'+key));return v==null?def:v;}catch(_){return def;}
 }
 function _set(key,val){
@@ -640,7 +641,8 @@ function _applySnap(key,val){
   CACHE[key]=val;
   try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
   if(key.indexOf('data.')===0&&state.profile&&('data.'+state.profile.id)===key){
-    state.products=val.products||[];state.sales=val.sales||[];state.cats=val.cats||[];state.seq=val.seq||1;state.extraMoves=val.extraMoves||[];
+    const v=_clone(val);
+    state.products=v.products||[];state.sales=v.sales||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];
   }
   if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
 }

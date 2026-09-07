@@ -712,15 +712,9 @@ function requestAccess(){
   if(ex&&ex.status==='pending'){toast(t('already_req'));return;}
   let l=loadReq().filter(r=>!(r.tiendaId===tid&&r.bodegaId===bid));
   const reqId='R'+Date.now();
-  if(b.open){
-    l.push({reqId,tiendaId:tid,tiendaName:state.profile.name,bodegaId:bid,status:'approved'});saveReq(l);
-    pushNotif(tid,{kind:'approved',text:ti('n_approved',{b:b.name})});
-    render();toast(t('access_granted'));
-  }else{
-    l.push({reqId,tiendaId:tid,tiendaName:state.profile.name,bodegaId:bid,status:'pending'});saveReq(l);
-    pushNotif(bid,{kind:'request',reqId,text:ti('n_req',{t:state.profile.name})});
-    render();toast(t('req_sent'));
-  }
+  l.push({reqId,tiendaId:tid,tiendaName:state.profile.name,bodegaId:bid,status:'pending'});saveReq(l);
+  pushNotif(bid,{kind:'request',reqId,text:ti('n_req',{t:state.profile.name})});
+  render();toast(t('req_sent'));
 }
 function seedDemo(){
   const ID='BOD-FERRE';

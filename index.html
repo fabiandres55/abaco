@@ -617,28 +617,64 @@ function checkout(){const items=cartItems();if(!items.length)return;const id=(st
 /* ---------------- perfil / registros / datos ---------------- */
 function saveProfile(){try{localStorage.setItem('abanico.profile',JSON.stringify(state.profile))}catch(_){}}
 function clearProfile(){try{localStorage.removeItem('abanico.profile')}catch(_){}}
-function regKey(role){return 'abanico.'+role+'s';}
-function loadReg(role){try{return JSON.parse(localStorage.getItem(regKey(role))||'[]')}catch(_){return[]}}
-function saveReg(role,l){try{localStorage.setItem(regKey(role),JSON.stringify(l))}catch(_){}}
-function upsertEntity(role,e){const l=loadReg(role);const i=l.findIndex(x=>x.id===e.id);if(i>=0)l[i]={...l[i],...e};else l.push(e);saveReg(role,l);}
+/* ---- capa de datos: nube compartida (db) + respaldo local ---- */
+let DBH=null; const CACHE={}; const WATCHED=new Set();
+function _docPath(key){
+  if(key==='bodegas'||key==='tiendas'||key==='requests')return 'shared/'+key;
+  if(key.indexOf('notif.')===0)return 'notif/'+key.slice(6);
+  if(key.indexOf('data.')===0)return 'inv/'+key.slice(5);
+  return 'shared/'+key;
+}
+function _get(key,def){
+  if(key in CACHE)return CACHE[key];
+  try{const v=JSON.parse(localStorage.getItem('abanico.'+key));return v==null?def:v;}catch(_){return def;}
+}
+function _set(key,val){
+  CACHE[key]=val;
+  try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
+  if(DBH){try{DBH.doc(_docPath(key)).set({v:val}).catch(()=>{})}catch(_){}}
+}
+function _applySnap(key,val){
+  CACHE[key]=val;
+  try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
+  if(key.indexOf('data.')===0&&state.profile&&('data.'+state.profile.id)===key){
+    state.products=val.products||[];state.sales=val.sales||[];state.cats=val.cats||[];state.seq=val.seq||1;state.extraMoves=val.extraMoves||[];
+  }
+  if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
+}
+function watchKey(key){
+  if(!DBH||WATCHED.has(key))return;WATCHED.add(key);
+  try{DBH.doc(_docPath(key)).onSnapshot(s=>{const d=s&&s.data&&s.data();if(d&&('v'in d))_applySnap(key,d.v);},()=>{});}catch(_){}
+}
+async function initDb(){
+  try{DBH=(window.claude&&claude.use)?await claude.use('db'):null;}catch(_){DBH=null;}
+  if(!DBH)return false;
+  ['bodegas','tiendas','requests'].forEach(watchKey);
+  if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);}
+  return true;
+}
+function regKey(role){return role+'s';}
+function loadReg(role){return _get(regKey(role),[]);}
+function saveReg(role,l){_set(regKey(role),l);}
+function upsertEntity(role,e){const l=loadReg(role).slice();const i=l.findIndex(x=>x.id===e.id);if(i>=0)l[i]={...l[i],...e};else l.push(e);saveReg(role,l);}
 function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
 function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves});}
-function loadDataOf(id){let d=null;try{d=JSON.parse(localStorage.getItem('abanico.data.'+id)||'null')}catch(_){}return d||{products:[],sales:[],cats:[],seq:1,extraMoves:[]};}
-function saveDataOf(id,d){try{localStorage.setItem('abanico.data.'+id,JSON.stringify(d))}catch(_){}}
+function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[]});}
+function saveDataOf(id,d){_set('data.'+id,d);}
 function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.cart={};state.filterCat=null;}
 /* solicitudes tienda->bodega */
-function loadReq(){try{return JSON.parse(localStorage.getItem('abanico.requests')||'[]')}catch(_){return[]}}
-function saveReq(l){try{localStorage.setItem('abanico.requests',JSON.stringify(l))}catch(_){}}
+function loadReq(){return _get('requests',[]);}
+function saveReq(l){_set('requests',l);}
 function reqBetween(tid,bid){return loadReq().find(r=>r.tiendaId===tid&&r.bodegaId===bid);}
 function linkedBodegas(tid){return loadReq().filter(r=>r.tiendaId===tid&&r.status==='approved').map(r=>r.bodegaId);}
 function linkedTiendas(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status==='approved').map(r=>r.tiendaId);}
 function pendingReqs(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status==='pending');}
 /* notificaciones por entidad */
-function loadNotif(id){try{return JSON.parse(localStorage.getItem('abanico.notif.'+id)||'[]')}catch(_){return[]}}
-function saveNotif(id,l){try{localStorage.setItem('abanico.notif.'+id,JSON.stringify(l))}catch(_){}}
-function pushNotif(id,n){const l=loadNotif(id);l.unshift({nid:Date.now()+''+Math.floor(Math.random()*1e4),read:false,...n});saveNotif(id,l);}
+function loadNotif(id){return _get('notif.'+id,[]);}
+function saveNotif(id,l){_set('notif.'+id,l);}
+function pushNotif(id,n){const l=loadNotif(id).slice();l.unshift({nid:Date.now()+''+Math.floor(Math.random()*1e4),read:false,...n});saveNotif(id,l);}
 function unreadCount(id){return id?loadNotif(id).filter(n=>!n.read).length:0;}
 function ti(k,v){let s=t(k);for(const x in (v||{}))s=s.split('{'+x+'}').join(v[x]);return s;}
 
@@ -678,6 +714,7 @@ function renderOnbo(){
 function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function enterProfile(role,ent){
   state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
+  watchKey('notif.'+ent.id);watchKey('data.'+ent.id);
   loadData(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
 }
@@ -693,12 +730,16 @@ function obAction(sub){
 }
 function doLogout(){persist();clearProfile();state.profile=null;state.products=[];state.sales=[];state.cats=[];state.seq=1;state.extraMoves=[];state.cart={};state.filterCat=null;state.catBodega=null;drawer(false);state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
 function boot(){
-  seedDemo();
   let p=null;try{p=JSON.parse(localStorage.getItem('abanico.profile')||'null')}catch(_){}
   state.profile=p;
   if(p)loadData(p.id);
   renderDrawer();render();
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
+  initDb().then(hasDb=>{
+    if(!hasDb){seedDemo();}
+    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);loadData(state.profile.id);}
+    if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
+  });
 }
 
 /* ---------------- red bodega<->tienda ---------------- */
@@ -787,7 +828,7 @@ document.getElementById("device").addEventListener("click",e=>{
   const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat]");
   if(!el)return;
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
-  if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;return go('catalogo');}
+  if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);return go('catalogo');}
   if(el.hasAttribute("data-addcat")){const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
   if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;state.filterCat=v==='__all__'?null:v;closeCat();return render();}
   state._keep=document.getElementById("screen").scrollTop;

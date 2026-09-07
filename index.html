@@ -73,6 +73,10 @@
   .catopt{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;font-size:15px;color:var(--ink)}
   .catopt:active{background:var(--sel)}.catopt.sel{color:var(--pri-d);font-weight:600}
   .catopt .ck{width:20px;height:20px;flex:none}.catopt .ck svg{width:20px;height:20px;stroke:var(--pri-d);fill:none;stroke-width:2.2}
+  .notirow{padding:13px 18px;border-bottom:1px solid var(--line2)}
+  .notirow:last-child{border-bottom:none}
+  .notirow.unread{background:#f6f7f8}
+  .notirow .ntext{font-size:14px;line-height:1.4;color:var(--ink)}
 
   .screen{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
   .pad{padding:12px 12px 90px}
@@ -251,7 +255,7 @@
   <div class="appbar">
     <button class="iconbtn" data-drawer="open"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
     <div class="title"><div class="t1" id="barShop">Abanico</div><div class="t2" id="barSection"></div></div>
-    <button class="iconbtn" data-act="toast:notif" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg><span class="badge-dot"></span></button>
+    <button class="iconbtn" data-act="notifs" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg><span class="badge-dot" id="bellDot" hidden></span></button>
     <button class="iconbtn" data-act="toast:more"><svg viewBox="0 0 24 24" style="stroke-width:2.6"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></button>
   </div>
 
@@ -278,6 +282,9 @@
 
   <!-- category filter sheet -->
   <div class="sheetdlg" id="catdlg"><div class="sheetcard"><div class="sheet-h" id="catdlgH"></div><div class="sheet-list" id="catOptions"></div></div></div>
+
+  <!-- notifications sheet -->
+  <div class="sheetdlg" id="notifdlg"><div class="sheetcard"><div class="sheet-h" id="notifH"></div><div class="sheet-list" id="notifOptions"></div></div></div>
 
   <!-- notification permission dialog -->
   <div class="permdlg" id="permdlg">
@@ -334,7 +341,8 @@ const I18N={
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
     perm_title:"Permitir notificaciones",perm_body:"Ábaco necesita permiso para avisarte cuando el producto esté por vencer.",perm_allow:"Permitir",perm_deny:"Ahora no",
     save:"Guardar",saved:"Producto guardado",editProduct:"Editar producto",updated:"Producto actualizado",del:"Eliminar producto",deleted:"Producto eliminado",
-    ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",ob_bodega_dir_title:"Tus bodegas",ob_create_new:"Crear nueva bodega",ob_logo:"Logo (opcional)",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
+    ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",ob_bodega_dir_title:"Tus bodegas",ob_create_new:"Crear nueva bodega",ob_logo:"Logo (opcional)",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",
+    ob_tienda:"Tienda",ob_tienda_d:"Vendo en una tienda",ob_tienda_dir_title:"Tus tiendas",ob_tienda_create:"Crea tu tienda",ob_tienda_name:"Nombre de la tienda",ob_tienda_name_ph:"Ej.: Tienda La Esquina",ob_pass:"Contraseña de ingreso",ob_pass_ph:"••••",ob_need_pass:"Escribe la contraseña",ob_wrong_pass:"Contraseña incorrecta",ob_id_tienda_label:"ID de tu tienda",ob_enter_existing:"Entrar",mode_tienda:"Tienda",m_tiendas:"Tiendas",m_proveedores:"Proveedores",m_recepcion:"Recepción",m_despacho:"Despacho",m_movimientos:"Movimientos",m_control:"Control y auditoría",m_abastecimiento:"Abastecimiento",m_catalogo:"Catálogo",notifs:"Notificaciones",no_notifs:"Sin notificaciones",approve:"Aprobar",deny:"Rechazar",prov_hint:"Ingresa el ID de una bodega para pedir acceso a su catálogo.",prov_id_ph:"ID de la bodega (BOD-XXXX)",prov_request:"Solicitar acceso",prov_linked:"Bodegas conectadas",prov_empty:"Aún no tienes bodegas conectadas",prov_pending:"Solicitud enviada · esperando aprobación",prov_pending_h:"Solicitudes enviadas",req_sent:"Solicitud enviada",bodega_not_found:"No existe una bodega con ese ID",already_req:"Ya enviaste una solicitud a esa bodega",cat_title:"Catálogo",cat_add:"Agregar",cat_visible:"Solo ves nombre, cantidad disponible y precio de venta.",added_to_inv:"Agregado a tu inventario",no_stock:"Sin stock en la bodega",tiendas_title:"Tiendas vinculadas",requests_title:"Solicitudes de acceso",no_tiendas:"Aún no hay tiendas vinculadas",no_requests:"Sin solicitudes",n_req:'La tienda "{t}" quiere acceder a tu catálogo',n_approved:'La bodega "{b}" aprobó tu acceso',n_denied:'La bodega "{b}" negó tu acceso',n_dispatch:'La tienda "{t}" tomó {n} de "{p}"',n_sold:'La tienda "{t}" vendió {n} de "{p}"',needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
@@ -352,7 +360,8 @@ const I18N={
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
     perm_title:"Allow notifications",perm_body:"Ábaco needs permission to alert you when the product is about to expire.",perm_allow:"Allow",perm_deny:"Not now",
     save:"Save",saved:"Product saved",editProduct:"Edit product",updated:"Product updated",del:"Delete product",deleted:"Product deleted",
-    ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",ob_bodega_dir_title:"Your warehouses",ob_create_new:"Create new warehouse",ob_logo:"Logo (optional)",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
+    ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",ob_bodega_dir_title:"Your warehouses",ob_create_new:"Create new warehouse",ob_logo:"Logo (optional)",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",
+    ob_tienda:"Store",ob_tienda_d:"I sell in a shop",ob_tienda_dir_title:"Your stores",ob_tienda_create:"Create your store",ob_tienda_name:"Store name",ob_tienda_name_ph:"e.g. Corner Store",ob_pass:"Access password",ob_pass_ph:"••••",ob_need_pass:"Enter the password",ob_wrong_pass:"Wrong password",ob_id_tienda_label:"Your store ID",ob_enter_existing:"Enter",mode_tienda:"Store",m_tiendas:"Stores",m_proveedores:"Suppliers",m_recepcion:"Receiving",m_despacho:"Dispatch",m_movimientos:"Movements",m_control:"Audit & control",m_abastecimiento:"Restocking",m_catalogo:"Catalog",notifs:"Notifications",no_notifs:"No notifications",approve:"Approve",deny:"Reject",prov_hint:"Enter a warehouse ID to request access to its catalog.",prov_id_ph:"Warehouse ID (BOD-XXXX)",prov_request:"Request access",prov_linked:"Connected warehouses",prov_empty:"No connected warehouses yet",prov_pending:"Request sent · awaiting approval",prov_pending_h:"Sent requests",req_sent:"Request sent",bodega_not_found:"No warehouse with that ID",already_req:"You already requested that warehouse",cat_title:"Catalog",cat_add:"Add",cat_visible:"You only see name, available quantity and sale price.",added_to_inv:"Added to your inventory",no_stock:"No stock in the warehouse",tiendas_title:"Linked stores",requests_title:"Access requests",no_tiendas:"No linked stores yet",no_requests:"No requests",n_req:'Store "{t}" wants access to your catalog',n_approved:'Warehouse "{b}" approved your access',n_denied:'Warehouse "{b}" denied your access',n_dispatch:'Store "{t}" took {n} of "{p}"',n_sold:'Store "{t}" sold {n} of "{p}"',needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
 };
 const L=(new URLSearchParams(location.search).get("lang")||navigator.language||"es").slice(0,2).toLowerCase();
 const LANG=I18N[L]?L:"en";
@@ -361,10 +370,13 @@ const UNITS=["u_cubic","u_gram","u_kg","u_liter","u_meter","u_piece"];
 
 const money=n=>"$"+Math.round(n||0).toLocaleString(LANG==="es"?"es-CO":"en-US");
 function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</svg>`}
-const IC={inventario:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>',servicios:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/>',ventas:'<path d="M6 8h12l-1 11H7z"/><path d="M9 8a3 3 0 016 0"/>',compras:'<path d="M6 6h15l-1.5 9H8z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H3"/>',caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',reportes:'<path d="M5 20V4M5 20h15M9 16v-5M13 16v-9M17 16v-3"/>',empleados:'<circle cx="12" cy="8" r="3"/><rect x="5" y="14" width="14" height="6" rx="3"/>',proveedores:'<circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M16 6a3 3 0 010 6"/>',clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>',calendario:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',respaldo:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>'};
-const DRAWER=[{id:'inventario'},{id:'servicios',soon:1},{sep:1},{id:'ventas'},{id:'compras',soon:1},{id:'caja'},{sep:1},{id:'reportes'},{sep:1},{id:'empleados',soon:1},{id:'proveedores',soon:1},{id:'clientes',soon:1},{sep:1},{id:'calendario',soon:1},{id:'respaldo',soon:1}];
+const IC={inventario:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>',servicios:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/>',ventas:'<path d="M6 8h12l-1 11H7z"/><path d="M9 8a3 3 0 016 0"/>',compras:'<path d="M6 6h15l-1.5 9H8z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H3"/>',caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',reportes:'<path d="M5 20V4M5 20h15M9 16v-5M13 16v-9M17 16v-3"/>',empleados:'<circle cx="12" cy="8" r="3"/><rect x="5" y="14" width="14" height="6" rx="3"/>',proveedores:'<circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M16 6a3 3 0 010 6"/>',clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>',calendario:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',respaldo:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+  tiendas:'<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>',recepcion:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',despacho:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',movimientos:'<path d="M7 7h11l-3-3M18 17H7l3 3"/>',control:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',abastecimiento:'<path d="M20 12a8 8 0 10-2.4 5.7"/><path d="M20 6v5h-5"/>',catalogo:'<path d="M6 4h11a2 2 0 012 2v14l-4-2-4 2-4-2V6a2 2 0 011-2z"/>'};
+const DRAWER_BODEGA=[{id:'inventario'},{id:'tiendas'},{sep:1},{id:'recepcion',soon:1},{id:'despacho',soon:1},{id:'movimientos',soon:1},{sep:1},{id:'reportes'},{sep:1},{id:'control',soon:1},{id:'abastecimiento',soon:1}];
+const DRAWER_TIENDA=[{id:'inventario'},{id:'ventas'},{id:'proveedores'},{sep:1},{id:'reportes'},{sep:1},{id:'caja'}];
+function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRAWER_TIENDA:DRAWER_BODEGA;}
 
-const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}}};
+const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null};
 const LOW=5;
 const P=id=>state.products.find(p=>p.id===id);
 const saleTotal=s=>s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
@@ -397,7 +409,7 @@ function scInventario(){
   if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   items.sort((a,b)=>a.stock-b.stock);
   const warnSvg='<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="#f0b90b"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>';
-  const bod=state.profile&&state.profile.type==='bodega';
+  const bod=state.profile&&state.profile.kind==='bodega';
   const cards=items.map(p=>{
     const flag=p.stock<=LOW||p.reserve>0;
     const img=p.img?`<img src="${p.img}" alt="">`:svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
@@ -441,13 +453,38 @@ function scReportes(){
   <div class="kpis"><div class="kpi"><div class="k-l">${t('profitToday')}</div><div class="k-v num" style="color:var(--green)">${money(ganancia())}</div></div><div class="kpi"><div class="k-l">${t('avgTicket')}</div><div class="k-v num">${money(todaySales()/Math.max(state.sales.length,1))}</div></div><div class="kpi"><div class="k-l">${t('numSales')}</div><div class="k-v num">${state.sales.length}</div></div></div>
   <div class="section-h"><h2>${t('topToday')}</h2></div><div class="list">${topRows}</div>`;
 }
-const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes};
-const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale'};
+function scTiendas(){
+  const bid=state.profile.id;
+  const pend=pendingReqs(bid);
+  const linked=linkedTiendas(bid).map(id=>getEntity('tienda',id)).filter(Boolean);
+  const reqRows=pend.length?pend.map(r=>`<div class="row"><div class="av">${svg('<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>')}</div><div><div class="t">${r.tiendaName}</div><div class="s">${r.tiendaId}</div></div><div class="r" style="display:flex;gap:6px"><button class="add-btn" data-act="approve:${r.reqId}">${t('approve')}</button><button class="add-btn" style="border-color:var(--red);color:var(--red)" data-act="deny:${r.reqId}">${t('deny')}</button></div></div>`).join(''):`<div class="empty">${t('no_requests')}</div>`;
+  const linkRows=linked.length?linked.map(x=>`<div class="row"><div class="av" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON.tienda)}</div><div><div class="t">${x.name}</div><div class="s">${x.id}</div></div></div>`).join(''):`<div class="empty">${t('no_tiendas')}</div>`;
+  return `<div class="section-h"><h2>${t('requests_title')}</h2></div><div class="list">${reqRows}</div><div class="section-h"><h2>${t('tiendas_title')}</h2></div><div class="list">${linkRows}</div>`;
+}
+function scProveedores(){
+  const tid=state.profile.id;
+  const linked=linkedBodegas(tid);
+  const pend=loadReq().filter(r=>r.tiendaId===tid&&r.status==='pending');
+  const linkRows=linked.length?linked.map(bid=>{const b=getEntity('bodega',bid);return `<div class="row" data-catalog="${bid}"><div class="av" style="overflow:hidden">${b&&b.logo?`<img src="${b.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(IC.inventario)}</div><div><div class="t">${b?b.name:bid}</div><div class="s">${bid} · ${t('cat_title')}</div></div><div class="r">${svg('<path d="M9 6l6 6-6 6"/>')}</div></div>`;}).join(''):`<div class="empty">${t('prov_empty')}</div>`;
+  const pendRows=pend.map(r=>{const b=getEntity('bodega',r.bodegaId);return `<div class="row"><div class="av">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}</div><div><div class="t">${b?b.name:r.bodegaId}</div><div class="s">${t('prov_pending')}</div></div></div>`;}).join('');
+  return `<div class="osub" style="padding:2px 2px 10px;font-size:13px;color:var(--muted)">${t('prov_hint')}</div>
+  <div class="isearch" style="margin-bottom:10px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="provId" placeholder="${t('prov_id_ph')}"></div>
+  <button class="btn" data-act="reqaccess"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('prov_request')}</button>
+  ${pend.length?`<div class="section-h"><h2>${t('prov_pending_h')}</h2></div><div class="list">${pendRows}</div>`:''}
+  <div class="section-h"><h2>${t('prov_linked')}</h2></div><div class="list">${linkRows}</div>`;
+}
+function scCatalogo(){
+  const bid=state.catBodega;const b=getEntity('bodega',bid);const d=loadDataOf(bid);
+  const rows=(d.products||[]).length?(d.products).map(p=>`<div class="pick"><div class="info"><div class="t">${p.name}</div><div class="s">${p.cat||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
+  return `<div class="backrow" data-nav="proveedores">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
+}
+const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,proveedores:scProveedores,catalogo:scCatalogo};
+const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo'};
 
 /* ---------------- add product form ---------------- */
 function formHTML(){
   const f=state.form;
-  const bod=state.profile&&state.profile.type==='bodega';
+  const bod=state.profile&&state.profile.kind==='bodega';
   const units=UNITS.map(u=>`<option value="${u}" ${f.unit===u?'selected':''}>${t(u)}</option>`).join("");
   const cats=[...new Set([...state.cats])].map(c=>`<option value="${c}">`).join("");
   const img=f.img?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img src="${f.img}" alt=""></div>`
@@ -541,26 +578,26 @@ function closeCat(){document.getElementById('catdlg').classList.remove('on');}
 /* ---------------- drawer / render ---------------- */
 function modeLabel(p){
   if(!p)return t('sync');
-  if(p.type==='bodega')return t('mode_bodega')+' · '+p.id;
-  if(p.localKind==='anclada')return t('mode_local_ancla')+' '+(p.linkedId||'');
-  return t('mode_local_propia');
+  return (p.kind==='bodega'?t('mode_bodega'):t('mode_tienda'))+' · '+p.id;
 }
 function renderDrawer(){
   document.getElementById('drawerShop').textContent=(state.profile&&state.profile.name)||'Abanico';
   document.getElementById('drawerSync').textContent=modeLabel(state.profile)+' · offline';
   document.getElementById('logoutLbl').textContent=t('logout');
-  document.getElementById('drawerList').innerHTML=DRAWER.map(d=>{
+  document.getElementById('drawerList').innerHTML=currentDrawer().map(d=>{
     if(d.sep)return '<div class="dsep"></div>';
     return `<div class="di ${d.id===state.screen?'on':''} ${d.soon?'soon':''}" data-di="${d.id}" data-soon="${d.soon?1:0}">${svg(IC[d.id])}<span>${t('m_'+d.id)}</span>${d.soon?`<span class="soonx">${t('soon')}</span>`:''}</div>`;
   }).join("");
 }
 function render(){
-  const body=document.getElementById("body");const isNueva=state.screen==="nueva";
-  document.getElementById("screen").firstElementChild.className=isNueva?"":"pad";
-  body.className=isNueva?"":"pad";body.innerHTML=SCREENS[state.screen]();
+  const body=document.getElementById("body");const isNueva=state.screen==="nueva";const noPad=isNueva||state.screen==="catalogo";
+  document.getElementById("screen").firstElementChild.className=noPad?"":"pad";
+  body.className=noPad?"":"pad";body.innerHTML=SCREENS[state.screen]();
   document.getElementById("barShop").textContent=(state.profile&&state.profile.name)||'Abanico';
   document.getElementById("barSection").textContent=t(secKey[state.screen]||'m_inventario');
-  document.getElementById("fab").style.display=(isNueva||document.getElementById('device').classList.contains('form-open'))?"none":"grid";
+  const fabShow=(state.screen==='inventario'||state.screen==='ventas')&&!document.getElementById('device').classList.contains('form-open');
+  document.getElementById("fab").style.display=fabShow?"grid":"none";
+  const bd=document.getElementById('bellDot');if(bd)bd.hidden=unreadCount(currentDataId())===0;
   document.getElementById("cartL").textContent=t('total');document.getElementById("cobrarL").textContent=t('charge');
   const items=cartItems();document.getElementById("cartbar").classList.toggle("on",isNueva&&items.length>0);
   document.getElementById("cartTotal").textContent=money(cartTotal());
@@ -573,90 +610,147 @@ function render(){
 let toastT;function toast(m){const t2=document.getElementById("toast");document.getElementById("toastMsg").textContent=m;t2.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t2.classList.remove("on"),2200);}
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
 function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.screen=s;drawer(false);render();}
-function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
+function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
+  if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin)pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});});}
+  state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
 
-/* ---------------- onboarding + perfil ---------------- */
+/* ---------------- perfil / registros / datos ---------------- */
 function saveProfile(){try{localStorage.setItem('abanico.profile',JSON.stringify(state.profile))}catch(_){}}
 function clearProfile(){try{localStorage.removeItem('abanico.profile')}catch(_){}}
-function loadBodegas(){try{return JSON.parse(localStorage.getItem('abanico.bodegas')||'[]')}catch(_){return[]}}
-function saveBodegas(l){try{localStorage.setItem('abanico.bodegas',JSON.stringify(l))}catch(_){}}
-function upsertBodega(b){const l=loadBodegas();const i=l.findIndex(x=>x.id===b.id);if(i>=0)l[i]={...l[i],...b};else l.push(b);saveBodegas(l);}
-function genBodegaId(){const ex=new Set(loadBodegas().map(b=>b.id));let id;do{id='BOD-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
-function currentDataId(){const p=state.profile;if(!p)return null;if(p.type==='local'&&p.localKind==='anclada')return p.linkedId;return p.id;}
-function persist(){const id=currentDataId();if(!id)return;try{localStorage.setItem('abanico.data.'+id,JSON.stringify({products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves}))}catch(_){}}
-function loadData(id){let d=null;try{d=JSON.parse(localStorage.getItem('abanico.data.'+id)||'null')}catch(_){}
-  state.products=(d&&d.products)||[];state.sales=(d&&d.sales)||[];state.cats=(d&&d.cats)||[];state.seq=(d&&d.seq)||1;state.extraMoves=(d&&d.extraMoves)||[];state.cart={};state.filterCat=null;}
+function regKey(role){return 'abanico.'+role+'s';}
+function loadReg(role){try{return JSON.parse(localStorage.getItem(regKey(role))||'[]')}catch(_){return[]}}
+function saveReg(role,l){try{localStorage.setItem(regKey(role),JSON.stringify(l))}catch(_){}}
+function upsertEntity(role,e){const l=loadReg(role);const i=l.findIndex(x=>x.id===e.id);if(i>=0)l[i]={...l[i],...e};else l.push(e);saveReg(role,l);}
+function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
+function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
+function currentDataId(){return state.profile?state.profile.id:null;}
+function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves});}
+function loadDataOf(id){let d=null;try{d=JSON.parse(localStorage.getItem('abanico.data.'+id)||'null')}catch(_){}return d||{products:[],sales:[],cats:[],seq:1,extraMoves:[]};}
+function saveDataOf(id,d){try{localStorage.setItem('abanico.data.'+id,JSON.stringify(d))}catch(_){}}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.cart={};state.filterCat=null;}
+/* solicitudes tienda->bodega */
+function loadReq(){try{return JSON.parse(localStorage.getItem('abanico.requests')||'[]')}catch(_){return[]}}
+function saveReq(l){try{localStorage.setItem('abanico.requests',JSON.stringify(l))}catch(_){}}
+function reqBetween(tid,bid){return loadReq().find(r=>r.tiendaId===tid&&r.bodegaId===bid);}
+function linkedBodegas(tid){return loadReq().filter(r=>r.tiendaId===tid&&r.status==='approved').map(r=>r.bodegaId);}
+function linkedTiendas(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status==='approved').map(r=>r.tiendaId);}
+function pendingReqs(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status==='pending');}
+/* notificaciones por entidad */
+function loadNotif(id){try{return JSON.parse(localStorage.getItem('abanico.notif.'+id)||'[]')}catch(_){return[]}}
+function saveNotif(id,l){try{localStorage.setItem('abanico.notif.'+id,JSON.stringify(l))}catch(_){}}
+function pushNotif(id,n){const l=loadNotif(id);l.unshift({nid:Date.now()+''+Math.floor(Math.random()*1e4),read:false,...n});saveNotif(id,l);}
+function unreadCount(id){return id?loadNotif(id).filter(n=>!n.read).length:0;}
+function ti(k,v){let s=t(k);for(const x in (v||{}))s=s.split('{'+x+'}').join(v[x]);return s;}
+
+/* ---------------- onboarding ---------------- */
 const OB_ABACUS='<rect x="4" y="6" width="40" height="36" rx="7" fill="none" stroke="#565b60" stroke-width="3"/><line x1="15" y1="6" x2="15" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><line x1="24" y1="6" x2="24" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><line x1="33" y1="6" x2="33" y2="42" stroke="#565b60" stroke-width="2" opacity=".5"/><circle cx="15" cy="16" r="3.8" fill="#565b60"/><circle cx="24" cy="31" r="3.8" fill="#565b60"/><circle cx="33" cy="21" r="3.8" fill="#565b60"/>';
+const ROLE_ICON={bodega:IC.inventario,tienda:'<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>'};
 function obGo(step){state.onbo.step=step;renderOnbo();}
 function renderOnbo(){
-  const s=state.onbo.step,tmp=state.onbo.tmp;let h='';
-  const fld=(id,label,ph,val)=>`<div class="fld"><span class="fl">${label}</span><input class="inp" id="${id}" placeholder="${ph}" value="${val||''}"></div>`;
+  const s=state.onbo.step,tmp=state.onbo.tmp,role=tmp.role;let h='';
+  const fld=(id,label,ph,val,type)=>`<div class="fld"><span class="fl">${label}</span><input class="inp" id="${id}" placeholder="${ph}" ${type?`type="${type}"`:''} value="${val||''}"></div>`;
   if(s==='welcome'){
     h=`<div style="margin:auto 0"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Abanico</div><div class="osub" style="text-align:center;margin-top:2px">${t('ob_role_sub')}</div></div></div>
-    <button class="btn obtn" data-act="ob:role">${t('ob_start')}</button>`;
+    <button class="btn obtn" data-act="ob:start">${t('ob_start')}</button>`;
   }else if(s==='role'){
     h=`<h2>${t('ob_role_q')}</h2><div class="osub">${t('ob_role_sub')}</div>
-    <button class="ocard" data-act="ob:bodega"><div class="oic">${svg(IC.inventario)}</div><div><div class="ot">${t('ob_bodega')}</div><div class="od">${t('ob_bodega_d')}</div></div></button>
-    <button class="ocard" data-act="ob:local"><div class="oic">${svg('<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>')}</div><div><div class="ot">${t('ob_local')}</div><div class="od">${t('ob_local_d')}</div></div></button>`;
-  }else if(s==='bodega_dir'){
-    const cards=loadBodegas().map(b=>`<button class="ocard" data-bodega="${b.id}"><div class="oic" style="overflow:hidden">${b.logo?`<img src="${b.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(IC.inventario)}</div><div><div class="ot">${b.name}</div><div class="od">${b.id}</div></div></button>`).join('');
-    h=`<h2>${t('ob_bodega_dir_title')}</h2>${cards}<button class="btn ghost obtn" data-act="ob:bodega_new" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>`;
-  }else if(s==='bodega_name'){
-    h=`<h2>${t('ob_bodega_create')}</h2>
+    <button class="ocard" data-act="ob:role:bodega"><div class="oic">${svg(ROLE_ICON.bodega)}</div><div><div class="ot">${t('ob_bodega')}</div><div class="od">${t('ob_bodega_d')}</div></div></button>
+    <button class="ocard" data-act="ob:role:tienda"><div class="oic">${svg(ROLE_ICON.tienda)}</div><div><div class="ot">${t('ob_tienda')}</div><div class="od">${t('ob_tienda_d')}</div></div></button>`;
+  }else if(s==='dir'){
+    const cards=loadReg(role).map(x=>`<button class="ocard" data-pick="${role}:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[role])}</div><div><div class="ot">${x.name}</div><div class="od">${x.id}</div></div></button>`).join('');
+    h=`<h2>${role==='bodega'?t('ob_bodega_dir_title'):t('ob_tienda_dir_title')}</h2>${cards}<button class="btn ghost obtn" data-act="ob:new" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>`;
+  }else if(s==='create'){
+    h=`<h2>${role==='bodega'?t('ob_bodega_create'):t('ob_tienda_create')}</h2>
     <div class="fld"><span class="fl">${t('ob_logo')}</span><label class="logopick">${tmp.logo?`<img src="${tmp.logo}">`:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<input type="file" id="ob_logo" accept="image/*"></label></div>
-    ${fld('ob_name',t('ob_bodega_name'),t('ob_bodega_name_ph'),tmp.name)}
-    <button class="btn obtn" data-act="ob:bodega_id">${t('ob_continue')}</button>`;
-  }else if(s==='bodega_id'){
-    h=`<h2>${t('ob_id_title')}</h2><div class="idbox"><div class="idl">${t('ob_id_label')}</div><div class="idv">${tmp.id}</div></div><div class="osub">${t('ob_id_sub')}</div><button class="btn obtn" data-act="ob:finishBodega">${t('ob_enter')}</button>`;
-  }else if(s==='local_choose'){
-    h=`<h2>${t('ob_local_q')}</h2>
-    <button class="ocard" data-act="ob:local_ancla"><div class="oic">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 12l3 3 5-5"/>')}</div><div><div class="ot">${t('ob_local_ancla')}</div><div class="od">${t('ob_local_ancla_d')}</div></div></button>
-    <button class="ocard" data-act="ob:local_propia"><div class="oic">${svg(IC.inventario)}</div><div><div class="ot">${t('ob_local_propia')}</div><div class="od">${t('ob_local_propia_d')}</div></div></button>`;
-  }else if(s==='local_ancla'){
-    h=`<h2>${t('ob_local_ancla')}</h2>${fld('ob_name',t('ob_local_name'),t('ob_local_name_ph'),tmp.name)}${fld('ob_id',t('ob_enter_id'),t('ob_enter_id_ph'),tmp.linkedId)}<button class="btn obtn" data-act="ob:finishLocalAncla">${t('ob_enter')}</button>`;
-  }else if(s==='local_propia'){
-    h=`<h2>${t('ob_local_propia')}</h2>${fld('ob_name',t('ob_local_name'),t('ob_local_name_ph'),tmp.name)}<button class="btn obtn" data-act="ob:finishLocalPropia">${t('ob_enter')}</button>`;
+    ${fld('ob_name',role==='bodega'?t('ob_bodega_name'):t('ob_tienda_name'),role==='bodega'?t('ob_bodega_name_ph'):t('ob_tienda_name_ph'),tmp.name)}
+    ${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),tmp.pass,'password')}
+    <button class="btn obtn" data-act="ob:create2">${t('ob_continue')}</button>`;
+  }else if(s==='created'){
+    h=`<h2>${t('ob_id_title')}</h2><div class="idbox"><div class="idl">${role==='bodega'?t('ob_id_label'):t('ob_id_tienda_label')}</div><div class="idv">${tmp.id}</div></div><div class="osub">${role==='bodega'?t('ob_id_sub'):''}</div><button class="btn obtn" data-act="ob:finish">${t('ob_enter')}</button>`;
+  }else if(s==='password'){
+    const ent=getEntity(role,tmp.id);
+    h=`<h2>${ent?ent.name:''}</h2><div class="osub" style="margin-bottom:6px">${tmp.id}</div>${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),'','password')}<button class="btn obtn" data-act="ob:enter">${t('ob_enter_existing')}</button>`;
   }
   document.getElementById('onboBody').innerHTML=h;
   const lg=document.getElementById('ob_logo');
   if(lg)lg.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{state.onbo.tmp.logo=ev.target.result;renderOnbo();};r.readAsDataURL(f);});
 }
 function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'';}
-function finishOnbo(p){
-  state.profile=p;saveProfile();
-  if(p.type==='bodega')upsertBodega({id:p.id,name:p.name,logo:p.logo||null});
-  loadData(currentDataId());
+function enterProfile(role,ent){
+  state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
+  loadData(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
 }
-function obPick(id){const b=loadBodegas().find(x=>x.id===id);if(!b)return;finishOnbo({type:'bodega',name:b.name,id:b.id,logo:b.logo});}
+function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent=getEntity(role,id);if(!ent)return;if(ent.pass)return obGo('password');return enterProfile(role,ent);}
 function obAction(sub){
-  const tmp=state.onbo.tmp;
-  if(sub==='role')return obGo('role');
-  if(sub==='bodega')return loadBodegas().length?obGo('bodega_dir'):obGo('bodega_name');
-  if(sub==='bodega_new'){tmp.name='';tmp.logo=null;return obGo('bodega_name');}
-  if(sub==='local')return obGo('local_choose');
-  if(sub==='bodega_id'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}tmp.name=n;tmp.id=genBodegaId();return obGo('bodega_id');}
-  if(sub==='finishBodega')return finishOnbo({type:'bodega',name:tmp.name,id:tmp.id,logo:tmp.logo||null});
-  if(sub==='local_ancla')return obGo('local_ancla');
-  if(sub==='local_propia')return obGo('local_propia');
-  if(sub==='finishLocalAncla'){const n=obVal('ob_name'),id=obVal('ob_id');if(!n){toast(t('ob_need_name'));return;}if(!id){toast(t('ob_need_id'));return;}return finishOnbo({type:'local',localKind:'anclada',name:n,linkedId:id.toUpperCase()});}
-  if(sub==='finishLocalPropia'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}return finishOnbo({type:'local',localKind:'propia',name:n,id:genBodegaId()});}
+  const tmp=state.onbo.tmp,parts=sub.split(':'),a=parts[0];
+  if(a==='start')return obGo('role');
+  if(a==='role'){tmp.role=parts[1];tmp.name='';tmp.logo=null;tmp.pass='';return loadReg(tmp.role).length?obGo('dir'):obGo('create');}
+  if(a==='new'){tmp.name='';tmp.logo=null;tmp.pass='';return obGo('create');}
+  if(a==='create2'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}const pw=obVal('ob_pass');if(!pw){toast(t('ob_need_pass'));return;}tmp.name=n;tmp.pass=pw;tmp.id=genEntId(tmp.role);return obGo('created');}
+  if(a==='finish'){upsertEntity(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null,pass:tmp.pass});return enterProfile(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null});}
+  if(a==='enter'){const ent=getEntity(tmp.role,tmp.id);if(!ent)return;const pw=obVal('ob_pass');if(!pw){toast(t('ob_need_pass'));return;}if(ent.pass&&ent.pass!==pw){toast(t('ob_wrong_pass'));return;}return enterProfile(tmp.role,ent);}
 }
-function doLogout(){persist();clearProfile();state.profile=null;state.products=[];state.sales=[];state.cats=[];state.seq=1;state.extraMoves=[];state.cart={};state.filterCat=null;drawer(false);state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
+function doLogout(){persist();clearProfile();state.profile=null;state.products=[];state.sales=[];state.cats=[];state.seq=1;state.extraMoves=[];state.cart={};state.filterCat=null;state.catBodega=null;drawer(false);state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
 function boot(){
   let p=null;try{p=JSON.parse(localStorage.getItem('abanico.profile')||'null')}catch(_){}
   state.profile=p;
-  if(p)loadData(currentDataId());
+  if(p)loadData(p.id);
   renderDrawer();render();
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
 }
 
+/* ---------------- red bodega<->tienda ---------------- */
+function requestAccess(){
+  const el=document.getElementById('provId');const bid=(el?el.value.trim():'').toUpperCase();
+  if(!bid)return;
+  if(!getEntity('bodega',bid)){toast(t('bodega_not_found'));return;}
+  const tid=state.profile.id;const ex=reqBetween(tid,bid);
+  if(ex&&ex.status!=='denied'){toast(t('already_req'));return;}
+  let l=loadReq().filter(r=>!(r.tiendaId===tid&&r.bodegaId===bid));
+  const reqId='R'+Date.now();l.push({reqId,tiendaId:tid,tiendaName:state.profile.name,bodegaId:bid,status:'pending'});saveReq(l);
+  pushNotif(bid,{kind:'request',reqId,text:ti('n_req',{t:state.profile.name})});
+  render();toast(t('req_sent'));
+}
+function setReqStatus(reqId,status){
+  const l=loadReq();const r=l.find(x=>x.reqId===reqId);if(!r)return;r.status=status;saveReq(l);
+  const b=getEntity('bodega',r.bodegaId);
+  pushNotif(r.tiendaId,{kind:status==='approved'?'approved':'denied',text:ti(status==='approved'?'n_approved':'n_denied',{b:b?b.name:r.bodegaId})});
+  const bl=loadNotif(r.bodegaId);bl.forEach(n=>{if(n.reqId===reqId){n.read=true;n.done=true;}});saveNotif(r.bodegaId,bl);
+  render();if(document.getElementById('notifdlg').classList.contains('on'))openNotifs();
+  toast(status==='approved'?t('approve'):t('deny'));
+}
+function addFromCatalog(bid,pid){
+  const d=loadDataOf(bid);const bp=(d.products||[]).find(p=>p.id===pid);if(!bp)return;
+  if(bp.stock<=0){toast(t('no_stock'));return;}
+  bp.stock-=1;saveDataOf(bid,d);
+  let mine=state.products.find(p=>p.origin&&p.origin.bid===bid&&p.origin.pid===pid);
+  if(mine)mine.stock+=1;else state.products.push({id:state.seq++,key:bp.key,name:bp.name,cat:bp.cat,unit:bp.unit,cost:bp.price,price:bp.price,addSale:0,stock:1,reserve:0,img:bp.img||null,expiry:null,origin:{bid,pid}});
+  persist();pushNotif(bid,{kind:'dispatch',text:ti('n_dispatch',{t:state.profile.name,n:1,p:bp.name})});
+  render();toast(t('added_to_inv'));
+}
+function openNotifs(){
+  const id=currentDataId();const list=loadNotif(id);
+  document.getElementById('notifH').textContent=t('notifs');
+  document.getElementById('notifOptions').innerHTML=list.length?list.map(n=>{
+    const act=(n.kind==='request'&&!n.done)?`<div style="display:flex;gap:6px;margin-top:9px"><button class="add-btn" data-act="approve:${n.reqId}">${t('approve')}</button><button class="add-btn" style="border-color:var(--red);color:var(--red)" data-act="deny:${n.reqId}">${t('deny')}</button></div>`:'';
+    return `<div class="notirow ${n.read?'':'unread'}"><div class="ntext">${n.text}</div>${act}</div>`;
+  }).join(''):`<div class="empty">${t('no_notifs')}</div>`;
+  document.getElementById('notifdlg').classList.add('on');
+  list.forEach(n=>n.read=true);saveNotif(id,list);
+  const bd=document.getElementById('bellDot');if(bd)bd.hidden=true;
+}
+function closeNotifs(){document.getElementById('notifdlg').classList.remove('on');}
+
 const TOASTS={notif:'notif',more:'more',scanner:'scanner',categories:'categories',filters:'filters',addmove:'addMove',closereg:'closeRegDemo'};
 document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='catdlg')return closeCat();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-bodega]");
+  if(e.target.id==='notifdlg')return closeNotifs();
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat]");
   if(!el)return;
-  if(el.hasAttribute("data-bodega"))return obPick(el.dataset.bodega);
+  if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
+  if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;return go('catalogo');}
+  if(el.hasAttribute("data-addcat")){const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
   if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;state.filterCat=v==='__all__'?null:v;closeCat();return render();}
   state._keep=document.getElementById("screen").scrollTop;
   if(el.dataset.drawer)return drawer(el.dataset.drawer==="open");
@@ -678,8 +772,12 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="rm-img"){readForm();state.form.img=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="perm-allow")return permResult(true);
     if(a==="perm-deny")return permResult(false);
-    if(a==="ob")return obAction(el.dataset.act.split(":")[1]);
+    if(a==="ob")return obAction(el.dataset.act.slice(3));
     if(a==="logout")return doLogout();
+    if(a==="notifs")return openNotifs();
+    if(a==="reqaccess")return requestAccess();
+    if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');
+    if(a==="deny")return setReqStatus(el.dataset.act.split(":")[1],'denied');
     if(a==="toast"){const key=el.dataset.act.split(":")[1];return toast(t(TOASTS[key]||'more'));}
   }
 });

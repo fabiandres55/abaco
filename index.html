@@ -699,7 +699,22 @@ function pendingReqs(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status=
 /* notificaciones por entidad */
 function loadNotif(id){return _get('notif.'+id,[]);}
 function saveNotif(id,l){_set('notif.'+id,l);}
-function pushNotif(id,n){const l=loadNotif(id).slice();l.unshift({nid:Date.now()+''+Math.floor(Math.random()*1e4),read:false,...n});saveNotif(id,l);}
+function pushNotif(id,n){
+  const item={nid:Date.now()+''+Math.floor(Math.random()*1e4),read:false,...n};
+  // Cross-device: when notifying ANOTHER entity, read its current notifs fresh from the db
+  // before appending, so we don't overwrite/resurrect its already-seen items from a stale cache.
+  if(DBH&&id!==currentDataId()){
+    (async()=>{
+      let cur=[];
+      try{const s=await DBH.doc(_docPath('notif.'+id)).get();const d=s&&s.data&&s.data();if(d&&('v'in d))cur=d.v||[];}catch(_){cur=loadNotif(id);}
+      const l=[item,...cur];CACHE['notif.'+id]=l;
+      try{localStorage.setItem('abanico.notif.'+id,JSON.stringify(l))}catch(_){}
+      try{await DBH.doc(_docPath('notif.'+id)).set({v:l})}catch(_){}
+    })();
+    return;
+  }
+  const l=loadNotif(id).slice();l.unshift(item);saveNotif(id,l);
+}
 function unreadCount(id){return id?loadNotif(id).filter(n=>!n.read).length:0;}
 function ti(k,v){let s=t(k);for(const x in (v||{}))s=s.split('{'+x+'}').join(v[x]);return s;}
 

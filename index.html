@@ -873,7 +873,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
   if(el.hasAttribute("data-tienda")){state.detTienda=el.dataset.tienda;return go('tiendadet');}
   if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);dbFetch('data.'+el.dataset.catalog);return go('catalogo');}
-  if(el.hasAttribute("data-addcat")){const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
+  if(el.hasAttribute("data-addcat")){state._keep=document.getElementById("screen").scrollTop;const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
   if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;state.filterCat=v==='__all__'?null:v;closeCat();return render();}
   state._keep=document.getElementById("screen").scrollTop;
   if(el.dataset.drawer)return drawer(el.dataset.drawer==="open");

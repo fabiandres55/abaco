@@ -65,6 +65,11 @@
   .origchip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;line-height:1;padding:3px 8px 3px 6px;border-radius:20px;margin-top:6px;background:#eceef0;color:#565b60;max-width:100%}
   .origchip svg{width:13px;height:13px;flex:none;stroke:currentColor;fill:none}
   .origchip.own{background:#e6f1ea;color:#3a7a4e}
+  .tbars{display:flex;flex-direction:column;gap:13px;margin-top:2px}
+  .tbar-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px}
+  .tbar-nm{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
+  .tbar-track{height:10px;border-radius:6px;background:var(--line2);overflow:hidden}
+  .tbar-fill{height:100%;border-radius:6px;transition:width .3s}
   .pc-warn{flex:none;align-self:flex-start}.pc-warn svg{width:26px;height:26px}
   .pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
   .pc-m{text-align:center}.pc-ml{font-size:13px;color:var(--muted)}.pc-mv{font-size:22px;font-weight:700;margin-top:3px}.pc-mv.warnv{color:var(--red)}
@@ -347,7 +352,7 @@ const I18N={
     perm_title:"Permitir notificaciones",perm_body:"Ábaco necesita permiso para avisarte cuando el producto esté por vencer.",perm_allow:"Permitir",perm_deny:"Ahora no",
     save:"Guardar",saved:"Producto guardado",editProduct:"Editar producto",updated:"Producto actualizado",del:"Eliminar producto",deleted:"Producto eliminado",
     ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",ob_bodega_dir_title:"Tus bodegas",ob_create_new:"Crear nueva bodega",ob_logo:"Logo (opcional)",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",
-    ob_tienda:"Tienda",ob_tienda_d:"Vendo en una tienda",ob_tienda_dir_title:"Tus tiendas",ob_tienda_create:"Crea tu tienda",ob_tienda_name:"Nombre de la tienda",ob_tienda_name_ph:"Ej.: Tienda La Esquina",ob_pass:"Contraseña de ingreso",ob_pass_ph:"••••",ob_need_pass:"Escribe la contraseña",ob_wrong_pass:"Contraseña incorrecta",ob_id_tienda_label:"ID de tu tienda",ob_enter_existing:"Entrar",mode_tienda:"Tienda",m_tiendas:"Tiendas",m_proveedores:"Proveedores",m_recepcion:"Recepción",m_despacho:"Despacho",m_movimientos:"Movimientos",m_control:"Control y auditoría",m_abastecimiento:"Abastecimiento",m_catalogo:"Catálogo",notifs:"Notificaciones",no_notifs:"Sin notificaciones",approve:"Aprobar",deny:"Rechazar",prov_hint:"Ingresa el ID de una bodega para pedir acceso a su catálogo.",prov_id_ph:"ID de la bodega (BOD-XXXX)",prov_request:"Solicitar acceso",prov_linked:"Bodegas conectadas",prov_empty:"Aún no tienes bodegas conectadas",prov_pending:"Solicitud enviada · esperando aprobación",prov_pending_h:"Solicitudes enviadas",req_sent:"Solicitud enviada",access_granted:"Conectado a la bodega",already_linked:"Ya estás conectado a esa bodega",approved_done:"Acceso aprobado ✓",rejected_done:"Acceso rechazado",m_ajustes:"Ajustes avanzados",ajustes_desc:"Gestiona el acceso de las tiendas a tu bodega.",unlink_h:"Tiendas con acceso",unlink_one:"Desvincular",unlink_all:"Desvincular todas las tiendas",unlinked_done:"Tienda desvinculada",unlinked_all_done:"Tiendas desvinculadas",n_unlinked:'La bodega "{b}" retiró tu acceso al catálogo',taken_h:"Productos tomados de tu catálogo",taken_qty:"Tomado de tu bodega",taken_sub:"Esta tienda ha tomado {n} unidad(es) de tu catálogo.",no_taken:"Esta tienda aún no ha tomado productos.",from_bodega:"De bodega: {b}",own_product:"Propio",bodega_not_found:"No existe una bodega con ese ID",already_req:"Ya enviaste una solicitud a esa bodega",cat_title:"Catálogo",cat_add:"Agregar",cat_visible:"Solo ves nombre, cantidad disponible y precio de venta.",added_to_inv:"Agregado a tu inventario",no_stock:"Sin stock en la bodega",tiendas_title:"Tiendas vinculadas",requests_title:"Solicitudes de acceso",no_tiendas:"Aún no hay tiendas vinculadas",no_requests:"Sin solicitudes",n_req:'La tienda "{t}" quiere acceder a tu catálogo',n_approved:'La bodega "{b}" aprobó tu acceso',n_denied:'La bodega "{b}" negó tu acceso',n_dispatch:'La tienda "{t}" tomó {n} de "{p}"',n_sold:'La tienda "{t}" vendió {n} de "{p}"',needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
+    ob_tienda:"Tienda",ob_tienda_d:"Vendo en una tienda",ob_tienda_dir_title:"Tus tiendas",ob_tienda_create:"Crea tu tienda",ob_tienda_name:"Nombre de la tienda",ob_tienda_name_ph:"Ej.: Tienda La Esquina",ob_pass:"Contraseña de ingreso",ob_pass_ph:"••••",ob_need_pass:"Escribe la contraseña",ob_wrong_pass:"Contraseña incorrecta",ob_id_tienda_label:"ID de tu tienda",ob_enter_existing:"Entrar",mode_tienda:"Tienda",m_tiendas:"Tiendas",m_proveedores:"Proveedores",m_recepcion:"Recepción",m_despacho:"Despacho",m_movimientos:"Movimientos",m_control:"Control y auditoría",m_abastecimiento:"Abastecimiento",m_catalogo:"Catálogo",notifs:"Notificaciones",no_notifs:"Sin notificaciones",approve:"Aprobar",deny:"Rechazar",prov_hint:"Ingresa el ID de una bodega para pedir acceso a su catálogo.",prov_id_ph:"ID de la bodega (BOD-XXXX)",prov_request:"Solicitar acceso",prov_linked:"Bodegas conectadas",prov_empty:"Aún no tienes bodegas conectadas",prov_pending:"Solicitud enviada · esperando aprobación",prov_pending_h:"Solicitudes enviadas",req_sent:"Solicitud enviada",access_granted:"Conectado a la bodega",already_linked:"Ya estás conectado a esa bodega",approved_done:"Acceso aprobado ✓",rejected_done:"Acceso rechazado",m_ajustes:"Ajustes avanzados",ajustes_desc:"Gestiona el acceso de las tiendas a tu bodega.",unlink_h:"Tiendas con acceso",unlink_one:"Desvincular",unlink_all:"Desvincular todas las tiendas",unlinked_done:"Tienda desvinculada",unlinked_all_done:"Tiendas desvinculadas",n_unlinked:'La bodega "{b}" retiró tu acceso al catálogo',taken_h:"Productos tomados de tu catálogo",taken_qty:"Tomado de tu bodega",taken_sub:"Esta tienda ha tomado {n} unidad(es) de tu catálogo.",no_taken:"Esta tienda aún no ha tomado productos.",from_bodega:"De bodega: {b}",own_product:"Propio",rep_tsales_h:"Ventas de tus tiendas",rep_no_tsales:"Aún no hay ventas de tus tiendas.",rep_tot_rev:"Ventas totales",rep_units:"Unidades",rep_stores:"Tiendas",rep_by_store:"Ventas por tienda",rep_top_stores:"Top tiendas",rep_top_prod:"Productos más vendidos",bodega_not_found:"No existe una bodega con ese ID",already_req:"Ya enviaste una solicitud a esa bodega",cat_title:"Catálogo",cat_add:"Agregar",cat_visible:"Solo ves nombre, cantidad disponible y precio de venta.",added_to_inv:"Agregado a tu inventario",no_stock:"Sin stock en la bodega",tiendas_title:"Tiendas vinculadas",requests_title:"Solicitudes de acceso",no_tiendas:"Aún no hay tiendas vinculadas",no_requests:"Sin solicitudes",n_req:'La tienda "{t}" quiere acceder a tu catálogo',n_approved:'La bodega "{b}" aprobó tu acceso',n_denied:'La bodega "{b}" negó tu acceso',n_dispatch:'La tienda "{t}" tomó {n} de "{p}"',n_sold:'La tienda "{t}" vendió {n} de "{p}"',needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
@@ -366,7 +371,7 @@ const I18N={
     perm_title:"Allow notifications",perm_body:"Ábaco needs permission to alert you when the product is about to expire.",perm_allow:"Allow",perm_deny:"Not now",
     save:"Save",saved:"Product saved",editProduct:"Edit product",updated:"Product updated",del:"Delete product",deleted:"Product deleted",
     ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",ob_bodega_dir_title:"Your warehouses",ob_create_new:"Create new warehouse",ob_logo:"Logo (optional)",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",
-    ob_tienda:"Store",ob_tienda_d:"I sell in a shop",ob_tienda_dir_title:"Your stores",ob_tienda_create:"Create your store",ob_tienda_name:"Store name",ob_tienda_name_ph:"e.g. Corner Store",ob_pass:"Access password",ob_pass_ph:"••••",ob_need_pass:"Enter the password",ob_wrong_pass:"Wrong password",ob_id_tienda_label:"Your store ID",ob_enter_existing:"Enter",mode_tienda:"Store",m_tiendas:"Stores",m_proveedores:"Suppliers",m_recepcion:"Receiving",m_despacho:"Dispatch",m_movimientos:"Movements",m_control:"Audit & control",m_abastecimiento:"Restocking",m_catalogo:"Catalog",notifs:"Notifications",no_notifs:"No notifications",approve:"Approve",deny:"Reject",prov_hint:"Enter a warehouse ID to request access to its catalog.",prov_id_ph:"Warehouse ID (BOD-XXXX)",prov_request:"Request access",prov_linked:"Connected warehouses",prov_empty:"No connected warehouses yet",prov_pending:"Request sent · awaiting approval",prov_pending_h:"Sent requests",req_sent:"Request sent",access_granted:"Connected to warehouse",already_linked:"You're already connected to that warehouse",approved_done:"Access approved ✓",rejected_done:"Access rejected",m_ajustes:"Advanced settings",ajustes_desc:"Manage stores' access to your warehouse.",unlink_h:"Stores with access",unlink_one:"Unlink",unlink_all:"Unlink all stores",unlinked_done:"Store unlinked",unlinked_all_done:"Stores unlinked",n_unlinked:'Warehouse "{b}" revoked your catalog access',taken_h:"Products taken from your catalog",taken_qty:"Taken from your warehouse",taken_sub:"This store has taken {n} unit(s) from your catalog.",no_taken:"This store hasn't taken any products yet.",from_bodega:"From warehouse: {b}",own_product:"Own",bodega_not_found:"No warehouse with that ID",already_req:"You already requested that warehouse",cat_title:"Catalog",cat_add:"Add",cat_visible:"You only see name, available quantity and sale price.",added_to_inv:"Added to your inventory",no_stock:"No stock in the warehouse",tiendas_title:"Linked stores",requests_title:"Access requests",no_tiendas:"No linked stores yet",no_requests:"No requests",n_req:'Store "{t}" wants access to your catalog',n_approved:'Warehouse "{b}" approved your access',n_denied:'Warehouse "{b}" denied your access',n_dispatch:'Store "{t}" took {n} of "{p}"',n_sold:'Store "{t}" sold {n} of "{p}"',needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
+    ob_tienda:"Store",ob_tienda_d:"I sell in a shop",ob_tienda_dir_title:"Your stores",ob_tienda_create:"Create your store",ob_tienda_name:"Store name",ob_tienda_name_ph:"e.g. Corner Store",ob_pass:"Access password",ob_pass_ph:"••••",ob_need_pass:"Enter the password",ob_wrong_pass:"Wrong password",ob_id_tienda_label:"Your store ID",ob_enter_existing:"Enter",mode_tienda:"Store",m_tiendas:"Stores",m_proveedores:"Suppliers",m_recepcion:"Receiving",m_despacho:"Dispatch",m_movimientos:"Movements",m_control:"Audit & control",m_abastecimiento:"Restocking",m_catalogo:"Catalog",notifs:"Notifications",no_notifs:"No notifications",approve:"Approve",deny:"Reject",prov_hint:"Enter a warehouse ID to request access to its catalog.",prov_id_ph:"Warehouse ID (BOD-XXXX)",prov_request:"Request access",prov_linked:"Connected warehouses",prov_empty:"No connected warehouses yet",prov_pending:"Request sent · awaiting approval",prov_pending_h:"Sent requests",req_sent:"Request sent",access_granted:"Connected to warehouse",already_linked:"You're already connected to that warehouse",approved_done:"Access approved ✓",rejected_done:"Access rejected",m_ajustes:"Advanced settings",ajustes_desc:"Manage stores' access to your warehouse.",unlink_h:"Stores with access",unlink_one:"Unlink",unlink_all:"Unlink all stores",unlinked_done:"Store unlinked",unlinked_all_done:"Stores unlinked",n_unlinked:'Warehouse "{b}" revoked your catalog access',taken_h:"Products taken from your catalog",taken_qty:"Taken from your warehouse",taken_sub:"This store has taken {n} unit(s) from your catalog.",no_taken:"This store hasn't taken any products yet.",from_bodega:"From warehouse: {b}",own_product:"Own",rep_tsales_h:"Your stores' sales",rep_no_tsales:"No sales from your stores yet.",rep_tot_rev:"Total sales",rep_units:"Units",rep_stores:"Stores",rep_by_store:"Sales by store",rep_top_stores:"Top stores",rep_top_prod:"Top products",bodega_not_found:"No warehouse with that ID",already_req:"You already requested that warehouse",cat_title:"Catalog",cat_add:"Add",cat_visible:"You only see name, available quantity and sale price.",added_to_inv:"Added to your inventory",no_stock:"No stock in the warehouse",tiendas_title:"Linked stores",requests_title:"Access requests",no_tiendas:"No linked stores yet",no_requests:"No requests",n_req:'Store "{t}" wants access to your catalog',n_approved:'Warehouse "{b}" approved your access',n_denied:'Warehouse "{b}" denied your access',n_dispatch:'Store "{t}" took {n} of "{p}"',n_sold:'Store "{t}" sold {n} of "{p}"',needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
 };
 const L=(new URLSearchParams(location.search).get("lang")||navigator.language||"es").slice(0,2).toLowerCase();
 const LANG=I18N[L]?L:"en";
@@ -451,7 +456,27 @@ function scCaja(){
   <div style="display:flex;gap:8px"><button class="btn ghost" data-act="toast:addmove">${t('movement')}</button><button class="btn dark" data-act="toast:closereg">${t('closeReg')}</button></div>
   <div class="section-h"><h2>${t('movesToday')}</h2></div><div class="list">${rows}</div>`;
 }
+const TPAL=['#4c7ef3','#e0663b','#3aa76d','#b054c9','#e0a92b','#2fb0c4','#d64b7a','#7a8b99'];
+function scReportesBodega(){
+  const bid=state.profile.id;
+  const sales=_get('bsales.'+bid,[]);
+  if(!sales.length)return `<div class="section-h"><h2>${t('rep_tsales_h')}</h2></div><div class="empty">${t('rep_no_tsales')}</div>`;
+  const byT={};sales.forEach(s=>{const k=s.tid||s.tname;const o=byT[k]||(byT[k]={tid:s.tid,name:s.tname,qty:0,rev:0});o.qty+=s.qty;o.rev+=s.amount;if(s.tname)o.name=s.tname;});
+  const tiendas=Object.values(byT).sort((a,b)=>b.rev-a.rev);
+  const totRev=tiendas.reduce((a,x)=>a+x.rev,0)||1;const totQty=sales.reduce((a,s)=>a+s.qty,0);
+  const col=i=>TPAL[i%TPAL.length];
+  const chart=tiendas.map((x,i)=>`<div class="tbar"><div class="tbar-h"><span class="tbar-nm"><span class="dot" style="background:${col(i)}"></span>${x.name}</span><span class="num">${money(x.rev)}</span></div><div class="tbar-track"><div class="tbar-fill" style="width:${Math.max(4,x.rev/totRev*100)}%;background:${col(i)}"></div></div></div>`).join('');
+  const topStores=tiendas.slice(0,5).map((x,i)=>`<div class="row"><div class="av num" style="background:${col(i)}22;color:${col(i)}">${i+1}</div><div><div class="t">${x.name}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
+  const byP={};sales.forEach(s=>{const k=(s.pid||'')+'|'+s.name;const o=byP[k]||(byP[k]={name:s.name,qty:0,rev:0});o.qty+=s.qty;o.rev+=s.amount;});
+  const topP=Object.values(byP).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  const topRows=topP.map(x=>`<div class="row"><div class="av num">${x.qty}</div><div><div class="t">${x.name}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
+  return `<div class="kpis"><div class="kpi"><div class="k-l">${t('rep_tot_rev')}</div><div class="k-v num">${money(totRev)}</div></div><div class="kpi"><div class="k-l">${t('rep_units')}</div><div class="k-v num">${totQty}</div></div><div class="kpi"><div class="k-l">${t('rep_stores')}</div><div class="k-v num">${tiendas.length}</div></div></div>
+  <div class="section-h"><h2>${t('rep_by_store')}</h2></div><div class="tbars">${chart}</div>
+  <div class="section-h"><h2>${t('rep_top_stores')}</h2></div><div class="list">${topStores}</div>
+  <div class="section-h"><h2>${t('rep_top_prod')}</h2></div><div class="list">${topRows}</div>`;
+}
 function scReportes(){
+  if(state.profile&&state.profile.kind==='bodega')return scReportesBodega();
   const week=[...state.week,todaySales()];const max=Math.max(...week)||1;const labels=LANG==='es'?["lun","mar","mié","jue","vie","sáb","dom"]:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const bars=week.map((v,i)=>`<div class="b ${i===6?'today':''}"><div class="bar" style="height:${Math.max(6,v/max*100)}%"></div><div class="lb">${labels[i]}</div></div>`).join("");
   const totWeek=week.reduce((a,b)=>a+b,0);
@@ -637,7 +662,7 @@ let toastT;function toast(m){const t2=document.getElementById("toast");document.
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
 function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.screen=s;drawer(false);render();}
 function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
-  if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin)pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});});}
+  if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*p.price,ts:Date.now()},600);}});}
   state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
 
 /* ---------------- perfil / registros / datos ---------------- */
@@ -648,6 +673,7 @@ let DBH=null; const CACHE={}; const WATCHED=new Set();
 function _docPath(key){
   if(key==='bodegas'||key==='tiendas'||key==='requests')return 'shared/'+key;
   if(key.indexOf('notif.')===0)return 'notif/'+key.slice(6);
+  if(key.indexOf('bsales.')===0)return 'bsales/'+key.slice(7);
   if(key.indexOf('data.')===0)return 'inv/'+key.slice(5);
   return 'shared/'+key;
 }
@@ -682,7 +708,7 @@ async function initDb(){
   try{DBH=(window.claude&&claude.use)?await claude.use('db'):null;}catch(_){DBH=null;}
   if(!DBH)return false;
   ['bodegas','tiendas','requests'].forEach(watchKey);
-  if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);}
+  if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);}
   return true;
 }
 function regKey(role){return role+'s';}
@@ -723,6 +749,20 @@ function pushNotif(id,n){
   const l=loadNotif(id).slice();l.unshift(item);saveNotif(id,l);
 }
 function unreadCount(id){return id?loadNotif(id).filter(n=>!n.read).length:0;}
+/* append an item to a shared list doc without clobbering others' entries from a stale cache */
+function appendShared(key,item,cap){
+  if(DBH){
+    (async()=>{
+      let cur=[];
+      try{const s=await DBH.doc(_docPath(key)).get();const d=s&&s.data&&s.data();if(d&&('v'in d))cur=d.v||[];}catch(_){cur=_get(key,[]);}
+      let l=[item,...cur];if(cap&&l.length>cap)l=l.slice(0,cap);
+      CACHE[key]=l;try{localStorage.setItem('abanico.'+key,JSON.stringify(l))}catch(_){}
+      try{await DBH.doc(_docPath(key)).set({v:l})}catch(_){}
+    })();
+    return;
+  }
+  let l=[item,..._get(key,[])];if(cap&&l.length>cap)l=l.slice(0,cap);_set(key,l);
+}
 function ti(k,v){let s=t(k);for(const x in (v||{}))s=s.split('{'+x+'}').join(v[x]);return s;}
 
 /* ---------------- onboarding ---------------- */
@@ -761,7 +801,7 @@ function renderOnbo(){
 function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function enterProfile(role,ent){
   state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
-  watchKey('notif.'+ent.id);watchKey('data.'+ent.id);
+  watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
   loadData(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
 }
@@ -784,7 +824,7 @@ function boot(){
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
   initDb().then(hasDb=>{
     if(!hasDb){seedDemo();}
-    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);loadData(state.profile.id);}
+    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);loadData(state.profile.id);}
     if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
   });
 }
@@ -837,6 +877,13 @@ function seedDemo(){
     items.push({id:items.length+1,key:'FER-'+(1000+items.length),name,cat:pr[1],unit:'u_piece',cost,price,addSale:0,stock,reserve:0,img:null,expiry:null,min:5,max:500,loc:'',lot:''});
   }
   saveDataOf(ID,{products:items,sales:[],cats:[...new Set(items.map(x=>x.cat))],seq:101,extraMoves:[]});
+  // demo: ventas de tiendas para poblar Reportes de la bodega
+  if(!_get('bsales.'+ID,[]).length){
+    const demoT=[['TDA-DEMO1','Tienda La Esquina'],['TDA-DEMO2','Mini Ferre Centro'],['TDA-DEMO3','Depósito El Sur']];
+    const led=[];
+    demoT.forEach((tt,ti2)=>{const n=6+ti2*4;for(let k=0;k<n;k++){const p=items[Math.floor(Math.random()*items.length)];const q=1+Math.floor(Math.random()*4);led.push({tid:tt[0],tname:tt[1],pid:p.id,name:p.name,qty:q,amount:q*p.price,ts:Date.now()-Math.floor(Math.random()*6e8)});}});
+    _set('bsales.'+ID,led);
+  }
 }
 function setReqStatus(reqId,status){
   const l=loadReq();const r=l.find(x=>x.reqId===reqId);if(!r)return;r.status=status;saveReq(l);

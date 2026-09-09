@@ -77,6 +77,8 @@
   .bkhero svg{width:40px;height:40px;stroke:var(--muted);fill:none;stroke-width:1.5}
   .bkerr{margin-top:14px;display:flex;gap:8px;align-items:center;background:#fdeceb;color:#b23b32;border-radius:12px;padding:11px 13px;font-size:13px}
   .bkerr svg{width:18px;height:18px;flex:none;stroke:#b23b32;fill:none;stroke-width:1.8}
+  .bkok{display:flex;gap:8px;align-items:center;background:#e6f1ea;color:#2f7a4e;border-radius:12px;padding:12px 13px;font-size:13.5px;font-weight:600;margin-bottom:10px}
+  .bkok svg{width:18px;height:18px;flex:none;stroke:#2f7a4e;fill:none;stroke-width:2.2}
   .bkload{display:flex;flex-direction:column;align-items:center;gap:16px;padding:70px 0;color:var(--muted)}
   .bkload svg{width:42px;height:42px;stroke:var(--pri);fill:none;stroke-width:2}
   .bks{font-size:13px}
@@ -379,7 +381,7 @@ const I18N={
   es:{sync:"Sincronizado · offline",soon:"Pronto",
     m_inventario:"Inventario",m_servicios:"Servicios",m_ventas:"Ventas",m_compras:"Compras",m_caja:"Otros ingresos-gastos",m_reportes:"Reportes",m_empleados:"Empleados",m_proveedores:"Proveedores",m_clientes:"Clientes",m_calendario:"Calendario",m_respaldo:"Respaldo",
     newSale:"Nueva venta",searchNameKey:"Nombre / clave",searchProd:"Buscar producto o categoría…",
-    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",bk_import2:"Importar {n} productos y {c} clientes",bk_impcli:"Importar solo los {n} clientes",bk_cli_done:"Clientes: {a} nuevos · {u} actualizados",inv_more:"Ver más ({n})",cli_search:"Nombre / Alias",cli_noalias:"SIN ALIAS",cli_empty:"Aún no tienes clientes.",cli_nomatch:"Sin resultados",cli_new_title:"Nuevo cliente",cli_edit_title:"Editar cliente",cli_name:"Nombre",cli_alias:"Alias",cli_phone:"Teléfono",cli_email:"Correo",cli_address:"Dirección",cli_notes:"Información adicional",cli_save:"Guardar cliente",cli_del:"Eliminar cliente",cli_saved:"Cliente guardado",cli_deleted:"Cliente eliminado",cli_need_name:"Escribe el nombre del cliente",
+    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",bk_imported_ok:"Importado: {p} productos y {c} clientes",bk_see_inv:"Ver inventario",bk_see_cli:"Ver clientes",bk_cli_done:"Clientes: {a} nuevos · {u} actualizados",inv_more:"Ver más ({n})",cli_search:"Nombre / Alias",cli_noalias:"SIN ALIAS",cli_empty:"Aún no tienes clientes.",cli_nomatch:"Sin resultados",cli_new_title:"Nuevo cliente",cli_edit_title:"Editar cliente",cli_name:"Nombre",cli_alias:"Alias",cli_phone:"Teléfono",cli_email:"Correo",cli_address:"Dirección",cli_notes:"Información adicional",cli_save:"Guardar cliente",cli_del:"Eliminar cliente",cli_saved:"Cliente guardado",cli_deleted:"Cliente eliminado",cli_need_name:"Escribe el nombre del cliente",
     kpi_products:"Productos",kpi_low:"Stock bajo",kpi_value:"Valor inv.",low:"Bajo",ok:"OK",inStock:"en stock",filterBy:"Filtrar por categoría",allCats:"Todas las categorías",noCatResults:"No hay productos en esta categoría",
     emptyInv:"No tienes productos en el inventario. Pulsa el botón para agregar productos.",
     add:"Agregar",cancelSale:"Cancelar venta",total:"Total",items:"ítems",item:"ítem",charge:"Cobrar",noResults:"Sin resultados",
@@ -398,7 +400,7 @@ const I18N={
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
-    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",bk_import2:"Import {n} products and {c} clients",bk_impcli:"Import only the {n} clients",bk_cli_done:"Clients: {a} new · {u} updated",inv_more:"Show more ({n})",cli_search:"Name / Alias",cli_noalias:"NO ALIAS",cli_empty:"You have no clients yet.",cli_nomatch:"No results",cli_new_title:"New client",cli_edit_title:"Edit client",cli_name:"Name",cli_alias:"Alias",cli_phone:"Phone",cli_email:"Email",cli_address:"Address",cli_notes:"Additional info",cli_save:"Save client",cli_del:"Delete client",cli_saved:"Client saved",cli_deleted:"Client deleted",cli_need_name:"Enter the client's name",
+    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",bk_imported_ok:"Imported: {p} products and {c} clients",bk_see_inv:"View inventory",bk_see_cli:"View clients",bk_cli_done:"Clients: {a} new · {u} updated",inv_more:"Show more ({n})",cli_search:"Name / Alias",cli_noalias:"NO ALIAS",cli_empty:"You have no clients yet.",cli_nomatch:"No results",cli_new_title:"New client",cli_edit_title:"Edit client",cli_name:"Name",cli_alias:"Alias",cli_phone:"Phone",cli_email:"Email",cli_address:"Address",cli_notes:"Additional info",cli_save:"Save client",cli_del:"Delete client",cli_saved:"Client saved",cli_deleted:"Client deleted",cli_need_name:"Enter the client's name",
     kpi_products:"Products",kpi_low:"Low stock",kpi_value:"Inv. value",low:"Low",ok:"OK",inStock:"in stock",filterBy:"Filter by category",allCats:"All categories",noCatResults:"No products in this category",
     emptyInv:"You do not have products in the inventory. Press the button to add products.",
     add:"Add",cancelSale:"Cancel sale",total:"Total",items:"items",item:"item",charge:"Charge",noResults:"No results",
@@ -780,7 +782,7 @@ function ioParseCSV(txt){
   }
   return out;
 }
-function importProducts(list){
+function importProducts(list,stay){
   let added=0,updated=0;
   list.forEach(it=>{
     const key=(it.key||'').trim();let ex=null;
@@ -789,7 +791,9 @@ function importProducts(list){
     if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
     else{state.products.push({id:state.seq++,key:key||('IMP-'+state.seq),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:0,stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
   });
-  persist();closeIO();state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));
+  persist();closeIO();
+  if(!stay){state.invLimit=INV_PAGE;state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));}
+  return {added,updated};
 }
 function handleImportFile(file){
   const reader=new FileReader();
@@ -885,7 +889,7 @@ async function bkHandleFile(file){
     BKZIP=zip;
     state.bk={biz,catMap,products,clients,stats,imgSet,fileName:file.name};
     state.bkLoading=false;state.bkImgUrls={};
-    render();
+    bkImportAll();   // al cargar el .mn se importa todo automáticamente
   }catch(e){
     state.bkLoading=false;state.bkErr=(e&&e.message)||('error');BKZIP=null;render();
   }
@@ -904,7 +908,7 @@ async function bkLoadThumbs(){
     }catch(_){}
   }
 }
-function bkImport(){
+function bkImportAll(){
   if(!state.bk)return;
   const imgSet=state.bk.imgSet||{};
   const prods=state.bk.products.map(p=>{
@@ -913,12 +917,13 @@ function bkImport(){
     if(key&&imgSet[key])o.imgKey=key;
     return o;
   }).filter(p=>p.name);
-  if(!prods.length){toast(t('io_empty'));return;}
-  const cli=bkMergeClients();               // importa también los clientes
-  importProducts(prods); // upsert por key/nombre; las fotos van a IndexedDB en segundo plano
+  const pr=importProducts(prods,true);      // sin navegar
+  const cl=bkMergeClients();                // clientes
+  persist();
   const withImg=prods.filter(p=>p.imgKey);
-  if(withImg.length)bkSaveImages(withImg);
-  if(cli.added||cli.updated)setTimeout(()=>toast(ti('bk_cli_done',{a:cli.added,u:cli.updated})),1400);
+  if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
+  state.bk.imported={p:state.products.length,c:state.clients.length};
+  render();
 }
 function bkMergeClients(){
   let added=0,updated=0;
@@ -930,7 +935,6 @@ function bkMergeClients(){
   });
   return {added,updated};
 }
-function bkImportClients(){const r=bkMergeClients();if(!r.added&&!r.updated){toast(t('io_empty'));return;}persist();state.invLimit=INV_PAGE;go('clientes');toast(ti('bk_cli_done',{a:r.added,u:r.updated}));}
 function bkReset(){state.bk=null;state.bkErr='';BKZIP=null;state.bkImgUrls={};render();}
 function scBackup(){
   const bod=state.profile&&state.profile.kind==='bodega';
@@ -962,8 +966,9 @@ function scBackup(){
     <div class="kpis kpis3">${stat(t('kpi_products'),s.productos)}${stat(t('m_categorias'),s.categorias)}${stat(t('bk_images'),s.imagenes)}</div>
     <div class="kpis kpis3">${stat(t('m_ventas'),s.ventas)}${stat(t('m_clientes'),s.clientes)}${stat(t('m_proveedores'),s.proveedores)}</div>
     <div class="bkdates">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('bk_sales_range')}: <b>${dates}</b></div>
-    <button class="btn" data-act="bk:import">${svg('<path d="M12 21V10M8 14l4-4 4 4"/><path d="M5 4h14"/>')} ${(b.clients&&b.clients.length)?ti('bk_import2',{n:s.productos,c:b.clients.length}):ti('bk_import',{n:s.productos})}</button>
-    ${b.clients&&b.clients.length?`<button class="btn ghost" data-act="bk:impcli" style="margin-top:8px">${svg(CLI_ICO)} ${ti('bk_impcli',{n:b.clients.length})}</button>`:''}
+    ${b.imported?`<div class="bkok">${svg('<path d="M5 12l5 5L20 7"/>')} ${ti('bk_imported_ok',{p:b.imported.p,c:b.imported.c})}</div>
+    <button class="btn" data-act="bk:seeinv">${svg(IC.inventario)} ${t('bk_see_inv')}</button>
+    ${b.imported.c?`<button class="btn ghost" data-act="bk:seecli" style="margin-top:8px">${svg(CLI_ICO)} ${t('bk_see_cli')}</button>`:''}`:''}
     <button class="btn ghost" data-act="bk:reset" style="margin-top:8px">${t('bk_other')}</button>
     <div class="section-h"><h2>${ti('bk_prev',{n:Math.min(40,s.productos)})}</h2></div>
     <div class="list">${preview}</div>
@@ -1320,7 +1325,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();return;}
     if(a==="cli"){const sub=el.dataset.act.split(":")[1];if(sub==='new')return openCliForm(null);if(sub==='save')return saveClient();if(sub==='del')return delClient();return;}
     if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return triggerImport();return openIO();}
-    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='import')return bkImport();if(sub==='impcli')return bkImportClients();if(sub==='reset')return bkReset();return;}
+    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='reset')return bkReset();if(sub==='seeinv')return go('inventario');if(sub==='seecli')return go('clientes');return;}
     if(a==="invmore"){state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE*2;return render();}
     if(a==="reqaccess")return requestAccess();
     if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');

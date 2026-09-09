@@ -91,6 +91,19 @@
   .bkdates{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);margin:6px 2px 14px}
   .bkdates svg{width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8}
   .bkdates b{color:var(--ink)}
+  .loadmore{text-align:center;padding:14px;margin:2px 0 4px;color:var(--pri);font-weight:600;font-size:13.5px;cursor:pointer}
+  .clilist{display:flex;flex-direction:column;gap:10px}
+  .clicard{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .cli-main{display:flex;align-items:center;gap:11px;flex:1;min-width:0;cursor:pointer}
+  .cli-ic{width:38px;height:38px;flex:none;border-radius:50%;background:var(--sel);display:grid;place-items:center}
+  .cli-ic svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.7}
+  .cli-tx{min-width:0}
+  .cli-n{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cli-a{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:1px}
+  .cli-actions{display:flex;gap:2px;flex:none}
+  .cli-act{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--ink);text-decoration:none}
+  .cli-act:active{background:var(--sel)}
+  .cli-act svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7}
   .pc-warn{flex:none;align-self:flex-start}.pc-warn svg{width:26px;height:26px}
   .pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
   .pc-m{text-align:center}.pc-ml{font-size:13px;color:var(--muted)}.pc-mv{font-size:22px;font-weight:700;margin-top:3px}.pc-mv.warnv{color:var(--red)}
@@ -319,6 +332,9 @@
 
   <!-- import/export sheet -->
   <div class="sheetdlg" id="iodlg"><div class="sheetcard"><div class="sheet-h"><span id="ioH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="ioOptions"></div></div></div>
+
+  <!-- client form sheet -->
+  <div class="sheetdlg" id="clidlg"><div class="sheetcard"><div class="sheet-h"><span id="cliH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="cliBody"></div></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
   <input type="file" id="bkFile" style="display:none">
 
@@ -363,7 +379,7 @@ const I18N={
   es:{sync:"Sincronizado · offline",soon:"Pronto",
     m_inventario:"Inventario",m_servicios:"Servicios",m_ventas:"Ventas",m_compras:"Compras",m_caja:"Otros ingresos-gastos",m_reportes:"Reportes",m_empleados:"Empleados",m_proveedores:"Proveedores",m_clientes:"Clientes",m_calendario:"Calendario",m_respaldo:"Respaldo",
     newSale:"Nueva venta",searchNameKey:"Nombre / clave",searchProd:"Buscar producto o categoría…",
-    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",
+    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",bk_impcli:"Importar {n} clientes",bk_cli_done:"Clientes: {a} nuevos · {u} actualizados",inv_more:"Ver más ({n})",cli_search:"Nombre / Alias",cli_noalias:"SIN ALIAS",cli_empty:"Aún no tienes clientes.",cli_nomatch:"Sin resultados",cli_new_title:"Nuevo cliente",cli_edit_title:"Editar cliente",cli_name:"Nombre",cli_alias:"Alias",cli_phone:"Teléfono",cli_email:"Correo",cli_address:"Dirección",cli_notes:"Información adicional",cli_save:"Guardar cliente",cli_del:"Eliminar cliente",cli_saved:"Cliente guardado",cli_deleted:"Cliente eliminado",cli_need_name:"Escribe el nombre del cliente",
     kpi_products:"Productos",kpi_low:"Stock bajo",kpi_value:"Valor inv.",low:"Bajo",ok:"OK",inStock:"en stock",filterBy:"Filtrar por categoría",allCats:"Todas las categorías",noCatResults:"No hay productos en esta categoría",
     emptyInv:"No tienes productos en el inventario. Pulsa el botón para agregar productos.",
     add:"Agregar",cancelSale:"Cancelar venta",total:"Total",items:"ítems",item:"ítem",charge:"Cobrar",noResults:"Sin resultados",
@@ -382,7 +398,7 @@ const I18N={
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
-    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",
+    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",bk_impcli:"Import {n} clients",bk_cli_done:"Clients: {a} new · {u} updated",inv_more:"Show more ({n})",cli_search:"Name / Alias",cli_noalias:"NO ALIAS",cli_empty:"You have no clients yet.",cli_nomatch:"No results",cli_new_title:"New client",cli_edit_title:"Edit client",cli_name:"Name",cli_alias:"Alias",cli_phone:"Phone",cli_email:"Email",cli_address:"Address",cli_notes:"Additional info",cli_save:"Save client",cli_del:"Delete client",cli_saved:"Client saved",cli_deleted:"Client deleted",cli_need_name:"Enter the client's name",
     kpi_products:"Products",kpi_low:"Low stock",kpi_value:"Inv. value",low:"Low",ok:"OK",inStock:"in stock",filterBy:"Filter by category",allCats:"All categories",noCatResults:"No products in this category",
     emptyInv:"You do not have products in the inventory. Press the button to add products.",
     add:"Add",cancelSale:"Cancel sale",total:"Total",items:"items",item:"item",charge:"Charge",noResults:"No results",
@@ -409,11 +425,11 @@ function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</
 const IC={inventario:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>',servicios:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/>',ventas:'<path d="M6 8h12l-1 11H7z"/><path d="M9 8a3 3 0 016 0"/>',compras:'<path d="M6 6h15l-1.5 9H8z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H3"/>',caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',reportes:'<path d="M5 20V4M5 20h15M9 16v-5M13 16v-9M17 16v-3"/>',empleados:'<circle cx="12" cy="8" r="3"/><rect x="5" y="14" width="14" height="6" rx="3"/>',proveedores:'<circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M16 6a3 3 0 010 6"/>',clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>',calendario:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',respaldo:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
   tiendas:'<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>',recepcion:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',despacho:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',movimientos:'<path d="M7 7h11l-3-3M18 17H7l3 3"/>',control:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',abastecimiento:'<path d="M20 12a8 8 0 10-2.4 5.7"/><path d="M20 6v5h-5"/>',catalogo:'<path d="M6 4h11a2 2 0 012 2v14l-4-2-4 2-4-2V6a2 2 0 011-2z"/>'};
 const DRAWER_BODEGA=[{id:'inventario'},{id:'tiendas'},{sep:1},{id:'recepcion',soon:1},{id:'despacho',soon:1},{id:'movimientos',soon:1},{sep:1},{id:'reportes'},{sep:1},{id:'control',soon:1},{id:'abastecimiento',soon:1},{sep:1},{id:'respaldo'},{id:'ajustes'}];
-const DRAWER_TIENDA=[{id:'inventario'},{id:'ventas'},{id:'proveedores'},{sep:1},{id:'reportes'},{sep:1},{id:'caja'},{sep:1},{id:'respaldo'}];
+const DRAWER_TIENDA=[{id:'inventario'},{id:'ventas'},{id:'proveedores'},{id:'clientes'},{sep:1},{id:'reportes'},{sep:1},{id:'caja'},{sep:1},{id:'respaldo'}];
 function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRAWER_TIENDA:DRAWER_BODEGA;}
 
-const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{}};
-const LOW=5;
+const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null};
+const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
 const saleTotal=s=>s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
 const todaySales=()=>state.sales.reduce((t,s)=>t+saleTotal(s),0);
@@ -445,10 +461,11 @@ function scInventario(){
   let items=state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(p.key||"").toLowerCase().includes(q));
   if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   items.sort((a,b)=>a.stock-b.stock);
+  const total=items.length;const limit=state.invLimit||INV_PAGE;const shown=items.slice(0,limit);
   const warnSvg='<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="#f0b90b"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>';
   const bod=state.profile&&state.profile.kind==='bodega';
   const tienda=state.profile&&state.profile.kind==='tienda';
-  const cards=items.map(p=>{
+  const cards=shown.map(p=>{
     const flag=p.stock<=LOW||p.reserve>0;
     const boxIco=svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
     const img=p.img?`<img src="${p.img}" alt="">`:(p.imgKey?`<img ${IMGCACHE['img:'+p.imgKey]?`src="${IMGCACHE['img:'+p.imgKey]}"`:''} data-imgkey="${p.imgKey}" alt="">`:boxIco);
@@ -458,8 +475,9 @@ function scInventario(){
       :`<span class="origchip own">${t('own_product')}</span>`):'';
     return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${p.stock<=LOW?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
+  const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
-  return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount()}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>`;
+  return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount()}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>${more}`;
 }
 function scVentas(){
   if(!state.sales.length) return `<button class="btn" data-nav="nueva"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('newSale')}</button><div class="empty">${t('noSales')}</div>`;
@@ -557,8 +575,60 @@ function scAjustes(){
   <div class="section-h"><h2>${t('unlink_h')}</h2></div><div class="list">${rows}</div>
   ${linked.length?`<button class="delbtn" data-act="unlinkall" style="margin-top:12px">${svg('<path d="M18 6L6 18M6 6l12 12"/>')} ${t('unlink_all')}</button>`:''}`;
 }
-const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProveedores,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup};
-const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo'};
+const CLI_ICO='<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>';
+const IC_PIN='<path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/>';
+const IC_PHONE='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>';
+const IC_MAIL='<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>';
+function scClientes(){
+  const q=state.q.toLowerCase();
+  let list=state.clients.slice();
+  if(q)list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.alias||'').toLowerCase().includes(q));
+  list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
+  const rows=shown.map(c=>{
+    const acts=[
+      c.address?`<a class="cli-act" href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" rel="noopener">${svg(IC_PIN)}</a>`:'',
+      c.phone?`<a class="cli-act" href="tel:${(''+c.phone).replace(/[^0-9+]/g,'')}">${svg(IC_PHONE)}</a>`:'',
+      c.email?`<a class="cli-act" href="mailto:${c.email}">${svg(IC_MAIL)}</a>`:''
+    ].join('');
+    return `<div class="clicard"><div class="cli-main" data-cliedit="${c.id}"><div class="cli-ic">${svg(CLI_ICO)}</div><div class="cli-tx"><div class="cli-n">${c.name||'—'}</div><div class="cli-a">${c.alias?c.alias:t('cli_noalias')}</div></div></div><div class="cli-actions">${acts}</div></div>`;
+  }).join('');
+  const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
+  const head=`<div class="invhead">
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('cli_search')}" value="${state.q}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <button class="round" data-act="cli:new">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
+  </div>`;
+  return head+(total?`<div class="list clilist">${rows}</div>${more}`:`<div class="empty" style="margin-top:30px">${state.clients.length?t('cli_nomatch'):t('cli_empty')}</div>`);
+}
+function cliById(id){return state.clients.find(c=>c.id===id);}
+function openCliForm(id){
+  const c=id?cliById(id):null;state.cliEdit=id||null;
+  document.getElementById('cliH').textContent=t(c?'cli_edit_title':'cli_new_title');
+  const fld=(k,ph,val,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp" id="cf_${k}" placeholder="${ph||''}" ${type?`type="${type}"`:''} value="${val?(''+val).replace(/"/g,'&quot;'):''}"></div>`;
+  document.getElementById('cliBody').innerHTML=`<div style="padding:12px 16px 18px;display:flex;flex-direction:column;gap:12px">
+    ${fld('cli_name','',c&&c.name)}
+    ${fld('cli_alias','',c&&c.alias)}
+    ${fld('cli_phone','',c&&c.phone,'tel')}
+    ${fld('cli_email','',c&&c.email,'email')}
+    ${fld('cli_address','',c&&c.address)}
+    ${fld('cli_notes','',c&&c.notes)}
+    <button class="btn" data-act="cli:save" style="margin-top:10px">${t('cli_save')}</button>
+    ${c?`<button class="delbtn" data-act="cli:del" style="margin-top:8px">${svg('<path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12"/>')} ${t('cli_del')}</button>`:''}
+  </div>`;
+  document.getElementById('clidlg').classList.add('on');
+}
+function closeCli(){document.getElementById('clidlg').classList.remove('on');}
+function saveClient(){
+  const g=k=>{const el=document.getElementById('cf_'+k);return el?el.value.trim():'';};
+  const name=g('cli_name');if(!name){toast(t('cli_need_name'));return;}
+  const data={name,alias:g('cli_alias'),phone:g('cli_phone'),email:g('cli_email'),address:g('cli_address'),notes:g('cli_notes')};
+  if(state.cliEdit){const c=cliById(state.cliEdit);if(c)Object.assign(c,data);}
+  else state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e3),...data});
+  persist();closeCli();render();toast(t('cli_saved'));
+}
+function delClient(){if(!state.cliEdit)return;state.clients=state.clients.filter(c=>c.id!==state.cliEdit);state.cliEdit=null;persist();closeCli();render();toast(t('cli_deleted'));}
+const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProveedores,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes};
+const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo',clientes:'m_clientes'};
 
 /* ---------------- add product form ---------------- */
 function formHTML(){
@@ -796,6 +866,7 @@ async function bkHandleFile(file){
     const catRows=bkExec(db,'SELECT folio,nombre FROM categorias');
     const catMap={};catRows.forEach(c=>catMap[c.folio]=c.nombre);
     const products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria FROM producto');
+    const clients=bkExec(db,'SELECT folio,nombre_cliente,alias,telefono1,correo,direccion,info_adicional FROM cliente');
     const imgSet={};let imgCount=0;zip.forEach((p,f)=>{if(/\.jpe?g$/i.test(p)&&!f.dir){imgSet[p.replace(/\.jpe?g$/i,'')]=p;imgCount++;}});
     const stats={
       productos:products.length,
@@ -812,7 +883,7 @@ async function bkHandleFile(file){
     };
     db.close();
     BKZIP=zip;
-    state.bk={biz,catMap,products,stats,imgSet,fileName:file.name};
+    state.bk={biz,catMap,products,clients,stats,imgSet,fileName:file.name};
     state.bkLoading=false;state.bkImgUrls={};
     render();
   }catch(e){
@@ -847,6 +918,17 @@ function bkImport(){
   const withImg=prods.filter(p=>p.imgKey);
   if(withImg.length)bkSaveImages(withImg);
 }
+function bkImportClients(){
+  if(!state.bk||!state.bk.clients)return;
+  let added=0,updated=0;
+  state.bk.clients.forEach(c=>{
+    const name=(c.nombre_cliente||'').trim();if(!name)return;
+    const data={name,alias:(c.alias||'').trim(),phone:(c.telefono1||'').trim(),email:(c.correo||'').trim(),address:(c.direccion||'').trim(),notes:(c.info_adicional||'').trim()};
+    const ex=state.clients.find(x=>(x.name||'').toLowerCase()===name.toLowerCase());
+    if(ex){Object.assign(ex,data);updated++;}else{state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e6),...data});added++;}
+  });
+  persist();toast(ti('bk_cli_done',{a:added,u:updated}));state.invLimit=INV_PAGE;go('clientes');
+}
 function bkReset(){state.bk=null;state.bkErr='';BKZIP=null;state.bkImgUrls={};render();}
 function scBackup(){
   const bod=state.profile&&state.profile.kind==='bodega';
@@ -879,6 +961,7 @@ function scBackup(){
     <div class="kpis kpis3">${stat(t('m_ventas'),s.ventas)}${stat(t('m_clientes'),s.clientes)}${stat(t('m_proveedores'),s.proveedores)}</div>
     <div class="bkdates">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('bk_sales_range')}: <b>${dates}</b></div>
     <button class="btn" data-act="bk:import">${svg('<path d="M12 21V10M8 14l4-4 4 4"/><path d="M5 4h14"/>')} ${ti('bk_import',{n:s.productos})}</button>
+    ${b.clients&&b.clients.length?`<button class="btn ghost" data-act="bk:impcli" style="margin-top:8px">${svg(CLI_ICO)} ${ti('bk_impcli',{n:b.clients.length})}</button>`:''}
     <button class="btn ghost" data-act="bk:reset" style="margin-top:8px">${t('bk_other')}</button>
     <div class="section-h"><h2>${ti('bk_prev',{n:Math.min(40,s.productos)})}</h2></div>
     <div class="list">${preview}</div>
@@ -904,7 +987,7 @@ function render(){
   document.getElementById("screen").firstElementChild.className=noPad?"":"pad";
   body.className=noPad?"":"pad";body.innerHTML=SCREENS[state.screen]();
   document.getElementById("barShop").textContent=(state.profile&&state.profile.name)||'Abanico';
-  document.getElementById("barSection").textContent=t(secKey[state.screen]||'m_inventario');
+  document.getElementById("barSection").textContent=t(secKey[state.screen]||'m_inventario')+(state.screen==='clientes'?'  #'+state.clients.length:'');
   const fabShow=(state.screen==='inventario'||state.screen==='ventas')&&!document.getElementById('device').classList.contains('form-open');
   document.getElementById("fab").style.display=fabShow?"grid":"none";
   const bd=document.getElementById('bellDot');if(bd)bd.hidden=unreadCount(currentDataId())===0;
@@ -914,14 +997,14 @@ function render(){
   const cnt=items.reduce((a,i)=>a+i.q,0);document.getElementById("cartCount").textContent=cnt+" "+(cnt===1?t('item'):t('items'));
   document.querySelectorAll(".di").forEach(n=>n.classList.toggle("on",n.dataset.di===state.screen));
   const si=document.getElementById("searchInput");
-  if(si)si.addEventListener("input",e=>{state.q=e.target.value;const p=e.target.selectionStart;render();const s2=document.getElementById("searchInput");if(s2){s2.focus();try{s2.setSelectionRange(p,p)}catch(_){}}},{once:true});
+  if(si)si.addEventListener("input",e=>{state.q=e.target.value;state.invLimit=INV_PAGE;const p=e.target.selectionStart;render();const s2=document.getElementById("searchInput");if(s2){s2.focus();try{s2.setSelectionRange(p,p)}catch(_){}}},{once:true});
   if(state.screen==='respaldo'&&state.bk&&BKZIP)bkLoadThumbs();
   if(state.screen==='inventario')bkApplyInvImages();
   document.getElementById("screen").scrollTop=state._keep||0;
 }
 let toastT;function toast(m){const t2=document.getElementById("toast");document.getElementById("toastMsg").textContent=m;t2.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t2.classList.remove("on"),2200);}
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
-function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.screen=s;drawer(false);render();}
+function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
 function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*p.price,ts:Date.now()},600);}});}
   state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
@@ -953,7 +1036,7 @@ function _applySnap(key,val){
   try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
   if(key.indexOf('data.')===0&&state.profile&&('data.'+state.profile.id)===key){
     const v=_clone(val);
-    state.products=v.products||[];state.sales=v.sales||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];
+    state.products=v.products||[];state.sales=v.sales||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];state.clients=v.clients||[];
   }
   if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
 }
@@ -979,10 +1062,10 @@ function upsertEntity(role,e){const l=loadReg(role).slice();const i=l.findIndex(
 function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
-function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves});}
-function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[]});}
+function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});}
+function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
-function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.cart={};state.filterCat=null;}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.cart={};state.filterCat=null;}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
 function saveReq(l){_set('requests',l);}
@@ -1200,9 +1283,11 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='catdlg')return closeCat();
   if(e.target.id==='notifdlg')return closeNotifs();
   if(e.target.id==='iodlg')return closeIO();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat],[data-tienda]");
+  if(e.target.id==='clidlg')return closeCli();
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit]");
   if(!el)return;
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
+  if(el.hasAttribute("data-cliedit"))return openCliForm(el.dataset.cliedit);
   if(el.hasAttribute("data-tienda")){state.detTienda=el.dataset.tienda;return go('tiendadet');}
   if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);dbFetch('data.'+el.dataset.catalog);return go('catalogo');}
   if(el.hasAttribute("data-addcat")){state._keep=document.getElementById("screen").scrollTop;const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
@@ -1230,9 +1315,11 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="ob")return obAction(el.dataset.act.slice(3));
     if(a==="logout")return doLogout();
     if(a==="notifs")return openNotifs();
-    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();return;}
+    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();return;}
+    if(a==="cli"){const sub=el.dataset.act.split(":")[1];if(sub==='new')return openCliForm(null);if(sub==='save')return saveClient();if(sub==='del')return delClient();return;}
     if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return triggerImport();return openIO();}
-    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='import')return bkImport();if(sub==='reset')return bkReset();return;}
+    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='import')return bkImport();if(sub==='impcli')return bkImportClients();if(sub==='reset')return bkReset();return;}
+    if(a==="invmore"){state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE*2;return render();}
     if(a==="reqaccess")return requestAccess();
     if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');
     if(a==="deny")return setReqStatus(el.dataset.act.split(":")[1],'denied');
@@ -1243,5 +1330,12 @@ document.getElementById("device").addEventListener("click",e=>{
 });
 document.getElementById("ioFile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)handleImportFile(file);});
 document.getElementById("bkFile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)bkHandleFile(file);});
+document.getElementById("screen").addEventListener("scroll",()=>{
+  if(state.screen!=='inventario')return;
+  const sc=document.getElementById("screen");
+  if(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-500&&document.querySelector('.loadmore')){
+    state._keep=sc.scrollTop;state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE;render();
+  }
+},{passive:true});
 boot();
 </script>

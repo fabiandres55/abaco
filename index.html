@@ -296,6 +296,10 @@
   <!-- notifications sheet -->
   <div class="sheetdlg" id="notifdlg"><div class="sheetcard"><div class="sheet-h"><span id="notifH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="notifOptions"></div></div></div>
 
+  <!-- import/export sheet -->
+  <div class="sheetdlg" id="iodlg"><div class="sheetcard"><div class="sheet-h"><span id="ioH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="ioOptions"></div></div></div>
+  <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
+
   <!-- notification permission dialog -->
   <div class="permdlg" id="permdlg">
     <div class="permcard">
@@ -337,7 +341,7 @@ const I18N={
   es:{sync:"Sincronizado · offline",soon:"Pronto",
     m_inventario:"Inventario",m_servicios:"Servicios",m_ventas:"Ventas",m_compras:"Compras",m_caja:"Otros ingresos-gastos",m_reportes:"Reportes",m_empleados:"Empleados",m_proveedores:"Proveedores",m_clientes:"Clientes",m_calendario:"Calendario",m_respaldo:"Respaldo",
     newSale:"Nueva venta",searchNameKey:"Nombre / clave",searchProd:"Buscar producto o categoría…",
-    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",
+    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",
     kpi_products:"Productos",kpi_low:"Stock bajo",kpi_value:"Valor inv.",low:"Bajo",ok:"OK",inStock:"en stock",filterBy:"Filtrar por categoría",allCats:"Todas las categorías",noCatResults:"No hay productos en esta categoría",
     emptyInv:"No tienes productos en el inventario. Pulsa el botón para agregar productos.",
     add:"Agregar",cancelSale:"Cancelar venta",total:"Total",items:"ítems",item:"ítem",charge:"Cobrar",noResults:"Sin resultados",
@@ -356,7 +360,7 @@ const I18N={
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
-    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",
+    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",
     kpi_products:"Products",kpi_low:"Low stock",kpi_value:"Inv. value",low:"Low",ok:"OK",inStock:"in stock",filterBy:"Filter by category",allCats:"All categories",noCatResults:"No products in this category",
     emptyInv:"You do not have products in the inventory. Press the button to add products.",
     add:"Add",cancelSale:"Cancel sale",total:"Total",items:"items",item:"item",charge:"Charge",noResults:"No results",
@@ -408,6 +412,7 @@ function invHeader(){
     <span class="fchip ${state.filterCat?'act':''}" data-act="filtercat">${svg('<path d="M3 5h18M6 12h12M10 19h4"/>')} ${state.filterCat||t('chip_filter')}</span>
     <span class="fchip" data-act="toast:filters">${svg('<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 16.5v.5"/>')} ${t('chip_reserve')}</span>
     <span class="fchip" data-act="toast:filters">${svg('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9l6 6M15 9l-6 6"/>')} ${t('chip_merma')}</span>
+    <span class="fchip" data-act="io">${svg('<path d="M8 17l-4-4 4-4"/><path d="M4 13h9"/><path d="M16 7l4 4-4 4"/><path d="M20 11h-9"/>')} ${t('chip_io')}</span>
   </div>`;
 }
 function scInventario(){
@@ -625,6 +630,89 @@ function openCatFilter(){
   document.getElementById('catdlg').classList.add('on');
 }
 function closeCat(){document.getElementById('catdlg').classList.remove('on');}
+/* ---------------- importar / exportar inventario ---------------- */
+function ioSlug(s){return (''+(s||'')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||'inventario';}
+function openIO(){
+  document.getElementById('ioH').textContent=t('io_title');
+  document.getElementById('ioOptions').innerHTML=`<div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px">
+    <div class="osub" style="font-size:12.5px;color:var(--muted);margin:-2px 0 2px">${ti('io_sub',{n:state.products.length})}</div>
+    <button class="btn" data-act="io:csv">${svg('<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>')} ${t('io_export_csv')}</button>
+    <button class="btn ghost" data-act="io:json">${svg('<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>')} ${t('io_export_json')}</button>
+    <button class="btn dark" data-act="io:import">${svg('<path d="M12 21V10M8 14l4-4 4 4"/><path d="M5 4h14"/>')} ${t('io_import')}</button>
+  </div>`;
+  document.getElementById('iodlg').classList.add('on');
+}
+function closeIO(){document.getElementById('iodlg').classList.remove('on');}
+function ioDownload(name,mime,content){
+  try{const blob=new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1500);return true;}
+  catch(e){toast(t('io_err'));return false;}
+}
+function ioCsvCell(v){v=(v==null?'':''+v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function doExportCSV(){
+  const rows=[['codigo','nombre','categoria','cantidad','precio_compra','precio_venta','reserva','origen']];
+  state.products.forEach(p=>rows.push([p.key||'',p.name,p.cat||'',p.stock,p.cost,p.price,p.reserve||0,p.origin?('bodega:'+p.origin.bid):'propio']));
+  const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
+  if(ioDownload(ioSlug(state.profile&&state.profile.name)+'.csv','text/csv;charset=utf-8',csv)){closeIO();toast(t('io_done_exp'));}
+}
+function doExportJSON(){
+  const data={app:'abanico',type:'inventario',profile:state.profile?{id:state.profile.id,name:state.profile.name,kind:state.profile.kind}:null,exported:new Date().toISOString(),products:state.products};
+  if(ioDownload(ioSlug(state.profile&&state.profile.name)+'.json','application/json',JSON.stringify(data,null,2))){closeIO();toast(t('io_done_exp'));}
+}
+function triggerImport(){const inp=document.getElementById('ioFile');inp.value='';inp.click();}
+function ioNum(v){
+  let s=(''+(v==null?'':v)).trim().replace(/[^0-9.,-]/g,'');if(!s)return 0;
+  const hasDot=s.indexOf('.')>=0,hasComma=s.indexOf(',')>=0;
+  if(hasDot&&hasComma){if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'');}
+  else if(hasComma)s=s.replace(',','.');
+  else if(hasDot&&/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');
+  const n=parseFloat(s);return isFinite(n)?n:0;
+}
+function ioParseCSV(txt){
+  const rows=[];let i=0,cell='',row=[],q=false;
+  const push=()=>{row.push(cell);cell='';};const endr=()=>{push();rows.push(row);row=[];};
+  while(i<txt.length){const c=txt[i];
+    if(q){if(c==='"'){if(txt[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
+    else{if(c==='"')q=true;else if(c===','||c===';')push();else if(c==='\n')endr();else if(c==='\r'){}else cell+=c;}
+    i++;
+  }
+  if(cell.length||row.length)endr();
+  if(rows.length<2)return [];
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const idx=names=>{for(const n of names){const k=head.indexOf(n);if(k>=0)return k;}return -1;};
+  const ci={key:idx(['codigo','código','key','sku','barcode','codigo de barras']),name:idx(['nombre','name','producto','product']),cat:idx(['categoria','categoría','category','cat']),stock:idx(['cantidad','stock','qty','existencia']),cost:idx(['precio_compra','p_compra','costo','cost','compra']),price:idx(['precio_venta','p_venta','precio','price','venta']),reserve:idx(['reserva','reserve'])};
+  const out=[];
+  for(let r=1;r<rows.length;r++){const cells=rows[r];if(!cells.length||cells.every(x=>!(''+x).trim()))continue;
+    const name=(ci.name>=0?cells[ci.name]:cells[0])||'';if(!name.trim())continue;
+    out.push({key:ci.key>=0?(cells[ci.key]||'').trim():'',name:name.trim(),cat:ci.cat>=0?(cells[ci.cat]||'').trim():'',stock:ci.stock>=0?ioNum(cells[ci.stock]):0,cost:ci.cost>=0?ioNum(cells[ci.cost]):0,price:ci.price>=0?ioNum(cells[ci.price]):0,reserve:ci.reserve>=0?ioNum(cells[ci.reserve]):0});
+  }
+  return out;
+}
+function importProducts(list){
+  let added=0,updated=0;
+  list.forEach(it=>{
+    const key=(it.key||'').trim();let ex=null;
+    if(key)ex=state.products.find(p=>(p.key||'')===key);
+    if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase());
+    if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(key)ex.key=key;updated++;}
+    else{state.products.push({id:state.seq++,key:key||('IMP-'+state.seq),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:0,stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,expiry:null});added++;}
+  });
+  persist();closeIO();state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));
+}
+function handleImportFile(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const txt=(''+reader.result).replace(/^﻿/,'');const trimmed=txt.trim();
+      let prods;
+      if(/\.json$/i.test(file.name)||trimmed[0]==='{'||trimmed[0]==='['){const j=JSON.parse(trimmed);prods=Array.isArray(j)?j:(j.products||[]);prods=prods.map(p=>({key:p.key||'',name:p.name||p.nombre||'',cat:p.cat||p.categoria||'',stock:+(p.stock!=null?p.stock:p.cantidad)||0,cost:+(p.cost!=null?p.cost:p.p_compra)||0,price:+(p.price!=null?p.price:p.p_venta)||0,reserve:+(p.reserve!=null?p.reserve:p.reserva)||0}));}
+      else prods=ioParseCSV(txt);
+      if(!prods||!prods.length){toast(t('io_empty'));return;}
+      importProducts(prods.filter(p=>p.name&&(''+p.name).trim()));
+    }catch(e){toast(t('io_err'));}
+  };
+  reader.onerror=()=>toast(t('io_err'));
+  reader.readAsText(file);
+}
 
 /* ---------------- drawer / render ---------------- */
 function modeLabel(p){
@@ -937,6 +1025,7 @@ const TOASTS={notif:'notif',more:'more',scanner:'scanner',categories:'categories
 document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='catdlg')return closeCat();
   if(e.target.id==='notifdlg')return closeNotifs();
+  if(e.target.id==='iodlg')return closeIO();
   const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat],[data-tienda]");
   if(!el)return;
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
@@ -967,7 +1056,8 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="ob")return obAction(el.dataset.act.slice(3));
     if(a==="logout")return doLogout();
     if(a==="notifs")return openNotifs();
-    if(a==="close-sheet"){closeCat();closeNotifs();return;}
+    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();return;}
+    if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return triggerImport();return openIO();}
     if(a==="reqaccess")return requestAccess();
     if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');
     if(a==="deny")return setReqStatus(el.dataset.act.split(":")[1],'denied');
@@ -976,5 +1066,6 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="toast"){const key=el.dataset.act.split(":")[1];return toast(t(TOASTS[key]||'more'));}
   }
 });
+document.getElementById("ioFile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)handleImportFile(file);});
 boot();
 </script>

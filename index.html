@@ -337,6 +337,9 @@
 
   <!-- client form sheet -->
   <div class="sheetdlg" id="clidlg"><div class="sheetcard"><div class="sheet-h"><span id="cliH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="cliBody"></div></div></div>
+
+  <!-- sale detail sheet -->
+  <div class="sheetdlg" id="saledlg"><div class="sheetcard"><div class="sheet-h"><span id="saleH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="saleBody"></div></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
   <input type="file" id="bkFile" style="display:none">
 
@@ -381,7 +384,7 @@ const I18N={
   es:{sync:"Sincronizado · offline",soon:"Pronto",
     m_inventario:"Inventario",m_servicios:"Servicios",m_ventas:"Ventas",m_compras:"Compras",m_caja:"Otros ingresos-gastos",m_reportes:"Reportes",m_empleados:"Empleados",m_proveedores:"Proveedores",m_clientes:"Clientes",m_calendario:"Calendario",m_respaldo:"Respaldo",
     newSale:"Nueva venta",searchNameKey:"Nombre / clave",searchProd:"Buscar producto o categoría…",
-    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",bk_imported_ok:"Importado: {p} productos y {c} clientes",bk_see_inv:"Ver inventario",bk_see_cli:"Ver clientes",bk_cli_done:"Clientes: {a} nuevos · {u} actualizados",inv_more:"Ver más ({n})",cli_search:"Nombre / Alias",cli_noalias:"SIN ALIAS",cli_empty:"Aún no tienes clientes.",cli_nomatch:"Sin resultados",cli_new_title:"Nuevo cliente",cli_edit_title:"Editar cliente",cli_name:"Nombre",cli_alias:"Alias",cli_phone:"Teléfono",cli_email:"Correo",cli_address:"Dirección",cli_notes:"Información adicional",cli_save:"Guardar cliente",cli_del:"Eliminar cliente",cli_saved:"Cliente guardado",cli_deleted:"Cliente eliminado",cli_need_name:"Escribe el nombre del cliente",
+    chip_filter:"Filtro",chip_reserve:"Productos en reserva",chip_merma:"Merma",chip_io:"Importar/Exportar",io_title:"Importar / Exportar",io_sub:"{n} productos en tu inventario.",io_export_csv:"Exportar a CSV (Excel)",io_export_json:"Exportar respaldo (JSON)",io_import:"Importar archivo (CSV o JSON)",io_done_exp:"Archivo generado",io_done_imp:"Importado: {a} nuevos · {u} actualizados",io_err:"No se pudo leer el archivo",io_empty:"El archivo no tiene productos",m_categorias:"Categorías",bk_title:"Copia de seguridad",bk_intro:"Carga una copia de Mi Negocio (.mn) para ver su contenido e importar sus productos.",bk_pick:"Seleccionar archivo .mn",bk_note:"El archivo .mn se lee en tu dispositivo; nada se sube a internet.",bk_err:"No se pudo leer la copia. ¿Es un archivo .mn válido?",bk_nodb:"No se encontró la base de datos en la copia.",bk_reading:"Leyendo archivo…",bk_unzip:"Descomprimiendo…",bk_readdb:"Leyendo base de datos…",bk_loaded:"Copia cargada",bk_images:"Imágenes",bk_val_venta:"Valor inventario (venta)",bk_val_costo:"Costo:",bk_sales_range:"Ventas",bk_import:"Importar {n} productos a mi inventario",bk_imgprog:"Guardando imágenes… {a}/{n}",bk_imgdone:"Listo: {n} imágenes guardadas",bk_other:"Cargar otra copia",bk_prev:"Vista previa ({n} productos)",bk_more:"y {n} productos más…",bk_imported_ok:"Importado: {p} productos, {c} clientes y {v} ventas",bk_see_inv:"Ver inventario",bk_see_cli:"Ver clientes",bk_see_ven:"Ver ventas",sales_history:"Historial de Ventas",sales_quote:"Cotización",sale_date:"Fecha",sale_client:"Cliente",sale_pay:"Pago",sale_items:"Productos",sale_noitems:"Sin detalle de productos",bk_cli_done:"Clientes: {a} nuevos · {u} actualizados",inv_more:"Ver más ({n})",cli_search:"Nombre / Alias",cli_noalias:"SIN ALIAS",cli_empty:"Aún no tienes clientes.",cli_nomatch:"Sin resultados",cli_new_title:"Nuevo cliente",cli_edit_title:"Editar cliente",cli_name:"Nombre",cli_alias:"Alias",cli_phone:"Teléfono",cli_email:"Correo",cli_address:"Dirección",cli_notes:"Información adicional",cli_save:"Guardar cliente",cli_del:"Eliminar cliente",cli_saved:"Cliente guardado",cli_deleted:"Cliente eliminado",cli_need_name:"Escribe el nombre del cliente",
     kpi_products:"Productos",kpi_low:"Stock bajo",kpi_value:"Valor inv.",low:"Bajo",ok:"OK",inStock:"en stock",filterBy:"Filtrar por categoría",allCats:"Todas las categorías",noCatResults:"No hay productos en esta categoría",
     emptyInv:"No tienes productos en el inventario. Pulsa el botón para agregar productos.",
     add:"Agregar",cancelSale:"Cancelar venta",total:"Total",items:"ítems",item:"ítem",charge:"Cobrar",noResults:"Sin resultados",
@@ -400,7 +403,7 @@ const I18N={
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Providers",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",
     newSale:"New sale",searchNameKey:"Name / key",searchProd:"Search product or category…",
-    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",bk_imported_ok:"Imported: {p} products and {c} clients",bk_see_inv:"View inventory",bk_see_cli:"View clients",bk_cli_done:"Clients: {a} new · {u} updated",inv_more:"Show more ({n})",cli_search:"Name / Alias",cli_noalias:"NO ALIAS",cli_empty:"You have no clients yet.",cli_nomatch:"No results",cli_new_title:"New client",cli_edit_title:"Edit client",cli_name:"Name",cli_alias:"Alias",cli_phone:"Phone",cli_email:"Email",cli_address:"Address",cli_notes:"Additional info",cli_save:"Save client",cli_del:"Delete client",cli_saved:"Client saved",cli_deleted:"Client deleted",cli_need_name:"Enter the client's name",
+    chip_filter:"Filter",chip_reserve:"Products reserve",chip_merma:"Shrinkage",chip_io:"Import/Export",io_title:"Import / Export",io_sub:"{n} products in your inventory.",io_export_csv:"Export to CSV (Excel)",io_export_json:"Export backup (JSON)",io_import:"Import file (CSV or JSON)",io_done_exp:"File generated",io_done_imp:"Imported: {a} new · {u} updated",io_err:"Couldn't read the file",io_empty:"No products in the file",m_categorias:"Categories",bk_title:"Backup",bk_intro:"Load a Mi Negocio backup (.mn) to view its content and import its products.",bk_pick:"Select .mn file",bk_note:"The .mn file is read on your device; nothing is uploaded.",bk_err:"Couldn't read the backup. Is it a valid .mn file?",bk_nodb:"Database not found in the backup.",bk_reading:"Reading file…",bk_unzip:"Unzipping…",bk_readdb:"Reading database…",bk_loaded:"Backup loaded",bk_images:"Images",bk_val_venta:"Inventory value (sale)",bk_val_costo:"Cost:",bk_sales_range:"Sales",bk_import:"Import {n} products to my inventory",bk_imgprog:"Saving images… {a}/{n}",bk_imgdone:"Done: {n} images saved",bk_other:"Load another backup",bk_prev:"Preview ({n} products)",bk_more:"and {n} more products…",bk_imported_ok:"Imported: {p} products, {c} clients and {v} sales",bk_see_inv:"View inventory",bk_see_cli:"View clients",bk_see_ven:"View sales",sales_history:"Sales history",sales_quote:"Quote",sale_date:"Date",sale_client:"Client",sale_pay:"Payment",sale_items:"Products",sale_noitems:"No item detail",bk_cli_done:"Clients: {a} new · {u} updated",inv_more:"Show more ({n})",cli_search:"Name / Alias",cli_noalias:"NO ALIAS",cli_empty:"You have no clients yet.",cli_nomatch:"No results",cli_new_title:"New client",cli_edit_title:"Edit client",cli_name:"Name",cli_alias:"Alias",cli_phone:"Phone",cli_email:"Email",cli_address:"Address",cli_notes:"Additional info",cli_save:"Save client",cli_del:"Delete client",cli_saved:"Client saved",cli_deleted:"Client deleted",cli_need_name:"Enter the client's name",
     kpi_products:"Products",kpi_low:"Low stock",kpi_value:"Inv. value",low:"Low",ok:"OK",inStock:"in stock",filterBy:"Filter by category",allCats:"All categories",noCatResults:"No products in this category",
     emptyInv:"You do not have products in the inventory. Press the button to add products.",
     add:"Add",cancelSale:"Cancel sale",total:"Total",items:"items",item:"item",charge:"Charge",noResults:"No results",
@@ -433,13 +436,18 @@ function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRA
 const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null};
 const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
-const saleTotal=s=>s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
-const todaySales=()=>state.sales.reduce((t,s)=>t+saleTotal(s),0);
+const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const saleDate=s=>s.date||todayISO();
+const saleTotal=s=>s.total!=null?s.total:(s.items?s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0):0);
+const saleQty=s=>s.n!=null?s.n:(s.lines?s.lines.reduce((a,l)=>a+(+l.qty||0),0):(s.items?s.items.reduce((a,i)=>a+i.q,0):0));
+const saleProfit=s=>s.cost!=null?(saleTotal(s)-s.cost):(s.items?s.items.reduce((a,i)=>{const p=P(i.id);return a+(p?(p.price-p.cost):0)*i.q;},0):0);
+const isToday=s=>saleDate(s)===todayISO();
+const todaySales=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleTotal(s),0);
 const cartItems=()=>Object.entries(state.cart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q}));
 const cartTotal=()=>cartItems().reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
 const cashBalance=()=>state.extraMoves.reduce((t,m)=>t+(m.type==="in"?m.amount:-m.amount),0)+todaySales();
 const lowCount=()=>state.products.filter(p=>p.stock<=LOW).length;
-const ganancia=()=>state.sales.reduce((t,s)=>t+s.items.reduce((a,i)=>{const p=P(i.id);return a+(p?(p.price-p.cost):0)*i.q;},0),0);
+const ganancia=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleProfit(s),0);
 
 /* ---------------- screens ---------------- */
 function invHeader(){
@@ -482,12 +490,35 @@ function scInventario(){
   return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount()}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>${more}`;
 }
 function scVentas(){
-  if(!state.sales.length) return `<button class="btn" data-nav="nueva"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('newSale')}</button><div class="empty">${t('noSales')}</div>`;
-  const rows=state.sales.map(s=>{const n=s.items.reduce((a,i)=>a+i.q,0);const names=s.items.map(i=>(P(i.id)?.name||"").split(" ")[0]).slice(0,3).join(", ");
-    return `<div class="row"><div class="av">#${s.id}</div><div><div class="t num">${money(saleTotal(s))}</div><div class="s">${s.time} · ${n} ${n===1?t('item'):t('items')} · ${names}</div></div><div class="r"><span class="chip ok">${t('paid')}</span></div></div>`;}).join("");
-  return `<div class="kpis"><div class="kpi hero"><div class="k-l">${t('soldToday')}</div><div class="k-v num">$${todaySales().toLocaleString(LANG==='es'?'es-CO':'en-US')}</div><div class="k-sub" style="color:#e2e4e6">${state.sales.length} ${t('sales')} · ${t('ticket')} ${money(todaySales()/Math.max(state.sales.length,1))}</div></div></div>
-  <button class="btn" data-nav="nueva"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('newSale')}</button><div class="section-h"><h2>${t('today')}</h2></div><div class="list">${rows}</div>`;
+  const chips=`<div class="chips">
+    <span class="fchip act">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${t('sales_history')}</span>
+    <span class="fchip" data-act="soon">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')} ${t('sales_quote')}</span>
+  </div>`;
+  const nHoy=state.sales.filter(isToday).length;const hoy=todaySales();
+  const kpi=`<div class="kpis"><div class="kpi hero"><div class="k-l">${t('soldToday')}</div><div class="k-v num">$${hoy.toLocaleString(LANG==='es'?'es-CO':'en-US')}</div><div class="k-sub" style="color:#e2e4e6">${nHoy} ${t('sales')} · ${t('ticket')} ${money(hoy/Math.max(nHoy,1))}</div></div></div>`;
+  const nueva=`<button class="btn" data-nav="nueva">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('newSale')}</button>`;
+  if(!state.sales.length) return chips+kpi+nueva+`<div class="empty" style="margin-top:24px">${t('noSales')}</div>`;
+  const total=state.sales.length;const limit=state.invLimit||INV_PAGE;const shown=state.sales.slice(0,limit);
+  const rows=shown.map(s=>{
+    const fol=s.folio||s.id;const sub=[s.date||'',s.time||'',s.client||''].filter(Boolean).join(' · ')||(saleQty(s)+' '+t('items'));
+    return `<div class="row" data-saledet="${s.id}"><div class="av">${svg('<path d="M6 2l1.6 3h8.8L18 2M4 7h16l-1.4 13H5.4z"/>')}</div><div style="min-width:0"><div class="t num">${money(saleTotal(s))}</div><div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${fol} · ${sub}</div></div><div class="r"><span class="chip ok">${s.pay||t('paid')}</span></div></div>`;
+  }).join('');
+  const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
+  return chips+kpi+nueva+`<div class="section-h"><h2>${t('sales_history')} · ${total}</h2></div><div class="list">${rows}</div>${more}`;
 }
+async function openSaleDet(id){
+  const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
+  document.getElementById('saleH').textContent='#'+(s.folio||s.id);
+  document.getElementById('saledlg').classList.add('on');
+  document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
+  let lines=[];
+  if(s.items)lines=s.items.map(i=>{const p=P(i.id);return {name:p?p.name:'—',qty:i.q,price:p?p.price:0,subtotal:(p?p.price:0)*i.q};});
+  else{const L=await idbGetSale(s.id);if(L)lines=L;}
+  const meta=[s.date&&(t('sale_date')+': '+s.date+(s.time?' '+s.time:'')),s.client&&(t('sale_client')+': '+s.client),s.pay&&(t('sale_pay')+': '+s.pay)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${x}</div>`).join('');
+  const linesHtml=lines.length?lines.map(l=>`<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div><div class="s">${money(l.price)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty)}</div></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(saleTotal(s))}</div></div></div><div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div></div>`;
+}
+function closeSale(){document.getElementById('saledlg').classList.remove('on');}
 function scNueva(){
   const q=state.q.toLowerCase();
   const list=state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)).map(p=>{
@@ -498,7 +529,7 @@ function scNueva(){
   <div class="pad" style="padding-top:8px"><div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('searchProd')}" value="${state.q}"></div><div class="list">${list||'<div class="empty">'+t('noResults')+'</div>'}</div></div>`;
 }
 function scCaja(){
-  const moves=[...state.sales.map(s=>({type:"in",concept:"Venta #"+s.id,amount:saleTotal(s),time:s.time})),...state.extraMoves].sort((a,b)=>b.time.localeCompare(a.time));
+  const moves=[...state.sales.filter(isToday).map(s=>({type:"in",concept:"Venta #"+(s.folio||s.id),amount:saleTotal(s),time:s.time})),...state.extraMoves].sort((a,b)=>(''+b.time).localeCompare(''+a.time));
   const rows=moves.length?moves.map(m=>`<div class="row"><div class="av">${svg(m.type==="in"?'<path d="M12 19V5M6 11l6-6 6 6"/>':'<path d="M12 5v14M6 13l6 6 6-6"/>')}</div><div><div class="t">${m.concept}</div><div class="s">${m.time}</div></div><div class="r"><span class="movesign ${m.type==='in'?'in':'out'} num">${m.type==='in'?'+':'−'}${money(m.amount)}</span></div></div>`).join(""):`<div class="empty">${t('noSales')}</div>`;
   return `<div class="kpis"><div class="kpi hero"><div class="k-l">${t('cashBal')}</div><div class="k-v num">$${cashBalance().toLocaleString(LANG==='es'?'es-CO':'en-US')}</div><div class="k-sub" style="color:#e2e4e6">${t('base')} ${money(state.base)} · ${t('m_ventas')} ${money(todaySales())}</div></div></div>
   <div style="display:flex;gap:8px"><button class="btn ghost" data-act="toast:addmove">${t('movement')}</button><button class="btn dark" data-act="toast:closereg">${t('closeReg')}</button></div>
@@ -528,7 +559,7 @@ function scReportes(){
   const week=[...state.week,todaySales()];const max=Math.max(...week)||1;const labels=LANG==='es'?["lun","mar","mié","jue","vie","sáb","dom"]:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const bars=week.map((v,i)=>`<div class="b ${i===6?'today':''}"><div class="bar" style="height:${Math.max(6,v/max*100)}%"></div><div class="lb">${labels[i]}</div></div>`).join("");
   const totWeek=week.reduce((a,b)=>a+b,0);
-  const top=state.products.map(p=>{const qty=state.sales.reduce((a,s)=>a+(s.items.find(i=>i.id===p.id)?.q||0),0);return{p,qty,rev:qty*p.price};}).filter(x=>x.qty>0).sort((a,b)=>b.rev-a.rev).slice(0,4);
+  const top=state.products.map(p=>{const qty=state.sales.reduce((a,s)=>a+((s.items&&s.items.find(i=>i.id===p.id))?.q||0),0);return{p,qty,rev:qty*p.price};}).filter(x=>x.qty>0).sort((a,b)=>b.rev-a.rev).slice(0,4);
   const topRows=top.length?top.map(x=>`<div class="row"><div class="av num">${x.qty}</div><div><div class="t">${x.p.name}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join(""):`<div class="empty">${t('noSales')}</div>`;
   return `<div class="section-h"><h2>${t('salesPerDay')}</h2></div><div class="bars">${bars}</div>
   <div class="legend"><span><span class="dot" style="background:var(--pri)"></span>${t('week')} <b class="num">${money(totWeek)}</b></span><span><span class="dot" style="background:var(--pri-d)"></span>${t('today')} <b class="num">${money(todaySales())}</b></span></div>
@@ -816,10 +847,20 @@ let BKZIP=null;const BK_SQLBASE='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1
 const IMGCACHE={};let IDBP=null;
 function idbOpen(){
   if(IDBP)return IDBP;
-  IDBP=new Promise((res,rej)=>{try{const r=indexedDB.open('abanico',1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('img'))db.createObjectStore('img');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
+  IDBP=new Promise((res,rej)=>{try{const r=indexedDB.open('abanico',2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('img'))db.createObjectStore('img');if(!db.objectStoreNames.contains('sale'))db.createObjectStore('sale');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
   return IDBP;
 }
 async function idbPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('img','readwrite');tx.objectStore('img').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
+async function idbGetSale(id){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('sale','readonly');const rq=tx.objectStore('sale').get(''+id);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
+async function bkSaveSaleLines(byId){
+  const ids=Object.keys(byId||{});if(!ids.length)return;
+  try{const db=await idbOpen();
+    for(let i=0;i<ids.length;i+=400){
+      const chunk=ids.slice(i,i+400);
+      await new Promise((res,rej)=>{const tx=db.transaction('sale','readwrite');const st=tx.objectStore('sale');chunk.forEach(id=>st.put(byId[id],''+id));tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});
+    }
+  }catch(e){}
+}
 async function bkLoadAllImages(){try{const db=await idbOpen();await new Promise(res=>{const tx=db.transaction('img','readonly');const cur=tx.objectStore('img').openCursor();cur.onsuccess=e=>{const c=e.target.result;if(c){IMGCACHE[c.key]=c.value;c.continue();}else res();};cur.onerror=()=>res();});}catch(e){}}
 function bkApplyInvImages(){document.querySelectorAll('img[data-imgkey]').forEach(el=>{if(el.src)return;const u=IMGCACHE['img:'+el.getAttribute('data-imgkey')];if(u)el.src=u;});}
 function bkBlobToThumb(blob,size){
@@ -871,6 +912,12 @@ async function bkHandleFile(file){
     const catMap={};catRows.forEach(c=>catMap[c.folio]=c.nombre);
     const products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria FROM producto');
     const clients=bkExec(db,'SELECT folio,nombre_cliente,alias,telefono1,correo,direccion,info_adicional FROM cliente');
+    // ventas + su detalle
+    const payMap={};try{bkExec(db,'SELECT id_forma_pago,nombre FROM forma_pago').forEach(r=>payMap[r.id_forma_pago]=r.nombre);}catch(_){}
+    const ventaRows=bkExec(db,'SELECT folio,fecha,hora,total,nombre_cliente,id_forma_pago FROM venta');
+    const vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
+    const linesByFolio={};vlines.forEach(l=>{const k='V'+l.folio;(linesByFolio[k]=linesByFolio[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,price:+l.p_venta||0,cost:+l.p_compra||0,subtotal:+l.subtotal||0});});
+    const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);return {id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',n,imported:true};});
     const imgSet={};let imgCount=0;zip.forEach((p,f)=>{if(/\.jpe?g$/i.test(p)&&!f.dir){imgSet[p.replace(/\.jpe?g$/i,'')]=p;imgCount++;}});
     const stats={
       productos:products.length,
@@ -887,7 +934,7 @@ async function bkHandleFile(file){
     };
     db.close();
     BKZIP=zip;
-    state.bk={biz,catMap,products,clients,stats,imgSet,fileName:file.name};
+    state.bk={biz,catMap,products,clients,sales,saleLines:linesByFolio,stats,imgSet,fileName:file.name};
     state.bkLoading=false;state.bkImgUrls={};
     bkImportAll();   // al cargar el .mn se importa todo automáticamente
   }catch(e){
@@ -919,11 +966,20 @@ function bkImportAll(){
   }).filter(p=>p.name);
   const pr=importProducts(prods,true);      // sin navegar
   const cl=bkMergeClients();                // clientes
+  const sv=bkMergeSales();                  // ventas (historial)
   persist();
   const withImg=prods.filter(p=>p.imgKey);
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
-  state.bk.imported={p:state.products.length,c:state.clients.length};
+  if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
+  state.bk.imported={p:state.products.length,c:state.clients.length,v:sv};
   render();
+}
+function bkMergeSales(){
+  if(!state.bk||!state.bk.sales||!state.bk.sales.length)return 0;
+  const have=new Set(state.sales.map(s=>''+s.id));
+  const add=state.bk.sales.filter(s=>!have.has(''+s.id));
+  state.sales=state.sales.concat(add).sort((a,b)=>(saleDate(b)+' '+(b.time||'')).localeCompare(saleDate(a)+' '+(a.time||'')));
+  return add.length;
 }
 function bkMergeClients(){
   let added=0,updated=0;
@@ -966,8 +1022,9 @@ function scBackup(){
     <div class="kpis kpis3">${stat(t('kpi_products'),s.productos)}${stat(t('m_categorias'),s.categorias)}${stat(t('bk_images'),s.imagenes)}</div>
     <div class="kpis kpis3">${stat(t('m_ventas'),s.ventas)}${stat(t('m_clientes'),s.clientes)}${stat(t('m_proveedores'),s.proveedores)}</div>
     <div class="bkdates">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('bk_sales_range')}: <b>${dates}</b></div>
-    ${b.imported?`<div class="bkok">${svg('<path d="M5 12l5 5L20 7"/>')} ${ti('bk_imported_ok',{p:b.imported.p,c:b.imported.c})}</div>
+    ${b.imported?`<div class="bkok">${svg('<path d="M5 12l5 5L20 7"/>')} ${ti('bk_imported_ok',{p:b.imported.p,c:b.imported.c,v:b.imported.v||0})}</div>
     <button class="btn" data-act="bk:seeinv">${svg(IC.inventario)} ${t('bk_see_inv')}</button>
+    ${b.imported.v?`<button class="btn ghost" data-act="bk:seeven" style="margin-top:8px">${svg(IC.ventas)} ${t('bk_see_ven')}</button>`:''}
     ${b.imported.c?`<button class="btn ghost" data-act="bk:seecli" style="margin-top:8px">${svg(CLI_ICO)} ${t('bk_see_cli')}</button>`:''}`:''}
     <button class="btn ghost" data-act="bk:reset" style="margin-top:8px">${t('bk_other')}</button>
     <div class="section-h"><h2>${ti('bk_prev',{n:Math.min(40,s.productos)})}</h2></div>
@@ -1011,8 +1068,8 @@ function render(){
 }
 let toastT;function toast(m){const t2=document.getElementById("toast");document.getElementById("toastMsg").textContent=m;t2.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t2.classList.remove("on"),2200);}
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
-function go(s){if(s==="nueva"||s==="inventario")state.q="";state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
-function checkout(){const items=cartItems();if(!items.length)return;const id=(state.sales[0]?.id||100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
+function go(s){if(s==="nueva"||s==="inventario"||s==="clientes"||s==="ventas")state.q="";state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
+function checkout(){const items=cartItems();if(!items.length)return;const nums=state.sales.map(s=>+s.id).filter(n=>isFinite(n));const id=(nums.length?Math.max(...nums):100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*p.price,ts:Date.now()},600);}});}
   state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
 
@@ -1291,9 +1348,11 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='notifdlg')return closeNotifs();
   if(e.target.id==='iodlg')return closeIO();
   if(e.target.id==='clidlg')return closeCli();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit]");
+  if(e.target.id==='saledlg')return closeSale();
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet]");
   if(!el)return;
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
+  if(el.hasAttribute("data-saledet"))return openSaleDet(el.dataset.saledet);
   if(el.hasAttribute("data-cliedit"))return openCliForm(el.dataset.cliedit);
   if(el.hasAttribute("data-tienda")){state.detTienda=el.dataset.tienda;return go('tiendadet');}
   if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);dbFetch('data.'+el.dataset.catalog);return go('catalogo');}
@@ -1322,10 +1381,11 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="ob")return obAction(el.dataset.act.slice(3));
     if(a==="logout")return doLogout();
     if(a==="notifs")return openNotifs();
-    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();return;}
+    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();return;}
+    if(a==="soon")return toast(t('soon'));
     if(a==="cli"){const sub=el.dataset.act.split(":")[1];if(sub==='new')return openCliForm(null);if(sub==='save')return saveClient();if(sub==='del')return delClient();return;}
     if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return triggerImport();return openIO();}
-    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='reset')return bkReset();if(sub==='seeinv')return go('inventario');if(sub==='seecli')return go('clientes');return;}
+    if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='reset')return bkReset();if(sub==='seeinv')return go('inventario');if(sub==='seecli')return go('clientes');if(sub==='seeven')return go('ventas');return;}
     if(a==="invmore"){state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE*2;return render();}
     if(a==="reqaccess")return requestAccess();
     if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');

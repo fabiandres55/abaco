@@ -110,6 +110,11 @@
   .salehelp{margin-top:22px;font-size:13px;line-height:1.7;color:var(--muted);text-align:center;padding:0 10px}
   .hicon{border:none;background:var(--sel);color:var(--ink);width:34px;height:34px;border-radius:9px;display:grid;place-items:center;cursor:pointer;flex:none}
   .hicon svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .histdlg{position:absolute;inset:0;background:var(--bg);z-index:15;display:none;flex-direction:column}
+  .histdlg.on{display:flex}
+  .histbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);flex:none}
+  .histbar-t{font-weight:700;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .histbody{flex:1;overflow-y:auto;padding:14px 14px 24px}
   .clilist{display:flex;flex-direction:column;gap:10px}
   .clicard{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
   .cli-main{display:flex;align-items:center;gap:11px;flex:1;min-width:0;cursor:pointer}
@@ -356,6 +361,9 @@
 
   <!-- sale detail sheet -->
   <div class="sheetdlg" id="saledlg"><div class="sheetcard"><div class="sheet-h"><span id="saleH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="saleBody"></div></div></div>
+
+  <!-- sales history popup (full screen) -->
+  <div class="histdlg" id="histdlg"><div class="histbar"><button class="sheet-x" data-act="closehist">✕</button><span class="histbar-t" id="histTitle"></span><button class="hicon" data-act="salescsv"><svg viewBox="0 0 24 24"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/></svg></button></div><div class="histbody" id="histBody"></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
   <input type="file" id="bkFile" style="display:none">
 
@@ -507,13 +515,13 @@ function scInventario(){
 }
 function scVentas(){
   const chips=`<div class="chips">
-    <span class="fchip io" data-nav="historial">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${t('sales_history')}</span>
+    <span class="fchip io" data-act="hist">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${t('sales_history')}</span>
     <span class="fchip" data-act="soon">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')} ${t('sales_quote')}</span>
   </div>`;
   const nHoy=state.sales.filter(isToday).length;const hoy=todaySales();
   const kpi=`<div class="kpis"><div class="kpi hero"><div class="k-l">${t('soldToday')}</div><div class="k-v num">$${hoy.toLocaleString(LANG==='es'?'es-CO':'en-US')}</div><div class="k-sub" style="color:#e2e4e6">${nHoy} ${t('sales')} · ${t('ticket')} ${money(hoy/Math.max(nHoy,1))}</div></div></div>`;
   const nueva=`<button class="btn" data-nav="nueva">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('newSale')}</button>`;
-  const hist=state.sales.length?`<button class="btn ghost" data-nav="historial" style="margin-top:8px">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${ti('sales_hist_n',{n:state.sales.length})}</button>`:'';
+  const hist=state.sales.length?`<button class="btn ghost" data-act="hist" style="margin-top:8px">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${ti('sales_hist_n',{n:state.sales.length})}</button>`:'';
   const help=`<div class="salehelp">${t('sales_help')}</div>`;
   return chips+kpi+nueva+hist+help;
 }
@@ -522,22 +530,33 @@ const S_PER='<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 
 const S_INFO='<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>';
 const S_CASH='<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>';
 const S_FAN='<path d="M12 12c0-5 2-8 6-8 0 4-3 6-6 8zM12 12c5 0 8 2 8 6-4 0-6-3-8-6zM12 12c0 5-2 8-6 8 0-4 3-6 6-8zM12 12c-5 0-8-2-8-6 4 0 6 3 8 6z"/><circle cx="12" cy="12" r="1.4"/>';
-function scHistorial(){
-  const back=`<div class="backrow" data-nav="ventas">${svg('<path d="M15 6l-6 6 6 6"/>')} ${t('sales_history')}</div>`;
-  if(!state.sales.length) return back+`<div class="empty" style="margin-top:30px">${t('noSales')}</div>`;
-  const total=state.sales.length;const limit=state.invLimit||INV_PAGE;const shown=state.sales.slice(0,limit);
-  const si=t('sin_info');
-  const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
-  const cards=shown.map(s=>{
-    const fol=s.folio||s.id;const dt=[s.date,s.time].filter(Boolean).join('  ')||si;
-    return `<div class="scard" data-saledet="${s.id}">
-      <div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${fol}</span><span class="scard-pay">${s.pay||si} ${svg(S_CASH)}</span></div>
-      ${row(S_CAL,dt)}${row(S_PER,s.client)}${row(S_INFO,s.tag)}${row(S_FAN,s.addr)}
-      <div class="scard-bot"><span class="scard-paid">${t('paid')}</span><span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(saleTotal(s))}</b></span></div>
-    </div>`;
-  }).join('');
-  const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
-  return back+`<div class="section-h sh-rec" style="justify-content:space-between"><h2>${svg('<path d="M4 6h16M4 12h16M4 18h10"/>')} ${t('sales_recent')} · ${total}</h2><button class="hicon" data-act="salescsv">${svg('<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>')}</button></div><div class="scards">${cards}</div>${more}`;
+let HIST_LIMIT=60;
+function histCardHTML(s){
+  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
+  const fol=s.folio||s.id;const dt=[s.date,s.time].filter(Boolean).join('  ')||si;
+  return `<div class="scard" data-saledet="${s.id}">
+    <div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${fol}</span><span class="scard-pay">${s.pay||si} ${svg(S_CASH)}</span></div>
+    ${row(S_CAL,dt)}${row(S_PER,s.client)}${row(S_INFO,s.tag)}${row(S_FAN,s.addr)}
+    <div class="scard-bot"><span class="scard-paid">${t('paid')}</span><span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(saleTotal(s))}</b></span></div>
+  </div>`;
+}
+function fillHist(){
+  const body=document.getElementById('histBody');if(!body)return;
+  const total=state.sales.length;
+  if(!total){body.innerHTML=`<div class="empty" style="margin-top:36px">${t('noSales')}</div>`;return;}
+  const shown=state.sales.slice(0,HIST_LIMIT);
+  const cards=shown.map(histCardHTML).join('');
+  const more=total>HIST_LIMIT?`<div class="loadmore" data-act="histmore">${ti('inv_more',{n:total-HIST_LIMIT})}</div>`:'';
+  body.innerHTML=`<div class="section-h sh-rec"><h2>${svg('<path d="M4 6h16M4 12h16M4 18h10"/>')} ${t('sales_recent')} · ${total}</h2></div><div class="scards">${cards}</div>${more}`;
+}
+function openHist(){HIST_LIMIT=60;document.getElementById('histTitle').textContent=t('sales_history');fillHist();document.getElementById('histdlg').classList.add('on');document.getElementById('histBody').scrollTop=0;}
+function closeHist(){document.getElementById('histdlg').classList.remove('on');}
+function exportSalesCSV(){
+  if(!state.sales.length){toast(t('io_empty'));return;}
+  const rows=[['folio','fecha','hora','cliente','pago','total']];
+  state.sales.forEach(s=>rows.push([s.folio||s.id,s.date||'',s.time||'',s.client||'',s.pay||'',saleTotal(s)]));
+  const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
+  if(ioDownload('ventas.csv','text/csv;charset=utf-8',csv))toast(t('io_done_exp'));
 }
 function exportSalesCSV(){
   if(!state.sales.length){toast(t('io_empty'));return;}
@@ -700,8 +719,8 @@ function saveClient(){
   persist();closeCli();render();toast(t('cli_saved'));
 }
 function delClient(){if(!state.cliEdit)return;state.clients=state.clients.filter(c=>c.id!==state.cliEdit);state.cliEdit=null;persist();closeCli();render();toast(t('cli_deleted'));}
-const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProveedores,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes,historial:scHistorial};
-const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo',clientes:'m_clientes',historial:'sales_history'};
+const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProveedores,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes};
+const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo',clientes:'m_clientes'};
 
 /* ---------------- add product form ---------------- */
 function formHTML(){
@@ -1424,6 +1443,9 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();return;}
     if(a==="soon")return toast(t('soon'));
     if(a==="salescsv")return exportSalesCSV();
+    if(a==="hist")return openHist();
+    if(a==="closehist")return closeHist();
+    if(a==="histmore"){const b=document.getElementById('histBody');const p=b.scrollTop;HIST_LIMIT+=INV_PAGE*2;fillHist();b.scrollTop=p;return;}
     if(a==="cli"){const sub=el.dataset.act.split(":")[1];if(sub==='new')return openCliForm(null);if(sub==='save')return saveClient();if(sub==='del')return delClient();return;}
     if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return triggerImport();return openIO();}
     if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='reset')return bkReset();if(sub==='seeinv')return go('inventario');if(sub==='seecli')return go('clientes');if(sub==='seeven')return go('ventas');return;}
@@ -1438,6 +1460,10 @@ document.getElementById("device").addEventListener("click",e=>{
 });
 document.getElementById("ioFile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)handleImportFile(file);});
 document.getElementById("bkFile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)bkHandleFile(file);});
+document.getElementById("histBody").addEventListener("scroll",()=>{
+  const b=document.getElementById("histBody");
+  if(b.scrollTop+b.clientHeight>=b.scrollHeight-500&&HIST_LIMIT<state.sales.length){const p=b.scrollTop;HIST_LIMIT+=INV_PAGE;fillHist();b.scrollTop=p;}
+},{passive:true});
 document.getElementById("screen").addEventListener("scroll",()=>{
   if(state.screen!=='inventario')return;
   const sc=document.getElementById("screen");

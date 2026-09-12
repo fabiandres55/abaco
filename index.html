@@ -912,7 +912,7 @@ function idbOpen(){
 async function idbPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('img','readwrite');tx.objectStore('img').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
 async function idbKvPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
 async function idbKvGet(key){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('kv','readonly');const rq=tx.objectStore('kv').get(key);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(undefined);});}catch(e){return undefined;}}
-function persistSales(){const id=currentDataId();if(id)idbKvPut('sales:'+id,state.sales);}
+function persistSales(){const id=currentDataId();if(id){idbKvPut('sales:'+id,state.sales);sbPushDoc(id,'sales',state.sales);}}
 async function loadSales(id){const v=await idbKvGet('sales:'+id);if(v&&v.length){state.sales=v;if(currentDataId()===id)render();}else if(state.sales.length){await idbKvPut('sales:'+id,state.sales);}}
 async function idbGetSale(id){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('sale','readonly');const rq=tx.objectStore('sale').get(''+id);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
 async function bkSaveSaleLines(byId){
@@ -1149,6 +1149,50 @@ function _docPath(key){
   return 'shared/'+key;
 }
 function _clone(x){try{return x==null?x:JSON.parse(JSON.stringify(x));}catch(_){return x;}}
+/* ---------------- sincronización en la nube (Supabase) ---------------- */
+const SB_URL='https://cdripywjiwgvftlgcomg.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkcmlweXdqaXdndmZ0bGdjb21nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNTU5OTYsImV4cCI6MjEwNDczMTk5Nn0.p91Q377EZi4fqX7MQ_varxdaKQO_fzJzWDiaymHKkH8';
+let SB=null,SB_LOADING=null,SYNC_APPLYING=false;const SB_TIMER={},SB_PENDING={};
+function sbScript(src){return new Promise((res,rej)=>{if([...document.scripts].some(s=>s.src===src))return res();const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('sb'));document.head.appendChild(s);});}
+function sbInit(){
+  if(SB)return Promise.resolve(SB);
+  if(SB_LOADING)return SB_LOADING;
+  SB_LOADING=(async()=>{try{await sbScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js');if(window.supabase&&window.supabase.createClient)SB=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){SB=null;}return SB;})();
+  return SB_LOADING;
+}
+function sbPushDoc(storeId,key,data){
+  if(!storeId||SYNC_APPLYING)return;
+  const k=storeId+'|'+key;SB_PENDING[k]={storeId,key,data};
+  clearTimeout(SB_TIMER[k]);
+  SB_TIMER[k]=setTimeout(async()=>{const p=SB_PENDING[k];if(!p)return;delete SB_PENDING[k];try{const sb=await sbInit();if(!sb)return;await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});}catch(e){}},700);
+}
+async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
+async function sbPullStore(id){
+  if(!id)return false;
+  const[p,c,s]=await Promise.all([sbPullDoc(id,'products'),sbPullDoc(id,'clients'),sbPullDoc(id,'sales')]);
+  if(p==null&&c==null&&s==null)return false;
+  SYNC_APPLYING=true;
+  if(Array.isArray(p))state.products=p;
+  if(Array.isArray(c))state.clients=c;
+  if(p!=null||c!=null)persist();
+  if(Array.isArray(s)){state.sales=s;persistSales();}
+  SYNC_APPLYING=false;
+  return true;
+}
+function _mergeBy(list,extra,idKey){const m={};(list||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]=x;});(extra||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]={...m[x[idKey]],...x};});return Object.values(m);}
+async function sbSyncBoot(){
+  const sb=await sbInit();if(!sb)return;
+  SYNC_APPLYING=true;
+  for(const role of ['bodega','tienda']){const rk=role+'s';const remote=await sbPullDoc('__shared__',rk);const merged=_mergeBy(_get(rk,[]),remote,'id');_setLocal(rk,merged);}
+  const mreq=_mergeBy(_get('requests',[]),await sbPullDoc('__shared__','requests'),'reqId');_setLocal('requests',mreq);
+  SYNC_APPLYING=false;
+  // subir registros locales fusionados (para que las tiendas/bodegas existentes lleguen a la nube)
+  ['bodegas','tiendas'].forEach(rk=>{const l=_get(rk,[]);if(l.length)sbPushDoc('__shared__',rk,l);});
+  const lr=_get('requests',[]);if(lr.length)sbPushDoc('__shared__','requests',lr);
+  if(state.profile){const had=await sbPullStore(state.profile.id);if(!had&&(state.products.length||state.clients.length||state.sales.length)){persist();persistSales();}}
+  if(document.getElementById('onbo').classList.contains('on'))renderOnbo();else render();
+}
+function _setLocal(key,val){CACHE[key]=val;try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}}
 function _get(key,def){
   if(key in CACHE)return _clone(CACHE[key]);
   try{const v=JSON.parse(localStorage.getItem('abanico.'+key));return v==null?def:v;}catch(_){return def;}
@@ -1185,18 +1229,18 @@ async function initDb(){
 }
 function regKey(role){return role+'s';}
 function loadReg(role){return _get(regKey(role),[]);}
-function saveReg(role,l){_set(regKey(role),l);}
+function saveReg(role,l){_set(regKey(role),l);sbPushDoc('__shared__',regKey(role),l);}
 function upsertEntity(role,e){const l=loadReg(role).slice();const i=l.findIndex(x=>x.id===e.id);if(i>=0)l[i]={...l[i],...e};else l.push(e);saveReg(role,l);}
 function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
-function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});}
+function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
 function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.cart={};state.filterCat=null;}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
-function saveReq(l){_set('requests',l);}
+function saveReq(l){_set('requests',l);sbPushDoc('__shared__','requests',l);}
 function reqBetween(tid,bid){return loadReq().find(r=>r.tiendaId===tid&&r.bodegaId===bid);}
 function linkedBodegas(tid){return loadReq().filter(r=>r.tiendaId===tid&&r.status==='approved').map(r=>r.bodegaId);}
 function linkedTiendas(bid){return loadReq().filter(r=>r.bodegaId===bid&&r.status==='approved').map(r=>r.tiendaId);}
@@ -1276,6 +1320,7 @@ function enterProfile(role,ent){
   watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
   loadData(ent.id);loadSales(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
+  sbPullStore(ent.id).then(ok=>{if(ok)render();});
 }
 function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent=getEntity(role,id);if(!ent)return;if(ent.pass)return obGo('password');return enterProfile(role,ent);}
 function obAction(sub){
@@ -1294,6 +1339,7 @@ function boot(){
   if(p){loadData(p.id);loadSales(p.id);}
   renderDrawer();render();
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();});
+  sbSyncBoot();
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
   initDb().then(hasDb=>{
     if(!hasDb){seedDemo();}

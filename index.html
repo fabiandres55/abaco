@@ -906,10 +906,14 @@ let BKZIP=null;const BK_SQLBASE='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1
 const IMGCACHE={};let IDBP=null;
 function idbOpen(){
   if(IDBP)return IDBP;
-  IDBP=new Promise((res,rej)=>{try{const r=indexedDB.open('abanico',2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('img'))db.createObjectStore('img');if(!db.objectStoreNames.contains('sale'))db.createObjectStore('sale');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
+  IDBP=new Promise((res,rej)=>{try{const r=indexedDB.open('abanico',3);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('img'))db.createObjectStore('img');if(!db.objectStoreNames.contains('sale'))db.createObjectStore('sale');if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
   return IDBP;
 }
 async function idbPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('img','readwrite');tx.objectStore('img').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
+async function idbKvPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
+async function idbKvGet(key){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('kv','readonly');const rq=tx.objectStore('kv').get(key);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(undefined);});}catch(e){return undefined;}}
+function persistSales(){const id=currentDataId();if(id)idbKvPut('sales:'+id,state.sales);}
+async function loadSales(id){const v=await idbKvGet('sales:'+id);if(v&&v.length){state.sales=v;if(currentDataId()===id)render();}else if(state.sales.length){await idbKvPut('sales:'+id,state.sales);}}
 async function idbGetSale(id){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('sale','readonly');const rq=tx.objectStore('sale').get(''+id);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
 async function bkSaveSaleLines(byId){
   const ids=Object.keys(byId||{});if(!ids.length)return;
@@ -1026,7 +1030,7 @@ function bkImportAll(){
   const pr=importProducts(prods,true);      // sin navegar
   const cl=bkMergeClients();                // clientes
   const sv=bkMergeSales();                  // ventas (historial)
-  persist();
+  persist();persistSales();                 // ventas -> IndexedDB (evita el límite de localStorage)
   const withImg=prods.filter(p=>p.imgKey);
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
   if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
@@ -1130,7 +1134,7 @@ function drawer(open){document.getElementById("device").classList.toggle("drawer
 function go(s){if(s==="nueva"||s==="inventario"||s==="clientes"||s==="ventas")state.q="";state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
 function checkout(){const items=cartItems();if(!items.length)return;const nums=state.sales.map(s=>+s.id).filter(n=>isFinite(n));const id=(nums.length?Math.max(...nums):100)+1;items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();state.sales.unshift({id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q}))});
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*p.price,ts:Date.now()},600);}});}
-  state.cart={};state.screen="ventas";persist();render();toast(`Venta #${id} · ${money(tot)}`);}
+  state.cart={};state.screen="ventas";persist();persistSales();render();toast(`Venta #${id} · ${money(tot)}`);}
 
 /* ---------------- perfil / registros / datos ---------------- */
 function saveProfile(){try{localStorage.setItem('abanico.profile',JSON.stringify(state.profile))}catch(_){}}
@@ -1159,7 +1163,8 @@ function _applySnap(key,val){
   try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
   if(key.indexOf('data.')===0&&state.profile&&('data.'+state.profile.id)===key){
     const v=_clone(val);
-    state.products=v.products||[];state.sales=v.sales||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];state.clients=v.clients||[];
+    state.products=v.products||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];state.clients=v.clients||[];
+    if(v.sales&&v.sales.length&&!state.sales.length)state.sales=v.sales; // migración: ventas viejas del doc
   }
   if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
 }
@@ -1185,7 +1190,7 @@ function upsertEntity(role,e){const l=loadReg(role).slice();const i=l.findIndex(
 function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
-function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,sales:state.sales,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});}
+function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
 function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.cart={};state.filterCat=null;}
@@ -1269,7 +1274,7 @@ function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'
 function enterProfile(role,ent){
   state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
   watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
-  loadData(ent.id);
+  loadData(ent.id);loadSales(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
 }
 function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent=getEntity(role,id);if(!ent)return;if(ent.pass)return obGo('password');return enterProfile(role,ent);}
@@ -1286,13 +1291,13 @@ function doLogout(){persist();clearProfile();state.profile=null;state.products=[
 function boot(){
   let p=null;try{p=JSON.parse(localStorage.getItem('abanico.profile')||'null')}catch(_){}
   state.profile=p;
-  if(p)loadData(p.id);
+  if(p){loadData(p.id);loadSales(p.id);}
   renderDrawer();render();
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();});
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
   initDb().then(hasDb=>{
     if(!hasDb){seedDemo();}
-    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);loadData(state.profile.id);}
+    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);loadData(state.profile.id);loadSales(state.profile.id);}
     if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
   });
 }

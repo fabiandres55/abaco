@@ -1347,8 +1347,7 @@ function boot(){
   sbSyncBoot();
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
   initDb().then(hasDb=>{
-    if(!hasDb){seedDemo();}
-    else if(state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);loadData(state.profile.id);loadSales(state.profile.id);}
+    if(hasDb&&state.profile){watchKey('notif.'+state.profile.id);watchKey('data.'+state.profile.id);watchKey('bsales.'+state.profile.id);loadData(state.profile.id);loadSales(state.profile.id);}
     if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
   });
 }

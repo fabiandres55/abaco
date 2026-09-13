@@ -748,12 +748,23 @@ function fillReserva(){
 }
 function openReserva(){state.rsvFilter='all';document.getElementById('rsvH').textContent=t('chip_reserve');fillReserva();document.getElementById('rsvdlg').classList.add('on');document.getElementById('rsvOptions').scrollTop=0;}
 function closeReserva(){document.getElementById('rsvdlg').classList.remove('on');}
+async function saveWithPicker(name,mime,content){
+  try{
+    if(window.showSaveFilePicker){
+      const ext='.'+(name.split('.').pop());
+      const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:name.toUpperCase(),accept:{[mime]:[ext]}}]});
+      const w=await h.createWritable();await w.write(new Blob([content],{type:mime}));await w.close();
+      return true;
+    }
+  }catch(e){if(e&&e.name==='AbortError')return false;}
+  return ioDownload(name,mime,content);
+}
 function rsvExportCSV(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
-  const rows=[['codigo','nombre','categoria','cantidad','reserva','nivel']];
-  l.forEach(p=>{const lv=rsvLevel(p);rows.push([p.key||'',p.name,p.cat||'',p.stock,p.reserve,lv==='red'?'rojo':(lv==='orange'?'naranja':'ok')]);});
+  const rows=[['Clave','Unidad','Nombre del producto','Cantidad','Precio de Compra','Precio de Venta','Reserva','Precios de venta adicionales (opcional)','Información Adicional','Categoría']];
+  l.forEach(p=>rows.push([p.key||'','',p.name||'',p.stock,p.cost,p.price,p.reserve,(p.addSale&&+p.addSale>0?p.addSale:''),(p.desc||''),p.cat||'']));
   const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
-  if(ioDownload('productos-en-reserva.csv','text/csv;charset=utf-8',csv))toast(t('io_done_exp'));
+  saveWithPicker('Reserva.csv','text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }
 async function rsvExportPDF(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
@@ -767,7 +778,9 @@ async function rsvExportPDF(){
     doc.text(t('f_qty'),330,y);doc.text(t('rsv_label'),400,y);doc.text('Nivel',470,y);doc.setTextColor(60);doc.text('Producto',40,y);
     y+=6;doc.setDrawColor(200);doc.line(40,y,555,y);y+=16;doc.setTextColor(30);
     l.forEach(p=>{if(y>800){doc.addPage();y=48;}const lv=rsvLevel(p);doc.text((''+(p.name||'')).slice(0,58),40,y);doc.text(''+p.stock,330,y);doc.text(''+p.reserve,400,y);doc.text(lv==='red'?'Rojo':(lv==='orange'?'Naranja':'-'),470,y);y+=16;});
-    doc.save('productos-en-reserva.pdf');toast(t('io_done_exp'));
+    const blob=doc.output('blob');
+    const ok=await saveWithPicker('Reserva.pdf','application/pdf',blob);
+    if(ok)toast(t('io_done_exp'));
   }catch(e){toast(t('io_err'));}
 }
 function saveClient(){

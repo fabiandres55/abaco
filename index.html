@@ -145,6 +145,9 @@
   .catopt{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;font-size:15px;color:var(--ink)}
   .catopt:active{background:var(--sel)}.catopt.sel{color:var(--pri-d);font-weight:600}
   .catopt .ck{width:20px;height:20px;flex:none}.catopt .ck svg{width:20px;height:20px;stroke:var(--pri-d);fill:none;stroke-width:2.2}
+  .catmore{border:none;background:none;padding:6px;margin:-6px -6px -6px 0;flex:none;cursor:pointer;border-radius:50%;color:var(--muted)}
+  .catmore:active{background:var(--sel)}
+  .catmore svg{width:20px;height:20px;stroke:currentColor;fill:currentColor}
   .notirow{padding:13px 18px;border-bottom:1px solid var(--line2)}
   .notirow:last-child{border-bottom:none}
   .notirow.unread{background:#f6f7f8}
@@ -382,6 +385,9 @@
   <!-- selector de categoría (pantalla completa) -->
   <div class="histdlg" id="catpickdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="catpickH"></span><button class="hicon" data-act="addcatf"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="histbody" id="catpickOptions"></div></div>
 
+  <!-- menú editar/eliminar categoría -->
+  <div class="sheetdlg" id="catmenudlg"><div class="sheetcard"><div class="sheet-h"><span id="catmenuH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="catmenuBody"></div></div></div>
+
   <!-- sales history popup (full screen) -->
   <div class="histdlg" id="histdlg"><div class="histbar"><button class="sheet-x" data-act="closehist">✕</button><span class="histbar-t" id="histTitle"></span><button class="hicon" data-act="salescsv"><svg viewBox="0 0 24 24"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/></svg></button></div><div class="histbody" id="histBody"></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
@@ -436,7 +442,7 @@ const I18N={
     cashBal:"Saldo en caja",base:"Base",movement:"Movimiento",closeReg:"Cerrar caja",movesToday:"Movimientos de hoy",
     salesPerDay:"Ventas por día · 7 días",week:"Semana",profitToday:"Ganancia hoy",avgTicket:"Ticket prom.",numSales:"# Ventas",topToday:"Más vendidos hoy",sold:"vendidos",
     newProduct:"Nuevo producto",f_key:"Clave",f_generate:"Generar",f_name:"Nombre del producto",f_unit:"Unidad",
-    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",
+    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",c_edit:"Editar",c_del:"Eliminar",c_rename:"Renombrar categoría:",c_saved:"Categoría actualizada",c_deleted:"Categoría eliminada",c_del_confirm:'¿Eliminar la categoría "{c}"? Los productos quedarán sin categoría.',
     f_purchase:"Precio de compra",f_sale:"Precio de venta",f_addsale:"Precio de venta adicional",f_image:"Imagen del producto",f_upload:"Toca para cargar una imagen",
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
@@ -455,7 +461,7 @@ const I18N={
     cashBal:"Cash balance",base:"Base",movement:"Movement",closeReg:"Close register",movesToday:"Today's movements",
     salesPerDay:"Sales per day · 7 days",week:"Week",profitToday:"Profit today",avgTicket:"Avg ticket",numSales:"# Sales",topToday:"Top sellers today",sold:"sold",
     newProduct:"New product",f_key:"Key",f_generate:"Generate",f_name:"Product name",f_unit:"Unit",
-    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",
+    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",c_edit:"Edit",c_del:"Delete",c_rename:"Rename category:",c_saved:"Category updated",c_deleted:"Category deleted",c_del_confirm:'Delete category "{c}"? Products will be left without a category.',
     f_purchase:"Purchase price",f_sale:"Sale price",f_addsale:"Additional sale price",f_image:"Product image",f_upload:"Tap to upload an image",
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
@@ -937,7 +943,8 @@ function openCatPick(){
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   const cats=allCats();
   document.getElementById('catpickH').textContent=t('c_select');
-  const rows=cats.length?cats.map(c=>`<div class="catopt ${c===cur?'sel':''}" data-catpickf="${(''+c).replace(/"/g,'&quot;')}"><span class="ck">${c===cur?ck:''}</span><span>${c}</span></div>`).join(''):`<div class="empty" style="padding:24px 12px">${t('c_add')}</div>`;
+  const dots=svg('<circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>');
+  const rows=cats.length?cats.map(c=>{const cc=(''+c).replace(/"/g,'&quot;');return `<div class="catopt ${c===cur?'sel':''}" data-catpickf="${cc}"><span class="ck">${c===cur?ck:''}</span><span style="flex:1;min-width:0">${c}</span><button class="catmore" data-act="catmenu:${cc}">${dots}</button></div>`;}).join(''):`<div class="empty" style="padding:24px 12px">${t('c_add')}</div>`;
   document.getElementById('catpickOptions').innerHTML=rows;
   document.getElementById('catpickdlg').classList.add('on');
   document.getElementById('catpickOptions').scrollTop=0;
@@ -945,6 +952,34 @@ function openCatPick(){
 function closeCatPick(){document.getElementById('catpickdlg').classList.remove('on');}
 function pickCat(v){state.form.cat=v;if(v&&!(state.cats||[]).includes(v))state.cats=[...(state.cats||[]),v];closeCatPick();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
 function addCatForm(){let v=window.prompt(t('c_new'));if(v==null)return;v=v.trim();if(!v)return;pickCat(v);}
+function openCatMenu(cat){
+  state.catMenuTarget=cat;
+  document.getElementById('catmenuH').textContent=cat;
+  document.getElementById('catmenuBody').innerHTML=`<div style="padding:10px 16px 18px;display:flex;flex-direction:column;gap:10px">
+    <button class="btn ghost" style="justify-content:flex-start;gap:10px" data-act="catedit">${svg('<path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>')} ${t('c_edit')}</button>
+    <button class="delbtn" data-act="catdel">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('c_del')}</button>
+  </div>`;
+  document.getElementById('catmenudlg').classList.add('on');
+}
+function closeCatMenu(){document.getElementById('catmenudlg').classList.remove('on');}
+function afterCatChange(){document.getElementById('formBody').innerHTML=formHTML();attachForm();openCatPick();}
+function catEditAction(){
+  const oldC=state.catMenuTarget;if(oldC==null)return;closeCatMenu();
+  let nc=window.prompt(t('c_rename'),oldC);if(nc==null)return;nc=nc.trim();if(!nc||nc===oldC){afterCatChange();return;}
+  state.cats=[...new Set((state.cats||[]).map(c=>c===oldC?nc:c))];if(!state.cats.includes(nc))state.cats.push(nc);
+  state.products.forEach(p=>{if(p.cat===oldC)p.cat=nc;});
+  if(state.form.cat===oldC)state.form.cat=nc;
+  persist();afterCatChange();toast(t('c_saved'));
+}
+function catDelAction(){
+  const c=state.catMenuTarget;if(c==null)return;
+  if(!window.confirm(ti('c_del_confirm',{c}))){closeCatMenu();return;}
+  closeCatMenu();
+  state.cats=(state.cats||[]).filter(x=>x!==c);
+  state.products.forEach(p=>{if(p.cat===c)p.cat='';});
+  if(state.form.cat===c)state.form.cat='';
+  persist();afterCatChange();toast(t('c_deleted'));
+}
 
 /* ---------------- category filter ---------------- */
 function openCatFilter(){
@@ -1658,6 +1693,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='paydlg')return closePay();
   if(e.target.id==='unitdlg')return closeUnit();
   if(e.target.id==='catpickdlg')return closeCatPick();
+  if(e.target.id==='catmenudlg')return closeCatMenu();
   if(e.target.id==='saledlg')return closeSale();
   const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet]");
   if(!el)return;
@@ -1691,6 +1727,9 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="addunit")return addUnit();
     if(a==="opencat")return openCatPick();
     if(a==="addcatf")return addCatForm();
+    if(a==="catmenu")return openCatMenu(el.dataset.act.slice(el.dataset.act.indexOf(':')+1));
+    if(a==="catedit")return catEditAction();
+    if(a==="catdel")return catDelAction();
     if(a==="rm-img"){readForm();state.form.img=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="perm-allow")return permResult(true);
     if(a==="perm-deny")return permResult(false);
@@ -1698,7 +1737,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="logout")return doLogout();
     if(a==="resetall")return resetAll();
     if(a==="notifs")return openNotifs();
-    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();closeReserva();closePay();closeUnit();closeCatPick();return;}
+    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();closeReserva();closePay();closeUnit();closeCatPick();closeCatMenu();return;}
     if(a==="pay")return finishSale(el.dataset.act.split(":")[1]);
     if(a==="reserva")return openReserva();
     if(a==="rsvfilter"){state.rsvFilter=el.dataset.act.split(":")[1];return fillReserva();}

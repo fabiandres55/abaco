@@ -377,10 +377,10 @@
   <div class="sheetdlg" id="paydlg"><div class="sheetcard"><div class="sheet-h"><span id="payH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="payOptions"></div></div></div>
 
   <!-- selector de unidad (pantalla completa) -->
-  <div class="histdlg" id="unitdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="unitH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="unitOptions"></div></div>
+  <div class="histdlg" id="unitdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="unitH"></span><button class="hicon" data-act="addunit"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="histbody" id="unitOptions"></div></div>
 
   <!-- selector de categoría (pantalla completa) -->
-  <div class="histdlg" id="catpickdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="catpickH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="catpickOptions"></div></div>
+  <div class="histdlg" id="catpickdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="catpickH"></span><button class="hicon" data-act="addcatf"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="histbody" id="catpickOptions"></div></div>
 
   <!-- sales history popup (full screen) -->
   <div class="histdlg" id="histdlg"><div class="histbar"><button class="sheet-x" data-act="closehist">✕</button><span class="histbar-t" id="histTitle"></span><button class="hicon" data-act="salescsv"><svg viewBox="0 0 24 24"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/></svg></button></div><div class="histbody" id="histBody"></div></div>
@@ -923,7 +923,7 @@ function openUnit(){
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   document.getElementById('unitH').textContent=t('u_select');
   const rows=all.map(u=>`<div class="catopt ${u===cur?'sel':''}" data-unitpick="${(''+u).replace(/"/g,'&quot;')}"><span class="ck">${u===cur?ck:''}</span><span>${u}</span></div>`).join('');
-  document.getElementById('unitOptions').innerHTML=rows+`<div class="catopt" data-act="addunit" style="color:var(--pri);font-weight:600"><span class="ck">${svg('<path d="M12 5v14M5 12h14"/>')}</span><span>${t('u_add')}</span></div>`;
+  document.getElementById('unitOptions').innerHTML=rows;
   document.getElementById('unitdlg').classList.add('on');
   document.getElementById('unitOptions').scrollTop=0;
 }
@@ -937,8 +937,8 @@ function openCatPick(){
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   const cats=allCats();
   document.getElementById('catpickH').textContent=t('c_select');
-  const rows=cats.length?cats.map(c=>`<div class="catopt ${c===cur?'sel':''}" data-catpickf="${(''+c).replace(/"/g,'&quot;')}"><span class="ck">${c===cur?ck:''}</span><span>${c}</span></div>`).join(''):'';
-  document.getElementById('catpickOptions').innerHTML=rows+`<div class="catopt" data-act="addcatf" style="color:var(--pri);font-weight:600"><span class="ck">${svg('<path d="M12 5v14M5 12h14"/>')}</span><span>${t('c_add')}</span></div>`;
+  const rows=cats.length?cats.map(c=>`<div class="catopt ${c===cur?'sel':''}" data-catpickf="${(''+c).replace(/"/g,'&quot;')}"><span class="ck">${c===cur?ck:''}</span><span>${c}</span></div>`).join(''):`<div class="empty" style="padding:24px 12px">${t('c_add')}</div>`;
+  document.getElementById('catpickOptions').innerHTML=rows;
   document.getElementById('catpickdlg').classList.add('on');
   document.getElementById('catpickOptions').scrollTop=0;
 }

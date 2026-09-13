@@ -359,7 +359,7 @@
   </div>
 
   <!-- category filter sheet -->
-  <div class="sheetdlg" id="catdlg"><div class="sheetcard"><div class="sheet-h"><span id="catdlgH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="catOptions"></div></div></div>
+  <div class="histdlg" id="catdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="catdlgH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="catOptions"></div></div>
 
   <!-- notifications sheet -->
   <div class="sheetdlg" id="notifdlg"><div class="sheetcard"><div class="sheet-h"><span id="notifH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="notifOptions"></div></div></div>
@@ -991,6 +991,7 @@ function openCatFilter(){
   html+=cats.map(c=>opt(c,c,state.filterCat===c)).join("");
   document.getElementById('catOptions').innerHTML=html;
   document.getElementById('catdlg').classList.add('on');
+  document.getElementById('catOptions').scrollTop=0;
 }
 function closeCat(){document.getElementById('catdlg').classList.remove('on');}
 /* ---------------- importar / exportar inventario ---------------- */

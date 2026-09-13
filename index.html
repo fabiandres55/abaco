@@ -748,18 +748,29 @@ function fillReserva(){
   document.getElementById('rsvOptions').innerHTML=bar+rows;
   bkApplyInvImages(); // carga las miniaturas (memoria/IndexedDB/nube) para las filas con data-imgkey
 }
-function openReserva(){state.rsvFilter='all';document.getElementById('rsvH').textContent=t('chip_reserve');fillReserva();document.getElementById('rsvdlg').classList.add('on');document.getElementById('rsvOptions').scrollTop=0;}
+function openReserva(){state.rsvFilter='all';document.getElementById('rsvH').textContent=t('chip_reserve');fillReserva();document.getElementById('rsvdlg').classList.add('on');document.getElementById('rsvOptions').scrollTop=0;bkPreloadPdf();}
 function closeReserva(){document.getElementById('rsvdlg').classList.remove('on');}
+function bkPreloadPdf(){try{sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')).catch(()=>{});}catch(e){}}
 async function saveWithPicker(name,mime,content){
+  const blob=content instanceof Blob?content:new Blob([content],{type:mime});
+  // Escritorio: elegir ruta con el diálogo del sistema
   try{
     if(window.showSaveFilePicker){
       const ext='.'+(name.split('.').pop());
       const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:name.toUpperCase(),accept:{[mime]:[ext]}}]});
-      const w=await h.createWritable();await w.write(new Blob([content],{type:mime}));await w.close();
-      return true;
+      const w=await h.createWritable();await w.write(blob);await w.close();return true;
     }
   }catch(e){if(e&&e.name==='AbortError')return false;}
-  return ioDownload(name,mime,content);
+  // Móvil (iOS/Android): menú Compartir → "Guardar en Archivos"
+  try{
+    const file=new File([blob],name,{type:mime});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});return true;}
+  }catch(e){if(e&&e.name==='AbortError')return false;}
+  // Respaldo: enlace de descarga
+  try{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2500);return true;}catch(e){}
+  // Último recurso: abrir en pestaña nueva
+  try{window.open(URL.createObjectURL(blob),'_blank');return true;}catch(e){}
+  return false;
 }
 function rsvExportCSV(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
@@ -771,9 +782,9 @@ function rsvExportCSV(){
 async function rsvExportPDF(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
   try{
-    await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
+    if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
     const doc=new JS({unit:'pt',format:'a4'});
     const fmt=n=>(+n||0).toLocaleString('en-US');
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('Productos en Reserva',40,52);

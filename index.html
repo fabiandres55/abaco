@@ -427,7 +427,7 @@ const I18N={
     cashBal:"Saldo en caja",base:"Base",movement:"Movimiento",closeReg:"Cerrar caja",movesToday:"Movimientos de hoy",
     salesPerDay:"Ventas por día · 7 días",week:"Semana",profitToday:"Ganancia hoy",avgTicket:"Ticket prom.",numSales:"# Ventas",topToday:"Más vendidos hoy",sold:"vendidos",
     newProduct:"Nuevo producto",f_key:"Clave",f_generate:"Generar",f_name:"Nombre del producto",f_unit:"Unidad",
-    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",
+    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Elige o escribe una unidad",
     f_purchase:"Precio de compra",f_sale:"Precio de venta",f_addsale:"Precio de venta adicional",f_image:"Imagen del producto",f_upload:"Toca para cargar una imagen",
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
@@ -446,7 +446,7 @@ const I18N={
     cashBal:"Cash balance",base:"Base",movement:"Movement",closeReg:"Close register",movesToday:"Today's movements",
     salesPerDay:"Sales per day · 7 days",week:"Week",profitToday:"Profit today",avgTicket:"Avg ticket",numSales:"# Sales",topToday:"Top sellers today",sold:"sold",
     newProduct:"New product",f_key:"Key",f_generate:"Generate",f_name:"Product name",f_unit:"Unit",
-    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",
+    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Choose or type a unit",
     f_purchase:"Purchase price",f_sale:"Sale price",f_addsale:"Additional sale price",f_image:"Product image",f_upload:"Tap to upload an image",
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
@@ -468,7 +468,7 @@ const DRAWER_BODEGA=[{id:'inventario'},{id:'tiendas'},{id:'clientes'},{sep:1},{i
 const DRAWER_TIENDA=[{id:'inventario'},{id:'ventas'},{id:'proveedores'},{id:'clientes'},{sep:1},{id:'reportes'},{sep:1},{id:'caja'},{sep:1},{id:'respaldo'}];
 function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRAWER_TIENDA:DRAWER_BODEGA;}
 
-const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null,rsvFilter:'all'};
+const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null,rsvFilter:'all',units:[]};
 const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
 const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
@@ -778,7 +778,7 @@ async function saveWithPicker(name,mime,content){
 function rsvExportCSV(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
   const rows=[['Clave','Unidad','Nombre del producto','Cantidad','Precio de Compra','Precio de Venta','Reserva','Precios de venta adicionales (opcional)','Información Adicional','Categoría']];
-  l.forEach(p=>rows.push([p.key||'',(p.unitLabel||'...'),p.name||'',p.stock,p.cost,p.price,p.reserve,(p.addSale&&+p.addSale>0?p.addSale:''),(p.desc||p.info||''),p.cat||'']));
+  l.forEach(p=>{const u=UNITS.includes(p.unit)?t(p.unit):(p.unit||'');rows.push([p.key||'',(u||'...'),p.name||'',p.stock,p.cost,p.price,p.reserve,(p.addSale&&+p.addSale>0?p.addSale:''),(p.desc||p.info||''),p.cat||'']);});
   const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
   saveWithPicker('Reserva.csv','text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }
@@ -826,7 +826,8 @@ const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes
 function formHTML(){
   const f=state.form;
   const bod=state.profile&&state.profile.kind==='bodega';
-  const units=UNITS.map(u=>`<option value="${u}" ${f.unit===u?'selected':''}>${t(u)}</option>`).join("");
+  const allUnits=[...new Set([...UNITS.map(u=>t(u)),...(state.units||[])])];
+  const units=allUnits.map(u=>`<option value="${(''+u).replace(/"/g,'&quot;')}">`).join("");
   const cats=[...new Set([...state.cats])].map(c=>`<option value="${c}">`).join("");
   const img=f.img?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img src="${f.img}" alt=""></div>`
     :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input type="file" id="imgInput" accept="image/*"></label>`;
@@ -835,7 +836,7 @@ function formHTML(){
     <div class="keyrow"><input class="inp" id="f_key" value="${f.key||''}" placeholder="SKU-0000"><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
   <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input class="inp" id="f_name" value="${f.name||''}" placeholder="${t('namePh')}"></div>
   <div class="fld"><span class="fl">${t('f_category')}</span><input class="inp" id="f_cat" list="catlist" value="${f.cat||''}" placeholder="${t('f_category_ph')}"><datalist id="catlist">${cats}</datalist></div>
-  <div class="fld"><span class="fl">${t('f_unit')}</span><select class="inp" id="f_unit">${units}</select></div>
+  <div class="fld"><span class="fl">${t('f_unit')}</span><input class="inp" id="f_unit" list="unitlist" value="${(f.unit||'').replace(/"/g,'&quot;')}" placeholder="${t('f_unit_ph')}"><datalist id="unitlist">${units}</datalist></div>
   <div class="two">
     <div class="fld"><span class="fl">${t('f_purchase')}</span><input class="inp num" id="f_purchase" type="number" inputmode="numeric" value="${f.purchase??''}" placeholder="0"></div>
     <div class="fld"><span class="fl">${t('f_sale')}</span><input class="inp num" id="f_sale" type="number" inputmode="numeric" value="${f.sale??''}" placeholder="0"></div>
@@ -862,8 +863,8 @@ function formHTML(){
   ${f.editId?`<button class="delbtn" data-act="del-product">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('del')}</button>`:''}`;
 }
 function openForm(editId){
-  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:p.unit,purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
-  else state.form={unit:'u_piece'};
+  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:UNITS.includes(p.unit)?t(p.unit):(p.unit||''),purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
+  else state.form={unit:t('u_piece')};
   document.getElementById('formTitle').textContent=editId?t('editProduct'):t('newProduct');
   document.getElementById('saveBtn').textContent=t('save');
   document.getElementById('formBody').innerHTML=formHTML();
@@ -897,7 +898,9 @@ function saveProduct(){
   readForm();const f=state.form;
   if(!f.name||!f.name.trim()||!f.key||!f.key.trim()){toast(t('needNameKey'));return;}
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
-  const data={key:f.key.trim(),name:f.name.trim(),cat,unit:f.unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
+  const unit=(f.unit||'').trim();
+  if(unit&&!UNITS.map(u=>t(u)).includes(unit)&&!(state.units||[]).includes(unit))state.units=[...(state.units||[]),unit];
+  const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
   else{state.products.push({id:state.seq++,...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
 }
@@ -1353,7 +1356,7 @@ function _applySnap(key,val){
   try{localStorage.setItem('abanico.'+key,JSON.stringify(val))}catch(_){}
   if(key.indexOf('data.')===0&&state.profile&&('data.'+state.profile.id)===key){
     const v=_clone(val);
-    state.products=v.products||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];state.clients=v.clients||[];
+    state.products=v.products||[];state.cats=v.cats||[];state.seq=v.seq||1;state.extraMoves=v.extraMoves||[];state.clients=v.clients||[];state.units=v.units||state.units||[];
     if(v.sales&&v.sales.length&&!state.sales.length)state.sales=v.sales; // migración: ventas viejas del doc
   }
   if(document.getElementById('onbo').classList.contains('on'))renderOnbo(); else render();
@@ -1380,10 +1383,10 @@ function upsertEntity(role,e){const l=loadReg(role).slice();const i=l.findIndex(
 function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
-function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);}
-function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[]});}
+function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);}
+function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
-function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.cart={};state.filterCat=null;}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.cart={};state.filterCat=null;}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
 function saveReq(l){_set('requests',l);sbPushDoc('__shared__','requests',l);}

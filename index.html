@@ -470,7 +470,7 @@ const todaySales=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleTotal(s),0)
 const cartItems=()=>Object.entries(state.cart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q}));
 const cartTotal=()=>cartItems().reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0);
 const cashBalance=()=>state.extraMoves.reduce((t,m)=>t+(m.type==="in"?m.amount:-m.amount),0)+todaySales();
-const lowCount=()=>state.products.filter(p=>p.stock<=LOW).length;
+const lowCount=()=>state.products.filter(p=>p.stock<=(p.reserve||0)).length;
 const ganancia=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleProfit(s),0);
 
 /* ---------------- screens ---------------- */
@@ -500,14 +500,14 @@ function scInventario(){
   const bod=state.profile&&state.profile.kind==='bodega';
   const tienda=state.profile&&state.profile.kind==='tienda';
   const cards=shown.map(p=>{
-    const flag=p.stock<=LOW||p.reserve>0;
+    const flag=p.stock<=(p.reserve||0);
     const boxIco=svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
     const img=p.img?`<img src="${p.img}" alt="">`:(p.imgKey?`<img ${IMGCACHE['img:'+p.imgKey]?`src="${IMGCACHE['img:'+p.imgKey]}"`:''} data-imgkey="${p.imgKey}" alt="">`:boxIco);
     const det=bod&&(p.loc||p.lot)?`<div class="pc-name" style="font-size:12px;margin-top:1px">${[p.loc?(t('f_location').split(' ')[0]+' '+p.loc):'',p.lot?(t('f_lote')+' '+p.lot):''].filter(Boolean).join(' · ')}</div>`:'';
     const orig=tienda?(p.origin
       ?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`
       :`<span class="origchip own">${t('own_product')}</span>`):'';
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${p.stock<=LOW?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${flag?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);

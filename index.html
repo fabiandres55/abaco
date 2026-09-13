@@ -722,7 +722,8 @@ function openCliForm(id){
 function closeCli(){document.getElementById('clidlg').classList.remove('on');}
 function rsvLevel(p){const r=p.reserve||0;return p.stock<=r?'red':(p.stock<=r+3?'orange':'');}
 function rsvList(){
-  let l=state.products.filter(p=>(p.reserve||0)>0);
+  // solo productos con reserva > 0 que necesitan atención (rojo o naranja); se excluyen los de stock de sobra
+  let l=state.products.filter(p=>(p.reserve||0)>0&&rsvLevel(p));
   const f=state.rsvFilter||'all';
   if(f==='red')l=l.filter(p=>rsvLevel(p)==='red');
   else if(f==='orange')l=l.filter(p=>rsvLevel(p)==='orange');

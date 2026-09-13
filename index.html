@@ -418,8 +418,8 @@
   <!-- merma: selector de producto (pantalla completa) -->
   <div class="histdlg" id="mermapickdlg"><div class="histbar"><button class="sheet-x" data-act="closemermapick">✕</button><span class="histbar-t" id="mermaPickTitle"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="mermaPickBody"></div></div>
 
-  <!-- catálogo (PDF) -->
-  <div class="sheetdlg" id="catalogdlg"><div class="sheetcard" style="max-height:90%"><div class="sheet-h"><span id="catalogH"></span><button class="sheet-x" data-act="closecatalog">✕</button></div><div class="sheet-list" id="catalogBody"></div></div></div>
+  <!-- catálogo (PDF) — pantalla completa -->
+  <div class="histdlg" id="catalogdlg"><div class="histbar"><button class="sheet-x" data-act="closecatalog">✕</button><span class="histbar-t" id="catalogH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="catalogBody" style="padding:14px 0 24px"></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
   <input type="file" id="bkFile" style="display:none">
 
@@ -703,7 +703,7 @@ function catalogBodyHTML(){
   </div>`;
 }
 function fillCatalog(){const b=document.getElementById('catalogBody');if(b)b.innerHTML=catalogBodyHTML();}
-function openCatalog(){document.getElementById('catalogH').textContent=t('chip_catalog');fillCatalog();document.getElementById('catalogdlg').classList.add('on');}
+function openCatalog(){document.getElementById('catalogH').textContent=t('chip_catalog');fillCatalog();document.getElementById('catalogdlg').classList.add('on');document.getElementById('catalogBody').scrollTop=0;}
 function closeCatalog(){document.getElementById('catalogdlg').classList.remove('on');}
 function catLayout(id){state.catOpts.layout=id;fillCatalog();}
 function catToggle(key){state.catOpts[key]=!state.catOpts[key];fillCatalog();}

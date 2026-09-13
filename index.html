@@ -376,8 +376,8 @@
   <!-- método de pago sheet -->
   <div class="sheetdlg" id="paydlg"><div class="sheetcard"><div class="sheet-h"><span id="payH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="payOptions"></div></div></div>
 
-  <!-- selector de unidad sheet -->
-  <div class="sheetdlg" id="unitdlg"><div class="sheetcard"><div class="sheet-h"><span id="unitH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="unitOptions"></div></div></div>
+  <!-- selector de unidad (pantalla completa) -->
+  <div class="histdlg" id="unitdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="unitH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="unitOptions"></div></div>
 
   <!-- sales history popup (full screen) -->
   <div class="histdlg" id="histdlg"><div class="histbar"><button class="sheet-x" data-act="closehist">✕</button><span class="histbar-t" id="histTitle"></span><button class="hicon" data-act="salescsv"><svg viewBox="0 0 24 24"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/></svg></button></div><div class="histbody" id="histBody"></div></div>
@@ -921,6 +921,7 @@ function openUnit(){
   const rows=all.map(u=>`<div class="catopt ${u===cur?'sel':''}" data-unitpick="${(''+u).replace(/"/g,'&quot;')}"><span class="ck">${u===cur?ck:''}</span><span>${u}</span></div>`).join('');
   document.getElementById('unitOptions').innerHTML=rows+`<div class="catopt" data-act="addunit" style="color:var(--pri);font-weight:600"><span class="ck">${svg('<path d="M12 5v14M5 12h14"/>')}</span><span>${t('u_add')}</span></div>`;
   document.getElementById('unitdlg').classList.add('on');
+  document.getElementById('unitOptions').scrollTop=0;
 }
 function closeUnit(){document.getElementById('unitdlg').classList.remove('on');}
 function pickUnit(v){state.form.unit=v;closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}

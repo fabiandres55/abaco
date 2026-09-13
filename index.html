@@ -841,7 +841,8 @@ const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes
 function formHTML(){
   const f=state.form;
   const bod=state.profile&&state.profile.kind==='bodega';
-  const img=f.img?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img src="${f.img}" alt=""></div>`
+  const imgKeySrc=(!f.img&&f.imgKey)?(IMGCACHE['img:'+f.imgKey]||''):'';
+  const img=(f.img||f.imgKey)?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img ${f.img?`src="${f.img}"`:(imgKeySrc?`src="${imgKeySrc}"`:'')} ${(!f.img&&f.imgKey)?`data-imgkey="${f.imgKey}"`:''} alt=""></div>`
     :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input type="file" id="imgInput" accept="image/*"></label>`;
   return `
   <div class="fld"><span class="fl">${t('f_key')} <span class="req">*</span></span>
@@ -879,7 +880,7 @@ function formHTML(){
   ${f.editId?`<button class="delbtn" data-act="del-product">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('del')}</button>`:''}`;
 }
 function openForm(editId){
-  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:UNITS.includes(p.unit)?t(p.unit):(p.unit||''),purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
+  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:UNITS.includes(p.unit)?t(p.unit):(p.unit||''),purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,imgKey:p.imgKey||null,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
   else state.form={unit:t('u_piece')};
   document.getElementById('formTitle').textContent=editId?t('editProduct'):t('newProduct');
   document.getElementById('saveBtn').textContent=t('save');
@@ -894,6 +895,7 @@ function attachForm(){
   if(img)img.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{state.form.img=ev.target.result;refreshForm();};r.readAsDataURL(file);});
   const ex=document.getElementById('expToggle');
   if(ex)ex.addEventListener('change',e=>{if(e.target.checked){askPerm();e.target.checked=false;}else{state.form.expiryOn=false;document.getElementById('expWrap').classList.remove('on');}});
+  if(document.querySelector('#formBody img[data-imgkey]'))bkApplyInvImages();
 }
 function refreshForm(){readForm();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
 function readForm(){
@@ -916,7 +918,7 @@ function saveProduct(){
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
   const unit=(f.unit||'').trim();
   if(unit&&!UNITS.map(u=>t(u)).includes(unit)&&!(state.units||[]).includes(unit))state.units=[...(state.units||[]),unit];
-  const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
+  const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,imgKey:f.img?null:(f.imgKey||null),expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
   else{state.products.push({id:state.seq++,...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
 }
@@ -1731,7 +1733,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="catmenu")return openCatMenu(el.dataset.act.slice(el.dataset.act.indexOf(':')+1));
     if(a==="catedit")return catEditAction();
     if(a==="catdel")return catDelAction();
-    if(a==="rm-img"){readForm();state.form.img=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
+    if(a==="rm-img"){readForm();state.form.img=null;state.form.imgKey=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="perm-allow")return permResult(true);
     if(a==="perm-deny")return permResult(false);
     if(a==="ob")return obAction(el.dataset.act.slice(3));

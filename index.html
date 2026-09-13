@@ -703,7 +703,36 @@ function catalogBodyHTML(){
   </div>`;
 }
 function fillCatalog(){const b=document.getElementById('catalogBody');if(b)b.innerHTML=catalogBodyHTML();}
-function openCatalog(){document.getElementById('catalogH').textContent=t('chip_catalog');fillCatalog();document.getElementById('catalogdlg').classList.add('on');document.getElementById('catalogBody').scrollTop=0;}
+function openCatalog(){document.getElementById('catalogH').textContent=t('chip_catalog');fillCatalog();document.getElementById('catalogdlg').classList.add('on');document.getElementById('catalogBody').scrollTop=0;bkPreloadPdf();}
+async function catExportSimplePDF(){
+  const l=state.products.slice().sort((a,b)=>{const x=''+(a.key||''),y=''+(b.key||'');return x<y?-1:x>y?1:0;});
+  if(!l.length){toast(t('io_empty'));return;}
+  try{
+    if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
+    if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    const doc=new JS({unit:'pt',format:'a4'});
+    const fmt=n=>(+n||0).toLocaleString('en-US');
+    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text(t('m_inventario'),40,52);
+    doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),40,82);
+    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('FECHA:'+todayISO(),40,106);
+    const body=l.map(p=>[p.key||'','... '+(p.name||''),''+(p.stock??0),fmt(p.cost),fmt(p.price),''+(p.reserve??0)]);
+    doc.autoTable({
+      startY:132,
+      theme:'grid',
+      head:[['CLAVE','PRODUCTO','CANTIDAD','COMPRA $','VENTA $','RESERVA']],
+      body,
+      styles:{font:'helvetica',fontSize:8,cellPadding:4,lineColor:[70,70,70],lineWidth:0.5,textColor:[20,20,20],valign:'middle'},
+      headStyles:{fillColor:[255,255,255],textColor:[20,20,20],fontStyle:'normal',halign:'center',valign:'middle',lineColor:[70,70,70],lineWidth:0.5},
+      bodyStyles:{fillColor:[255,255,255]},
+      columnStyles:{0:{cellWidth:92,halign:'left'},1:{cellWidth:'auto',halign:'left'},2:{cellWidth:58,halign:'center'},3:{cellWidth:62,halign:'center'},4:{cellWidth:62,halign:'center'},5:{cellWidth:58,halign:'center'}},
+      margin:{left:40,right:40}
+    });
+    const blob=doc.output('blob');
+    const ok=await saveWithPicker('Inventario.pdf','application/pdf',blob);
+    if(ok)toast(t('io_done_exp'));
+  }catch(e){toast(t('io_err'));}
+}
 function closeCatalog(){document.getElementById('catalogdlg').classList.remove('on');}
 function catLayout(id){state.catOpts.layout=id;fillCatalog();}
 function catToggle(key){state.catOpts[key]=!state.catOpts[key];fillCatalog();}
@@ -1916,7 +1945,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="closecatalog")return closeCatalog();
     if(a==="catlayout")return catLayout(el.dataset.act.split(":")[1]);
     if(a==="cattoggle")return catToggle(el.dataset.act.split(":")[1]);
-    if(a==="catpdf")return toast(t('cx_soon'));
+    if(a==="catpdf"){const kind=el.dataset.act.split(":")[1];if(kind==='simple')return catExportSimplePDF();return toast(t('cx_soon'));}
     if(a==="mermaadd")return openMermaAdd();
     if(a==="closemermaadd")return closeMermaAdd();
     if(a==="savemerma")return saveMerma();

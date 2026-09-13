@@ -129,7 +129,7 @@
   .cli-act svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7}
   .pc-warn{flex:none;align-self:flex-start}.pc-warn svg{width:26px;height:26px}
   .pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
-  .pc-m{text-align:center}.pc-ml{font-size:13px;color:var(--muted)}.pc-mv{font-size:22px;font-weight:700;margin-top:3px}.pc-mv.warnv{color:var(--red)}
+  .pc-m{text-align:center}.pc-ml{font-size:13px;color:var(--muted)}.pc-mv{font-size:22px;font-weight:700;margin-top:3px}.pc-mv.warnv{color:var(--red)}.pc-mv.warno{color:#c98a12}
   .sheetdlg{position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:16;display:none;align-items:flex-end}
   .sheetdlg.on{display:flex}
   .sheetcard{background:var(--card);width:100%;border-radius:16px 16px 0 0;max-height:72%;display:flex;flex-direction:column;padding-bottom:10px;box-shadow:0 -8px 30px -10px rgba(0,0,0,.4)}
@@ -496,18 +496,20 @@ function scInventario(){
   if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   items.sort((a,b)=>a.stock-b.stock);
   const total=items.length;const limit=state.invLimit||INV_PAGE;const shown=items.slice(0,limit);
-  const warnSvg='<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="#f0b90b"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>';
+  const warnTri=c=>`<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="${c}"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>`;
   const bod=state.profile&&state.profile.kind==='bodega';
   const tienda=state.profile&&state.profile.kind==='tienda';
   const cards=shown.map(p=>{
-    const flag=p.stock<=(p.reserve||0);
+    const rsv=p.reserve||0;
+    const lvl=p.stock<=rsv?'red':(p.stock<=rsv+3?'orange':'');
     const boxIco=svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
     const img=p.img?`<img src="${p.img}" alt="">`:(p.imgKey?`<img ${IMGCACHE['img:'+p.imgKey]?`src="${IMGCACHE['img:'+p.imgKey]}"`:''} data-imgkey="${p.imgKey}" alt="">`:boxIco);
     const det=bod&&(p.loc||p.lot)?`<div class="pc-name" style="font-size:12px;margin-top:1px">${[p.loc?(t('f_location').split(' ')[0]+' '+p.loc):'',p.lot?(t('f_lote')+' '+p.lot):''].filter(Boolean).join(' · ')}</div>`:'';
     const orig=tienda?(p.origin
       ?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`
       :`<span class="origchip own">${t('own_product')}</span>`):'';
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${flag?`<div class="pc-warn">${warnSvg}</div>`:''}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${flag?'warnv':''}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
+    const warnHtml=lvl?`<div class="pc-warn">${warnTri(lvl==='red'?'#c8452f':'#f0b90b')}</div>`:'';
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);

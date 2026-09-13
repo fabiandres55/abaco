@@ -379,6 +379,9 @@
   <!-- selector de unidad (pantalla completa) -->
   <div class="histdlg" id="unitdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="unitH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="unitOptions"></div></div>
 
+  <!-- selector de categoría (pantalla completa) -->
+  <div class="histdlg" id="catpickdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="catpickH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="catpickOptions"></div></div>
+
   <!-- sales history popup (full screen) -->
   <div class="histdlg" id="histdlg"><div class="histbar"><button class="sheet-x" data-act="closehist">✕</button><span class="histbar-t" id="histTitle"></span><button class="hicon" data-act="salescsv"><svg viewBox="0 0 24 24"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/></svg></button></div><div class="histbody" id="histBody"></div></div>
   <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
@@ -433,7 +436,7 @@ const I18N={
     cashBal:"Saldo en caja",base:"Base",movement:"Movimiento",closeReg:"Cerrar caja",movesToday:"Movimientos de hoy",
     salesPerDay:"Ventas por día · 7 días",week:"Semana",profitToday:"Ganancia hoy",avgTicket:"Ticket prom.",numSales:"# Ventas",topToday:"Más vendidos hoy",sold:"vendidos",
     newProduct:"Nuevo producto",f_key:"Clave",f_generate:"Generar",f_name:"Nombre del producto",f_unit:"Unidad",
-    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",
+    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",
     f_purchase:"Precio de compra",f_sale:"Precio de venta",f_addsale:"Precio de venta adicional",f_image:"Imagen del producto",f_upload:"Toca para cargar una imagen",
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
@@ -452,7 +455,7 @@ const I18N={
     cashBal:"Cash balance",base:"Base",movement:"Movement",closeReg:"Close register",movesToday:"Today's movements",
     salesPerDay:"Sales per day · 7 days",week:"Week",profitToday:"Profit today",avgTicket:"Avg ticket",numSales:"# Sales",topToday:"Top sellers today",sold:"sold",
     newProduct:"New product",f_key:"Key",f_generate:"Generate",f_name:"Product name",f_unit:"Unit",
-    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",
+    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",
     f_purchase:"Purchase price",f_sale:"Sale price",f_addsale:"Additional sale price",f_image:"Product image",f_upload:"Tap to upload an image",
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
@@ -832,14 +835,15 @@ const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes
 function formHTML(){
   const f=state.form;
   const bod=state.profile&&state.profile.kind==='bodega';
-  const cats=[...new Set([...state.cats])].map(c=>`<option value="${c}">`).join("");
   const img=f.img?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img src="${f.img}" alt=""></div>`
     :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input type="file" id="imgInput" accept="image/*"></label>`;
   return `
   <div class="fld"><span class="fl">${t('f_key')} <span class="req">*</span></span>
     <div class="keyrow"><input class="inp" id="f_key" value="${f.key||''}" placeholder="SKU-0000"><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
   <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input class="inp" id="f_name" value="${f.name||''}" placeholder="${t('namePh')}"></div>
-  <div class="fld"><span class="fl">${t('f_category')}</span><input class="inp" id="f_cat" list="catlist" value="${f.cat||''}" placeholder="${t('f_category_ph')}"><datalist id="catlist">${cats}</datalist></div>
+  <div class="fld"><span class="fl">${t('f_category')}</span>
+    <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${f.cat||t('f_category_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
+    <input type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
   <div class="fld"><span class="fl">${t('f_unit')}</span>
     <div class="inp sellike" data-act="openunit"><span class="${f.unit?'':'ph'}">${f.unit||t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <input type="hidden" id="f_unit" value="${(f.unit||'').replace(/"/g,'&quot;')}"></div>
@@ -926,6 +930,21 @@ function openUnit(){
 function closeUnit(){document.getElementById('unitdlg').classList.remove('on');}
 function pickUnit(v){state.form.unit=v;closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
 function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=v.trim();if(!v)return;if(!UNITS.map(u=>t(u)).includes(v)&&!(state.units||[]).includes(v))state.units=[...(state.units||[]),v];pickUnit(v);}
+function allCats(){return [...new Set([...(state.cats||[]),...state.products.map(p=>p.cat).filter(Boolean)])].sort((a,b)=>(''+a).localeCompare(''+b));}
+function openCatPick(){
+  readForm();
+  const cur=(state.form.cat||'').trim();
+  const ck=svg('<path d="M5 12l5 5L20 7"/>');
+  const cats=allCats();
+  document.getElementById('catpickH').textContent=t('c_select');
+  const rows=cats.length?cats.map(c=>`<div class="catopt ${c===cur?'sel':''}" data-catpickf="${(''+c).replace(/"/g,'&quot;')}"><span class="ck">${c===cur?ck:''}</span><span>${c}</span></div>`).join(''):'';
+  document.getElementById('catpickOptions').innerHTML=rows+`<div class="catopt" data-act="addcatf" style="color:var(--pri);font-weight:600"><span class="ck">${svg('<path d="M12 5v14M5 12h14"/>')}</span><span>${t('c_add')}</span></div>`;
+  document.getElementById('catpickdlg').classList.add('on');
+  document.getElementById('catpickOptions').scrollTop=0;
+}
+function closeCatPick(){document.getElementById('catpickdlg').classList.remove('on');}
+function pickCat(v){state.form.cat=v;if(v&&!(state.cats||[]).includes(v))state.cats=[...(state.cats||[]),v];closeCatPick();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
+function addCatForm(){let v=window.prompt(t('c_new'));if(v==null)return;v=v.trim();if(!v)return;pickCat(v);}
 
 /* ---------------- category filter ---------------- */
 function openCatFilter(){
@@ -1638,8 +1657,9 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='rsvdlg')return closeReserva();
   if(e.target.id==='paydlg')return closePay();
   if(e.target.id==='unitdlg')return closeUnit();
+  if(e.target.id==='catpickdlg')return closeCatPick();
   if(e.target.id==='saledlg')return closeSale();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-unitpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet]");
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet]");
   if(!el)return;
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
   if(el.hasAttribute("data-saledet"))return openSaleDet(el.dataset.saledet);
@@ -1649,6 +1669,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-addcat")){state._keep=document.getElementById("screen").scrollTop;const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
   if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;state.filterCat=v==='__all__'?null:v;closeCat();return render();}
   if(el.hasAttribute("data-unitpick"))return pickUnit(el.dataset.unitpick);
+  if(el.hasAttribute("data-catpickf"))return pickCat(el.dataset.catpickf);
   state._keep=document.getElementById("screen").scrollTop;
   if(el.dataset.drawer)return drawer(el.dataset.drawer==="open");
   if(el.hasAttribute("data-di")){if(el.dataset.soon==="1"){drawer(false);return toast(t('m_'+el.dataset.di)+" · "+t('soon'));}return go(el.dataset.di);}
@@ -1668,6 +1689,8 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="filtercat")return openCatFilter();
     if(a==="openunit")return openUnit();
     if(a==="addunit")return addUnit();
+    if(a==="opencat")return openCatPick();
+    if(a==="addcatf")return addCatForm();
     if(a==="rm-img"){readForm();state.form.img=null;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="perm-allow")return permResult(true);
     if(a==="perm-deny")return permResult(false);
@@ -1675,7 +1698,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="logout")return doLogout();
     if(a==="resetall")return resetAll();
     if(a==="notifs")return openNotifs();
-    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();closeReserva();closePay();closeUnit();return;}
+    if(a==="close-sheet"){closeCat();closeNotifs();closeIO();closeCli();closeSale();closeReserva();closePay();closeUnit();closeCatPick();return;}
     if(a==="pay")return finishSale(el.dataset.act.split(":")[1]);
     if(a==="reserva")return openReserva();
     if(a==="rsvfilter"){state.rsvFilter=el.dataset.act.split(":")[1];return fillReserva();}

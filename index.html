@@ -780,11 +780,13 @@ async function rsvExportPDF(){
     const body=l.map(p=>[p.key||'','... '+(p.name||''),''+p.stock,fmt(p.cost),fmt(p.price),''+p.reserve]);
     doc.autoTable({
       startY:132,
+      theme:'grid',
       head:[['CLAVE','PRODUCTO','CANTIDAD','COMPRA $','VENTA $','RESERVA']],
       body,
-      styles:{font:'helvetica',fontSize:8,cellPadding:4,lineColor:[205,205,205],lineWidth:0.5,textColor:[30,30,30],valign:'middle'},
-      headStyles:{fillColor:[244,244,244],textColor:[70,70,70],fontStyle:'normal',halign:'center',lineColor:[205,205,205],lineWidth:0.5},
-      columnStyles:{0:{cellWidth:92},1:{cellWidth:'auto'},2:{cellWidth:58,halign:'center'},3:{cellWidth:62,halign:'right'},4:{cellWidth:62,halign:'right'},5:{cellWidth:58,halign:'center'}},
+      styles:{font:'helvetica',fontSize:8,cellPadding:4,lineColor:[70,70,70],lineWidth:0.5,textColor:[20,20,20],valign:'middle'},
+      headStyles:{fillColor:[255,255,255],textColor:[20,20,20],fontStyle:'normal',halign:'center',valign:'middle',lineColor:[70,70,70],lineWidth:0.5},
+      bodyStyles:{fillColor:[255,255,255]},
+      columnStyles:{0:{cellWidth:92,halign:'left'},1:{cellWidth:'auto',halign:'left'},2:{cellWidth:58,halign:'center'},3:{cellWidth:62,halign:'center'},4:{cellWidth:62,halign:'center'},5:{cellWidth:58,halign:'center'}},
       margin:{left:40,right:40}
     });
     const blob=doc.output('blob');

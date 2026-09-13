@@ -732,10 +732,10 @@ function fillReserva(){
   const list=rsvList();const f=state.rsvFilter||'all';
   const box=svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
   const dl=svg('<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>');
-  const dot=c=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:5px;vertical-align:0"></span>`;
+  const tri=c=>`<svg viewBox="0 0 24 24" style="width:17px;height:17px;vertical-align:-4px;stroke:none"><path d="M12 3.2l9.5 16.8H2.5z" style="fill:${c};stroke:none"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" style="fill:#fff;stroke:none"/><circle cx="12" cy="17.2" r="1.15" style="fill:#fff;stroke:none"/></svg>`;
   const chip=(id,lbl)=>`<span class="fchip ${f===id?'act':''}" data-act="rsvfilter:${id}">${lbl}</span>`;
   const bar=`<div class="rsvbar">
-    <div class="chips" style="margin:0;flex-wrap:wrap">${chip('all',t('rsv_all'))}${chip('red',dot('#c8452f')+t('rsv_red'))}${chip('orange',dot('#f0b90b')+t('rsv_orange'))}</div>
+    <div class="chips" style="margin:0;flex-wrap:wrap">${chip('all',t('rsv_all'))}${chip('red',tri('#c8452f'))}${chip('orange',tri('#f0b90b'))}</div>
     <div class="rsvtools"><button class="rsvtool" data-act="rsvcsv">${dl} CSV</button><button class="rsvtool" data-act="rsvpdf">${dl} PDF</button></div>
   </div>`;
   const rows=list.length?`<div class="list">`+list.map(p=>{

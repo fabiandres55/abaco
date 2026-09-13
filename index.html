@@ -740,12 +740,13 @@ function fillReserva(){
     <div class="rsvtools"><button class="rsvtool" data-act="rsvcsv">${dl} CSV</button><button class="rsvtool" data-act="rsvpdf">${dl} PDF</button></div>
   </div>`;
   const rows=list.length?`<div class="list">`+list.map(p=>{
-    const src=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
-    const av=src?`<img src="${src}" style="width:100%;height:100%;object-fit:cover">`:box;
+    const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
+    const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
     const lvl=rsvLevel(p);const col=lvl==='red'?'var(--red)':(lvl==='orange'?'#c98a12':'var(--ink)');
     return `<div class="row" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="s">${t('f_qty')}: <b style="color:${col}">${p.stock}</b></div></div><div class="r"><span class="rsvpill">${t('rsv_label')}: ${p.reserve}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty" style="padding:26px 12px">${t('rsv_empty')}</div>`;
   document.getElementById('rsvOptions').innerHTML=bar+rows;
+  bkApplyInvImages(); // carga las miniaturas (memoria/IndexedDB/nube) para las filas con data-imgkey
 }
 function openReserva(){state.rsvFilter='all';document.getElementById('rsvH').textContent=t('chip_reserve');fillReserva();document.getElementById('rsvdlg').classList.add('on');document.getElementById('rsvOptions').scrollTop=0;}
 function closeReserva(){document.getElementById('rsvdlg').classList.remove('on');}

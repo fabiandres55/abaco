@@ -770,14 +770,23 @@ async function rsvExportPDF(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
   try{
     await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     const doc=new JS({unit:'pt',format:'a4'});
-    let y=48;doc.setFontSize(15);doc.text(((state.profile&&state.profile.name)||'Abanico')+' — '+t('chip_reserve'),40,y);
-    y+=18;doc.setFontSize(9);doc.setTextColor(120);doc.text(new Date().toLocaleString()+'   ('+l.length+')',40,y);
-    y+=22;doc.setFontSize(10);doc.setTextColor(30);
-    doc.text(t('f_qty'),330,y);doc.text(t('rsv_label'),400,y);doc.text('Nivel',470,y);doc.setTextColor(60);doc.text('Producto',40,y);
-    y+=6;doc.setDrawColor(200);doc.line(40,y,555,y);y+=16;doc.setTextColor(30);
-    l.forEach(p=>{if(y>800){doc.addPage();y=48;}const lv=rsvLevel(p);doc.text((''+(p.name||'')).slice(0,58),40,y);doc.text(''+p.stock,330,y);doc.text(''+p.reserve,400,y);doc.text(lv==='red'?'Rojo':(lv==='orange'?'Naranja':'-'),470,y);y+=16;});
+    const fmt=n=>(+n||0).toLocaleString('en-US');
+    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('Productos en Reserva',40,52);
+    doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),40,82);
+    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('FECHA:'+todayISO(),40,106);
+    const body=l.map(p=>[p.key||'','... '+(p.name||''),''+p.stock,fmt(p.cost),fmt(p.price),''+p.reserve]);
+    doc.autoTable({
+      startY:132,
+      head:[['CLAVE','PRODUCTO','CANTIDAD','COMPRA $','VENTA $','RESERVA']],
+      body,
+      styles:{font:'helvetica',fontSize:8,cellPadding:4,lineColor:[205,205,205],lineWidth:0.5,textColor:[30,30,30],valign:'middle'},
+      headStyles:{fillColor:[244,244,244],textColor:[70,70,70],fontStyle:'normal',halign:'center',lineColor:[205,205,205],lineWidth:0.5},
+      columnStyles:{0:{cellWidth:92},1:{cellWidth:'auto'},2:{cellWidth:58,halign:'center'},3:{cellWidth:62,halign:'right'},4:{cellWidth:62,halign:'right'},5:{cellWidth:58,halign:'center'}},
+      margin:{left:40,right:40}
+    });
     const blob=doc.output('blob');
     const ok=await saveWithPicker('Reserva.pdf','application/pdf',blob);
     if(ok)toast(t('io_done_exp'));

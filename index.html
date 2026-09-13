@@ -762,7 +762,7 @@ async function saveWithPicker(name,mime,content){
 function rsvExportCSV(){
   const l=rsvList();if(!l.length){toast(t('io_empty'));return;}
   const rows=[['Clave','Unidad','Nombre del producto','Cantidad','Precio de Compra','Precio de Venta','Reserva','Precios de venta adicionales (opcional)','Información Adicional','Categoría']];
-  l.forEach(p=>rows.push([p.key||'','',p.name||'',p.stock,p.cost,p.price,p.reserve,(p.addSale&&+p.addSale>0?p.addSale:''),(p.desc||''),p.cat||'']));
+  l.forEach(p=>rows.push([p.key||'',(p.unitLabel||'...'),p.name||'',p.stock,p.cost,p.price,p.reserve,(p.addSale&&+p.addSale>0?p.addSale:''),(p.desc||p.info||''),p.cat||'']));
   const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
   saveWithPicker('Reserva.csv','text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }

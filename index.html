@@ -360,8 +360,8 @@
   <!-- client form sheet -->
   <div class="sheetdlg" id="clidlg"><div class="sheetcard"><div class="sheet-h"><span id="cliH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="cliBody"></div></div></div>
 
-  <!-- productos en reserva sheet -->
-  <div class="sheetdlg" id="rsvdlg"><div class="sheetcard"><div class="sheet-h"><span id="rsvH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="rsvOptions"></div></div></div>
+  <!-- productos en reserva (pantalla completa) -->
+  <div class="histdlg" id="rsvdlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="rsvH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="rsvOptions"></div></div>
 
   <!-- sale detail sheet -->
   <div class="sheetdlg" id="saledlg"><div class="sheetcard"><div class="sheet-h"><span id="saleH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="saleBody"></div></div></div>
@@ -720,13 +720,14 @@ function openReserva(){
   const list=state.products.filter(p=>(p.reserve||0)>0).sort((a,b)=>(b.reserve||0)-(a.reserve||0));
   document.getElementById('rsvH').textContent=t('chip_reserve');
   const box=svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>');
-  document.getElementById('rsvOptions').innerHTML=list.length?`<div class="list" style="padding:8px 12px 12px">`+list.map(p=>{
+  document.getElementById('rsvOptions').innerHTML=list.length?`<div class="list">`+list.map(p=>{
     const src=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=src?`<img src="${src}" style="width:100%;height:100%;object-fit:cover">`:box;
     const crit=p.stock<=(p.reserve||0);
     return `<div class="row" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="s">${t('f_qty')}: <b class="${crit?'':''}" style="color:${crit?'var(--red)':'var(--ink)'}">${p.stock}</b></div></div><div class="r"><span class="rsvpill">${t('rsv_label')}: ${p.reserve}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty" style="padding:26px 12px">${t('rsv_empty')}</div>`;
   document.getElementById('rsvdlg').classList.add('on');
+  document.getElementById('rsvOptions').scrollTop=0;
 }
 function closeReserva(){document.getElementById('rsvdlg').classList.remove('on');}
 function saveClient(){

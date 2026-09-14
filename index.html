@@ -1289,7 +1289,8 @@ async function ioEnsureImages(list){
   if(miss.length){try{await sbFetchImages(miss);}catch(e){}}
 }
 function ioAddImagesToZip(zip,list){
-  list.forEach(p=>{const src=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);if(!src)return;const m=/^data:image\/(\w+);base64,(.*)$/.exec(''+src);if(m){const ext=m[1].toLowerCase().indexOf('png')>=0?'png':'jpg';zip.file((p.key||('P'+p.id))+'.'+ext,m[2],{base64:true});}});
+  // imágenes nombradas por la clave del producto, .jpg (estructura Mi Negocio)
+  list.forEach(p=>{const src=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);if(!src)return;const m=/^data:image\/\w+;base64,(.*)$/.exec(''+src);if(m){zip.file((p.key||('P'+p.id))+'.jpg',m[1],{base64:true});}});
 }
 function ioExportCSV(){
   const l=state.products;if(!l.length){toast(t('io_empty'));return;}
@@ -1302,7 +1303,7 @@ async function ioExportZIP(){
     if(typeof JSZip==='undefined')await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
     await ioEnsureImages(l);
     const zip=new JSZip();
-    zip.file('Inventario.csv',invCsvString(l));
+    zip.file('_Inventario.csv',invCsvString(l));
     ioAddImagesToZip(zip,l);
     const blob=await zip.generateAsync({type:'blob'});
     const ok=await saveWithPicker('Inventario '+todayISO()+'.zip','application/zip',blob);

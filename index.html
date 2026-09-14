@@ -1318,11 +1318,11 @@ async function ioExportMN(){
     await ioEnsureImages(l);
     const SQL=await initSqlJs({locateFile:f=>BK_SQLBASE+f});
     const db=new SQL.Database();
-    db.run("CREATE TABLE categorias(folio INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE producto(key TEXT,nombre TEXT,cantidad REAL,p_compra REAL,p_venta REAL,reserva REAL,categoria INTEGER,precios_extra_venta TEXT);CREATE TABLE cliente(folio INTEGER PRIMARY KEY,nombre_cliente TEXT,alias TEXT,telefono1 TEXT,correo TEXT,direccion TEXT,info_adicional TEXT);CREATE TABLE forma_pago(id_forma_pago INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE venta(folio INTEGER PRIMARY KEY,fecha TEXT,hora TEXT,total REAL,nombre_cliente TEXT,id_cliente INTEGER,id_forma_pago INTEGER,direccion TEXT,etiqueta TEXT,status INTEGER);CREATE TABLE venta_producto(folio INTEGER,nombre TEXT,cantidad REAL,p_compra REAL,p_venta REAL,subtotal REAL);CREATE TABLE proveedor(folio INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE compra(folio INTEGER PRIMARY KEY);CREATE TABLE config(key INTEGER,json TEXT);");
+    db.run("CREATE TABLE categorias(folio INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE producto(key TEXT,nombre TEXT,cantidad REAL,p_compra REAL,p_venta REAL,reserva REAL,descripcion TEXT,precios_extra_venta TEXT,categoria INTEGER);CREATE TABLE cliente(folio INTEGER PRIMARY KEY,nombre_cliente TEXT,alias TEXT,telefono1 TEXT,correo TEXT,direccion TEXT,info_adicional TEXT);CREATE TABLE forma_pago(id_forma_pago INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE venta(folio INTEGER PRIMARY KEY,fecha TEXT,hora TEXT,total REAL,nombre_cliente TEXT,id_cliente INTEGER,id_forma_pago INTEGER,direccion TEXT,etiqueta TEXT,status INTEGER);CREATE TABLE venta_producto(folio INTEGER,nombre TEXT,cantidad REAL,p_compra REAL,p_venta REAL,subtotal REAL);CREATE TABLE proveedor(folio INTEGER PRIMARY KEY,nombre TEXT);CREATE TABLE compra(folio INTEGER PRIMARY KEY);CREATE TABLE config(key INTEGER,json TEXT);");
     const cats=[...new Set(l.map(p=>(p.cat||'').trim()).filter(Boolean))];
     const catFolio={};cats.forEach((c,i)=>{catFolio[c]=i+1;db.run('INSERT INTO categorias(folio,nombre) VALUES (?,?)',[i+1,c]);});
-    let ps=db.prepare('INSERT INTO producto(key,nombre,cantidad,p_compra,p_venta,reserva,categoria,precios_extra_venta) VALUES (?,?,?,?,?,?,?,?)');
-    l.forEach(p=>ps.run([p.key||'',p.name||'',+p.stock||0,+p.cost||0,+p.price||0,+p.reserve||0,catFolio[(p.cat||'').trim()]||null,(p.addSale&&+p.addSale>0)?JSON.stringify([+p.addSale]):'']));
+    let ps=db.prepare('INSERT INTO producto(key,nombre,cantidad,p_compra,p_venta,reserva,descripcion,precios_extra_venta,categoria) VALUES (?,?,?,?,?,?,?,?,?)');
+    l.forEach(p=>ps.run([p.key||'',p.name||'',+p.stock||0,+p.cost||0,+p.price||0,+p.reserve||0,(p.desc||p.info||''),(p.addSale&&+p.addSale>0)?JSON.stringify([+p.addSale]):'[]',catFolio[(p.cat||'').trim()]||null]));
     ps.free();
     if(state.clients&&state.clients.length){let cs=db.prepare('INSERT INTO cliente(folio,nombre_cliente,alias,telefono1,correo,direccion,info_adicional) VALUES (?,?,?,?,?,?,?)');state.clients.forEach((c,i)=>cs.run([i+1,c.name||'',c.alias||'',c.phone||'',c.email||'',c.address||'',c.notes||'']));cs.free();}
     ['EFECTIVO','NEQUI','DAVIPLATA','TRANSFERENCIA'].forEach((n,i)=>db.run('INSERT INTO forma_pago(id_forma_pago,nombre) VALUES (?,?)',[i+1,n]));
@@ -1386,8 +1386,8 @@ function importProducts(list,stay){
     const key=(it.key||'').trim();let ex=null;
     if(key)ex=state.products.find(p=>(p.key||'')===key);
     if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase());
-    if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
-    else{state.products.push({id:state.seq++,key:key||('IMP-'+state.seq),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:0,stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
+    if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(it.addSale!=null&&+it.addSale>0)ex.addSale=+it.addSale;if(it.desc)ex.desc=it.desc;if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
+    else{state.products.push({id:state.seq++,key:key||('IMP-'+state.seq),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
   });
   persist();closeIO();
   if(!stay){state.invLimit=INV_PAGE;state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));}
@@ -1513,7 +1513,8 @@ async function bkHandleFile(file){
     let biz={};try{(bkExec(db,'SELECT key,json FROM config')||[]).forEach(r=>{try{const j=JSON.parse(r.json);if(j&&(j.negocio||j.contacto))biz=j;}catch(_){}} );}catch(_){}
     const catRows=bkExec(db,'SELECT folio,nombre FROM categorias');
     const catMap={};catRows.forEach(c=>catMap[c.folio]=c.nombre);
-    const products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria FROM producto');
+    let products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria,descripcion,precios_extra_venta FROM producto');
+    if(!products.length)products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria FROM producto');
     const clients=bkExec(db,'SELECT folio,nombre_cliente,alias,telefono1,correo,direccion,info_adicional FROM cliente');
     // ventas + su detalle
     const payMap={};try{bkExec(db,'SELECT id_forma_pago,nombre FROM forma_pago').forEach(r=>payMap[r.id_forma_pago]=r.nombre);}catch(_){}
@@ -1564,6 +1565,9 @@ function bkImportAll(){
   const prods=state.bk.products.map(p=>{
     const key=(p.key||'').trim();
     const o={key,name:(p.nombre||'').trim(),cat:state.bk.catMap[p.categoria]||'',stock:+p.cantidad||0,cost:+p.p_compra||0,price:+p.p_venta||0,reserve:+p.reserva||0};
+    const desc=(''+(p.descripcion||'')).trim();if(desc)o.desc=desc;
+    let extra=0;try{const arr=JSON.parse(p.precios_extra_venta||'[]');if(Array.isArray(arr)){const v=arr.map(x=>+x||0).find(x=>x>0);if(v)extra=v;}}catch(_){}
+    if(extra>0)o.addSale=extra;
     if(key&&imgSet[key])o.imgKey=key;
     return o;
   }).filter(p=>p.name);

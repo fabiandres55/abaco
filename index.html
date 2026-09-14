@@ -388,7 +388,7 @@
   <div class="sheetdlg" id="notifdlg"><div class="sheetcard"><div class="sheet-h"><span id="notifH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="notifOptions"></div></div></div>
 
   <!-- import/export sheet -->
-  <div class="sheetdlg" id="iodlg"><div class="sheetcard"><div class="sheet-h"><span id="ioH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="ioOptions"></div></div></div>
+  <div class="histdlg" id="iodlg"><div class="histbar"><button class="sheet-x" data-act="close-sheet">✕</button><span class="histbar-t" id="ioH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="ioOptions" style="padding:0"></div></div>
 
   <!-- client form sheet -->
   <div class="sheetdlg" id="clidlg"><div class="sheetcard"><div class="sheet-h"><span id="cliH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="cliBody"></div></div></div>
@@ -1268,6 +1268,7 @@ function openIO(){
     <button class="btn dark" data-act="io:import">${svg('<path d="M12 21V10M8 14l4-4 4 4"/><path d="M5 4h14"/>')} ${t('io_import')}</button>
   </div>`;
   document.getElementById('iodlg').classList.add('on');
+  document.getElementById('ioOptions').scrollTop=0;
 }
 function openExportFmt(){
   document.getElementById('ioH').textContent=t('io_fmt_title');

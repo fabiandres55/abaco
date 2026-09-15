@@ -153,7 +153,11 @@
   #scandlg .sheet-x{background:#2a2a2a;color:#eee}
   .scanwrap{position:relative;flex:1;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center}
   #scanVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .scanframe{position:relative;width:80%;max-width:340px;aspect-ratio:3/2;border:2px solid rgba(255,255,255,.92);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.5)}
+  #quaggaBox{position:absolute;inset:0}
+  #quaggaBox video,#quaggaBox canvas{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover}
+  #quaggaBox canvas.drawingBuffer{display:none}
+  .scanframe{position:relative;z-index:3;width:80%;max-width:340px;aspect-ratio:3/2;border:2px solid rgba(255,255,255,.92);border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.5)}
+  .scanhint{z-index:3}
   .scanline{position:absolute;left:5%;right:5%;height:2px;background:#e53935;box-shadow:0 0 8px 1px #e53935;animation:scanmove 2.2s ease-in-out infinite}
   @keyframes scanmove{0%{top:10%}50%{top:90%}100%{top:10%}}
   .scanhint{position:absolute;bottom:26px;left:18px;right:18px;text-align:center;color:#fff;font-size:14px;line-height:1.4;text-shadow:0 1px 4px #000}
@@ -402,7 +406,7 @@
 
   <!-- escáner de código de barras (pantalla completa) -->
   <div class="histdlg" id="scandlg"><div class="histbar"><button class="sheet-x" data-act="closescan">✕</button><span class="histbar-t" id="scanH"></span><span style="width:34px;flex:none"></span></div>
-    <div class="scanwrap"><video id="scanVideo" playsinline muted></video><div class="scanframe"><div class="scanline"></div></div><div class="scanhint" id="scanHint"></div></div>
+    <div class="scanwrap"><video id="scanVideo" playsinline muted></video><div id="quaggaBox"></div><div class="scanframe"><div class="scanline"></div></div><div class="scanhint" id="scanHint"></div></div>
   </div>
 
   <!-- client form sheet -->
@@ -831,7 +835,7 @@ function closeCatalog(){document.getElementById('catalogdlg').classList.remove('
 function catLayout(id){state.catOpts.layout=id;fillCatalog();}
 function catToggle(key){state.catOpts[key]=!state.catOpts[key];fillCatalog();}
 /* ---------------- Escáner de código de barras ---------------- */
-let SCAN_STREAM=null,SCAN_DETECT=null,SCAN_TIMER=null,SCAN_ZX=null,SCAN_TARGET='search',SCAN_BUSY=false;
+let SCAN_STREAM=null,SCAN_DETECT=null,SCAN_TIMER=null,SCAN_Q=false,SCAN_TARGET='search',SCAN_BUSY=false;
 async function openScanner(target){
   SCAN_TARGET=target||'search';SCAN_BUSY=false;
   document.getElementById('scanH').textContent=t('scan_title');
@@ -856,19 +860,34 @@ async function openScanner(target){
     SCAN_TIMER=setTimeout(tick,400);
     return;
   }
-  // 2) ZXing (iOS Safari y navegadores sin BarcodeDetector): ZXing gestiona la cámara
+  // 2) QuaggaJS (iOS Safari y navegadores sin BarcodeDetector): Quagga gestiona la cámara
+  video.style.display='none';                 // Quagga usa su propio <video>
+  const box=document.getElementById('quaggaBox');box.style.display='';box.innerHTML='';
   try{
-    if(typeof ZXing==='undefined')await sbScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
-    if(typeof ZXing==='undefined')throw new Error('zxing');
-    const hints=new Map();
-    try{
-      const BF=ZXing.BarcodeFormat;
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[BF.EAN_13,BF.EAN_8,BF.UPC_A,BF.UPC_E,BF.CODE_128,BF.CODE_39,BF.ITF]);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
-    }catch(e){}
-    SCAN_ZX=new ZXing.BrowserMultiFormatReader(hints,{delayBetweenScanAttempts:80,delayBetweenScanSuccess:400});
-    await SCAN_ZX.decodeFromConstraints(constraints,video,(result,err)=>{if(result&&!SCAN_BUSY)onScan(result.getText());});
+    if(typeof Quagga==='undefined')await sbScript('https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js');
+    if(typeof Quagga==='undefined')throw new Error('quagga');
+    await new Promise((res,rej)=>{
+      Quagga.init({
+        inputStream:{type:'LiveStream',target:box,constraints:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}},
+        locator:{patchSize:'medium',halfSample:true},
+        numOfWorkers:(navigator.hardwareConcurrency||4),
+        frequency:10,
+        decoder:{readers:['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader','i2of5_reader']},
+        locate:true
+      },err=>{if(err)return rej(err);try{Quagga.start();}catch(e){return rej(e);}res();});
+    });
+    SCAN_Q=true;
+    Quagga.onDetected(quaggaHit);
   }catch(e){toast(t('scan_nocam'));return closeScanner();}
+}
+let QUAGGA_HITS={};
+function quaggaHit(result){
+  if(SCAN_BUSY)return;
+  const code=result&&result.codeResult&&result.codeResult.code;
+  if(!code)return;
+  // exigir 2 lecturas iguales para evitar falsos positivos
+  QUAGGA_HITS[code]=(QUAGGA_HITS[code]||0)+1;
+  if(QUAGGA_HITS[code]>=2){QUAGGA_HITS={};onScan(code);}
 }
 function onScan(code){
   if(SCAN_BUSY)return;SCAN_BUSY=true;
@@ -890,10 +909,12 @@ function onScan(code){
 function closeScanner(){
   document.getElementById('scandlg').classList.remove('on');
   if(SCAN_TIMER){clearTimeout(SCAN_TIMER);SCAN_TIMER=null;}
-  try{if(SCAN_ZX&&SCAN_ZX.reset)SCAN_ZX.reset();}catch(e){}
-  SCAN_ZX=null;SCAN_DETECT=null;
+  QUAGGA_HITS={};
+  if(SCAN_Q){try{Quagga.offDetected(quaggaHit);}catch(e){}try{Quagga.stop();}catch(e){}SCAN_Q=false;}
+  const box=document.getElementById('quaggaBox');if(box){box.innerHTML='';box.style.display='none';}
+  SCAN_DETECT=null;
   if(SCAN_STREAM){try{SCAN_STREAM.getTracks().forEach(tr=>tr.stop());}catch(e){}SCAN_STREAM=null;}
-  const video=document.getElementById('scanVideo');if(video){try{video.pause();}catch(e){}video.srcObject=null;}
+  const video=document.getElementById('scanVideo');if(video){try{video.pause();}catch(e){}video.srcObject=null;video.style.display='';}
 }
 function mermaPick(pid){const p=P(+pid);if(!p)return;const f=state.mermaForm||{};f.pid=p.id;f.name=p.name;if(f.cost===''||f.cost==null)f.cost=p.cost||0;state.mermaForm=f;closeMermaPick();document.getElementById('mermaAddBody').innerHTML=mermaAddHTML();attachMerma();}
 function saveMerma(){

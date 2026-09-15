@@ -540,6 +540,10 @@ function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRA
 const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null,rsvFilter:'all',units:[],mermas:[],mermaForm:null,catOpts:{layout:'list',name:true,key:true,sale:true,cost:false,qty:false,photo:true,info:false,instock:false,wholesale:false}};
 const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
+// id de producto siempre único (mayor que cualquiera existente)
+function nid(){const m=state.products.reduce((a,p)=>Math.max(a,+p.id||0),0);state.seq=Math.max((state.seq||1),m+1);const id=state.seq;state.seq=id+1;return id;}
+// repara ids duplicados/ausentes (conserva el primero, reasigna los demás)
+function ensureUniqueIds(){let changed=false,max=0;const seen=new Set();state.products.forEach(p=>{max=Math.max(max,+p.id||0);});state.products.forEach(p=>{let id=+p.id;if(!id||seen.has(id)){max+=1;p.id=max;changed=true;}else p.id=id;seen.add(p.id);});state.seq=Math.max((state.seq||1),max+1);return changed;}
 const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const saleDate=s=>s.date||todayISO();
 const saleTotal=s=>s.total!=null?s.total:(s.items?s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0):0);
@@ -1283,7 +1287,7 @@ function saveProduct(){
   if(unit&&!UNITS.map(u=>t(u)).includes(unit)&&!(state.units||[]).includes(unit))state.units=[...(state.units||[]),unit];
   const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,imgKey:f.img?null:(f.imgKey||null),expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
-  else{state.products.push({id:state.seq++,...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
+  else{state.products.push({id:nid(),...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
 }
 function delProduct(){const id=state.form.editId;state.products=state.products.filter(p=>p.id!==id);closeForm();state.screen='inventario';persist();render();toast(t('deleted'));}
 /* ---------------- selector de unidad ---------------- */
@@ -1489,7 +1493,7 @@ function importProducts(list,stay){
     if(key)ex=state.products.find(p=>(p.key||'')===key);
     if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase());
     if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(it.addSale!=null&&+it.addSale>0)ex.addSale=+it.addSale;if(it.desc)ex.desc=it.desc;if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
-    else{state.products.push({id:state.seq++,key:key||('IMP-'+state.seq),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
+    else{const newId=nid();state.products.push({id:newId,key:key||('IMP-'+newId),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
   });
   persist();closeIO();
   if(!stay){state.invLimit=INV_PAGE;state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));}
@@ -1838,6 +1842,7 @@ async function sbPullStore(id){
   if(Array.isArray(p))state.products=p;
   if(Array.isArray(c))state.clients=c;
   if(Array.isArray(mm))state.mermas=mm;
+  if(Array.isArray(p))ensureUniqueIds();   // evita ids duplicados tras sincronizar + fija state.seq
   if(p!=null||c!=null||mm!=null)persist();
   if(Array.isArray(s)){state.sales=s;persistSales();}
   SYNC_APPLYING=false;
@@ -1898,7 +1903,7 @@ function currentDataId(){return state.profile?state.profile.id:null;}
 function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);sbPushDoc(id,'mermas',state.mermas);}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
-function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;if(ensureUniqueIds())saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
 function saveReq(l){_set('requests',l);sbPushDoc('__shared__','requests',l);}

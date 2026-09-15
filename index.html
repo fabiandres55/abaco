@@ -838,27 +838,33 @@ async function openScanner(target){
   document.getElementById('scanHint').textContent=t('scan_hint');
   document.getElementById('scandlg').classList.add('on');
   const video=document.getElementById('scanVideo');
-  try{
-    SCAN_STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
-    video.srcObject=SCAN_STREAM;await video.play();
-  }catch(e){toast(t('scan_nocam'));closeScanner();return;}
-  let BD=null;
-  if('BarcodeDetector' in window){try{BD=new window.BarcodeDetector();}catch(e){BD=null;}}
+  video.setAttribute('playsinline','');video.setAttribute('muted','');video.muted=true;
+  const constraints={video:{facingMode:{ideal:'environment'}}};
+  // 1) BarcodeDetector nativo (Android Chrome): abrimos el stream y detectamos por frames
+  let BD=null;if('BarcodeDetector' in window){try{BD=new window.BarcodeDetector();}catch(e){BD=null;}}
   if(BD){
+    try{
+      SCAN_STREAM=await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject=SCAN_STREAM;await video.play();
+    }catch(e){toast(t('scan_nocam'));return closeScanner();}
     SCAN_DETECT=BD;
     const tick=async()=>{
       if(!SCAN_STREAM||SCAN_BUSY)return;
       try{const codes=await SCAN_DETECT.detect(video);if(codes&&codes.length&&codes[0].rawValue){return onScan(codes[0].rawValue);}}catch(e){}
-      SCAN_TIMER=setTimeout(tick,250);
+      SCAN_TIMER=setTimeout(tick,220);
     };
     SCAN_TIMER=setTimeout(tick,400);
-  }else{
-    try{
-      if(typeof ZXing==='undefined')await sbScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
-      SCAN_ZX=new ZXing.BrowserMultiFormatReader();
-      SCAN_ZX.decodeFromVideoElement(video,(result)=>{if(result&&!SCAN_BUSY)onScan(result.getText());});
-    }catch(e){toast(t('scan_err'));}
+    return;
   }
+  // 2) ZXing (iOS Safari y navegadores sin BarcodeDetector): ZXing gestiona la cámara
+  try{
+    if(typeof ZXing==='undefined')await sbScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
+    if(typeof ZXing==='undefined')throw new Error('zxing');
+    const hints=new Map();
+    try{hints.set(ZXing.DecodeHintType.TRY_HARDER,true);}catch(e){}
+    SCAN_ZX=new ZXing.BrowserMultiFormatReader(hints,{delayBetweenScanAttempts:120});
+    await SCAN_ZX.decodeFromConstraints(constraints,video,(result,err)=>{if(result&&!SCAN_BUSY)onScan(result.getText());});
+  }catch(e){toast(t('scan_nocam'));return closeScanner();}
 }
 function onScan(code){
   if(SCAN_BUSY)return;SCAN_BUSY=true;

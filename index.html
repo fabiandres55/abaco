@@ -871,13 +871,11 @@ function onScan(code){
     const fb=document.getElementById('formBody');if(fb){fb.innerHTML=formHTML();attachForm();}
     toast(code);return;
   }
-  // registrar por el número de código de barras
-  const exact=state.products.find(p=>(''+(p.key||''))===code||(''+(p.key||'')).toLowerCase()===code.toLowerCase());
-  state.q='';state.screen='inventario';
-  if(exact){openForm(exact.id);toast(code);return;}   // ya existe → abrir su ficha
-  render();
-  openForm(null,code);                                 // no existe → nuevo con la clave = código
-  toast(ti('scan_new',{c:code}));
+  // buscar en el inventario por el número de código de barras
+  state.q=code;state.filterCat=null;state.screen='inventario';state.invLimit=INV_PAGE;render();
+  const inp=document.getElementById('searchInput');if(inp)inp.value=code;
+  const hit=state.products.some(p=>(''+(p.key||'')).toLowerCase()===code.toLowerCase()||(p.name||'').toLowerCase().includes(code.toLowerCase()));
+  toast(hit?code:ti('scan_none',{c:code}));
 }
 function closeScanner(){
   document.getElementById('scandlg').classList.remove('on');

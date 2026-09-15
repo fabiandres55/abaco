@@ -839,7 +839,7 @@ async function openScanner(target){
   document.getElementById('scandlg').classList.add('on');
   const video=document.getElementById('scanVideo');
   video.setAttribute('playsinline','');video.setAttribute('muted','');video.muted=true;
-  const constraints={video:{facingMode:{ideal:'environment'}}};
+  const constraints={video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}};
   // 1) BarcodeDetector nativo (Android Chrome): abrimos el stream y detectamos por frames
   let BD=null;if('BarcodeDetector' in window){try{BD=new window.BarcodeDetector();}catch(e){BD=null;}}
   if(BD){
@@ -861,8 +861,12 @@ async function openScanner(target){
     if(typeof ZXing==='undefined')await sbScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
     if(typeof ZXing==='undefined')throw new Error('zxing');
     const hints=new Map();
-    try{hints.set(ZXing.DecodeHintType.TRY_HARDER,true);}catch(e){}
-    SCAN_ZX=new ZXing.BrowserMultiFormatReader(hints,{delayBetweenScanAttempts:120});
+    try{
+      const BF=ZXing.BarcodeFormat;
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[BF.EAN_13,BF.EAN_8,BF.UPC_A,BF.UPC_E,BF.CODE_128,BF.CODE_39,BF.ITF]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+    }catch(e){}
+    SCAN_ZX=new ZXing.BrowserMultiFormatReader(hints,{delayBetweenScanAttempts:80,delayBetweenScanSuccess:400});
     await SCAN_ZX.decodeFromConstraints(constraints,video,(result,err)=>{if(result&&!SCAN_BUSY)onScan(result.getText());});
   }catch(e){toast(t('scan_nocam'));return closeScanner();}
 }

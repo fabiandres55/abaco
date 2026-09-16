@@ -531,6 +531,10 @@ const L=(new URLSearchParams(location.search).get("lang")||navigator.language||"
 const LANG=I18N[L]?L:"en";
 const t=k=>I18N[LANG][k]??I18N.en[k]??k;
 const UNITS=["u_cubic","u_gram","u_kg","u_liter","u_meter","u_piece"];
+// unidades adicionales por defecto (literales, siempre disponibles en el selector)
+const UNITS_EXTRA=["Unidad","Centímetro","Mililitro","CM^3","METRO","50 G","25X35CM","Caja","Paquete","Docena","Rollo","Bolsa","Par"];
+function unitCatalog(){return [...new Set([...UNITS.map(u=>t(u)),...UNITS_EXTRA,...(state.units||[])])];}
+function isKnownUnit(u){return unitCatalog().includes(u);}
 
 const money=n=>"$"+Math.round(n||0).toLocaleString(LANG==="es"?"es-CO":"en-US");
 function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</svg>`}
@@ -1290,7 +1294,7 @@ function saveProduct(){
   if(!f.name||!f.name.trim()||!f.key||!f.key.trim()){toast(t('needNameKey'));return;}
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
   const unit=(f.unit||'').trim();
-  if(unit&&!UNITS.map(u=>t(u)).includes(unit)&&!(state.units||[]).includes(unit))state.units=[...(state.units||[]),unit];
+  if(unit&&!isKnownUnit(unit))state.units=[...(state.units||[]),unit];
   const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,imgKey:f.img?null:(f.imgKey||null),expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
   else{state.products.push({id:nid(),...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
@@ -1300,7 +1304,7 @@ function delProduct(){const id=state.form.editId;state.products=state.products.f
 function openUnit(){
   readForm();
   const cur=(state.form.unit||'').trim();
-  const all=[...new Set([...UNITS.map(u=>t(u)),...(state.units||[])])];
+  const all=unitCatalog();
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   document.getElementById('unitH').textContent=t('u_select');
   const rows=all.map(u=>`<div class="catopt ${u===cur?'sel':''}" data-unitpick="${(''+u).replace(/"/g,'&quot;')}"><span class="ck">${u===cur?ck:''}</span><span>${u}</span></div>`).join('');
@@ -1310,7 +1314,7 @@ function openUnit(){
 }
 function closeUnit(){document.getElementById('unitdlg').classList.remove('on');}
 function pickUnit(v){state.form.unit=v;closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
-function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=v.trim();if(!v)return;if(!UNITS.map(u=>t(u)).includes(v)&&!(state.units||[]).includes(v))state.units=[...(state.units||[]),v];pickUnit(v);}
+function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=v.trim();if(!v)return;if(!isKnownUnit(v))state.units=[...(state.units||[]),v];pickUnit(v);}
 function allCats(){return [...new Set([...(state.cats||[]),...state.products.map(p=>p.cat).filter(Boolean)])].sort((a,b)=>(''+a).localeCompare(''+b));}
 function openCatPick(){
   readForm();
@@ -1661,6 +1665,7 @@ async function bkHandleFile(file){
     let products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria,descripcion,precios_extra_venta FROM producto');
     if(!products.length)products=bkExec(db,'SELECT key,nombre,cantidad,p_compra,p_venta,reserva,categoria FROM producto');
     const clients=bkExec(db,'SELECT folio,nombre_cliente,alias,telefono1,correo,direccion,info_adicional FROM cliente');
+    const units=bkExec(db,'SELECT nombre FROM unidad').map(r=>(''+(r.nombre||'')).trim()).filter(u=>u&&u!=='...');
     // ventas + su detalle
     const payMap={};try{bkExec(db,'SELECT id_forma_pago,nombre FROM forma_pago').forEach(r=>payMap[r.id_forma_pago]=r.nombre);}catch(_){}
     const ventaRows=bkExec(db,'SELECT folio,fecha,hora,total,nombre_cliente,id_forma_pago,direccion,etiqueta,status FROM venta');
@@ -1683,7 +1688,7 @@ async function bkHandleFile(file){
     };
     db.close();
     BKZIP=zip;
-    state.bk={biz,catMap,products,clients,sales,saleLines:linesByFolio,stats,imgSet,fileName:file.name};
+    state.bk={biz,catMap,products,clients,sales,saleLines:linesByFolio,stats,imgSet,units,fileName:file.name};
     state.bkLoading=false;state.bkImgUrls={};
     bkImportAll();   // al cargar el .mn se importa todo automáticamente
   }catch(e){
@@ -1716,6 +1721,7 @@ function bkImportAll(){
     if(key&&imgSet[key])o.imgKey=key;
     return o;
   }).filter(p=>p.name);
+  if(state.bk.units&&state.bk.units.length)state.units=[...new Set([...(state.units||[]),...state.bk.units.filter(u=>!isKnownUnit(u))])]; // unidades de Mi Negocio
   const pr=importProducts(prods,true);      // sin navegar
   const cl=bkMergeClients();                // clientes
   const sv=bkMergeSales();                  // ventas (historial)

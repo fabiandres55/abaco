@@ -1424,13 +1424,21 @@ function askPerm(){const g=id=>document.getElementById(id);g('permT').textConten
 function permResult(ok){document.getElementById('permdlg').classList.remove('on');const chk=document.getElementById('expToggle');
   if(ok){state.form.expiryOn=true;if(chk)chk.checked=true;document.getElementById('expWrap').classList.add('on');try{if(window.Notification&&Notification.requestPermission)Notification.requestPermission().catch(()=>{});}catch(_){}}
   else{state.form.expiryOn=false;if(chk)chk.checked=false;}}
-function saveProduct(){
+async function saveProduct(){
   readForm();const f=state.form;
   if(!f.name||!f.name.trim()||!f.key||!f.key.trim()){toast(t('needNameKey'));return;}
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
   const unit=(f.unit||'').trim();
   if(unit&&!isKnownUnit(unit))state.units=[...(state.units||[]),unit];
-  const data={key:f.key.trim(),name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img:f.img||null,imgKey:f.img?null:(f.imgKey||null),expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
+  const key=f.key.trim();
+  let img=f.img||null, imgKey=f.img?null:(f.imgKey||null);
+  // NO guardar la foto base64 en el documento: convertir a miniatura (IndexedDB/nube) para no reventar la cuota de localStorage (Android)
+  if(img&&typeof img==='string'&&img.indexOf('data:')===0){
+    const ik=key||('IMG-'+Date.now());
+    const thumb=await dataUrlToThumb(img,256);
+    if(thumb){IMGCACHE['img:'+ik]=thumb;try{await idbPut('img:'+ik,thumb);}catch(e){}imgKey=ik;img=null;sbUploadOne(ik);}
+  }
+  const data={key,name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:+f.addsale||0,stock:+f.qty||0,reserve:+f.reserve||0,img,imgKey,expiry:f.expiryOn?f.expiry:null,min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
   if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
   else{state.products.push({id:nid(),...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
 }
@@ -1754,6 +1762,30 @@ function bkBlobToThumb(blob,size){
     img.onload=()=>{try{const sc=Math.min(size/img.width,size/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',0.5);URL.revokeObjectURL(url);res(d);}catch(e){URL.revokeObjectURL(url);res(null);}};
     img.onerror=()=>{URL.revokeObjectURL(url);res(null);};img.src=url;});
 }
+// miniatura desde un data URL (para no guardar base64 gigante en el documento)
+function dataUrlToThumb(url,size){
+  return new Promise(res=>{try{const img=new Image();img.onload=()=>{try{const sc=Math.min(size/img.width,size/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);res(cv.toDataURL('image/jpeg',0.6));}catch(e){res(null);}};img.onerror=()=>res(null);img.src=url;}catch(e){res(null);}});
+}
+// sube una sola miniatura a la nube
+async function sbUploadOne(key){try{const sb=await sbInit();const id=currentDataId();if(!sb||!id)return;const b=IMGCACHE['img:'+key];if(!b)return;await sb.from('store_docs').upsert([{store_id:id,doc_key:'img:'+key,data:{b},updated_at:new Date().toISOString()}],{onConflict:'store_id,doc_key'});}catch(e){}}
+// migra productos con foto base64 en el documento → miniatura en IndexedDB/nube (evita reventar la cuota de localStorage en Android)
+let MIGRATING_IMG=false;
+async function migrateInlineImages(){
+  if(MIGRATING_IMG)return;
+  const targets=state.products.filter(p=>typeof p.img==='string'&&p.img.indexOf('data:')===0);
+  if(!targets.length)return;
+  MIGRATING_IMG=true;
+  try{
+    for(const p of targets){
+      const ik=p.imgKey||p.key||('IMG-'+p.id);
+      const thumb=await dataUrlToThumb(p.img,256);
+      if(thumb){IMGCACHE['img:'+ik]=thumb;try{await idbPut('img:'+ik,thumb);}catch(e){}p.imgKey=ik;p.img=null;await sbUploadOne(ik);}
+      else{p.img=null;}   // si falla, al menos quita el base64 gigante del documento
+    }
+    persist();
+    if(state.screen==='inventario')render();
+  }finally{MIGRATING_IMG=false;}
+}
 async function bkSaveImages(list){
   if(!BKZIP||!list.length)return;let done=0;const total=list.length;
   for(const p of list){
@@ -2024,6 +2056,7 @@ async function sbPullStore(id){
   if(p!=null||c!=null||mm!=null)persist();
   if(Array.isArray(s)){state.sales=s;persistSales();}
   SYNC_APPLYING=false;
+  if(Array.isArray(p))migrateInlineImages(); // saca fotos base64 gigantes traídas de la nube
   return true;
 }
 function _mergeBy(list,extra,idKey){const m={};(list||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]=x;});(extra||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]={...m[x[idKey]],...x};});return Object.values(m);}
@@ -2191,6 +2224,7 @@ function boot(){
   if(p){loadData(p.id);loadSales(p.id);}
   renderDrawer();render();
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();});
+  migrateInlineImages(); // saca fotos base64 gigantes del documento (fix cuota Android)
   sbSyncBoot();
   if(!p){state.onbo={step:'welcome',tmp:{}};document.getElementById('onbo').classList.add('on');renderOnbo();}
   initDb().then(hasDb=>{

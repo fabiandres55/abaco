@@ -626,7 +626,7 @@ function scInventario(){
   let items=state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(p.key||"").toLowerCase().includes(q));
   if(state.filterCat==='__none__')items=items.filter(p=>!(p.cat&&(''+p.cat).trim()));
   else if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
-  if(state.filterUnit)items=items.filter(p=>p.unit===state.filterUnit);
+  if(state.filterUnit)items=items.filter(p=>unitLabel(p.unit)===state.filterUnit);
   if(state.filterInfo)items=items.filter(p=>(''+(p.desc||p.info||'')).trim()===state.filterInfo);
   items.sort((a,b)=>a.stock-b.stock);
   const total=items.length;const limit=state.invLimit||INV_PAGE;const shown=items.slice(0,limit);
@@ -1533,8 +1533,8 @@ function fillFilterValues(field){
   const opt=(v,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-fltval="${field}::${(''+v).replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${label}</span></div>`;
   if(field==='unit'){
     document.getElementById('filterH').textContent=t('flt_unit');
-    const vals=[...new Set(state.products.map(p=>p.unit).filter(Boolean))].sort((a,b)=>unitLabel(a).localeCompare(unitLabel(b)));
-    document.getElementById('filterBody').innerHTML=back+(vals.length?vals.map(u=>opt(u,unitLabel(u),state.filterUnit===u)).join(''):`<div class="empty">${t('noResults')}</div>`);
+    const vals=[...new Set(state.products.map(p=>unitLabel(p.unit)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    document.getElementById('filterBody').innerHTML=back+(vals.length?vals.map(u=>opt(u,u,state.filterUnit===u)).join(''):`<div class="empty">${t('noResults')}</div>`);
   }else{
     document.getElementById('filterH').textContent=t('flt_info');
     const vals=[...new Set(state.products.map(p=>(''+(p.desc||p.info||'')).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));

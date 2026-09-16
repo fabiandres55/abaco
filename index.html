@@ -571,8 +571,14 @@ const t=k=>I18N[LANG][k]??I18N.en[k]??k;
 const UNITS=["u_cubic","u_gram","u_kg","u_liter","u_meter","u_piece"];
 // unidades adicionales por defecto (literales, siempre disponibles en el selector)
 const UNITS_EXTRA=["Unidad","Centímetro","Mililitro","CM^3","METRO","50 G","25X35CM","Caja","Paquete","Docena","Rollo","Bolsa","Par"];
-function unitCatalog(){return [...new Set([...UNITS.map(u=>t(u)),...UNITS_EXTRA,...(state.units||[])])];}
-function isKnownUnit(u){return unitCatalog().includes(u);}
+// forma canónica de una unidad: clave (u_meter…) para las de por defecto, literal para las personalizadas.
+// Así "Metro"/"Meter" (misma unidad en es/en) se guardan igual → clave u_meter.
+function canonUnit(u){if(u==null)return u;const s=(''+u).trim();if(!s)return s;if(UNITS.includes(s))return s;for(const k of UNITS){if(I18N.es[k]===s||I18N.en[k]===s)return k;}return s;}
+function isKnownUnit(u){return UNITS.includes(u)||UNITS_EXTRA.includes(u)||(state.units||[]).includes(u);}
+// entradas del selector: {canon, label} sin etiquetas duplicadas
+function unitCatalogEntries(){const out=[],seen=new Set();const add=(canon,label)=>{if(label&&!seen.has(label)){seen.add(label);out.push({canon,label});}};UNITS.forEach(k=>add(k,t(k)));UNITS_EXTRA.forEach(u=>add(u,u));(state.units||[]).forEach(u=>{const c=canonUnit(u);add(c,unitLabel(c));});return out;}
+// migra unidades guardadas como etiqueta traducida → clave canónica
+function migrateUnits(){let ch=false;(state.products||[]).forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;ch=true;}});if(ch)persist();return ch;}
 
 const money=n=>"$"+Math.round(n||0).toLocaleString(LANG==="es"?"es-CO":"en-US");
 function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</svg>`}
@@ -1364,7 +1370,7 @@ function formHTML(){
     <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${f.cat||t('f_category_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <input type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
   <div class="fld"><span class="fl">${t('f_unit')}</span>
-    <div class="inp sellike" data-act="openunit"><span class="${f.unit?'':'ph'}">${f.unit||t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
+    <div class="inp sellike" data-act="openunit"><span class="${f.unit?'':'ph'}">${f.unit?unitLabel(f.unit):t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <input type="hidden" id="f_unit" value="${(f.unit||'').replace(/"/g,'&quot;')}"></div>
   <div class="two">
     <div class="fld"><span class="fl">${t('f_purchase')}</span><input class="inp num" id="f_purchase" type="number" inputmode="numeric" value="${f.purchase??''}" placeholder="0"></div>
@@ -1392,7 +1398,7 @@ function formHTML(){
   ${f.editId?`<button class="delbtn" data-act="del-product">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('del')}</button>`:''}`;
 }
 function openForm(editId,prefillKey){
-  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:UNITS.includes(p.unit)?t(p.unit):(p.unit||''),purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,imgKey:p.imgKey||null,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
+  if(editId){const p=P(editId);state.form={editId,key:p.key,name:p.name,cat:p.cat,unit:canonUnit(p.unit||''),purchase:p.cost,sale:p.price,addsale:p.addSale,qty:p.stock,reserve:p.reserve,img:p.img,imgKey:p.imgKey||null,expiry:p.expiry||'',expiryOn:!!p.expiry,min:p.min,max:p.max,loc:p.loc,lot:p.lot};}
   else state.form={unit:t('u_piece'),key:prefillKey||''};
   document.getElementById('formTitle').textContent=editId?t('editProduct'):t('newProduct');
   document.getElementById('saveBtn').textContent=t('save');
@@ -1428,7 +1434,7 @@ async function saveProduct(){
   readForm();const f=state.form;
   if(!f.name||!f.name.trim()||!f.key||!f.key.trim()){toast(t('needNameKey'));return;}
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
-  const unit=(f.unit||'').trim();
+  const unit=canonUnit((f.unit||'').trim());
   if(unit&&!isKnownUnit(unit))state.units=[...(state.units||[]),unit];
   const key=f.key.trim();
   let img=f.img||null, imgKey=f.img?null:(f.imgKey||null);
@@ -1446,18 +1452,17 @@ function delProduct(){const id=state.form.editId;state.products=state.products.f
 /* ---------------- selector de unidad ---------------- */
 function openUnit(){
   readForm();
-  const cur=(state.form.unit||'').trim();
-  const all=unitCatalog();
+  const cur=canonUnit((state.form.unit||'').trim());
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   document.getElementById('unitH').textContent=t('u_select');
-  const rows=all.map(u=>`<div class="catopt ${u===cur?'sel':''}" data-unitpick="${(''+u).replace(/"/g,'&quot;')}"><span class="ck">${u===cur?ck:''}</span><span>${u}</span></div>`).join('');
+  const rows=unitCatalogEntries().map(e=>`<div class="catopt ${e.canon===cur?'sel':''}" data-unitpick="${(''+e.canon).replace(/"/g,'&quot;')}"><span class="ck">${e.canon===cur?ck:''}</span><span>${e.label}</span></div>`).join('');
   document.getElementById('unitOptions').innerHTML=rows;
   document.getElementById('unitdlg').classList.add('on');
   document.getElementById('unitOptions').scrollTop=0;
 }
 function closeUnit(){document.getElementById('unitdlg').classList.remove('on');}
-function pickUnit(v){state.form.unit=v;closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
-function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=v.trim();if(!v)return;if(!isKnownUnit(v))state.units=[...(state.units||[]),v];pickUnit(v);}
+function pickUnit(v){state.form.unit=canonUnit(v);closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
+function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=canonUnit(v.trim());if(!v)return;if(!isKnownUnit(v))state.units=[...(state.units||[]),v];pickUnit(v);}
 function allCats(){return [...new Set([...(state.cats||[]),...state.products.map(p=>p.cat).filter(Boolean)])].sort((a,b)=>(''+a).localeCompare(''+b));}
 function openCatPick(){
   readForm();
@@ -2052,7 +2057,7 @@ async function sbPullStore(id){
   if(Array.isArray(p))state.products=p;
   if(Array.isArray(c))state.clients=c;
   if(Array.isArray(mm))state.mermas=mm;
-  if(Array.isArray(p))ensureUniqueIds();   // evita ids duplicados tras sincronizar + fija state.seq
+  if(Array.isArray(p)){ensureUniqueIds();state.products.forEach(x=>{x.unit=canonUnit(x.unit);});}   // ids únicos + unidades canónicas
   if(p!=null||c!=null||mm!=null)persist();
   if(Array.isArray(s)){state.sales=s;persistSales();}
   SYNC_APPLYING=false;
@@ -2114,7 +2119,7 @@ function currentDataId(){return state.profile?state.profile.id:null;}
 function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);sbPushDoc(id,'mermas',state.mermas);}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
-function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;if(ensureUniqueIds())saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;let _uch=ensureUniqueIds();state.products.forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;_uch=true;}});if(_uch)saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
 function saveReq(l){_set('requests',l);sbPushDoc('__shared__','requests',l);}

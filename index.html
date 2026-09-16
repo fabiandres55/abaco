@@ -1106,7 +1106,7 @@ function fillSaleProd(){
 function openSaleProd(){state.saleProdQ='';state.saleCatOpen={};document.getElementById('saleprodH').textContent=t('sale_pick_title');fillSaleProd();document.getElementById('saleproddlg').classList.add('on');document.getElementById('saleprodBody').scrollTop=0;}
 function closeSaleProd(){document.getElementById('saleproddlg').classList.remove('on');render();}
 function saleCatToggle(c){state.saleCatOpen[c]=!state.saleCatOpen[c];const b=document.getElementById('saleprodBody');const p=b.scrollTop;fillSaleProd();b.scrollTop=p;}
-function saleAdd(id){id=+id;state.cart[id]=(state.cart[id]||0)+1;updateCartBar();const b=document.getElementById('saleprodBody');const p=b.scrollTop;fillSaleProd();b.scrollTop=p;}
+function saleAdd(id){id=+id;state.cart[id]=(state.cart[id]||0)+1;state.q='';closeSaleProd();/* cierra el picker y muestra el carrito */}
 function updateCartBar(){/* carrito ahora se muestra inline en la venta; nada que hacer aquí */}
 function scCaja(){
   const moves=[...state.sales.filter(isToday).map(s=>({type:"in",concept:"Venta #"+(s.folio||s.id),amount:saleTotal(s),time:s.time})),...state.extraMoves].sort((a,b)=>(''+b.time).localeCompare(''+a.time));
@@ -2338,7 +2338,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-fab"))return state.screen==="inventario"?openForm():go("nueva");
   if(el.hasAttribute("data-edit"))return openForm(+el.dataset.edit);
   if(el.dataset.nav)return go(el.dataset.nav);
-  if(el.dataset.inc){const id=+el.dataset.inc;state.cart[id]=(state.cart[id]||0)+1;return render();}
+  if(el.dataset.inc){const id=+el.dataset.inc;state.cart[id]=(state.cart[id]||0)+1;if(state.screen==='nueva')state.q='';return render();}
   if(el.dataset.dec){const id=+el.dataset.dec;state.cart[id]=Math.max(0,(state.cart[id]||0)-1);return render();}
   if(el.dataset.stock){const[id,dd]=el.dataset.stock.split(":");const p=P(+id);if(p)p.stock=Math.max(0,p.stock+ +dd);persist();return render();}
   if(el.dataset.act){const a=el.dataset.act.split(":")[0];

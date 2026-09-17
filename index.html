@@ -2174,18 +2174,24 @@ async function sbLiveSync(){
   LIVE_BUSY=false;
 }
 /* ---- Realtime (instantáneo por "señal"): canal de la tienda + broadcast ---- */
-let SB_CHAN=null,SB_CHAN_ID=null;
+let SB_CHAN=null,SB_CHAN_ID=null,SB_SUBBING=false;
 async function sbSubscribe(id){
-  if(!id||(SB_CHAN&&SB_CHAN_ID===id))return;
+  if(!id||SB_SUBBING)return;
+  if(SB_CHAN&&SB_CHAN_ID===id)return;   // ya suscrito y sano
+  SB_SUBBING=true;
   try{
-    const sb=await sbInit();if(!sb)return;
+    const sb=await sbInit();if(!sb){SB_SUBBING=false;return;}
     if(SB_CHAN){try{sb.removeChannel(SB_CHAN);}catch(e){}SB_CHAN=null;}
     SB_CHAN_ID=id;
     const ch=sb.channel('store:'+id,{config:{broadcast:{self:false}}});
     ch.on('broadcast',{event:'changed'},msg=>{const ks=(msg&&msg.payload&&msg.payload.keys)||['products','sales','clients','mermas'];sbApplyChange(id,ks);});
-    ch.subscribe();
-    SB_CHAN=ch;
+    ch.subscribe(st=>{
+      if(st==='SUBSCRIBED'){SB_CHAN=ch;}
+      else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){if(SB_CHAN===ch)SB_CHAN=null;}   // se re-suscribe en el próximo tick
+    });
+    SB_CHAN=ch;   // optimista; el estado lo corrige si falla
   }catch(e){}
+  SB_SUBBING=false;
 }
 function sbBroadcast(key){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId())SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:[key]}});}catch(e){}}
 async function sbApplyChange(id,keys){
@@ -2578,10 +2584,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260916211748';
+const APP_VERSION='20260916212437';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260916211748')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260916212437')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
@@ -2596,8 +2602,8 @@ async function checkAppUpdate(){
 setInterval(checkAppUpdate,45000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate();});
 window.addEventListener('focus',checkAppUpdate);
-/* sincronización de datos: instantánea por Realtime (broadcast); polling solo como respaldo ligero (60s) y al volver a la app */
-setInterval(sbLiveSync,60000);
+/* sincronización de datos: instantánea por Realtime (broadcast). Cada 20s se auto-repara la suscripción y se hace un chequeo ligero de respaldo; también al volver a la app. */
+setInterval(()=>{const id=currentDataId();if(id){if(!SB_CHAN||SB_CHAN_ID!==id)sbSubscribe(id);sbLiveSync();}},20000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){sbSubscribe(currentDataId());sbLiveSync();}});
 window.addEventListener('focus',()=>{sbSubscribe(currentDataId());sbLiveSync();});
 </script>

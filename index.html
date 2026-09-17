@@ -2070,7 +2070,7 @@ function sbPushDoc(storeId,key,data){
   if(!storeId||SYNC_APPLYING)return;
   const k=storeId+'|'+key;SB_PENDING[k]={storeId,key,data};
   clearTimeout(SB_TIMER[k]);
-  SB_TIMER[k]=setTimeout(async()=>{const p=SB_PENDING[k];if(!p)return;delete SB_PENDING[k];try{const sb=await sbInit();if(!sb)return;await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});}catch(e){}},700);
+  SB_TIMER[k]=setTimeout(async()=>{const p=SB_PENDING[k];if(!p)return;delete SB_PENDING[k];try{const sb=await sbInit();if(!sb)return;await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(p.storeId===currentDataId())sbBroadcast(p.key);}catch(e){}},700);
 }
 async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
 async function sbPullStore(id){
@@ -2173,6 +2173,39 @@ async function sbLiveSync(){
   }catch(e){SYNC_APPLYING=false;}
   LIVE_BUSY=false;
 }
+/* ---- Realtime (instantáneo por "señal"): canal de la tienda + broadcast ---- */
+let SB_CHAN=null,SB_CHAN_ID=null;
+async function sbSubscribe(id){
+  if(!id||(SB_CHAN&&SB_CHAN_ID===id))return;
+  try{
+    const sb=await sbInit();if(!sb)return;
+    if(SB_CHAN){try{sb.removeChannel(SB_CHAN);}catch(e){}SB_CHAN=null;}
+    SB_CHAN_ID=id;
+    const ch=sb.channel('store:'+id,{config:{broadcast:{self:false}}});
+    ch.on('broadcast',{event:'changed'},msg=>{const ks=(msg&&msg.payload&&msg.payload.keys)||['products','sales','clients','mermas'];sbApplyChange(id,ks);});
+    ch.subscribe();
+    SB_CHAN=ch;
+  }catch(e){}
+}
+function sbBroadcast(key){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId())SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:[key]}});}catch(e){}}
+async function sbApplyChange(id,keys){
+  if(SYNC_APPLYING||id!==currentDataId())return;
+  if(document.getElementById('device').classList.contains('form-open'))return;
+  try{
+    SYNC_APPLYING=true;
+    for(const k of keys){
+      const d=await sbPullDoc(id,k);if(!Array.isArray(d))continue;
+      if(k==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));LIVE_TS['products']=undefined;}
+      else if(k==='clients')state.clients=d;
+      else if(k==='mermas')state.mermas=d;
+      else if(k==='sales'){state.sales=d;idbKvPut('sales:'+id,d);}
+    }
+    persistLocal();
+    SYNC_APPLYING=false;
+    if(!document.getElementById('device').classList.contains('form-open'))render();
+    if(document.getElementById('histdlg').classList.contains('on'))fillHist();
+  }catch(e){SYNC_APPLYING=false;}
+}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
 function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;let _uch=ensureUniqueIds();state.products.forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;_uch=true;}});if(_uch)saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
@@ -2257,7 +2290,7 @@ function obVal(id){const e=document.getElementById(id);return e?e.value.trim():'
 function enterProfile(role,ent){
   state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
   watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
-  loadData(ent.id);loadSales(ent.id);
+  loadData(ent.id);loadSales(ent.id);sbSubscribe(ent.id);
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
   sbPullStore(ent.id).then(ok=>{if(ok)render();});
 }
@@ -2282,7 +2315,7 @@ async function resetAll(){
 function boot(){
   let p=null;try{p=JSON.parse(localStorage.getItem('abanico.profile')||'null')}catch(_){}
   state.profile=p;
-  if(p){loadData(p.id);loadSales(p.id);}
+  if(p){loadData(p.id);loadSales(p.id);sbSubscribe(p.id);}
   renderDrawer();render();
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();});
   migrateInlineImages(); // saca fotos base64 gigantes del documento (fix cuota Android)
@@ -2545,10 +2578,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260916211002';
+const APP_VERSION='20260916211748';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260916211002')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260916211748')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
@@ -2563,8 +2596,8 @@ async function checkAppUpdate(){
 setInterval(checkAppUpdate,45000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate();});
 window.addEventListener('focus',checkAppUpdate);
-/* sincronización en vivo de datos entre dispositivos */
-setInterval(sbLiveSync,12000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)sbLiveSync();});
-window.addEventListener('focus',sbLiveSync);
+/* sincronización de datos: instantánea por Realtime (broadcast); polling solo como respaldo ligero (60s) y al volver a la app */
+setInterval(sbLiveSync,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){sbSubscribe(currentDataId());sbLiveSync();}});
+window.addEventListener('focus',()=>{sbSubscribe(currentDataId());sbLiveSync();});
 </script>

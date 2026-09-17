@@ -1124,7 +1124,7 @@ function openSaleProd(){state.saleProdQ='';state.saleCatOpen={};const lb=documen
 function closeSaleProd(){document.getElementById('saleproddlg').classList.remove('on');render();}
 function saleCatToggle(c){state.saleCatOpen[c]=!state.saleCatOpen[c];const b=document.getElementById('saleprodBody');const p=b.scrollTop;fillSaleProd();b.scrollTop=p;}
 function saleAdd(id){id=+id;const p=P(id);state.cart[id]=(state.cart[id]||0)+1;if(p)toast(t('sale_added')+' → '+p.name);const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;/* se mantiene abierto para seguir agregando */}
-function saleDec(id){id=+id;if(state.cart[id]){state.cart[id]--;if(state.cart[id]<=0){delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];}}updateCartBar();const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}
+function saleDec(id){id=+id;delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];updateCartBar();const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}
 function updateCartBar(){/* carrito ahora se muestra inline en la venta; nada que hacer aquí */}
 function scCaja(){
   const moves=[...state.sales.filter(isToday).map(s=>({type:"in",concept:"Venta #"+(s.folio||s.id),amount:saleTotal(s),time:s.time})),...state.extraMoves].sort((a,b)=>(''+b.time).localeCompare(''+a.time));

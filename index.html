@@ -2141,6 +2141,38 @@ function getEntity(role,id){return loadReg(role).find(x=>x.id===id);}
 function genEntId(role){const pre=role==='bodega'?'BOD':'TDA';const ex=new Set(loadReg(role).map(x=>x.id));let id;do{id=pre+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}while(ex.has(id));return id;}
 function currentDataId(){return state.profile?state.profile.id:null;}
 function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});sbPushDoc(id,'products',state.products);sbPushDoc(id,'clients',state.clients);sbPushDoc(id,'mermas',state.mermas);}
+function persistLocal(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
+/* ---------------- sincronización EN VIVO entre dispositivos ---------------- */
+let LIVE_TS={},LIVE_BUSY=false;
+async function sbLiveSync(){
+  if(LIVE_BUSY||SYNC_APPLYING)return;
+  const id=currentDataId();if(!id)return;
+  if(document.getElementById('device').classList.contains('form-open'))return;   // no interrumpir una edición
+  if(document.getElementById('onbo').classList.contains('on'))return;
+  LIVE_BUSY=true;
+  try{
+    const sb=await sbInit();if(!sb){LIVE_BUSY=false;return;}
+    const r=await sb.from('store_docs').select('doc_key,updated_at').eq('store_id',id).in('doc_key',['products','clients','sales','mermas']);
+    if(!r||!r.data){LIVE_BUSY=false;return;}
+    const changed=[];
+    r.data.forEach(row=>{if(LIVE_TS[row.doc_key]!==row.updated_at){if(LIVE_TS[row.doc_key]!==undefined)changed.push(row.doc_key);LIVE_TS[row.doc_key]=row.updated_at;}});
+    if(changed.length){
+      SYNC_APPLYING=true;
+      for(const k of changed){
+        const d=await sbPullDoc(id,k);if(!Array.isArray(d))continue;
+        if(k==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));}
+        else if(k==='clients')state.clients=d;
+        else if(k==='mermas')state.mermas=d;
+        else if(k==='sales'){state.sales=d;idbKvPut('sales:'+id,d);}
+      }
+      persistLocal();
+      SYNC_APPLYING=false;
+      if(!document.getElementById('device').classList.contains('form-open'))render();
+      if(document.getElementById('histdlg').classList.contains('on'))fillHist();
+    }
+  }catch(e){SYNC_APPLYING=false;}
+  LIVE_BUSY=false;
+}
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
 function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.cart={};state.filterCat=null;let _uch=ensureUniqueIds();state.products.forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;_uch=true;}});if(_uch)saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
@@ -2513,10 +2545,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260916210025';
+const APP_VERSION='20260916211002';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260916210025')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260916211002')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
@@ -2531,4 +2563,8 @@ async function checkAppUpdate(){
 setInterval(checkAppUpdate,45000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate();});
 window.addEventListener('focus',checkAppUpdate);
+/* sincronización en vivo de datos entre dispositivos */
+setInterval(sbLiveSync,12000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sbLiveSync();});
+window.addEventListener('focus',sbLiveSync);
 </script>

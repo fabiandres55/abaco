@@ -27,7 +27,10 @@
   .num{font-variant-numeric:tabular-nums}
   .device{position:relative;width:100%;max-width:412px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
   @media (max-width:479px){body{align-items:flex-start}}
-  @media (min-width:480px){.device{height:min(880px,94vh);max-height:94vh;border-radius:26px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);border:1px solid #000}}
+  @media (min-width:480px){.device{max-width:440px;height:min(900px,94vh);max-height:94vh;border-radius:26px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);border:1px solid #000}}
+  /* escritorio: ventana más grande */
+  @media (min-width:1000px) and (min-height:720px){.device{max-width:560px;height:min(1040px,96vh);max-height:96vh}}
+  @media (min-width:1280px) and (min-height:900px){.device{max-width:640px;height:min(1120px,96vh)}}
 
   .statusbar{flex:none;height:26px;background:var(--pri-d);color:#eceef0;display:flex;align-items:center;padding:0 12px;font-size:12px;font-weight:500;gap:6px}
   .statusbar .sb-r{margin-left:auto;display:flex;align-items:center;gap:6px}
@@ -2589,10 +2592,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260918192930';
+const APP_VERSION='20260918202926';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260918192930')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260918202926')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

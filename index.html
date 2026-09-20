@@ -2262,7 +2262,7 @@ function bkImportAll(){
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
   if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
   if(state.bk.purchaseLines)bkSaveSaleLines(state.bk.purchaseLines); // detalle de compras -> IndexedDB (mismo store, ids 'C'+folio)
-  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length)idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()}); // archivo crudo del .mn (no se pierde nada)
+  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length){idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()});sbPushRaw(_id,state.bk.rawTables,state.bk.fileName);} // archivo crudo del .mn: local + nube (no se pierde nada)
   state.bk.imported={p:state.products.length,c:state.clients.length,v:sv,cp:(state.purchases||[]).length};
   render();
 }
@@ -2420,6 +2420,32 @@ function sbPushDoc(storeId,key,data){
   SB_TIMER[k]=setTimeout(async()=>{const p=SB_PENDING[k];if(!p)return;delete SB_PENDING[k];try{const sb=await sbInit();if(!sb)return;await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(p.storeId===currentDataId())sbBroadcast(p.key);}catch(e){}},700);
 }
 async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
+/* ---- Archivo crudo del .mn en la nube: una fila por tabla (raw:<tabla>) + índice ---- */
+async function sbPushRaw(id,rawTables,fileName){
+  if(!id||!rawTables)return;
+  try{
+    const sb=await sbInit();if(!sb)return;
+    const index={file:fileName||'',ts:Date.now(),tables:{}};
+    for(const tn of Object.keys(rawTables)){
+      const rows=rawTables[tn];
+      try{
+        let big=false;try{big=JSON.stringify(rows).length>4500000;}catch(_){big=true;}
+        if(big){index.tables[tn]={n:rows.length,skipped:'too_big'};continue;}
+        await sb.from('store_docs').upsert({store_id:id,doc_key:'raw:'+tn,data:rows,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
+        index.tables[tn]={n:rows.length};
+      }catch(e){index.tables[tn]={n:(rows&&rows.length)||0,skipped:'error'};}
+    }
+    await sb.from('store_docs').upsert({store_id:id,doc_key:'raw:__index__',data:index,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
+  }catch(e){}
+}
+async function sbPullRawIndex(id){return await sbPullDoc(id||currentDataId(),'raw:__index__');}
+async function sbPullRaw(table,id){id=id||currentDataId();if(!id||!table)return null;return await sbPullDoc(id,'raw:'+table);}
+/* Devuelve una tabla cruda: primero del archivo local (IndexedDB), si no, de la nube */
+async function getRawTable(table){
+  const id=currentDataId();if(!id)return null;
+  try{const local=await idbKvGet('raw:'+id);if(local&&local.tables&&local.tables[table])return local.tables[table];}catch(_){}
+  return await sbPullRaw(table,id);
+}
 async function sbPullStore(id){
   if(!id)return false;
   const[p,c,s,mm,rc,pu,po]=await Promise.all([sbPullDoc(id,'products'),sbPullDoc(id,'clients'),sbPullDoc(id,'sales'),sbPullDoc(id,'mermas'),sbPullDoc(id,'receipt'),sbPullDoc(id,'purchases'),sbPullDoc(id,'porders')]);
@@ -2977,10 +3003,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260919224303';
+const APP_VERSION='20260919224715';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260919224303')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260919224715')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

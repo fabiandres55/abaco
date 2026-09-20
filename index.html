@@ -1091,6 +1091,19 @@ async function openSaleDet(id){
   document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(saleTotal(s))}</div></div></div><div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div><button class="btn ghost" data-act="rcpdf:${s.id}" style="margin-top:14px">${svg('<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/>')} ${t('rc_pdf')}</button></div>`;
 }
 function closeSale(){document.getElementById('saledlg').classList.remove('on');}
+async function openPurchaseDet(id){
+  const p=(state.purchases||[]).find(x=>''+x.id===''+id);if(!p)return;
+  document.getElementById('saleH').textContent='#'+(p.folio||p.id);
+  document.getElementById('saledlg').classList.add('on');
+  document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
+  let lines=[];
+  if(p.items&&p.items.length)lines=p.items.map(i=>{const pr=P(i.id);return {name:pr?pr.name:'—',qty:i.q,cost:i.cost,subtotal:(+i.cost||0)*i.q};});
+  else{const L=await idbGetSale(p.id);if(L)lines=L;}
+  const st=p.status==='porpagar'?t('cp_topay'):t('cp_paid');
+  const meta=[p.date&&(t('sale_date')+': '+p.date+(p.time?' '+p.time:'')),p.provider&&(t('cp_provider')+': '+p.provider),p.pay&&(t('sale_pay')+': '+p.pay),(t('rc_status')+': '+st),p.note&&(t('cp_note')+': '+p.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${x}</div>`).join('');
+  const linesHtml=lines.length?lines.map(l=>{const c=l.cost!=null?l.cost:l.price;const sub=l.subtotal!=null?l.subtotal:(+c||0)*l.qty;return `<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div><div class="s">${money(c||0)} c/u</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(p.total||0)}</div></div></div><div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div></div>`;
+}
 /* ---------------- Recibo / Ticket ---------------- */
 function scRecibo(){
   const c=receiptCfg();
@@ -1370,7 +1383,7 @@ function scPHist(){
   const list=(state.purchases||[]).slice().sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||'')));
   const total=list.length;const limit=state.phistLimit||31;const shown=list.slice(0,limit);
   const rows=shown.length?shown.map(p=>{const st=p.status==='porpagar'?`<span class="scard-paid" style="color:var(--red)">${t('cp_topay')}</span>`:`<span class="scard-paid">${t('cp_paid')}</span>`;const dt=[p.date,p.time].filter(Boolean).join('  ')||si;
-    return `<div class="scard"><div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${p.folio||p.id}</span><span class="scard-pay">${p.pay||si} ${svg(S_CASH)}</span></div>
+    return `<div class="scard" data-purdet="${p.id}"><div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${p.folio||p.id}</span><span class="scard-pay">${p.pay||si} ${svg(S_CASH)}</span></div>
       ${row(S_CAL,dt)}${row(S_PER,p.provider)}${row(S_INFO,p.note)}
       <div class="scard-bot">${st}<span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(p.total||0)}</b></span></div></div>`;}).join(''):`<div class="empty" style="margin-top:36px">${t('cp_none')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="phistmore">${ti('inv_more',{n:total-limit})}</div>`:'';
@@ -2172,12 +2185,18 @@ async function bkHandleFile(file){
     const vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
     const linesByFolio={};vlines.forEach(l=>{const k='V'+l.folio;(linesByFolio[k]=linesByFolio[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,price:+l.p_venta||0,cost:+l.p_compra||0,subtotal:+l.subtotal||0});});
     const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);return {id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};});
-    // compras (historial): encabezado compra_pedido + conteo de líneas de compra_producto
-    let purchases=[];try{
+    // compras (historial): encabezado compra_pedido + detalle compra_producto (líneas)
+    let purchases=[];let purchaseLines={};try{
       const compRows=bkExec(db,'SELECT folio,fecha,hora,total,status,nombre_proveedor,id_forma_pago,info_adicional FROM compra_pedido');
-      const cQty={};try{bkExec(db,'SELECT folio,cantidad FROM compra_producto').forEach(l=>{cQty[l.folio]=(cQty[l.folio]||0)+(+l.cantidad||0);});}catch(_){}
+      const cQty={};try{bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta FROM compra_producto').forEach(l=>{const k='C'+l.folio;(purchaseLines[k]=purchaseLines[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,cost:+l.p_compra||0,price:+l.p_venta||0,subtotal:(+l.p_compra||0)*(+l.cantidad||0)});cQty[l.folio]=(cQty[l.folio]||0)+(+l.cantidad||0);});}catch(_){}
       purchases=compRows.map(c=>({id:'C'+c.folio,folio:c.folio,date:c.fecha||'',time:c.hora||'',total:+c.total||0,provider:c.nombre_proveedor||'',pay:payMap[c.id_forma_pago]||'',note:c.info_adicional||'',status:(+c.status===2?'porpagar':'pagado'),n:cQty[c.folio]||0,imported:true}));
     }catch(_){purchases=[];}
+    // Archivo crudo: guardar TODA tabla que aún no tiene módulo, para no perder nada y poder consultarla
+    let rawTables={};try{
+      const skip=new Set(['android_metadata','producto','categorias','cliente','venta','venta_producto','compra_pedido','compra_producto']);
+      const tnames=bkExec(db,"SELECT name FROM sqlite_master WHERE type='table'").map(r=>r.name).filter(n=>n&&!skip.has(n));
+      tnames.forEach(tn=>{try{const rows=bkExec(db,'SELECT * FROM "'+tn+'"');if(rows&&rows.length)rawTables[tn]=rows;}catch(_){}});
+    }catch(_){rawTables={};}
     const imgSet={};let imgCount=0;zip.forEach((p,f)=>{if(/\.jpe?g$/i.test(p)&&!f.dir){imgSet[p.replace(/\.jpe?g$/i,'')]=p;imgCount++;}});
     const stats={
       productos:products.length,
@@ -2194,7 +2213,7 @@ async function bkHandleFile(file){
     };
     db.close();
     BKZIP=zip;
-    state.bk={biz,catMap,products,clients,sales,purchases,saleLines:linesByFolio,stats,imgSet,units,fileName:file.name};
+    state.bk={biz,catMap,products,clients,sales,purchases,purchaseLines,rawTables,saleLines:linesByFolio,stats,imgSet,units,fileName:file.name};
     state.bkLoading=false;state.bkImgUrls={};
     bkImportAll();   // al cargar el .mn se importa todo automáticamente
   }catch(e){
@@ -2242,6 +2261,8 @@ function bkImportAll(){
   const withImg=prods.filter(p=>p.imgKey);
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
   if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
+  if(state.bk.purchaseLines)bkSaveSaleLines(state.bk.purchaseLines); // detalle de compras -> IndexedDB (mismo store, ids 'C'+folio)
+  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length)idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()}); // archivo crudo del .mn (no se pierde nada)
   state.bk.imported={p:state.products.length,c:state.clients.length,v:sv,cp:(state.purchases||[]).length};
   render();
 }
@@ -2795,8 +2816,9 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='scandlg')return closeScanner();
   if(e.target.id==='filterdlg')return closeFilter();
   if(e.target.id==='saleproddlg')return closeSaleProd();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel]");
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet]");
   if(!el)return;
+  if(el.hasAttribute("data-purdet"))return openPurchaseDet(el.dataset.purdet);
   if(el.hasAttribute("data-reptile"))return repToggle(el.dataset.reptile);
   if(el.hasAttribute("data-pinc"))return pAdd(el.dataset.pinc);
   if(el.hasAttribute("data-pdec"))return pDec(el.dataset.pdec);
@@ -2955,10 +2977,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260919223619';
+const APP_VERSION='20260919224303';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260919223619')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260919224303')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

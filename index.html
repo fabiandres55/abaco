@@ -39,7 +39,7 @@
   .statusbar .sb-r{margin-left:auto;display:flex;align-items:center;gap:6px}
   .statusbar svg{width:14px;height:14px;fill:#eceef0}
 
-  .appbar{flex:none;background:var(--pri);color:#fff;display:flex;align-items:center;gap:6px;padding:0 6px;height:56px;box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative;z-index:6}
+  .appbar{flex:none;background:var(--pri);color:#fff;display:flex;align-items:center;gap:6px;padding:0 6px;padding-top:env(safe-area-inset-top,0px);height:calc(56px + env(safe-area-inset-top,0px));box-shadow:0 2px 6px rgba(0,0,0,.18);position:relative;z-index:6}
   .iconbtn{width:44px;height:44px;border:none;background:transparent;color:#fff;display:grid;place-items:center;cursor:pointer;border-radius:50%}
   .iconbtn:active{background:rgba(255,255,255,.15)}
   .iconbtn svg{width:23px;height:23px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -245,7 +245,7 @@
   .notirow.unread{background:#f6f7f8}
   .notirow .ntext{font-size:14px;line-height:1.4;color:var(--ink)}
 
-  .screen{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px)}
   .pad{padding:12px 12px 90px}
 
   .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
@@ -293,7 +293,7 @@
   .stepper .q{width:26px;text-align:center;font-weight:700;font-size:13px}
   .add-btn{border:1px solid var(--pri);color:var(--pri-d);background:var(--card);border-radius:7px;height:30px;padding:0 12px;font-weight:500;font-size:12.5px;cursor:pointer;font-family:var(--ui)}
 
-  .cartbar{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 14px;background:var(--card);border-top:1px solid var(--line);z-index:8;transform:translateY(120%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+  .cartbar{position:absolute;left:0;right:0;bottom:0;padding:12px 14px calc(14px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line);z-index:8;transform:translateY(120%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
   .cartbar.on{transform:none}
   .cartbar .sumline{display:flex;align-items:baseline;margin-bottom:10px}
   .cartbar .sumline .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:500}
@@ -315,7 +315,7 @@
   .backrow svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
   .movesign{font-weight:700;font-size:14px}.movesign.in{color:var(--green)}.movesign.out{color:var(--red)}
 
-  .fab{position:absolute;right:18px;bottom:22px;width:56px;height:56px;border-radius:50%;background:var(--fab);color:#fff;border:none;display:grid;place-items:center;box-shadow:0 8px 18px -4px rgba(0,0,0,.45);cursor:pointer;z-index:7}
+  .fab{position:absolute;right:18px;bottom:calc(22px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;background:var(--fab);color:#fff;border:none;display:grid;place-items:center;box-shadow:0 8px 18px -4px rgba(0,0,0,.45);cursor:pointer;z-index:7}
   .fab svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
 
   .toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,20px);background:#2b2f34;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:.3s;z-index:14;display:flex;align-items:center;gap:9px;pointer-events:none;box-shadow:0 10px 26px -8px rgba(0,0,0,.5);max-width:88%}
@@ -3109,10 +3109,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260920154502';
+const APP_VERSION='20260920155137';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260920154502')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260920155137')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

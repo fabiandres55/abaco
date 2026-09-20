@@ -2734,11 +2734,15 @@ async function authSubmit(kind){
 async function afterAuth(){
   const p=safeLocalProfile();
   let cloud=[];try{cloud=await sbMyStores();}catch(e){}
+  // logos guardados localmente (registro + perfil) como respaldo
+  const localLogo={};
+  try{['bodega','tienda'].forEach(role=>loadReg(role).forEach(x=>{if(x&&x.id&&x.logo)localLogo[x.id]=x.logo;}));}catch(e){}
+  if(p&&p.id&&p.logo)localLogo[p.id]=p.logo;
   const map={};
-  cloud.forEach(x=>{if(x&&x.id)map[x.id]={id:x.id,kind:x.kind,name:x.name};});
-  if(p&&p.id&&!map[p.id])map[p.id]={id:p.id,kind:p.kind,name:p.name,logo:p.logo};
+  cloud.forEach(x=>{if(x&&x.id)map[x.id]={id:x.id,kind:x.kind,name:x.name,logo:localLogo[x.id]||''};});
+  if(p&&p.id&&!map[p.id])map[p.id]={id:p.id,kind:p.kind,name:p.name,logo:localLogo[p.id]||p.logo||''};
   const list=Object.values(map);
-  // traer el logo de cada negocio (desde su doc 'receipt')
+  // el logo del doc 'receipt' (sincronizado) tiene prioridad
   await Promise.all(list.map(async st=>{try{const rc=await sbPullDoc(st.id,'receipt');if(rc&&rc.logo)st.logo=rc.logo;}catch(e){}}));
   state.onbo.stores=list;
   if(list.length)obGo('stores');else obGo('role');
@@ -2748,6 +2752,8 @@ function enterProfile(role,ent){
   const _m=AUTH?sbAddMember({id:ent.id,kind:role,name:ent.name}):Promise.resolve();   // registra cuenta<->negocio (candado RLS) ANTES de sincronizar
   watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
   loadData(ent.id);loadSales(ent.id);sbSubscribe(ent.id);
+  // migrar el logo que se subió al crear la tienda (perfil local) al doc 'receipt' para que se sincronice y aparezca en todos lados
+  if(ent.logo&&(!state.receipt||!state.receipt.logo)){state.receipt=state.receipt||{};state.receipt.logo=ent.logo;persist();if(AUTH)sbPushDoc(ent.id,'receipt',state.receipt);}
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen='inventario';state.q='';render();
   Promise.resolve(_m).then(()=>sbPullStore(ent.id)).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}});
 }
@@ -3103,10 +3109,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260920153518';
+const APP_VERSION='20260920153846';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260920153518')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260920153846')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

@@ -411,6 +411,12 @@
   .ocard .ot{font-size:16px;font-weight:700}
   .ocard .od{font-size:13px;color:var(--muted);margin-top:2px}
   .obtn{margin-top:auto}
+  /* ESCRITORIO: login/onboarding como tarjeta compacta y centrada (no estirada) */
+  @media (hover:hover) and (pointer:fine) and (min-width:820px){
+    .onbo{align-items:center;justify-content:center;background:linear-gradient(160deg,#3a3d42,#181a1d);padding:24px}
+    .onbo-inner{flex:0 1 auto;width:400px;max-width:94%;max-height:90vh;background:var(--bg);border-radius:24px;box-shadow:0 30px 70px -26px rgba(0,0,0,.65);padding:34px 30px}
+    .onbo .obtn{margin-top:20px}
+  }
   .idbox{background:var(--card);border:1.5px dashed var(--pri);border-radius:12px;padding:18px;text-align:center}
   .idbox .idl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
   .idbox .idv{font-family:ui-monospace,monospace;font-size:26px;font-weight:700;margin-top:5px;color:var(--pri-d);letter-spacing:.02em}
@@ -3114,10 +3120,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260920194425';
+const APP_VERSION='20260920195318';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260920194425')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260920195318')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

@@ -746,7 +746,9 @@ const saleTotal=s=>s.total!=null?s.total:(s.items?s.items.reduce((t,i)=>t+(P(i.i
 const saleQty=s=>s.n!=null?s.n:(s.lines?s.lines.reduce((a,l)=>a+(+l.qty||0),0):(s.items?s.items.reduce((a,i)=>a+i.q,0):0));
 const saleProfit=s=>s.cost!=null?(saleTotal(s)-s.cost):(s.items?s.items.reduce((a,i)=>{const p=P(i.id);return a+(p?(p.price-p.cost):0)*i.q;},0):0);
 // crédito/por-cobrar = status 2 (numérico o 'cobrar') O tiene abonos registrados (pagos)
-const saleIsCredit=s=>{const st=s&&s.status;if(st===2||st==='2'||st==='cobrar')return true;return !!(s&&Array.isArray(s.pays)&&s.pays.length);};
+const saleIsCreditStrict=s=>{const st=s&&s.status;return st===2||st==='2'||st==='cobrar';};
+const saleIsCredit=s=>{if(saleIsCreditStrict(s))return true;return !!(s&&Array.isArray(s.pays)&&s.pays.length);};
+const purchaseIsCreditStrict=p=>{const st=p&&p.status;return st==='porpagar'||st===2||st==='2';};
 const salePaidSum=s=>Array.isArray(s&&s.pays)?s.pays.reduce((a,p)=>a+(+p.p||0),0):0;
 const purchaseIsCredit=p=>{const st=p&&p.status;if(st==='porpagar'||st===2||st==='2')return true;return !!(p&&Array.isArray(p.pays)&&p.pays.length);};
 const purchasePaidSum=p=>Array.isArray(p&&p.pays)?p.pays.reduce((a,x)=>a+(+x.p||0),0):0;
@@ -1643,31 +1645,41 @@ function repTxDay(){
 function txTotalData(from,to){
   const inRD=d=>!!d&&d>=from&&d<=to;
   const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
+  const inclPagos=state.txtInclPagos!==false;   // incluir pagos sin referencia de transacción
+  // Clasificación por cobrar: con "incluir pagos", crédito = status2 O tiene abonos; sin él, solo status2
+  const isCredV=inclPagos?saleIsCredit:saleIsCreditStrict;
+  const isCredP=inclPagos?purchaseIsCredit:purchaseIsCreditStrict;
   const salesR=state.sales.filter(s=>inRD(saleDate(s)));
-  const vp=salesR.filter(s=>!saleIsCredit(s));   // pagadas (contado)
-  const vc=salesR.filter(s=>saleIsCredit(s));     // por cobrar
+  const vp=salesR.filter(s=>!isCredV(s));   // pagadas (contado)
+  const vc=salesR.filter(s=>isCredV(s));     // por cobrar
   const ventasPag={n:vp.length,ing:sum(vp,saleTotal),gan:sum(vp,saleProfit)};
   const vcDeuda=vc.reduce((a,s)=>a+Math.max(0,saleTotal(s)-salePaidSum(s)),0);
-  let abonosVentas=0;state.sales.forEach(s=>{if(Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});
+  // Abonos (Pagos): con "incluir pagos" = TODOS los abonos del rango (incluso de ventas fuera del rango);
+  // sin él = solo abonos de ventas status2 cuya venta está en el rango.
+  let abonosVentas=0;
+  if(inclPagos){state.sales.forEach(s=>{if(Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});}
+  else{salesR.forEach(s=>{if(saleIsCreditStrict(s)&&Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});}
   const ventasCob={n:vc.length,ing:sum(vc,saleTotal),gan:sum(vc,saleProfit),deuda:vcDeuda,pagos:abonosVentas};
   const purR=(state.purchases||[]).filter(p=>inRD(p.date));
-  const cp=purR.filter(p=>!purchaseIsCredit(p));
-  const cc=purR.filter(p=>purchaseIsCredit(p));
+  const cp=purR.filter(p=>!isCredP(p));
+  const cc=purR.filter(p=>isCredP(p));
   const comprasPag={n:cp.length,egr:sum(cp,p=>+p.total||0)};
   const ccDeuda=cc.reduce((a,p)=>a+Math.max(0,(+p.total||0)-purchasePaidSum(p)),0);
-  let abonosCompras=0;(state.purchases||[]).forEach(p=>{if(Array.isArray(p.pays))p.pays.forEach(x=>{if(inRD(x.f))abonosCompras+=+x.p||0;});});
+  let abonosCompras=0;
+  if(inclPagos){(state.purchases||[]).forEach(p=>{if(Array.isArray(p.pays))p.pays.forEach(x=>{if(inRD(x.f))abonosCompras+=+x.p||0;});});}
+  else{purR.forEach(p=>{if(purchaseIsCreditStrict(p)&&Array.isArray(p.pays))p.pays.forEach(x=>{if(inRD(x.f))abonosCompras+=+x.p||0;});});}
   const comprasPagar={n:cc.length,egr:sum(cc,p=>+p.total||0),deuda:ccDeuda,pagos:abonosCompras};
   const exIn=(state.extraMoves||[]).filter(m=>inRD(m.date)&&m.type==='in');
   const exOut=(state.extraMoves||[]).filter(m=>inRD(m.date)&&m.type==='out');
   const ingExtraPag={n:exIn.length,ing:sum(exIn,m=>+m.amount||0)};
   const gastoExtraPag={n:exOut.length,gas:sum(exOut,m=>+m.amount||0)};
-  const inclC=state.txtInclCobrar;
-  // TOP = pagadas (contado) + abonos recibidos; "incluir por cobrar" suma la deuda pendiente
-  const ingresos=ventasPag.ing+abonosVentas+(inclC?vcDeuda:0)+ingExtraPag.ing;
-  const egresos=comprasPag.egr+abonosCompras+(inclC?ccDeuda:0)+gastoExtraPag.gas;
+  // TOP = ventas pagadas (contado) + abonos recibidos + ingresos extras
+  const ingresos=ventasPag.ing+abonosVentas+ingExtraPag.ing;
+  const egresos=comprasPag.egr+abonosCompras+gastoExtraPag.gas;
+  // "Total Ingresos/Ganancias (incluye por cobrar)" = TODAS las ventas del rango (invariante)
+  const allR={ing:sum(salesR,saleTotal),gan:sum(salesR,saleProfit)};
   return {ventasPag,ventasCob,comprasPag,comprasPagar,ingExtraPag,gastoExtraPag,
-    totIng:ventasPag.ing+ventasCob.ing,totGan:ventasPag.gan+ventasCob.gan,
-    ingresos,egresos,balance:ingresos-egresos};
+    totIng:allR.ing,totGan:allR.gan,ingresos,egresos,balance:ingresos-egresos};
 }
 function txTotalDays(from,to,type){
   const inclC=state.txtInclCobrar;
@@ -3450,10 +3462,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260921181239';
+const APP_VERSION='20260921183718';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260921181239')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260921183718')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

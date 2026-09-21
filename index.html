@@ -481,10 +481,15 @@
   .txbalance{text-align:center;font-weight:800;font-size:16px;padding:10px;border-top:1px solid var(--line2)}
   .txband2{background:#9aa0a6;color:#fff;text-align:center;font-weight:700;font-size:13.5px;padding:7px;border-radius:6px;margin:12px 0 0}
   .txempty2{color:var(--muted);text-align:center;font-size:13px;padding:16px 8px}
-  .txbars{margin:8px 0;height:150px;align-items:flex-end;gap:8px}
-  .txbars .b{display:flex;flex-direction:column;justify-content:flex-end;height:100%}
-  .bar2{width:100%;max-width:26px;min-width:14px;background:var(--pri);border-radius:4px 4px 0 0;position:relative;margin:0 auto}
-  .bar2-g{position:absolute;left:0;right:0;bottom:0;background:var(--pri-d);border-radius:0 0 4px 4px}
+  .txchart{position:relative;margin:10px 0 8px}
+  .txc-line{position:absolute;left:40px;right:40px;border-top:1px solid var(--line2)}
+  .txc-yl{position:absolute;font-size:9px;color:var(--muted);transform:translateY(-50%);line-height:1}
+  .txc-yl.l{left:0;text-align:left;width:36px}
+  .txc-yl.r{right:0;text-align:right;width:36px}
+  .txc-bars{position:absolute;left:44px;right:44px;top:8px;bottom:22px;display:flex;align-items:flex-end;gap:5px}
+  .txc-b{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+  .txc-bar{width:100%;max-width:24px;min-width:6px;margin:0 auto;background:var(--pri);border-radius:3px 3px 0 0;position:relative}
+  .txc-g{position:absolute;left:0;right:0;bottom:0;background:var(--pri-d);border-radius:0 0 3px 3px}
   .txscroll{display:flex;gap:10px;overflow-x:auto;padding:10px 2px 4px;-webkit-overflow-scrolling:touch}
   .txvcard{flex:0 0 auto;width:230px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .txvc-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
@@ -1554,6 +1559,19 @@ function txECard(m){
     <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num" style="color:${m.type==='in'?'var(--green)':'var(--red)'}">${money(+m.amount||0)}</div></div></div>
   </div>`;
 }
+function niceMax(v){if(!(v>0))return 100;const exp=Math.pow(10,Math.floor(Math.log10(v)));const f=v/exp;const steps=[1,1.5,2,2.5,3,4,5,6,8,10];let nf=10;for(const s of steps){if(f<=s+1e-9){nf=s;break;}}return nf*exp;}
+function fmtK(n){n=Math.round(n);if(Math.abs(n)>=1e6)return (n/1e6).toFixed(n%1e6?1:0)+'M';if(Math.abs(n)>=1e3)return Math.round(n/1e3)+'k';return ''+n;}
+function txChart(items,type){
+  if(!items||!items.length)return `<div class="txempty">${t('tx_chart_empty')}</div>`;
+  const mx=niceMax(Math.max(...items.map(i=>+i.amount||0),0));
+  const H=190,PT=8,PB=22,plot=H-PT-PB;
+  let grid='';
+  for(let k=0;k<=4;k++){const frac=k/4;const yTop=PT+frac*plot;const val=mx*(1-frac);
+    grid+=`<div class="txc-line" style="top:${yTop}px"></div><div class="txc-yl l" style="top:${yTop}px">${fmtK(val)}</div><div class="txc-yl r" style="top:${yTop}px">${fmtK(val)}</div>`;}
+  const bars=items.slice(0,40).map(i=>{const a=+i.amount||0;const h=mx>0?Math.max(1.5,a/mx*100):0;const g=(type==='ventas'&&a>0&&i.profit!=null)?Math.max(0,Math.min(100,i.profit/a*100)):0;
+    return `<div class="txc-b"><div class="txc-bar" style="height:${h}%"><div class="txc-g" style="height:${g}%"></div></div></div>`;}).join('');
+  return `<div class="txchart" style="height:${H}px">${grid}<div class="txc-bars">${bars}</div></div>`;
+}
 function repTxDay(){
   const date=state.txDate||todayISO();const type=state.txType||'ventas';
   const d=txDayData(date);
@@ -1561,12 +1579,7 @@ function repTxDay(){
   const opts=TX_TYPES.map(([k,lk])=>`<option value="${k}" ${type===k?'selected':''}>${t(lk)}</option>`).join('');
   const head=`<div class="txhead"><label class="txdate">${cal}<input type="date" id="txDate" value="${date}"></label><select id="txType" class="txsel">${opts}</select></div>`;
   const items=txItems(d,type);
-  let chart;
-  if(items.length){const mx=Math.max(...items.map(i=>i.amount))||1;
-    const bars=items.slice(0,24).map(i=>{const h=Math.max(4,i.amount/mx*100);const g=(type==='ventas'&&i.amount>0&&i.profit!=null)?Math.max(0,Math.min(100,i.profit/i.amount*100)):0;
-      return `<div class="b"><div class="bar2" style="height:${h}%"><div class="bar2-g" style="height:${g}%"></div></div></div>`;}).join('');
-    chart=`<div class="bars txbars">${bars}</div>`;}
-  else chart=`<div class="txempty">${t('tx_chart_empty')}</div>`;
+  const chart=txChart(items,type);
   const kpi=(l,v)=>`<div class="txkpi"><div class="txk-l">${l}</div><div class="txk-v num">${money(v)}</div></div>`;
   const summary=`<div class="txcard">
     <div class="txband">${t('tx_res_ing')}</div>
@@ -3261,10 +3274,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260920205636';
+const APP_VERSION='20260920211233';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260920205636')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260920211233')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

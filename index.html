@@ -461,9 +461,9 @@
   .wkm-pct{color:var(--muted);font-size:12.5px;min-width:36px;text-align:right}
   .dstoreav{width:58px;height:58px;border-radius:16px;overflow:hidden;margin:10px 0 2px;background:rgba(255,255,255,.15);display:grid;place-items:center;flex:none}
   .dstoreav img{width:100%;height:100%;object-fit:cover}
-  .au-devby{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:16px;padding-bottom:6px;opacity:.9}
-  .au-devby span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-  .au-devby img{width:132px;height:auto;max-width:60%}
+  .au-devby{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;padding-bottom:6px;opacity:.85}
+  .au-devby span{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .au-devby img{width:74px;height:auto}
 </style>
 
 <div class="device" id="device">
@@ -2682,7 +2682,8 @@ function renderOnbo(){
     const cards=list.map(x=>`<button class="ocard" data-act="ob:pickstore:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[x.kind]||ROLE_ICON.tienda)}</div><div><div class="ot">${x.name}</div><div class="od">${x.id}</div></div></button>`).join('');
     h=`<h2>${LANG==='es'?'Tus negocios':'Your businesses'}</h2><div class="osub">${AUTH?ti('au_logged',{e:AUTH.email}):''}</div>${cards}
     <button class="btn ghost obtn" data-act="ob:start" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>
-    <div style="text-align:center;margin-top:16px"><span data-act="logout" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">${t('au_logout')}</span></div>`;
+    <div style="text-align:center;margin-top:16px"><span data-act="logout" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">${t('au_logout')}</span></div>
+    <div class="au-devby"><span>${t('au_devby')}</span><img src="complex-logo.png" alt="Complex_" loading="lazy"></div>`;
   }else if(s==='welcome'){
     h=`<div style="margin:auto 0"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Abanico</div><div class="osub" style="text-align:center;margin-top:2px">${t('ob_role_sub')}</div></div></div>
     <button class="btn obtn" data-act="ob:start">${t('ob_start')}</button>
@@ -3113,10 +3114,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260920155946';
+const APP_VERSION='20260920194425';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260920155946')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260920194425')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

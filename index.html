@@ -745,6 +745,11 @@ const saleDate=s=>s.date||todayISO();
 const saleTotal=s=>s.total!=null?s.total:(s.items?s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0):0);
 const saleQty=s=>s.n!=null?s.n:(s.lines?s.lines.reduce((a,l)=>a+(+l.qty||0),0):(s.items?s.items.reduce((a,i)=>a+i.q,0):0));
 const saleProfit=s=>s.cost!=null?(saleTotal(s)-s.cost):(s.items?s.items.reduce((a,i)=>{const p=P(i.id);return a+(p?(p.price-p.cost):0)*i.q;},0):0);
+// crédito/por-cobrar = status 2 (numérico o 'cobrar') O tiene abonos registrados (pagos)
+const saleIsCredit=s=>{const st=s&&s.status;if(st===2||st==='2'||st==='cobrar')return true;return !!(s&&Array.isArray(s.pays)&&s.pays.length);};
+const salePaidSum=s=>Array.isArray(s&&s.pays)?s.pays.reduce((a,p)=>a+(+p.p||0),0):0;
+const purchaseIsCredit=p=>{const st=p&&p.status;if(st==='porpagar'||st===2||st==='2')return true;return !!(p&&Array.isArray(p.pays)&&p.pays.length);};
+const purchasePaidSum=p=>Array.isArray(p&&p.pays)?p.pays.reduce((a,x)=>a+(+x.p||0),0):0;
 const isToday=s=>saleDate(s)===todayISO();
 const todaySales=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleTotal(s),0);
 const cartItems=()=>Object.entries(state.cart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q}));
@@ -1549,7 +1554,7 @@ function txDayData(date){
   const ventas=state.sales.filter(s=>saleDate(s)===date);
   const compras=(state.purchases||[]).filter(p=>p.date===date);
   const extras=(state.extraMoves||[]).filter(m=>m.date===date);
-  const ventasPag=ventas.filter(s=>(s.status||'pagado')!=='cobrar').reduce((a,s)=>a+saleTotal(s),0);
+  const ventasPag=ventas.filter(s=>!saleIsCredit(s)).reduce((a,s)=>a+saleTotal(s),0);
   const ingPag=extras.filter(m=>m.type==='in').reduce((a,m)=>a+(+m.amount||0),0);
   const comprasPag=compras.filter(p=>(p.status||'pagado')!=='porpagar').reduce((a,p)=>a+(+p.total||0),0);
   const gastosPag=extras.filter(m=>m.type==='out').reduce((a,m)=>a+(+m.amount||0),0);
@@ -1565,7 +1570,7 @@ function txItems(d,type){
 const TX_PROV='<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M13 10.5h4M13 14h4M6.4 16c.6-1.6 4-1.6 4.6 0"/>';
 const TX_CLOCK='<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>';
 function txVCard(s){
-  const est=(s.status==='cobrar')?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
+  const est=saleIsCredit(s)?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
   return `<div class="txvcard">
     <div class="txvc-top"><span class="fol">${t('sale_folio')}: ${s.folio||s.id}</span><span class="hora">${svg(TX_CLOCK)} ${s.time||''}</span></div>
     <div class="txvc-cli">${svg(S_PER)}<span>${s.client||t('sin_info')}</span></div>
@@ -1574,7 +1579,7 @@ function txVCard(s){
   </div>`;
 }
 function txCCard(p){
-  const est=(p.status==='porpagar')?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
+  const est=purchaseIsCredit(p)?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
   return `<div class="txvcard">
     <div class="txvc-top"><span class="fol">${t('sale_folio')}: ${p.folio||p.id}</span><span class="hora">${svg(TX_CLOCK)} ${p.time||''}</span></div>
     <div class="txvc-cli">${svg(TX_PROV)}<span>${p.provider||t('sin_info')}</span></div>
@@ -1636,24 +1641,30 @@ function repTxDay(){
 }
 /* ============ Total de Transacciones ============ */
 function txTotalData(from,to){
-  const inR=s=>{const d=saleDate(s);return d>=from&&d<=to;};
-  const inRp=p=>{const d=p.date;return !!d&&d>=from&&d<=to;};
+  const inRD=d=>!!d&&d>=from&&d<=to;
   const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
-  const vp=state.sales.filter(s=>inR(s)&&(s.status||'pagado')!=='cobrar');
-  const vc=state.sales.filter(s=>inR(s)&&(s.status||'pagado')==='cobrar');
-  const cp=(state.purchases||[]).filter(p=>inRp(p)&&(p.status||'pagado')!=='porpagar');
-  const cc=(state.purchases||[]).filter(p=>inRp(p)&&(p.status||'pagado')==='porpagar');
-  const exIn=(state.extraMoves||[]).filter(m=>m.date&&m.date>=from&&m.date<=to&&m.type==='in');
-  const exOut=(state.extraMoves||[]).filter(m=>m.date&&m.date>=from&&m.date<=to&&m.type==='out');
+  const salesR=state.sales.filter(s=>inRD(saleDate(s)));
+  const vp=salesR.filter(s=>!saleIsCredit(s));   // pagadas (contado)
+  const vc=salesR.filter(s=>saleIsCredit(s));     // por cobrar
   const ventasPag={n:vp.length,ing:sum(vp,saleTotal),gan:sum(vp,saleProfit)};
-  const ventasCob={n:vc.length,ing:sum(vc,saleTotal),gan:sum(vc,saleProfit),deuda:sum(vc,saleTotal),pagos:0};
+  const vcDeuda=vc.reduce((a,s)=>a+Math.max(0,saleTotal(s)-salePaidSum(s)),0);
+  let abonosVentas=0;state.sales.forEach(s=>{if(Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});
+  const ventasCob={n:vc.length,ing:sum(vc,saleTotal),gan:sum(vc,saleProfit),deuda:vcDeuda,pagos:abonosVentas};
+  const purR=(state.purchases||[]).filter(p=>inRD(p.date));
+  const cp=purR.filter(p=>!purchaseIsCredit(p));
+  const cc=purR.filter(p=>purchaseIsCredit(p));
   const comprasPag={n:cp.length,egr:sum(cp,p=>+p.total||0)};
-  const comprasPagar={n:cc.length,egr:sum(cc,p=>+p.total||0),deuda:sum(cc,p=>+p.total||0),pagos:0};
+  const ccDeuda=cc.reduce((a,p)=>a+Math.max(0,(+p.total||0)-purchasePaidSum(p)),0);
+  let abonosCompras=0;(state.purchases||[]).forEach(p=>{if(Array.isArray(p.pays))p.pays.forEach(x=>{if(inRD(x.f))abonosCompras+=+x.p||0;});});
+  const comprasPagar={n:cc.length,egr:sum(cc,p=>+p.total||0),deuda:ccDeuda,pagos:abonosCompras};
+  const exIn=(state.extraMoves||[]).filter(m=>inRD(m.date)&&m.type==='in');
+  const exOut=(state.extraMoves||[]).filter(m=>inRD(m.date)&&m.type==='out');
   const ingExtraPag={n:exIn.length,ing:sum(exIn,m=>+m.amount||0)};
   const gastoExtraPag={n:exOut.length,gas:sum(exOut,m=>+m.amount||0)};
   const inclC=state.txtInclCobrar;
-  const ingresos=ventasPag.ing+(inclC?ventasCob.ing:0)+ventasCob.pagos+ingExtraPag.ing;
-  const egresos=comprasPag.egr+(inclC?comprasPagar.egr:0)+gastoExtraPag.gas;
+  // TOP = pagadas (contado) + abonos recibidos; "incluir por cobrar" suma la deuda pendiente
+  const ingresos=ventasPag.ing+abonosVentas+(inclC?vcDeuda:0)+ingExtraPag.ing;
+  const egresos=comprasPag.egr+abonosCompras+(inclC?ccDeuda:0)+gastoExtraPag.gas;
   return {ventasPag,ventasCob,comprasPag,comprasPagar,ingExtraPag,gastoExtraPag,
     totIng:ventasPag.ing+ventasCob.ing,totGan:ventasPag.gan+ventasCob.gan,
     ingresos,egresos,balance:ingresos-egresos};
@@ -1666,8 +1677,14 @@ function txTotalDays(from,to,type){
   while(cur<=end&&guard<400){days.push({date:iso(cur),ing:0,gan:0});cur.setDate(cur.getDate()+1);guard++;}
   const idx={};days.forEach((d,i)=>idx[d.date]=i);
   const add=(date,ing,gan)=>{const i=idx[date];if(i==null)return;days[i].ing+=ing;days[i].gan+=gan||0;};
-  if(type==='ventas'){state.sales.forEach(s=>{const d=saleDate(s);const cob=(s.status||'pagado')==='cobrar';if(cob&&!inclC)return;add(d,saleTotal(s),saleProfit(s));});}
-  else if(type==='compras'){(state.purchases||[]).forEach(pu=>{const cob=(pu.status||'pagado')==='porpagar';if(cob&&!inclC)return;add(pu.date,+pu.total||0,0);});}
+  if(type==='ventas'){
+    if(inclC){state.sales.forEach(s=>add(saleDate(s),saleTotal(s),saleProfit(s)));}
+    else{state.sales.forEach(s=>{if(!saleIsCredit(s))add(saleDate(s),saleTotal(s),saleProfit(s));if(Array.isArray(s.pays))s.pays.forEach(p=>add(p.f,+p.p||0,0));});}
+  }
+  else if(type==='compras'){
+    if(inclC){(state.purchases||[]).forEach(pu=>add(pu.date,+pu.total||0,0));}
+    else{(state.purchases||[]).forEach(pu=>{if(!purchaseIsCredit(pu))add(pu.date,+pu.total||0,0);if(Array.isArray(pu.pays))pu.pays.forEach(p=>add(p.f,+p.p||0,0));});}
+  }
   else if(type==='ing'){(state.extraMoves||[]).forEach(m=>{if(m.type==='in')add(m.date,+m.amount||0,0);});}
   else if(type==='gas'){(state.extraMoves||[]).forEach(m=>{if(m.type==='out')add(m.date,+m.amount||0,0);});}
   return days;
@@ -2477,6 +2494,7 @@ function bkStatus(msg){state.bkStatus=msg;const el=document.getElementById('bkSt
 function bkPick(){const inp=document.getElementById('bkFile');inp.value='';inp.click();}
 function bkExec(db,sql){try{const r=db.exec(sql);if(!r.length)return [];const c=r[0].columns,v=r[0].values;return v.map(row=>{const o={};c.forEach((k,i)=>o[k]=row[i]);return o;});}catch(e){return [];}}
 function bkScalar(db,sql){const r=bkExec(db,sql);if(!r.length)return null;return r[0][Object.keys(r[0])[0]];}
+function parsePays(j){try{const a=JSON.parse(j||'[]');if(!Array.isArray(a))return [];return a.map(x=>({f:(''+(x.f||'')).slice(0,10),p:+x.p||0})).filter(x=>x.f&&x.p);}catch(e){return [];}}
 async function bkHandleFile(file){
   state.bkLoading=true;state.bkErr='';render();bkStatus(t('bk_reading'));
   try{
@@ -2501,15 +2519,15 @@ async function bkHandleFile(file){
     const units=bkExec(db,'SELECT nombre FROM unidad').map(r=>(''+(r.nombre||'')).trim()).filter(u=>u&&u!=='...');
     // ventas + su detalle
     const payMap={};try{bkExec(db,'SELECT id_forma_pago,nombre FROM forma_pago').forEach(r=>payMap[r.id_forma_pago]=r.nombre);}catch(_){}
-    const ventaRows=bkExec(db,'SELECT folio,fecha,hora,total,nombre_cliente,id_forma_pago,direccion,etiqueta,status FROM venta');
+    const ventaRows=bkExec(db,'SELECT * FROM venta');   // SELECT * = resiliente + trae pagos (abonos)
     const vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
     const linesByFolio={};vlines.forEach(l=>{const k='V'+l.folio;(linesByFolio[k]=linesByFolio[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,price:+l.p_venta||0,cost:+l.p_compra||0,subtotal:+l.subtotal||0});});
-    const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);return {id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};});
+    const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);const o={id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};const pays=parsePays(v.pagos);if(pays.length)o.pays=pays;return o;});
     // compras (historial): encabezado compra_pedido + detalle compra_producto (líneas)
     let purchases=[];let purchaseLines={};try{
       const compRows=bkExec(db,'SELECT * FROM compra_pedido');   // SELECT * = resiliente a esquemas distintos
       const cQty={};try{bkExec(db,'SELECT * FROM compra_producto').forEach(l=>{const k='C'+l.folio;(purchaseLines[k]=purchaseLines[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,cost:+l.p_compra||0,price:+l.p_venta||0,subtotal:(+l.p_compra||0)*(+l.cantidad||0)});cQty[l.folio]=(cQty[l.folio]||0)+(+l.cantidad||0);});}catch(_){}
-      purchases=compRows.map(c=>({id:'C'+c.folio,folio:c.folio,date:(''+(c.fecha||'')).trim(),time:c.hora||'',total:+c.total||0,provider:c.nombre_proveedor||'',pay:payMap[c.id_forma_pago]||'',note:c.info_adicional||'',status:(+c.status===2?'porpagar':'pagado'),n:cQty[c.folio]||0,imported:true}));
+      purchases=compRows.map(c=>{const o={id:'C'+c.folio,folio:c.folio,date:(''+(c.fecha||'')).trim(),time:c.hora||'',total:+c.total||0,provider:c.nombre_proveedor||'',pay:payMap[c.id_forma_pago]||'',note:c.info_adicional||'',status:(+c.status===2?'porpagar':'pagado'),n:cQty[c.folio]||0,imported:true};const pays=parsePays(c.pagos);if(pays.length)o.pays=pays;return o;});
     }catch(_){purchases=[];}
     // Archivo crudo: guardar TODA tabla que aún no tiene módulo, para no perder nada y poder consultarla
     let rawTables={};try{
@@ -3432,10 +3450,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260921175320';
+const APP_VERSION='20260921181239';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260921175320')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260921181239')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

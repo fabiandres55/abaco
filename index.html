@@ -1936,7 +1936,7 @@ async function openRecvDet(id){
   document.getElementById('saledlg').classList.add('on');
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   const cli=(state.clients||[]).find(c=>(''+(c.name||'')).toLowerCase()===(''+(s.client||'')).toLowerCase());
-  const lines=await srLinesFor(s,await srRawIndex());
+  const lines=(Array.isArray(s.lines)&&s.lines.length)?await srLinesFor(s,null):await srLinesFor(s,await srRawIndex());
   const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
   const dir=(cli&&cli.address)||'';const phone=(cli&&cli.phone)||'';const email=(cli&&cli.email)||'';
   const esc=x=>(''+(x||'')).replace(/</g,'&lt;').replace(/\n/g,'<br>');
@@ -1979,6 +1979,7 @@ async function srRawIndex(){
 }
 // Líneas de una venta con respaldo al archivo crudo (venta_producto) si IndexedDB no las tiene
 async function srLinesFor(s,rawIdx){
+  if(Array.isArray(s.lines)&&s.lines.length)return s.lines.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0)}));
   let lines=await saleLines(s);
   if(lines&&lines.length)return lines;
   const fol=s.folio!=null?s.folio:(''+(s.id||'')).replace(/^V/,'');
@@ -2706,7 +2707,11 @@ async function bkHandleFile(file){
     const ventaRows=bkExec(db,'SELECT * FROM venta');   // SELECT * = resiliente + trae pagos (abonos)
     const vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
     const linesByFolio={};vlines.forEach(l=>{const k='V'+l.folio;(linesByFolio[k]=linesByFolio[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,price:+l.p_venta||0,cost:+l.p_compra||0,subtotal:+l.subtotal||0});});
-    const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);const o={id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};const pays=parsePays(v.pagos);if(pays.length)o.pays=pays;return o;});
+    const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);const o={id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};const pays=parsePays(v.pagos);if(pays.length)o.pays=pays;
+      // Ventas por cobrar (con deuda): incrustar el detalle en el doc para que viaje a todo dispositivo
+      const paid=pays.length?pays.reduce((a,p)=>a+(+p.p||0),0):((+v.status===2)?0:(+v.total||0));
+      if((+v.total||0)-paid>0.5&&ls.length)o.lines=ls.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));
+      return o;});
     // compras (historial): encabezado compra_pedido + detalle compra_producto (líneas)
     let purchases=[];let purchaseLines={};try{
       const compRows=bkExec(db,'SELECT * FROM compra_pedido');   // SELECT * = resiliente a esquemas distintos
@@ -3636,10 +3641,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260922161531';
+const APP_VERSION='20260922162742';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260922161531')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260922162742')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

@@ -147,6 +147,8 @@
   .sheetdlg{position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:16;display:none;align-items:flex-end}
   .sheetdlg.on{display:flex}
   .sheetcard{background:var(--card);width:100%;border-radius:16px 16px 0 0;max-height:72%;display:flex;flex-direction:column;padding-bottom:10px;box-shadow:0 -8px 30px -10px rgba(0,0,0,.4)}
+  .sheetdlg.full{align-items:stretch}
+  .sheetdlg.full .sheetcard{max-height:100%;height:100%;border-radius:0;padding-bottom:0}
   .sheet-h{padding:14px 12px 12px 18px;font-size:16px;font-weight:700;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;gap:8px}
   .sheet-x{border:none;background:var(--sel);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex:none;display:grid;place-items:center}
   .sheet-x:active{background:var(--line)}
@@ -1214,7 +1216,7 @@ async function openSaleDet(id){
   const linesHtml=lines.length?lines.map(l=>`<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div><div class="s">${money(l.price)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty)}</div></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(saleTotal(s))}</div></div></div><div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div><button class="btn ghost" data-act="rcpdf:${s.id}" style="margin-top:14px">${svg('<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/>')} ${t('rc_pdf')}</button></div>`;
 }
-function closeSale(){document.getElementById('saledlg').classList.remove('on');}
+function closeSale(){document.getElementById('saledlg').classList.remove('on','full');}
 async function openPurchaseDet(id){
   const p=(state.purchases||[]).find(x=>''+x.id===''+id);if(!p)return;
   document.getElementById('saleH').textContent='#'+(p.folio||p.id);
@@ -1255,11 +1257,11 @@ async function genSaleReceiptPDF(sale){
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-    const lines=await saleLines(sale);
+    const lines=await srLinesFor(sale,await srRawIndex());
     if(!lines.length){toast(t('rc_none'));return;}
     const cfg=receiptCfg();
     const doc=new JS({unit:'pt',format:'a4'});
-    const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString(LANG==='es'?'es-CO':'en-US');
+    const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
     let y=58;
     if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=72,sc=Math.min(box/pr.width,box/pr.height);const w=pr.width*sc,h=pr.height*sc;doc.addImage(cfg.logo,(pr.fileType||'JPEG'),555-w,40,w,h);}catch(e){}}
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('rc_receipt'),M,y);y+=30;
@@ -1267,12 +1269,14 @@ async function genSaleReceiptPDF(sale){
     doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(35);
     [cfg.owner,cfg.email,cfg.phone].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=19;});
     if(cfg.msg){y+=8;doc.setFontSize(12);const wrapped=doc.splitTextToSize(''+cfg.msg,515);doc.text(wrapped,M,y);y+=wrapped.length*15;}
+    if(sale.addr){y+=12;doc.setFontSize(12);doc.setTextColor(35);const wn=doc.splitTextToSize(''+sale.addr,515);doc.text(wn,M,y);y+=wn.length*15;}
     y+=18;doc.setFontSize(13);doc.setTextColor(20);
     if(sale.client){doc.text(t('sale_client')+': '+sale.client,M,y);y+=26;}
     const folio=sale.folio||sale.id;
     doc.text(t('sale_folio')+': '+folio+'     '+t('sale_date')+': '+(sale.date||todayISO()),M,y);y+=19;
     if(sale.pay){doc.text(t('sale_payform')+': '+sale.pay,M,y);y+=19;}
-    const statusTxt=(sale.status==='cobrar')?t('rc_pending'):t('sale_paid').toUpperCase();
+    const recv=saleTotal(sale)-srPaid(sale)>0.5;
+    const statusTxt=recv?t('rc_pending'):t('sale_paid').toUpperCase();
     doc.text(t('rc_status')+':  '+statusTxt,M,y);y+=8;
     const prodW=235,cantW=95,precioW=95,subW=90;
     doc.autoTable({
@@ -1285,12 +1289,11 @@ async function genSaleReceiptPDF(sale){
       columnStyles:{0:{cellWidth:prodW,halign:'left',fontSize:8},1:{cellWidth:cantW,halign:'center'},2:{cellWidth:precioW,halign:'center'},3:{cellWidth:subW,halign:'center'}}
     });
     let fy=doc.lastAutoTable.finalY+14;const leftW=prodW+cantW,rightW=precioW+subW,rh=26;
-    doc.setDrawColor(205);doc.setLineWidth(0.5);
-    doc.rect(M,fy,leftW,rh);doc.rect(M+leftW,fy,rightW,rh);
-    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);
-    doc.text(t('total').toUpperCase()+' $',M+leftW-8,fy+17,{align:'right'});
-    doc.setFont('helvetica','bold');doc.setFontSize(12);
-    doc.text(fmtN(saleTotal(sale)),M+leftW+rightW/2,fy+17,{align:'center'});
+    const paid=srPaid(sale),due=Math.max(0,saleTotal(sale)-paid);
+    const frow=(label,val)=>{doc.setDrawColor(205);doc.setLineWidth(0.5);doc.rect(M,fy,leftW,rh);doc.rect(M+leftW,fy,rightW,rh);doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text(label,M+leftW-8,fy+17,{align:'right'});doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(fmtN(val),M+leftW+rightW/2,fy+17,{align:'center'});fy+=rh;};
+    frow(t('total').toUpperCase()+' $',saleTotal(sale));
+    frow(t('sr_pagos_lbl').toUpperCase()+' $',paid);
+    frow(t('sr_total_pay')+' $',due);
     const blob=doc.output('blob');
     const ok=await saveWithPicker(t('rc_receipt')+' '+folio+'.pdf','application/pdf',blob);
     if(ok)toast(t('io_done_exp'));
@@ -1933,7 +1936,7 @@ function srCard(s){
 async function openRecvDet(id){
   const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
   document.getElementById('saleH').textContent='#'+(s.folio||s.id);
-  document.getElementById('saledlg').classList.add('on');
+  document.getElementById('saledlg').classList.add('on','full');
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   const cli=(state.clients||[]).find(c=>(''+(c.name||'')).toLowerCase()===(''+(s.client||'')).toLowerCase());
   const lines=(Array.isArray(s.lines)&&s.lines.length)?await srLinesFor(s,null):await srLinesFor(s,await srRawIndex());
@@ -3670,10 +3673,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260922165245';
+const APP_VERSION='20260922184439';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260922165245')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260922184439')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

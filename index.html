@@ -1920,9 +1920,21 @@ function srByClient(){
   document.getElementById('saledlg').classList.add('on');
   document.getElementById('saleBody').innerHTML=`<div style="padding:8px 14px 18px">${rows.map(o=>`<div class="srcli"><div class="srcli-n">${svg(S_PER)} ${o.client}</div>${sr3(o.total,o.pagos,o.deuda)}</div>`).join('')}</div>`;
 }
+// Líneas de una venta con respaldo al archivo crudo (venta_producto) si IndexedDB no las tiene
+async function srLinesFor(s,rawIdx){
+  let lines=await saleLines(s);
+  if(lines&&lines.length)return lines;
+  const fol=s.folio!=null?s.folio:(''+(s.id||'')).replace(/^V/,'');
+  const rows=rawIdx&&rawIdx[fol];
+  if(rows&&rows.length)return rows.map(l=>({name:l.nombre||l.name||'—',qty:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,subtotal:l.subtotal!=null?+l.subtotal:((+(l.p_venta||l.price)||0)*(+(l.cantidad||l.qty)||0))}));
+  return [];
+}
 async function salesRecvExportPDF(JS){
   const {list,total,pagos,deuda}=salesRecvData();
   const cfg=receiptCfg();
+  // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
+  let rawIdx=null;
+  try{const vp=await getRawTable('venta_producto');if(Array.isArray(vp)){rawIdx={};vp.forEach(l=>{const k=''+(l.folio!=null?l.folio:'');if(k)(rawIdx[k]=rawIdx[k]||[]).push(l);});}}catch(_){}
   const doc=new JS({unit:'pt',format:'a4'});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
@@ -1942,7 +1954,7 @@ async function salesRecvExportPDF(JS){
     styles:{halign:'center',valign:'middle',fontSize:11,cellPadding:6,lineColor:[200,200,200],lineWidth:0.7,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'}});
   y=doc.lastAutoTable.finalY+22;
   for(const s of list){
-    const lines=await saleLines(s);
+    const lines=await srLinesFor(s,rawIdx);
     const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
     const body=[
       [{content:t('sale_client')+':'+(s.client||''),colSpan:4,styles:{halign:'left',fontStyle:'bold'}}],
@@ -3567,10 +3579,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260921192137';
+const APP_VERSION='20260921193135';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260921192137')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260921193135')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

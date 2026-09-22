@@ -540,6 +540,30 @@
   .srcli{border-bottom:1px solid var(--line);padding:10px 2px}
   .srcli-n{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
   .srcli-n svg{width:16px;height:16px}
+  .rd{padding:12px 14px 18px}
+  .rd-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .rd-head .rd-date{display:flex;align-items:center;gap:5px}
+  .rd-head .rd-date svg{width:15px;height:15px}
+  .rd-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px}
+  .rd-l{font-size:12px;color:var(--muted)}
+  .rd-name{font-size:16px;font-weight:800;color:var(--ink);margin-top:2px}
+  .rd-v{font-size:14px;color:var(--ink);margin-top:2px;line-height:1.35}
+  .rd-contact{display:flex;gap:16px;justify-content:center;margin-top:12px}
+  .rd-contact a{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;color:var(--ink)}
+  .rd-contact svg{width:22px;height:22px}
+  .rd-tot{display:flex;gap:8px;margin-top:14px}
+  .rd-tot-c{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  .rd-tot-c span{display:block;font-size:12px;color:var(--muted);font-weight:700}
+  .rd-tot-c b{font-size:18px}
+  .rd-deuda b{color:var(--red)}
+  .rd-plist{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .rd-ph{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:10px 12px;background:var(--bg);font-size:12px;color:var(--muted);font-weight:700;text-align:right}
+  .rd-ph span:first-child{text-align:left}
+  .rd-prow{padding:9px 12px;border-top:1px solid var(--line)}
+  .rd-pn{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rd-pg{display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:3px;font-size:13px}
+  .rd-pg span{text-align:right}
+  .rd-pg span:first-child{text-align:left;color:var(--muted)}
   .txcard2{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:12px}
   .ttx-grid1,.ttx-grid2,.ttx-grid3,.ttx-grid4{display:grid;gap:2px;padding:10px 8px;text-align:center}
   .ttx-grid1{grid-template-columns:1fr}.ttx-grid2{grid-template-columns:1fr 1fr}.ttx-grid3{grid-template-columns:1fr 1fr 1fr}.ttx-grid4{grid-template-columns:1fr 1fr 1fr 1fr}
@@ -1901,10 +1925,35 @@ function srCard(s){
   const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
   const fol=s.folio||s.id;const dt=[s.date,s.time].filter(Boolean).join('  ')||si;
   const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
-  return `<div class="scard" data-saledet="${s.id}">
+  return `<div class="scard" data-recvdet="${s.id}">
     <div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${fol}</span><span class="scard-pay">${s.pay||si} ${svg(S_CASH)}</span></div>
-    ${row(S_CAL,dt)}${row(S_PER,s.client)}${row(S_INFO,s.tag)}
+    ${row(S_CAL,dt)}${row(S_PER,s.client)}${row(S_INFO,s.addr||s.tag)}
     ${sr3(tot,pg,dd)}</div>`;
+}
+async function openRecvDet(id){
+  const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
+  document.getElementById('saleH').textContent='#'+(s.folio||s.id);
+  document.getElementById('saledlg').classList.add('on');
+  document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
+  const cli=(state.clients||[]).find(c=>(''+(c.name||'')).toLowerCase()===(''+(s.client||'')).toLowerCase());
+  const lines=await srLinesFor(s,await srRawIndex());
+  const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
+  const dir=(cli&&cli.address)||'';const phone=(cli&&cli.phone)||'';const email=(cli&&cli.email)||'';
+  const esc=x=>(''+(x||'')).replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  const contact=(phone||email)?`<div class="rd-contact">${phone?`<a href="tel:${phone}">${svg(IC_PHONE)}</a>`:''}${email?`<a href="mailto:${email}">${svg(IC_MAIL)}</a>`:''}</div>`:'';
+  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${l.qty}</span><span class="num">${money(l.price)}</span><span class="num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  document.getElementById('saleBody').innerHTML=`<div class="rd">
+    <div class="rd-head"><span class="rd-fol">${t('sale_folio')}: ${s.folio||s.id}</span><span class="rd-date">${svg(S_CAL)} ${s.date||''} ${s.time||''}</span></div>
+    <div class="rd-card">
+      <div class="rd-l">${t('cli_name')}</div><div class="rd-name">${esc(s.client)||'—'}</div>
+      ${dir?`<div class="rd-l" style="margin-top:8px">${t('cli_address')}</div><div class="rd-v">${esc(dir)}</div>`:''}
+      ${contact}
+    </div>
+    ${s.addr?`<div class="rd-card"><div class="rd-l">${t('sale_note')}</div><div class="rd-v">${esc(s.addr)}</div></div>`:''}
+    <div class="rd-tot"><div class="rd-tot-c"><span>${t('sr_total_lbl')} $</span><b class="num">${money(tot).replace('$','')}</b></div><div class="rd-tot-c"><span>${t('sr_pagos_lbl')} $</span><b class="num">${money(pg).replace('$','')}</b></div><div class="rd-tot-c rd-deuda"><span>${t('ttx_deuda')} $</span><b class="num">${money(dd).replace('$','')}</b></div></div>
+    <div class="rd-plist"><div class="rd-ph"><span>${t('cx_qty')}</span><span>${t('cx_sale')} $</span><span>${t('sale_subtotal')} $</span></div>${rows}</div>
+    <button class="btn ghost" data-act="rcpdf:${s.id}" style="margin-top:14px">${svg('<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/>')} ${t('rc_pdf')}</button>
+  </div>`;
 }
 function repSalesRecv(){
   const {list,total,pagos,deuda}=salesRecvData();
@@ -1920,6 +1969,14 @@ function srByClient(){
   document.getElementById('saledlg').classList.add('on');
   document.getElementById('saleBody').innerHTML=`<div style="padding:8px 14px 18px">${rows.map(o=>`<div class="srcli"><div class="srcli-n">${svg(S_PER)} ${o.client}</div>${sr3(o.total,o.pagos,o.deuda)}</div>`).join('')}</div>`;
 }
+// Índice memoizado del archivo crudo venta_producto (folio -> líneas)
+let _srRawIdx=undefined;
+async function srRawIndex(){
+  if(_srRawIdx!==undefined)return _srRawIdx;
+  _srRawIdx=null;
+  try{const vp=await getRawTable('venta_producto');if(Array.isArray(vp)){_srRawIdx={};vp.forEach(l=>{const k=''+(l.folio!=null?l.folio:'');if(k)(_srRawIdx[k]=_srRawIdx[k]||[]).push(l);});}}catch(_){}
+  return _srRawIdx;
+}
 // Líneas de una venta con respaldo al archivo crudo (venta_producto) si IndexedDB no las tiene
 async function srLinesFor(s,rawIdx){
   let lines=await saleLines(s);
@@ -1933,8 +1990,7 @@ async function salesRecvExportPDF(JS){
   const {list,total,pagos,deuda}=salesRecvData();
   const cfg=receiptCfg();
   // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
-  let rawIdx=null;
-  try{const vp=await getRawTable('venta_producto');if(Array.isArray(vp)){rawIdx={};vp.forEach(l=>{const k=''+(l.folio!=null?l.folio:'');if(k)(rawIdx[k]=rawIdx[k]||[]).push(l);});}}catch(_){}
+  const rawIdx=await srRawIndex();
   const doc=new JS({unit:'pt',format:'a4'});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
@@ -3408,7 +3464,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='scandlg')return closeScanner();
   if(e.target.id==='filterdlg')return closeFilter();
   if(e.target.id==='saleproddlg')return closeSaleProd();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt]");
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-recvdet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt]");
   if(!el)return;
   if(el.hasAttribute("data-purdet"))return openPurchaseDet(el.dataset.purdet);
   if(el.hasAttribute("data-txbar")){const i=+el.dataset.txbar;state.txBar=(state.txBar===i)?null:i;state._keep=document.getElementById("screen").scrollTop;return render();}
@@ -3424,6 +3480,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-cliac"))return pickSaleClient(el.dataset.cliac);
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
   if(el.hasAttribute("data-saledet"))return openSaleDet(el.dataset.saledet);
+  if(el.hasAttribute("data-recvdet"))return openRecvDet(el.dataset.recvdet);
   if(el.hasAttribute("data-cliedit"))return openCliForm(el.dataset.cliedit);
   if(el.hasAttribute("data-tienda")){state.detTienda=el.dataset.tienda;return go('tiendadet');}
   if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);dbFetch('data.'+el.dataset.catalog);return go('catalogo');}
@@ -3579,10 +3636,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260921193135';
+const APP_VERSION='20260922161531';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260921193135')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260922161531')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

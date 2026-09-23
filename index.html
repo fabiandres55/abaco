@@ -2044,7 +2044,7 @@ async function txTotalExportPDF(JS){
 const srPaid=s=>{if(Array.isArray(s.pays)&&s.pays.length)return salePaidSum(s);return saleIsCreditStrict(s)?0:saleTotal(s);};
 function salesRecvData(){
   const list=state.sales.filter(s=>saleTotal(s)-srPaid(s)>0.5)
-    .slice().sort((a,b)=>((''+(b.date||''))+(b.time||'')).localeCompare((''+(a.date||''))+(a.time||'')));
+    .slice().sort((a,b)=>{const d=(''+(b.date||'')).localeCompare(''+(a.date||''));return d||((+a.folio||0)-(+b.folio||0));});   // fecha desc, folio asc dentro de la fecha (como Mi Negocio)
   const total=list.reduce((a,s)=>a+saleTotal(s),0);
   const pagos=list.reduce((a,s)=>a+srPaid(s),0);
   return {list,total,pagos,deuda:total-pagos};
@@ -2171,7 +2171,7 @@ async function salesRecvExportPDF(JS){
 const pcPaid=p=>{if(Array.isArray(p.pays)&&p.pays.length)return purchasePaidSum(p);return purchaseIsCreditStrict(p)?0:(+p.total||0);};
 function purchPayData(){
   const list=(state.purchases||[]).filter(p=>(+p.total||0)-pcPaid(p)>0.5)
-    .slice().sort((a,b)=>((''+(b.date||''))+(b.time||'')).localeCompare((''+(a.date||''))+(a.time||'')));
+    .slice().sort((a,b)=>{const d=(''+(b.date||'')).localeCompare(''+(a.date||''));return d||((+a.folio||0)-(+b.folio||0));});   // fecha desc, folio asc dentro de la fecha (como Mi Negocio)
   const total=list.reduce((a,p)=>a+(+p.total||0),0);
   const pagos=list.reduce((a,p)=>a+pcPaid(p),0);
   return {list,total,pagos,deuda:total-pagos};
@@ -3934,10 +3934,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260922194337';
+const APP_VERSION='20260923173151';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260922194337')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260923173151')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

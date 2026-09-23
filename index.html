@@ -2367,7 +2367,7 @@ function scAjustes(){
   }
   // Zona de peligro (vaciar / eliminar) con confirmación escrita
   const trash='<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>';
-  html+=`<div class="section-h" style="margin-top:22px"><h2 style="color:var(--red)">${svg('<path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17.5v.5"/>')} ${t('dz_title')}</h2></div>
+  html+=`<div class="section-h" style="margin-top:22px"><h2 style="color:var(--red)">${t('dz_title')}</h2></div>
   <div class="dzone">
     <div class="dz-t">${t('dz_empty_t')}</div>
     <div class="dz-d">${t('dz_empty_d')}</div>
@@ -4004,10 +4004,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260923180201';
+const APP_VERSION='20260923180450';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260923180201')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260923180450')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

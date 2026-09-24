@@ -1494,9 +1494,8 @@ function saleCartHTML(){
     <div class="cfld sellike" data-act="salepay"><span class="${state.salePay?'':'ph'}">${state.salePay||(t('sale_payform')+' '+opt)}</span>${state.salePay?`<button class="clrx" data-act="salepayclear">✕</button>`:chev}</div>
     <div class="cfld"><input class="inp" id="saleTag" placeholder="${t('sale_label')} ${opt}" value="${(state.saleTag||'').replace(/"/g,'&quot;')}"></div>
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
-  const autoChk=`<div class="rcauto" data-act="rcauto" style="display:flex;align-items:center;gap:10px;padding:14px 2px 4px;cursor:pointer;font-size:13.5px;color:var(--ink)"><span style="width:22px;height:22px;flex:none;border:1.5px solid ${state.saleAuto?'var(--pri)':'var(--line)'};border-radius:6px;background:${state.saleAuto?'var(--pri)':'transparent'};color:#fff;display:grid;place-items:center;box-sizing:border-box">${state.saleAuto?'<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:3"><path d="M5 12l5 5L20 7"/></svg>':''}</span>${t('rc_auto')}</div>`;
   const actions=`<div class="saveact"><button class="cancelbtn" data-act="salecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savesale">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>`;
-  return `<div class="cartwrap">${rows}${seg}${total}${fields}${autoChk}${actions}</div>`;
+  return `<div class="cartwrap">${rows}${seg}${total}${fields}${actions}</div>`;
 }
 function saveSale(){
   const items=cartItems();if(!items.length){toast(t('io_empty'));return;}
@@ -1506,10 +1505,8 @@ function saveSale(){
   const sale={id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q,price:linePrice(i.id)})),total:tot,pay:state.salePay||'',client:(state.saleClient||'').trim(),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
   state.sales.unshift(sale);
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',text:ti('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*linePrice(i.id),ts:Date.now()},600);}});}
-  const auto=state.saleAuto;
   state.cart={};state.cartPrice={};state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';state.saleStatus='pagado';
   state.screen='ventas';persist();persistSales();render();toast(`${t('sale_saved')} #${id} · ${money(tot)}`);
-  if(auto)genSaleReceiptPDF(sale);
 }
 function saleCancel(){document.getElementById('saleproddlg').classList.remove('on');state.cart={};state.cartPrice={};state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';state.saleStatus='pagado';state.q='';state.screen='ventas';render();}
 function openSalePay(){
@@ -4010,7 +4007,6 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="setpay"){state.salePay=t('pm_'+el.dataset.act.split(":")[1]);closePay();return render();}
     if(a==="savesale")return saveSale();
     if(a==="salecancel")return saleCancel();
-    if(a==="rcauto"){state.saleAuto=!state.saleAuto;return render();}
     if(a==="repcharts"){state.repCharts=!state.repCharts;return render();}
     if(a==="repget")return repGet();
     if(a==="reppdf")return repExportPDF();
@@ -4092,10 +4088,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260923193357';
+const APP_VERSION='20260923201036';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260923193357')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260923201036')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

@@ -1031,7 +1031,7 @@ async function catExportSimplePDF(){
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
     const doc=new JS({unit:'pt',format:'a4'});
     const fmt=n=>(+n||0).toLocaleString('en-US');
-    pdfLogo(doc);
+    await prepPdfLogo();pdfLogo(doc);
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text(t('m_inventario'),40,52);
     doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),40,82);
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('FECHA:'+todayISO(),40,106);
@@ -1070,7 +1070,7 @@ async function catExportCustomPDF(){
     // encabezado (nombre del negocio)
     doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);
     doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),M,y+8);y+=40;
-    {const lb=pdfLogo(doc);if(lb)y=Math.max(y,lb+10);}
+    {await prepPdfLogo();const lb=pdfLogo(doc);if(lb)y=Math.max(y,lb+10);}
     // agrupar por categoría
     const groups={};prods.forEach(p=>{const c=(p.cat&&(''+p.cat).trim())||t('cx_uncat');(groups[c]||(groups[c]=[])).push(p);});
     const uncat=t('cx_uncat');
@@ -1312,7 +1312,7 @@ async function buildSaleReceiptBlob(sale){
   const doc=new JS({unit:'pt',format:'a4'});
   const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   let y=58;
-  if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=72,sc=Math.min(box/pr.width,box/pr.height);const w=pr.width*sc,h=pr.height*sc;doc.addImage(cfg.logo,(pr.fileType||'JPEG'),555-w,40,w,h);}catch(e){}}
+  await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('rc_receipt'),M,y);y+=30;
   doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
   doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(35);
@@ -1985,7 +1985,7 @@ async function repExportPDF(){
     if(selIds.includes('sales_recv')){await salesRecvExportPDF(JS);return;}
     if(selIds.includes('purch_pay')){await purchPayExportPDF(JS);return;}
     const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4'});const M=40;
-    pdfLogo(doc);
+    await prepPdfLogo();pdfLogo(doc);
     let y=54;
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=22;
     doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(60);
@@ -2007,7 +2007,7 @@ async function txDayExportPDF(JS){
   const date=state.txDate||todayISO();const d=txDayData(date);const cfg=receiptCfg();
   const doc=new JS({unit:'pt',format:'a4'});const M=40;let y=56;
   const fmt=n=>'$'+Math.round(+n||0).toLocaleString(LANG==='es'?'es-CO':'en-US');
-  if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=64,sc=Math.min(box/pr.width,box/pr.height);doc.addImage(cfg.logo,(pr.fileType||'JPEG'),555-pr.width*sc,40,pr.width*sc,pr.height*sc);}catch(e){}}
+  await prepPdfLogo();pdfLogo(doc,{box:64,top:40});
   doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
   doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(50);doc.text('FECHA: '+date,M,y);y+=6;
   const band=txt=>[{content:txt,colSpan:5,styles:{halign:'center',fontStyle:'bold',fillColor:[245,245,245],textColor:30}}];
@@ -2041,7 +2041,7 @@ async function txTotalExportPDF(JS){
   const sub=(txt,cols)=>({content:txt,colSpan:cols,styles:bandS});
   const label=(txt,yy)=>{yy=need(yy,120);doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(txt,M,yy);return yy+8;};
   let y=56;
-  if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=64,sc=Math.min(box/pr.width,box/pr.height);doc.addImage(cfg.logo,(pr.fileType||'JPEG'),pageW-M-pr.width*sc,36,pr.width*sc,pr.height*sc);}catch(e){}}
+  await prepPdfLogo();pdfLogo(doc,{box:64,top:36});
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
   doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(60);doc.text(ti('ttx_pdf_sub',{a:r.from,b:r.to}),M,y);y+=26;
   // Resumen: Ingresos | Egresos | Balance
@@ -2161,7 +2161,7 @@ async function salesRecvExportPDF(JS){
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   const fmtD=n=>'$'+fmtN(n);
   let y=52;
-  if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=60,sc=Math.min(box/pr.width,box/pr.height);doc.addImage(cfg.logo,(pr.fileType||'JPEG'),pageW-M-pr.width*sc,32,pr.width*sc,pr.height*sc);}catch(e){}}
+  await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sr_hdr'),M,y);y+=22;
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
   doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);
@@ -2282,7 +2282,7 @@ async function purchPayExportPDF(JS){
   const fmtD=n=>'$'+fmtN(n);
   const rawIdx=await pcRawIndex();
   let y=52;
-  if(cfg.logo){try{const pr=doc.getImageProperties(cfg.logo);const box=60,sc=Math.min(box/pr.width,box/pr.height);doc.addImage(cfg.logo,(pr.fileType||'JPEG'),pageW-M-pr.width*sc,32,pr.width*sc,pr.height*sc);}catch(e){}}
+  await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('pc_hdr'),M,y);y+=22;
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
   doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);
@@ -2534,7 +2534,7 @@ async function rsvExportPDF(){
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
     const doc=new JS({unit:'pt',format:'a4'});
     const fmt=n=>(+n||0).toLocaleString('en-US');
-    pdfLogo(doc);
+    await prepPdfLogo();pdfLogo(doc);
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text(rsvFileBase(),40,52);
     doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),40,82);
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(40);doc.text('FECHA:'+todayISO(),40,106);
@@ -3252,6 +3252,7 @@ function renderDrawer(){
   updateSyncBadge();
   {const dl=document.getElementById('drawerLogo');const lg=(state.receipt&&state.receipt.logo)||(state.profile&&state.profile.logo)||'';if(dl){if(lg){dl.innerHTML=`<img src="${lg}" alt="">`;dl.hidden=false;}else{dl.innerHTML='';dl.hidden=true;}}}
   document.getElementById('logoutLbl').textContent=t('au_logout');
+  try{prepPdfLogo();}catch(_){}
   if(typeof refreshInstallBtn==='function')refreshInstallBtn();
   document.getElementById('drawerList').innerHTML=currentDrawer().map(d=>{
     if(d.sep)return '<div class="dsep"></div>';
@@ -3485,7 +3486,17 @@ function persist(){const id=currentDataId();if(!id)return;saveDataOf(id,{product
 function persistLocal(){const id=currentDataId();if(!id)return;saveDataOf(id,{products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas,receipt:state.receipt,purchases:state.purchases,porders:state.porders});}
 function receiptCfg(){const r=state.receipt||{};return {name:(r.name||(state.profile&&state.profile.name)||'Abanico'),owner:r.owner||'',email:r.email||'',phone:r.phone||'',msg:r.msg||'',logo:r.logo||(state.profile&&state.profile.logo)||''};}
 // Logo de la tienda arriba a la derecha de la página actual del PDF; devuelve la y inferior del logo (0 si no hay)
-function pdfLogo(doc,opt){const lg=receiptCfg().logo;if(!lg)return 0;try{const o=opt||{};const pw=doc.internal.pageSize.getWidth();const M=o.margin||40,box=o.box||64,top=o.top||32;const pr=doc.getImageProperties(lg);const sc=Math.min(box/pr.width,box/pr.height);const w=pr.width*sc,hh=pr.height*sc;doc.addImage(lg,(pr.fileType||'JPEG'),pw-M-w,top,w,hh);return top+hh;}catch(e){return 0;}}
+let _pdfLogo={src:null,data:null};
+function rawLogo(){return (state.receipt&&state.receipt.logo)||(state.profile&&state.profile.logo)||'';}
+// Convierte el logo (cualquier formato que el navegador muestre) a JPEG sobre blanco: siempre compatible con jsPDF
+function prepPdfLogo(){
+  const src=rawLogo();
+  if(!src){_pdfLogo={src:'',data:null};return Promise.resolve(null);}
+  if(_pdfLogo.src===src&&_pdfLogo.data)return Promise.resolve(_pdfLogo.data);
+  return new Promise(res=>{try{const img=new Image();img.onload=()=>{try{const max=400;const sc=Math.min(max/img.width,max/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),hh=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=hh;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,hh);cx.drawImage(img,0,0,w,hh);const d=cv.toDataURL('image/jpeg',0.92);_pdfLogo={src,data:d};res(d);}catch(e){res(null);}};img.onerror=()=>res(null);img.src=src;}catch(e){res(null);}});
+}
+// Logo de la tienda arriba a la derecha de la página actual del PDF; devuelve la y inferior del logo (0 si no hay)
+function pdfLogo(doc,opt){const src=rawLogo();if(!src)return 0;const lg=(_pdfLogo.src===src&&_pdfLogo.data)?_pdfLogo.data:src;try{const o=opt||{};const pw=doc.internal.pageSize.getWidth();const M=o.margin||40,box=o.box||64,top=o.top||32;const pr=doc.getImageProperties(lg);const sc=Math.min(box/pr.width,box/pr.height);const w=pr.width*sc,hh=pr.height*sc;doc.addImage(lg,(pr.fileType||'JPEG'),pw-M-w,top,w,hh);return top+hh;}catch(e){return 0;}}
 function saveReceiptCfg(){const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};state.receipt={name:g('rc_name'),owner:g('rc_owner'),email:g('rc_email'),phone:g('rc_phone'),msg:g('rc_msg'),logo:(state.receipt&&state.receipt.logo)||''};persist();const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);renderDrawer();toast(t('rc_saved'));}
 /* ---------------- sincronización EN VIVO entre dispositivos ---------------- */
 let LIVE_TS={},LIVE_BUSY=false;
@@ -4144,10 +4155,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260924200813';
+const APP_VERSION='20260924202001';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260924200813')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260924202001')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

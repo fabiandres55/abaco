@@ -3387,6 +3387,7 @@ async function authSignIn(email,pw){const sb=await sbInit();if(!sb)return {error
 async function authSignOut(){const sb=await sbInit();if(sb){try{await sb.auth.signOut();}catch(e){}}AUTH=null;}
 /* Miembros: relación cuenta <-> negocio (para el candado RLS). Best-effort: si la tabla no existe aún, no rompe. */
 async function sbAddMember(store){const sb=await sbInit();if(!sb||!AUTH||!store||!store.id)return false;try{const r=await sb.from('store_members').upsert({store_id:store.id,user_id:AUTH.id,kind:store.kind||'tienda',name:store.name||''},{onConflict:'store_id,user_id'});return !r.error;}catch(e){return false;}}
+async function sbMyStoresOrNull(){const sb=await sbInit();if(!sb||!AUTH)return null;try{const r=await sb.from('store_members').select('store_id,kind,name').order('created_at',{ascending:true});if(r.error)return null;return (r.data||[]).map(x=>({id:x.store_id,kind:x.kind||'tienda',name:x.name||x.store_id}));}catch(e){return null;}}
 async function sbMyStores(){const sb=await sbInit();if(!sb||!AUTH)return [];try{const r=await sb.from('store_members').select('store_id,kind,name').order('created_at',{ascending:true});if(r.error)return [];return (r.data||[]).map(x=>({id:x.store_id,kind:x.kind||'tienda',name:x.name||x.store_id}));}catch(e){return [];}}
 function sbPushDoc(storeId,key,data){
   if(!storeId||SYNC_APPLYING)return;
@@ -3772,7 +3773,8 @@ async function authSubmit(kind){
   await afterAuth();
 }
 async function afterAuth(){
-  const p=safeLocalProfile();
+  let p=safeLocalProfile();
+  if(p&&!(p.uid&&AUTH&&p.uid===AUTH.id)){clearProfile();p=null;}   // tienda local de otra cuenta (o sin dueño): no se muestra
   let cloud=[];try{cloud=await sbMyStores();}catch(e){}
   // logos guardados localmente (registro + perfil) como respaldo
   const localLogo={};
@@ -3788,7 +3790,7 @@ async function afterAuth(){
   if(list.length)obGo('stores');else obGo('role');
 }
 function enterProfile(role,ent){
-  state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null};saveProfile();
+  state.profile={kind:role,id:ent.id,name:ent.name,logo:ent.logo||null,uid:(AUTH&&AUTH.id)||null};saveProfile();
   const _m=AUTH?sbAddMember({id:ent.id,kind:role,name:ent.name}):Promise.resolve();   // registra cuenta<->negocio (candado RLS) ANTES de sincronizar
   watchKey('notif.'+ent.id);watchKey('data.'+ent.id);watchKey('bsales.'+ent.id);
   loadData(ent.id);loadSales(ent.id);sbSubscribe(ent.id);
@@ -3801,10 +3803,14 @@ function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent
 function obAction(sub){
   const tmp=state.onbo.tmp,parts=sub.split(':'),a=parts[0];
   if(a==='start')return obGo('role');
-  if(a==='role'){tmp.role=parts[1];tmp.name='';tmp.logo=null;tmp.pass='';return loadReg(tmp.role).length?obGo('dir'):obGo('create');}
+  if(a==='role'){tmp.role=parts[1];tmp.name='';tmp.logo=null;tmp.pass='';return obGo('create');}
   if(a==='new'){tmp.name='';tmp.logo=null;tmp.pass='';return obGo('create');}
   if(a==='create2'){const n=obVal('ob_name');if(!n){toast(t('ob_need_name'));return;}const pw=obVal('ob_pass');if(!pw){toast(t('ob_need_pass'));return;}tmp.name=n;tmp.pass=pw;tmp.id=genEntId(tmp.role);return obGo('created');}
-  if(a==='finish'){upsertEntity(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null,pass:tmp.pass});return enterProfile(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null});}
+  if(a==='finish'){(async()=>{
+      if(AUTH&&navigator.onLine){for(let i=0;i<4;i++){if(await sbAddMember({id:tmp.id,kind:tmp.role,name:tmp.name}))break;tmp.id=genEntId(tmp.role);}}
+      upsertEntity(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null,pass:tmp.pass});
+      enterProfile(tmp.role,{id:tmp.id,name:tmp.name,logo:tmp.logo||null});
+    })();return;}
   if(a==='enter'){const ent=getEntity(tmp.role,tmp.id);if(!ent)return;const pw=obVal('ob_pass');if(!pw){toast(t('ob_need_pass'));return;}if(ent.pass&&ent.pass!==pw){toast(t('ob_wrong_pass'));return;}return enterProfile(tmp.role,ent);}
   if(a==='pickstore'){const st=(state.onbo.stores||[]).find(x=>''+x.id===''+parts[1]);if(st)return enterProfile(st.kind,{id:st.id,name:st.name,logo:st.logo});return;}
 }
@@ -3870,8 +3876,17 @@ function boot(){
       renderOnbo();return;
     }
     try{localStorage.setItem('abanico.authed','1');}catch(_){}
-    if(p&&p.id)enterFromBoot(p);          // usuario que regresa a su negocio
-    else await afterAuth();               // elegir/crear negocio
+    if(p&&p.id){
+      // Solo entrar directo si la tienda local pertenece a ESTA cuenta (evita abrir/reclamar la de otra cuenta)
+      if(p.uid&&AUTH&&p.uid===AUTH.id){enterFromBoot(p);return;}
+      if(p.uid&&AUTH&&p.uid!==AUTH.id){clearProfile();await afterAuth();return;}
+      // perfil antiguo sin dueño registrado: verificar membresía en la nube
+      const mine=await sbMyStoresOrNull();
+      if(mine&&mine.some(s=>''+s.id===''+p.id)){p.uid=AUTH&&AUTH.id;state.profile=p;saveProfile();enterFromBoot(p);return;}
+      if(mine===null&&!navigator.onLine){enterFromBoot(p);return;}   // sin internet no se puede verificar: solo datos locales
+      clearProfile();await afterAuth();return;
+    }
+    await afterAuth();                    // elegir/crear negocio
   }).catch(()=>{
     if(authed&&p&&p.id){enterFromBoot(p);}else renderOnbo();
   });
@@ -4203,10 +4218,10 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 boot();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260924204823';
+const APP_VERSION='20260925201231';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260924204823')return;   // en local no hay version.txt
+  if(APP_VERSION==='20260925201231')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

@@ -650,7 +650,7 @@
   /* ficha del producto (ⓘ) */
   .pinfo{padding:12px 16px 18px;display:flex;flex-direction:column;gap:10px}
   .pinfo-img{display:grid;place-items:center}
-  .pinfo-img img{max-width:220px;max-height:220px;border-radius:10px;object-fit:contain;background:var(--sel)}
+  .pinfo-img img{width:min(70%,260px);height:auto;max-height:280px;border-radius:10px;object-fit:contain;background:var(--sel)}
   .pinfo-row{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
   .pinfo-l{font-size:12.5px;color:var(--muted);margin-bottom:3px}
   .pinfo-v{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);word-break:break-word}
@@ -1541,10 +1541,10 @@ function openProdInfo(id){
     ${extra}
     ${row('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',t('pi_info'),p.desc?e(p.desc):t('sin_info'))}
   </div>`;
-  document.getElementById('pinfodlg').classList.add('on');
+  document.getElementById('pinfodlg').classList.add('on','full');   // la ficha del producto siempre a pantalla completa
   try{bkApplyInvImages();}catch(_){}   // baja la foto si aún no está en el dispositivo
 }
-function closePInfo(){const d=document.getElementById('pinfodlg');if(d)d.classList.remove('on');}
+function closePInfo(){const d=document.getElementById('pinfodlg');if(d)d.classList.remove('on','full');}
 function saleCartHTML(){
   const items=cartItems();
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
@@ -4497,7 +4497,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260929184318';
+const APP_VERSION='20260929184807';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

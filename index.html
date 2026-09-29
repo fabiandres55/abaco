@@ -4429,10 +4429,10 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260927164443';
+const APP_VERSION='20260929181935';
 function _updBusy(){try{return document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
-  if(APP_VERSION==='20260927164443')return;   // en local no hay version.txt
+  if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt
   try{
     const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;

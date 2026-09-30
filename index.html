@@ -144,9 +144,9 @@
   .pc-warn{flex:none;align-self:flex-start}.pc-warn svg{width:26px;height:26px}
   .pc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
   .pc-m{text-align:center}.pc-ml{font-size:13px;color:var(--muted)}.pc-mv{font-size:22px;font-weight:700;margin-top:3px}.pc-mv.warnv{color:var(--red)}.pc-mv.warno{color:#c98a12}
-  .sheetdlg{position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:16;display:none;align-items:flex-end}
+  .sheetdlg{position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:16;display:none;align-items:stretch}   /* regla de Fabio: estas ventanas SIEMPRE a pantalla completa */
   .sheetdlg.on{display:flex}
-  .sheetcard{background:var(--card);width:100%;border-radius:16px 16px 0 0;max-height:72%;display:flex;flex-direction:column;padding-bottom:10px;box-shadow:0 -8px 30px -10px rgba(0,0,0,.4)}
+  .sheetcard{background:var(--card);width:100%;border-radius:0;max-height:100%;height:100%;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
   .shwrap{padding:14px 16px 20px}
   .shnologo{text-align:center;font-size:12.5px;color:#b45309;background:#fef3c7;border-radius:8px;padding:8px 10px;margin:-6px 0 14px}
   .shtitle{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px}
@@ -193,7 +193,7 @@
   .sheet-h{padding:14px 12px 12px 18px;font-size:16px;font-weight:700;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;gap:8px}
   .sheet-x{border:none;background:var(--sel);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex:none;display:grid;place-items:center}
   .sheet-x:active{background:var(--line)}
-  .sheet-list{overflow-y:auto;padding:4px 0}
+  .sheet-list{overflow-y:auto;padding:4px 0;flex:1}
   .fmtrow{display:flex;align-items:center;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line2);cursor:pointer}
   .fmtrow:last-child{border-bottom:none}
   .fmtrow:active{background:var(--sel)}
@@ -4555,7 +4555,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260929190442';
+const APP_VERSION='20260929191011';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

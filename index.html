@@ -1120,7 +1120,7 @@ const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 const saleDate=s=>s.date||todayISO();
 const saleTotal=s=>s.total!=null?s.total:(s.items?s.items.reduce((t,i)=>t+(P(i.id)?.price||0)*i.q,0):0);
 const saleQty=s=>s.n!=null?s.n:(s.lines?s.lines.reduce((a,l)=>a+(+l.qty||0),0):(s.items?s.items.reduce((a,i)=>a+i.q,0):0));
-const saleProfit=s=>s.cost!=null?(saleTotal(s)-s.cost):((s.items?s.items.reduce((a,i)=>{const p=P(i.id);return a+(p?((i.price!=null?+i.price:p.price)-p.cost):0)*i.q;},0):0)+(s.svcs?s.svcs.reduce((a,x)=>a+((+x.price||0)-(+x.cost||0))*(+x.q||0),0):0));
+const saleProfit=s=>s.cost!=null?(saleTotal(s)-s.cost):((s.items?s.items.reduce((a,i)=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?+p.price||0:0);const c=i.cost!=null?+i.cost:(p?+p.cost||0:0);return a+(p||i.cost!=null?(pr-c):0)*i.q;},0):0)+(s.svcs?s.svcs.reduce((a,x)=>a+((+x.price||0)-(+x.cost||0))*(+x.q||0),0):0));
 // crédito/por-cobrar = status 2 (numérico o 'cobrar') O tiene abonos registrados (pagos)
 const saleIsCreditStrict=s=>{const st=s&&s.status;return st===2||st==='2'||st==='cobrar';};
 const saleIsCredit=s=>{if(saleIsCreditStrict(s))return true;return !!(s&&Array.isArray(s.pays)&&s.pays.length);};
@@ -1181,7 +1181,7 @@ function scInventario(){
       ?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`
       :`<span class="origchip own">${t('own_product')}</span>`):'';
     const warnHtml=lvl?`<div class="pc-warn">${warnTri(lvl==='red'?'#c8452f':'#f0b90b')}</div>`:'';
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${p.key||'—'}</div><div class="pc-name">${p.name}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${exEsc(p.key||'—')}</div><div class="pc-name">${exEsc(p.name)}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${p.stock}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
@@ -1207,7 +1207,7 @@ const S_CASH='<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" c
 const S_FAN='<path d="M12 12c0-5 2-8 6-8 0 4-3 6-6 8zM12 12c5 0 8 2 8 6-4 0-6-3-8-6zM12 12c0 5-2 8-6 8 0-4 3-6 6-8zM12 12c-5 0-8-2-8-6 4 0 6 3 8 6z"/><circle cx="12" cy="12" r="1.4"/>';
 let HIST_LIMIT=60;
 function histCardHTML(s){
-  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
+  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val?exEsc(val):si}</span></div>`;
   const fol=s.folio||s.id;const dt=[s.date,s.time].filter(Boolean).join('  ')||si;
   return `<div class="scard" data-saledet="${s.id}">
     <div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${fol}</span><span class="scard-pay">${payLbl(s.pay)||si} ${svg(S_CASH)}</span></div>
@@ -1233,8 +1233,8 @@ function mermaCardHTML(m){
   const dt=[m.date,m.time].filter(Boolean).join('  ')||t('sin_info');
   return `<div class="scard">
     <div class="scard-row">${svg(S_CAL)}<span>${dt}</span></div>
-    <div class="scard-row">${svg(S_BOX2)}<span>${m.name||t('sin_info')}</span></div>
-    <div class="scard-row">${svg(S_INFO)}<span>${m.note||t('me_lost')}</span></div>
+    <div class="scard-row">${svg(S_BOX2)}<span>${exEsc(m.name||t('sin_info'))}</span></div>
+    <div class="scard-row">${svg(S_INFO)}<span>${exEsc(m.note||t('me_lost'))}</span></div>
     <div class="scard-bot"><span class="scard-tot" style="text-align:left"><span class="scard-tl">${t('me_qty')}</span><b class="num">${m.qty}</b></span><span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(mermaTotal(m))}</b></span></div>
   </div>`;
 }
@@ -1252,7 +1252,7 @@ function mermaAddHTML(){
   const chev=svg('<path d="M6 9l6 6 6-6"/>');
   return `<div style="display:flex;flex-direction:column;gap:14px">
     <div class="fld"><span class="fl">${t('me_product')}</span>
-      <div class="inp sellike" data-act="mermapick"><span class="${f.pid?'':'ph'}">${f.name||t('me_product')}</span>${chev}</div></div>
+      <div class="inp sellike" data-act="mermapick"><span class="${f.pid?'':'ph'}">${exEsc(f.name||t('me_product'))}</span>${chev}</div></div>
     <div class="two">
       <div class="fld"><span class="fl">${t('me_qty')}</span><input class="inp num" id="me_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
       <div class="fld"><span class="fl">${t('me_cost')}</span><input class="inp num" id="me_cost" type="number" inputmode="numeric" value="${f.cost??''}" placeholder="0"></div>
@@ -1286,7 +1286,7 @@ function fillMermaPick(){
   const rows=list.length?`<div class="list">`+list.map(p=>{
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
-    return `<div class="row" data-mermapick="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="s">${p.key||'—'} · ${p.stock} ${t('inStock')}</div></div><div class="r"><span class="price num" style="font-weight:700">${money(p.cost||p.price||0)}</span></div></div>`;
+    return `<div class="row" data-mermapick="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><div class="r"><span class="price num" style="font-weight:700">${money(p.cost||p.price||0)}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty">${t('noResults')}</div>`;
   document.getElementById('mermaPickBody').innerHTML=`<div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="mermaSearch" placeholder="${t('me_search')}" value="${MERMA_Q.replace(/"/g,'&quot;')}"></div>${rows}`;
   const s=document.getElementById('mermaSearch');if(s)s.addEventListener('input',e=>{MERMA_Q=e.target.value;const p=document.getElementById('mermaPickBody').scrollTop;fillMermaPick();document.getElementById('mermaPickBody').scrollTop=p;const ns=document.getElementById('mermaSearch');if(ns){ns.focus();ns.setSelectionRange(ns.value.length,ns.value.length);}});
@@ -1565,11 +1565,11 @@ async function openSaleDet(id){
   document.getElementById('saledlg').classList.add('on');
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
-  if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:'—',qty:i.q,price:pr,subtotal:pr*i.q};});
+  if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q};});
   else{const L=await idbGetSale(s.id);if(L)lines=L;}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
-  const meta=[s.date&&(t('sale_date')+': '+s.date+(s.time?' '+s.time:'')),s.client&&(t('sale_client')+': '+s.client),s.addr&&(t('sale_addr')+': '+s.addr),s.pay&&(t('sale_pay')+': '+payLbl(s.pay)),s.edited&&(t('sale_edited')+': '+localStamp(s.edited))].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${x}</div>`).join('');
-  const linesHtml=lines.length?lines.map(l=>`<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div><div class="s">${money(l.price)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty)}</div></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const meta=[s.date&&(t('sale_date')+': '+s.date+(s.time?' '+s.time:'')),s.client&&(t('sale_client')+': '+s.client),s.addr&&(t('sale_addr')+': '+s.addr),s.pay&&(t('sale_pay')+': '+payLbl(s.pay)),s.edited&&(t('sale_edited')+': '+localStamp(s.edited))].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
+  const linesHtml=lines.length?lines.map(l=>`<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(l.name)}</div><div class="s">${money(l.price)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty)}</div></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(saleTotal(s))}</div></div></div>${payBlockHTML('sale',s)}<div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div>${Array.isArray(s.items)?`<button class="btn" data-act="saleedit:${s.id}" style="margin-top:14px">${svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>')} ${t('sale_edit')}</button>`:`<div class="osub" style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">${t('sale_edit_imported')}</div>`}<button class="btn ghost" data-act="sharerec:${s.id}" style="margin-top:10px">${svg('<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/>')} ${t('rc_pdf')}</button></div>`;
 }
 function closeSale(){document.getElementById('saledlg').classList.remove('on','full');}
@@ -1579,11 +1579,11 @@ async function openPurchaseDet(id){
   document.getElementById('saledlg').classList.add('on');
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
-  if(p.items&&p.items.length)lines=p.items.map(i=>{const pr=P(i.id);return {name:pr?pr.name:'—',qty:i.q,cost:i.cost,subtotal:(+i.cost||0)*i.q};});
+  if(p.items&&p.items.length)lines=p.items.map(i=>{const pr=P(i.id);return {name:pr?pr.name:(i.name||'—'),qty:i.q,cost:i.cost,subtotal:(+i.cost||0)*i.q};});
   else{const L=await idbGetSale(p.id);if(L)lines=L;}
   const st=p.status==='porpagar'?t('cp_topay'):t('cp_paid');
-  const meta=[p.date&&(t('sale_date')+': '+p.date+(p.time?' '+p.time:'')),p.provider&&(t('cp_provider')+': '+p.provider),p.pay&&(t('sale_pay')+': '+payLbl(p.pay)),(t('rc_status')+': '+st),p.note&&(t('cp_note')+': '+p.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${x}</div>`).join('');
-  const linesHtml=lines.length?lines.map(l=>{const c=l.cost!=null?l.cost:l.price;const sub=l.subtotal!=null?l.subtotal:(+c||0)*l.qty;return `<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name}</div><div class="s">${money(c||0)} c/u</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const meta=[p.date&&(t('sale_date')+': '+p.date+(p.time?' '+p.time:'')),p.provider&&(t('cp_provider')+': '+p.provider),p.pay&&(t('sale_pay')+': '+payLbl(p.pay)),(t('rc_status')+': '+st),p.note&&(t('cp_note')+': '+p.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
+  const linesHtml=lines.length?lines.map(l=>{const c=l.cost!=null?l.cost:l.price;const sub=l.subtotal!=null?l.subtotal:(+c||0)*l.qty;return `<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(l.name)}</div><div class="s">${money(c||0)} c/u</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   document.getElementById('saleBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}<div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(p.total||0)}</div></div></div>${payBlockHTML('purch',p)}<div class="section-h"><h2>${t('sale_items')}</h2></div><div class="list">${linesHtml}</div></div>`;
 }
 /* ---------------- Recibo / Ticket ---------------- */
@@ -1603,7 +1603,7 @@ function scRecibo(){
 }
 async function saleLines(s){
   let lines=[];
-  if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:'—',qty:i.q,price,subtotal:price*i.q};});
+  if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price,subtotal:price*i.q};});
   else{const L=await idbGetSale(s.id);if(L)lines=L.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
   return lines;
@@ -1848,7 +1848,7 @@ function saleCartHTML(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const rows=items.map(i=>{const p=P(i.id);if(!p&&!state.editSale)return '';const price=linePrice(i.id);const sub=price*i.q;const pn=xpLineName(p,price);
     return `<div class="crow">
-      <div class="crow-name">${p?p.name:'—'}</div>
+      <div class="crow-name">${p?exEsc(p.name):exEsc((state.editSale&&(state.editSale.names||{})[i.id])||'—')}</div>
       <div class="crow-grid">
         <div class="cfield"><span class="cfl">${t('me_qty')}</span><input class="cinp num" data-cqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
         <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"></div>
@@ -1886,7 +1886,7 @@ function startSaleEdit(id){
   const cart={},cp={};s.items.forEach(i=>{cart[i.id]=(cart[i.id]||0)+(+i.q||0);if(i.price!=null)cp[i.id]=+i.price;});
   state.cart=cart;state.cartPrice=cp;state.scart={};state.scPrice={};state.scName={};state.cartAdj={};
   (s.svcs||[]).forEach(x=>{const k=x.id||('S_'+(''+x.name).toUpperCase());state.scart[k]=(state.scart[k]||0)+(+x.q||0);state.scPrice[k]=+x.price||0;state.scName[k]=x.name;});state.saleClient=s.client||'';state.saleAddr=s.addr||'';state.salePay=s.pay||'';state.saleTag=s.tag||'';state.saleNote=s.note||'';state.saleStatus=s.status==='cobrar'?'cobrar':'pagado';state.q='';
-  state.editSale={id:s.id,folio:s.folio||s.id,items:s.items.map(i=>({id:i.id,q:+i.q||0}))};
+  state.editSale={id:s.id,folio:s.folio||s.id,items:s.items.map(i=>({id:i.id,q:+i.q||0})),names:Object.fromEntries(s.items.filter(i=>i.name).map(i=>[i.id,i.name])),costs:Object.fromEntries(s.items.filter(i=>i.cost!=null).map(i=>[i.id,+i.cost]))};
   closeSale();closeHist();go('nueva');
 }
 function saleEditEnd(){const st=state.editStash||{};state.saleAddr=st.saleAddr||'';state.cart=st.cart||{};state.cartPrice=st.cartPrice||{};state.scart=st.scart||{};state.scPrice=st.scPrice||{};state.scName=st.scName||{};state.cartAdj=st.cartAdj||{};state.saleClient=st.saleClient||'';state.salePay=st.salePay||'';state.saleTag=st.saleTag||'';state.saleNote=st.saleNote||'';state.saleStatus=st.saleStatus||'pagado';state.q=st.q||'';state.editSale=null;state.editStash=null;}
@@ -1898,7 +1898,7 @@ function saveSaleEdit(){
   // stock: se devuelve lo que se quitó y se descuenta lo que se agregó (solo la diferencia)
   const oldQ={},newQ={};ed.items.forEach(i=>{oldQ[i.id]=(oldQ[i.id]||0)+i.q;});items.forEach(i=>{newQ[i.id]=(newQ[i.id]||0)+i.q;});
   new Set([...Object.keys(oldQ),...Object.keys(newQ)]).forEach(k=>{const d=(newQ[k]||0)-(oldQ[k]||0);if(!d)return;const p=P(+k);if(!p)return;p.stock=d>0?Math.max(0,(+p.stock||0)-d):(+p.stock||0)-d;});
-  s.items=items.map(i=>({id:i.id,q:i.q,price:linePrice(i.id)}));
+  s.items=items.map(i=>itemSnap(i.id,i.q,linePrice(i.id)));
   s.total=cartTotal();{const sv=svcLinesForSale();if(sv.length)s.svcs=sv;else delete s.svcs;}
   s.addr=(state.saleAddr||'').trim()||undefined;s.pay=state.salePay||'';s.client=(state.saleClient||'').trim();s.tag=(state.saleTag||'').trim();s.note=(state.saleNote||'').trim();s.status=state.saleStatus||'pagado';
   s.edited=new Date().toISOString();
@@ -1910,18 +1910,18 @@ function saveSaleEdit(){
 function saveSale(){
   if(state.editSale)return saveSaleEdit();
   const items=cartItems();if(!items.length&&!svcCartItems().length){toast(t('io_empty'));return;}
-  const id=nextSaleFolio();
+  const fol=nextSaleFolio();const id='S'+uidPart();
   items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();
-  const sale={id,addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q,price:linePrice(i.id)})),total:tot,pay:state.salePay||'',client:(state.saleClient||'').trim(),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
+  const sale={id,folio:fol,ts:Date.now(),dev:deviceId(),addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),total:tot,pay:state.salePay||'',client:(state.saleClient||'').trim(),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
   {const sv=svcLinesForSale();if(sv.length)sale.svcs=sv;}
-  if(state.saleFromQuote){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=id;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
+  if(state.saleFromQuote){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=fol;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
   state.sales.unshift(sale);
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',...nt('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*linePrice(i.id),ts:Date.now()},600);}});}
   state.cart={};state.cartPrice={};state.scart={};state.scPrice={};state.scName={};state.cartAdj={};state.saleDate='';state.saleAddr='';state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';state.saleStatus='pagado';
   saleNotify(sale);
   if(opts().notifyCli&&sale.client&&!cliByName(sale.client)){const nm=sale.client;setTimeout(()=>{if(window.confirm(ti('cfg_reg_cli',{n:nm}))){state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e3),name:nm,alias:'',phone:'',email:'',address:'',notes:''});persist();toast(t('cli_saved'));}},400);}
-  state.screen='ventas';persist();persistSales();render();toast(`${t('sale_saved')} #${id} · ${money(tot)}`);
+  state.screen='ventas';persist();persistSales();render();toast(`${t('sale_saved')} #${fol} · ${money(tot)}`);
 }
 function saleCancel(){document.getElementById('saleproddlg').classList.remove('on');if(state.quoteMode)return quoteCancel();state.saleFromQuote=null;if(state.editSale)return saleEditCancel();state.cart={};state.cartPrice={};state.scart={};state.scPrice={};state.scName={};state.cartAdj={};state.saleDate='';state.saleAddr='';state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';state.saleStatus='pagado';state.q='';state.screen='ventas';render();}
 function openSalePay(){
@@ -1935,7 +1935,7 @@ function saleRow(p,box){
   const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
   const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
   const ctl=inCart>0?`<div class="stepper"><button data-dec="${p.id}">−</button><span class="q num">${inCart}</span><button data-inc="${p.id}">+</button></div>`:`<button class="add-btn" data-inc="${p.id}">${t('add')}</button>`;
-  return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${p.name}</div><div class="s">${p.key||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span>${ctl}</div>`;
+  return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span>${ctl}</div>`;
 }
 /* ---------------- Selector de producto por categoría (venta) ---------------- */
 function saleProdImg(p,box){const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);return cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);}
@@ -1956,12 +1956,12 @@ function fillSaleProd(){
     // al buscar, solo mostrar categorías cuyo nombre o productos coincidan (colapsadas)
     if(q&&!catMatch&&!matched.length)return;
     const open=!!state.saleCatOpen[c];   // NO se auto-expande al buscar
-    html+=`<div class="saleacc" data-act="salecat:${(''+c).replace(/"/g,'&quot;')}"><span class="chev ${open?'op':''}">${chev}</span><span class="nm">${c}</span></div>`;
+    html+=`<div class="saleacc" data-act="salecat:${(''+c).replace(/"/g,'&quot;')}"><span class="chev ${open?'op':''}">${chev}</span><span class="nm">${exEsc(c)}</span></div>`;
     if(open){
       const list=(q&&!catMatch)?matched:all;   // si el nombre de la categoría coincide, muestra todos sus productos
       const rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
       const pc=curPickCart();
-      html+=list.map(p=>{const inCart=pc[p.id]||0;return `<div class="row saleprow" data-saleadd="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${saleProdImg(p,box)}</div><div style="min-width:0"><div class="s" style="font-size:11px;color:var(--muted)">${p.key||''}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">... ${p.name}</div><div class="s">#${p.stock} · <b class="num">${money(state.pickMode==='compra'?(p.cost||0):p.price)}</b></div></div><div class="r">${inCart>0?`<span class="salechk">${chk}<span class="num">${inCart}</span></span><button class="salerm" data-act="saledec:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;}).join('');
+      html+=list.map(p=>{const inCart=pc[p.id]||0;return `<div class="row saleprow" data-saleadd="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${saleProdImg(p,box)}</div><div style="min-width:0"><div class="s" style="font-size:11px;color:var(--muted)">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">... ${exEsc(p.name)}</div><div class="s">#${p.stock} · <b class="num">${money(state.pickMode==='compra'?(p.cost||0):p.price)}</b></div></div><div class="r">${inCart>0?`<span class="salechk">${chk}<span class="num">${inCart}</span></span><button class="salerm" data-act="saledec:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;}).join('');
     }
   });
   document.getElementById('saleprodBody').innerHTML=search+(html||`<div class="empty">${t('noResults')}</div>`);
@@ -1983,7 +1983,7 @@ function updateClientAC(){
   if(!q){box.innerHTML='';box.classList.remove('on');return;}
   const list=(state.clients||[]).filter(c=>(''+(c.name||'')).toLowerCase().includes(q)||(''+(c.alias||'')).toLowerCase().includes(q)).slice(0,6);
   if(!list.length){box.innerHTML='';box.classList.remove('on');return;}
-  box.innerHTML=list.map(c=>`<div class="cliac-item" data-cliac="${(''+(c.name||'')).replace(/"/g,'&quot;')}"><b>${c.name||''}</b>${c.alias?`<span>${c.alias}</span>`:''}</div>`).join('');
+  box.innerHTML=list.map(c=>`<div class="cliac-item" data-cliac="${(''+(c.name||'')).replace(/"/g,'&quot;')}"><b>${exEsc(c.name||'')}</b>${c.alias?`<span>${exEsc(c.alias)}</span>`:''}</div>`).join('');
   box.classList.add('on');
 }
 function pickSaleClient(name){state.saleClient=name;const inp=document.getElementById('saleClient');if(inp)inp.value=name;const box=document.getElementById('cliAC');if(box){box.innerHTML='';box.classList.remove('on');}}
@@ -2116,11 +2116,11 @@ function scReportesBodega(){
   const tiendas=Object.values(byT).sort((a,b)=>b.rev-a.rev);
   const totRev=tiendas.reduce((a,x)=>a+x.rev,0)||1;const totQty=sales.reduce((a,s)=>a+s.qty,0);
   const col=i=>TPAL[i%TPAL.length];
-  const chart=tiendas.map((x,i)=>`<div class="tbar"><div class="tbar-h"><span class="tbar-nm"><span class="dot" style="background:${col(i)}"></span>${x.name}</span><span class="num">${money(x.rev)}</span></div><div class="tbar-track"><div class="tbar-fill" style="width:${Math.max(4,x.rev/totRev*100)}%;background:${col(i)}"></div></div></div>`).join('');
-  const topStores=tiendas.slice(0,5).map((x,i)=>`<div class="row"><div class="av num" style="background:${col(i)}22;color:${col(i)}">${i+1}</div><div><div class="t">${x.name}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
+  const chart=tiendas.map((x,i)=>`<div class="tbar"><div class="tbar-h"><span class="tbar-nm"><span class="dot" style="background:${col(i)}"></span>${exEsc(x.name)}</span><span class="num">${money(x.rev)}</span></div><div class="tbar-track"><div class="tbar-fill" style="width:${Math.max(4,x.rev/totRev*100)}%;background:${col(i)}"></div></div></div>`).join('');
+  const topStores=tiendas.slice(0,5).map((x,i)=>`<div class="row"><div class="av num" style="background:${col(i)}22;color:${col(i)}">${i+1}</div><div><div class="t">${exEsc(x.name)}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
   const byP={};sales.forEach(s=>{const k=(s.pid||'')+'|'+s.name;const o=byP[k]||(byP[k]={name:s.name,qty:0,rev:0});o.qty+=s.qty;o.rev+=s.amount;});
   const topP=Object.values(byP).sort((a,b)=>b.rev-a.rev).slice(0,5);
-  const topRows=topP.map(x=>`<div class="row"><div class="av num">${x.qty}</div><div><div class="t">${x.name}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
+  const topRows=topP.map(x=>`<div class="row"><div class="av num">${x.qty}</div><div><div class="t">${exEsc(x.name)}</div><div class="s">${x.qty} ${t('sold')}</div></div><div class="r"><div class="amt num">${money(x.rev)}</div></div></div>`).join('');
   return `<div class="kpis"><div class="kpi"><div class="k-l">${t('rep_tot_rev')}</div><div class="k-v num">${money(totRev)}</div></div><div class="kpi"><div class="k-l">${t('rep_units')}</div><div class="k-v num">${totQty}</div></div><div class="kpi"><div class="k-l">${t('rep_stores')}</div><div class="k-v num">${tiendas.length}</div></div></div>
   <div class="section-h"><h2>${t('rep_by_store')}</h2></div><div class="tbars">${chart}</div>
   <div class="section-h"><h2>${t('rep_top_stores')}</h2></div><div class="list">${topStores}</div>
@@ -2132,7 +2132,7 @@ function compraRow(p,box){
   const inCart=state.pcart[p.id]||0;
   const av=saleProdImg(p,box);
   const ctl=inCart>0?`<div class="stepper"><button data-pdec="${p.id}">−</button><span class="q num">${inCart}</span><button data-pinc="${p.id}">+</button></div>`:`<button class="add-btn" data-pinc="${p.id}">${t('add')}</button>`;
-  return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${p.name}</div><div class="s">${p.key||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.cost||0)}</span>${ctl}</div>`;
+  return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.cost||0)}</span>${ctl}</div>`;
 }
 function scCompras(){
   const q=state.q.toLowerCase();
@@ -2157,7 +2157,7 @@ function compraCartHTML(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const rows=items.map(i=>{const p=P(i.id);if(!p)return '';const cost=pLineCost(i.id);const sale=pLineSale(i.id);const sub=cost*i.q;
     return `<div class="crow">
-      <div class="crow-name">${p.name} <b class="num" style="float:right">${money(sub)}</b></div>
+      <div class="crow-name">${exEsc(p.name)} <b class="num" style="float:right">${money(sub)}</b></div>
       <div class="crow-grid">
         <div class="cfield"><span class="cfl">${t('me_qty')}</span><input class="cinp num" data-pqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
         <div class="cfield"><span class="cfl">${t('cp_pcost')}</span><input class="cinp num" data-pcost="${i.id}" type="number" inputmode="numeric" value="${cost}"></div>
@@ -2183,16 +2183,16 @@ function compraCancel(){if(state.poMode)return poCancel();state.purchFromPO=null
 function provTpl(){if(provLive().length)return openProvPick('p');if(!state.pprovider)state.pprovider=t('cp_provider_tpl');toast(state.pprovider);render();}
 function saveCompra(){
   const items=pcartItems();if(!items.length){toast(t('io_empty'));return;}
-  const id=nextPurchFolio();
+  const fol=nextPurchFolio();const id='K'+uidPart();
   items.forEach(i=>{const p=P(i.id);if(p){p.stock=(+p.stock||0)+i.q;const c=pLineCost(i.id);if(c>0)p.cost=c;const s=pLineSale(i.id);if(s>0)p.price=s;}});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=pcartTotal();
-  const purchase={id,folio:id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id)})),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo){oo.recvPurchase=id;oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
+  const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>{const p=P(i.id);return {id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id),name:p?p.name:undefined};}),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo){oo.recvPurchase=fol;oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
   state.purchases.unshift(purchase);
   state.pcart={};state.pcost={};state.pprice={};state.pprovider='';state.pnote='';state.pstatus='pagado';state.q='';
-  persist();render();toast(`${t('cp_saved')} #${id} · ${money(tot)}`);
+  persist();render();toast(`${t('cp_saved')} #${fol} · ${money(tot)}`);
 }
 function scPHist(){
-  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
+  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val?exEsc(val):si}</span></div>`;
   const list=(state.purchases||[]).slice().sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||'')));
   const total=list.length;const limit=state.phistLimit||31;const shown=list.slice(0,limit);
   const rows=shown.length?shown.map(p=>{const st=recStBadge('purch',p);const dt=[p.date,p.time].filter(Boolean).join('  ')||si;
@@ -2286,7 +2286,7 @@ function txVCard(s){
   const est=saleIsCredit(s)?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
   return `<div class="txvcard">
     <div class="txvc-top"><span class="fol">${t('sale_folio')}: ${s.folio||s.id}</span><span class="hora">${svg(TX_CLOCK)} ${s.time||''}</span></div>
-    <div class="txvc-cli">${svg(S_PER)}<span>${s.client||t('sin_info')}</span></div>
+    <div class="txvc-cli">${svg(S_PER)}<span>${exEsc(s.client||t('sin_info'))}</span></div>
     <div class="txvc-tot"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(saleTotal(s))}</div></div><div class="c"><div class="l">${t('tx_profit')}</div><div class="v num" style="color:var(--green)">${money(saleProfit(s))}</div></div></div>
     <div class="txvc-bot">${est}<span class="pay">${payLbl(s.pay)||t('sin_info')} ${svg(S_CASH)}</span></div>
   </div>`;
@@ -2295,7 +2295,7 @@ function txCCard(p){
   const est=purchaseIsCredit(p)?`<span class="txe cobrar">${t('cp_topay')}</span>`:`<span class="txe pagado">${t('sale_paid')}</span>`;
   return `<div class="txvcard">
     <div class="txvc-top"><span class="fol">${t('sale_folio')}: ${p.folio||p.id}</span><span class="hora">${svg(TX_CLOCK)} ${p.time||''}</span></div>
-    <div class="txvc-cli">${svg(TX_PROV)}<span>${p.provider||t('sin_info')}</span></div>
+    <div class="txvc-cli">${svg(TX_PROV)}<span>${exEsc(p.provider||t('sin_info'))}</span></div>
     <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(+p.total||0)}</div></div></div>
     <div class="txvc-bot">${est}<span class="pay">${payLbl(p.pay)||t('sin_info')} ${svg(S_CASH)}</span></div>
   </div>`;
@@ -2607,7 +2607,7 @@ function salesRecvByClient(list){
 }
 const sr3=(tot,pg,dd)=>`<div class="sr3"><div><div class="sr3l">${t('sr_total_lbl')}</div><b class="num">${money(tot)}</b></div><div><div class="sr3l">${t('sr_pagos_lbl')}</div><b class="num">${money(pg)}</b></div><div><div class="sr3l">${t('ttx_deuda')}</div><b class="num sr3d">${money(dd)}</b></div></div>`;
 function srCard(s){
-  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
+  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val?exEsc(val):si}</span></div>`;
   const fol=s.folio||s.id;const dt=[s.date,s.time].filter(Boolean).join('  ')||si;
   const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
   return `<div class="scard" data-recvdet="${s.id}">
@@ -2653,7 +2653,7 @@ function srByClient(){
   const {list}=salesRecvData();const rows=salesRecvByClient(list);
   document.getElementById('saleH').textContent=t('sr_by_client');
   document.getElementById('saledlg').classList.add('on');
-  document.getElementById('saleBody').innerHTML=`<div style="padding:8px 14px 18px">${rows.map(o=>`<div class="srcli"><div class="srcli-n">${svg(S_PER)} ${o.client}</div>${sr3(o.total,o.pagos,o.deuda)}</div>`).join('')}</div>`;
+  document.getElementById('saleBody').innerHTML=`<div style="padding:8px 14px 18px">${rows.map(o=>`<div class="srcli"><div class="srcli-n">${svg(S_PER)} ${exEsc(o.client)}</div>${sr3(o.total,o.pagos,o.deuda)}</div>`).join('')}</div>`;
 }
 // Índice memoizado del archivo crudo venta_producto (folio -> líneas)
 let _srRawIdx=undefined;
@@ -2734,7 +2734,7 @@ function purchPayByProvider(list){
   return Object.values(m).map(o=>({prov:o.prov,total:o.total,pagos:o.pagos,deuda:o.total-o.pagos})).sort((a,b)=>b.deuda-a.deuda);
 }
 function pcCard(p){
-  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val||si}</span></div>`;
+  const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val?exEsc(val):si}</span></div>`;
   const fol=p.folio||p.id;const dt=[p.date,p.time].filter(Boolean).join('  ')||si;
   const tot=(+p.total||0),pg=pcPaid(p),dd=Math.max(0,tot-pg);
   return `<div class="scard" data-paydet="${p.id}">
@@ -2879,9 +2879,9 @@ function repIncRecvOld(){
   if(!list.length){bodyHtml=`<div class="empty" style="margin-top:70px">${t('ir_none')}</div>`;}
   else if(tab==='categoria'){
     const m={};list.forEach(x=>{const k=x.cat||x.category||t('cat_none');const o=m[k]||(m[k]={cat:k,tot:0,n:0});o.tot+=incExtraDue(x);o.n++;});
-    bodyHtml=`<div class="list">${Object.values(m).sort((a,b)=>b.tot-a.tot).map(o=>`<div class="row"><div class="av">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>')}</div><div><div class="t">${o.cat}</div><div class="s">${o.n}</div></div><div class="r"><div class="amt num">${money(o.tot)}</div></div></div>`).join('')}</div>`;
+    bodyHtml=`<div class="list">${Object.values(m).sort((a,b)=>b.tot-a.tot).map(o=>`<div class="row"><div class="av">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>')}</div><div><div class="t">${exEsc(o.cat)}</div><div class="s">${o.n}</div></div><div class="r"><div class="amt num">${money(o.tot)}</div></div></div>`).join('')}</div>`;
   } else {
-    bodyHtml=`<div class="list">${list.map(x=>`<div class="row"><div class="av">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>')}</div><div><div class="t">${x.concept||x.cat||t('sin_info')}</div><div class="s">${[x.date,x.time].filter(Boolean).join('  ')||t('sin_info')}</div></div><div class="r"><div class="amt num">${money(incExtraDue(x))}</div></div></div>`).join('')}</div>`;
+    bodyHtml=`<div class="list">${list.map(x=>`<div class="row"><div class="av">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>')}</div><div><div class="t">${exEsc(x.concept||x.cat||t('sin_info'))}</div><div class="s">${[x.date,x.time].filter(Boolean).join('  ')||t('sin_info')}</div></div><div class="r"><div class="amt num">${money(incExtraDue(x))}</div></div></div>`).join('')}</div>`;
   }
   return `<div class="osub" style="text-align:center;font-weight:700;font-size:15px;color:var(--ink);margin:2px 0 12px">${t('ir_sub')}</div>${seg}${bodyHtml}`;
 }
@@ -2897,7 +2897,7 @@ function scTiendaDet(){
   const bid=state.profile.id;const tid=state.detTienda;const x=getEntity('tienda',tid);
   const d=loadDataOf(bid);const taken=(d.dispatches||[]).filter(z=>z.tid===tid&&z.qty>0);
   const total=taken.reduce((a,z)=>a+z.qty,0);
-  const rows=taken.length?taken.map(z=>`<div class="row"><div class="av" style="overflow:hidden">${svg(ROLE_ICON.bodega)}</div><div><div class="t">${z.name}</div><div class="s">${t('taken_qty')}</div></div><div class="r num" style="font-weight:700">${z.qty}</div></div>`).join(''):`<div class="empty">${t('no_taken')}</div>`;
+  const rows=taken.length?taken.map(z=>`<div class="row"><div class="av" style="overflow:hidden">${svg(ROLE_ICON.bodega)}</div><div><div class="t">${exEsc(z.name)}</div><div class="s">${t('taken_qty')}</div></div><div class="r num" style="font-weight:700">${z.qty}</div></div>`).join(''):`<div class="empty">${t('no_taken')}</div>`;
   return `<div class="backrow" data-nav="tiendas">${svg('<path d="M15 6l-6 6 6 6"/>')} ${x?x.name:tid}</div>
   <div class="osub" style="padding:2px 2px 10px;font-size:13px;color:var(--muted)">${ti('taken_sub',{n:total})}</div>
   <div class="section-h"><h2>${t('taken_h')}</h2></div><div class="list">${rows}</div>`;
@@ -2917,7 +2917,7 @@ function scProveedores(){
 }
 function scCatalogo(){
   const bid=state.catBodega;const b=getEntity('bodega',bid);const d=loadDataOf(bid);
-  const rows=(d.products||[]).length?(d.products).slice().sort(prodCmp).map(p=>`<div class="pick"><div class="info"><div class="t">${p.name}</div><div class="s">${p.cat||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
+  const rows=(d.products||[]).length?(d.products).slice().sort(prodCmp).map(p=>`<div class="pick"><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.cat||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
   return `<div class="backrow" data-nav="bodegalinks">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
 }
 function scAjustes(){
@@ -3004,7 +3004,7 @@ function scClientes(){
       c.phone?`<a class="cli-act" href="tel:${(''+c.phone).replace(/[^0-9+]/g,'')}">${svg(IC_PHONE)}</a>`:'',
       c.email?`<a class="cli-act" href="mailto:${c.email}">${svg(IC_MAIL)}</a>`:''
     ].join('');
-    return `<div class="clicard"><div class="cli-main" data-cliedit="${c.id}"><div class="cli-ic">${svg(CLI_ICO)}</div><div class="cli-tx"><div class="cli-n">${c.name||'—'}</div><div class="cli-a">${c.alias?c.alias:t('cli_noalias')}</div></div></div><div class="cli-actions">${acts}</div></div>`;
+    return `<div class="clicard"><div class="cli-main" data-cliedit="${c.id}"><div class="cli-ic">${svg(CLI_ICO)}</div><div class="cli-tx"><div class="cli-n">${exEsc(c.name||'—')}</div><div class="cli-a">${c.alias?exEsc(c.alias):t('cli_noalias')}</div></div></div><div class="cli-actions">${acts}</div></div>`;
   }).join('');
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const head=`<div class="invhead">
@@ -3055,7 +3055,7 @@ function fillReserva(){
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
     const lvl=rsvLevel(p);const col=lvl==='red'?'var(--red)':(lvl==='orange'?'#c98a12':'var(--ink)');
-    return `<div class="row" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div class="s">${t('f_qty')}: <b style="color:${col}">${p.stock}</b></div></div><div class="r"><span class="rsvpill">${t('rsv_label')}: ${p.reserve}</span></div></div>`;
+    return `<div class="row" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(p.name)}</div><div class="s">${t('f_qty')}: <b style="color:${col}">${p.stock}</b></div></div><div class="r"><span class="rsvpill">${t('rsv_label')}: ${p.reserve}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty" style="padding:26px 12px">${t('rsv_empty')}</div>`;
   document.getElementById('rsvOptions').innerHTML=bar+rows;
   bkApplyInvImages(); // carga las miniaturas (memoria/IndexedDB/nube) para las filas con data-imgkey
@@ -3403,7 +3403,7 @@ async function buildFullMN(withImgs){
   sales.forEach(x=>{let f=((''+x.id).charAt(0)==='V'&&isFinite(+x.folio))?+x.folio:null;if(f==null||(used.has(f)&&(''+x.id).charAt(0)!=='V')){f=nextF++;}used.add(f);
     const cr=saleIsCreditStrict(x)||(Array.isArray(x.pays)&&x.pays.length&&salePaidSum(x)<saleTotal(x)-0.5);
     vRows.push([f,saleDate(x),r2(saleTotal(x)),x.time||'',cr?2:1,x.client||'',cliF[(''+(x.client||'')).trim().toLowerCase()]||0,Array.isArray(x.pays)&&x.pays.length?pj(x.pays):'',x.addr||'',pmOf(x.pay),x.tag||'']);
-    if(Array.isArray(x.items))x.items.forEach(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?+p.price||0:0);vpRows.push([f,p?p.name:'—',p?+p.cost||0:0,pr,+i.q||0,r2(pr*(+i.q||0)),1]);});
+    if(Array.isArray(x.items))x.items.forEach(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?+p.price||0:0);vpRows.push([f,p?p.name:(i.name||'—'),p?+p.cost||0:(+i.cost||0),pr,+i.q||0,r2(pr*(+i.q||0)),1]);});
     else{const L=(x.lines&&x.lines.length)?x.lines:(idbL[x.id]||[]);L.forEach(l=>vpRows.push([f,l.name||'—',+l.cost||0,+l.price||0,+l.qty||0,l.subtotal!=null?+l.subtotal:r2((+l.price||0)*(+l.qty||0)),l.svc?2:1]));}
     (x.svcs||[]).forEach(v=>vpRows.push([f,v.name,+v.cost||0,+v.price||0,+v.q||0,r2((+v.price||0)*(+v.q||0)),2]));});
   ins('INSERT INTO venta(folio,fecha,total,hora,status,nombre_cliente,id_cliente,pagos,direccion,id_forma_pago,etiqueta) VALUES (?,?,?,?,?,?,?,?,?,?,?)',vRows);
@@ -3418,7 +3418,7 @@ async function buildFullMN(withImgs){
   const cRows=[],cpRows=[];
   purch.forEach(p=>{let f=((''+p.id).charAt(0)==='C'&&isFinite(+p.folio))?+p.folio:null;if(f==null){f=nC++;}
     const pv=p.provId&&provById(p.provId);cRows.push([f,p.date||'',r2(p.total),p.time||'',purchaseIsCreditStrict(p)?2:1,p.provider||'',pv?(prvF[pv.id]||0):0,Array.isArray(p.pays)&&p.pays.length?pj(p.pays):'',pmOf(p.pay),p.note||'']);
-    if(p.items&&p.items.length)p.items.forEach(i=>{const pr=P(i.id);cpRows.push([f,pr?pr.name:'—',+i.cost||0,+i.price||(pr?+pr.price||0:0),+i.q||0]);});
+    if(p.items&&p.items.length)p.items.forEach(i=>{const pr=P(i.id);cpRows.push([f,pr?pr.name:(i.name||'—'),+i.cost||0,+i.price||(pr?+pr.price||0:0),+i.q||0]);});
     else ((p.lines&&p.lines.length)?p.lines:(idbC[p.id]||[])).forEach(l=>cpRows.push([f,l.name||'—',+l.cost||0,+l.price||0,+l.qty||0]));});
   ins('INSERT INTO compra_pedido(folio,fecha,total,hora,status,nombre_proveedor,id_proveedor,pagos,id_forma_pago,info_adicional) VALUES (?,?,?,?,?,?,?,?,?,?)',cRows);
   ins('INSERT INTO compra_producto(folio,nombre,p_compra,p_venta,cantidad) VALUES (?,?,?,?,?)',cpRows);
@@ -3637,7 +3637,7 @@ function repLines(){
     const byName={};(state.products||[]).forEach(p=>{byName[(''+p.name).trim().toLowerCase()]=p;});
     const out=[];const need=[];
     repSalesR().forEach(x=>{const d=saleDate(x);
-      if(Array.isArray(x.items)&&x.items.length)x.items.forEach(i=>{const p=P(i.id);out.push({pid:i.id,name:p?p.name:'—',cat:p?(p.cat||''):'',q:+i.q||0,price:i.price!=null?+i.price:(p?+p.price||0:0),cost:p?+p.cost||0:0,d});});
+      if(Array.isArray(x.items)&&x.items.length)x.items.forEach(i=>{const p=P(i.id);out.push({pid:i.id,name:p?p.name:(i.name||'—'),cat:p?(p.cat||''):'',q:+i.q||0,price:i.price!=null?+i.price:(p?+p.price||0:0),cost:i.cost!=null?+i.cost:(p?+p.cost||0:0),d});});
       else if(Array.isArray(x.lines)&&x.lines.length)x.lines.forEach(l=>{if(l.svc)return;const p=byName[(''+l.name).trim().toLowerCase()];out.push({pid:p?p.id:null,name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d});});
       else if(!Array.isArray(x.items))need.push(x);
     });
@@ -4476,10 +4476,10 @@ function formHTML(){
     :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input type="file" id="imgInput" accept="image/*"></label>`;
   return `
   <div class="fld"><span class="fl">${t('f_key')} <span class="req">*</span></span>
-    <div class="keyrow"><input class="inp" id="f_key" value="${f.key||''}" placeholder="SKU-0000"><button class="genbtn" data-act="scan:key" title="${t('scan_title')}" style="flex:none;padding:0 11px">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
-  <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input class="inp" id="f_name" value="${f.name||''}" placeholder="${t('namePh')}"></div>
+    <div class="keyrow"><input class="inp" id="f_key" value="${exEsc(f.key||'')}" placeholder="SKU-0000"><button class="genbtn" data-act="scan:key" title="${t('scan_title')}" style="flex:none;padding:0 11px">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
+  <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input class="inp" id="f_name" value="${exEsc(f.name||'')}" placeholder="${t('namePh')}"></div>
   <div class="fld"><span class="fl">${t('f_category')}</span>
-    <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${f.cat||t('f_category_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
+    <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${exEsc(f.cat||t('f_category_ph'))}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <input type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
   <div class="fld"><span class="fl">${t('f_unit')}</span>
     <div class="inp sellike" data-act="openunit"><span class="${f.unit?'':'ph'}">${f.unit?unitLabel(f.unit):t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
@@ -4615,7 +4615,7 @@ function openCatPick(){
   const cats=allCats();
   document.getElementById('catpickH').textContent=t('c_select');
   const dots=svg('<circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>');
-  const rows=cats.length?cats.map(c=>{const cc=(''+c).replace(/"/g,'&quot;');return `<div class="catopt ${c===cur?'sel':''}" data-catpickf="${cc}"><span class="ck">${c===cur?ck:''}</span><span style="flex:1;min-width:0">${c}</span><button class="catmore" data-act="catmenu:${cc}">${dots}</button></div>`;}).join(''):`<div class="empty" style="padding:24px 12px">${t('c_add')}</div>`;
+  const rows=cats.length?cats.map(c=>{const cc=(''+c).replace(/"/g,'&quot;');return `<div class="catopt ${c===cur?'sel':''}" data-catpickf="${cc}"><span class="ck">${c===cur?ck:''}</span><span style="flex:1;min-width:0">${exEsc(c)}</span><button class="catmore" data-act="catmenu:${cc}">${dots}</button></div>`;}).join(''):`<div class="empty" style="padding:24px 12px">${t('c_add')}</div>`;
   document.getElementById('catpickOptions').innerHTML=rows;
   document.getElementById('catpickdlg').classList.add('on');
   document.getElementById('catpickOptions').scrollTop=0;
@@ -4657,7 +4657,7 @@ function openCatFilter(){
   const cats=[...new Set(state.products.map(p=>p.cat).filter(Boolean))].sort((a,b)=>prodColl().compare(''+a,''+b));
   document.getElementById('catdlgH').textContent=t('cat_pick_title');
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
-  const opt=(val,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-catpick="${(val+'').replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${label}</span></div>`;
+  const opt=(val,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-catpick="${(val+'').replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${exEsc(label)}</span></div>`;
   let html=`<div class="osub" style="padding:10px 16px 6px;font-size:12.5px;color:var(--muted)">${t('cat_pick_sub')}</div>`;
   html+=opt('__all__',t('cat_all_products'),!state.filterCat);
   html+=opt('__none__',t('cat_none'),state.filterCat==='__none__');
@@ -4679,7 +4679,7 @@ function fillFilterMenu(){
 function fillFilterValues(field){
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   const back=`<div class="catopt" data-act="fltback" style="color:var(--muted)"><span class="ck">${svg('<path d="M15 6l-6 6 6 6"/>')}</span><span>${t('flt_title')}</span></div>`;
-  const opt=(v,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-fltval="${field}::${(''+v).replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${label}</span></div>`;
+  const opt=(v,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-fltval="${field}::${(''+v).replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${exEsc(label)}</span></div>`;
   if(field==='unit'){
     document.getElementById('filterH').textContent=t('flt_unit');
     const vals=[...new Set(state.products.map(p=>unitLabel(p.unit)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
@@ -5306,12 +5306,12 @@ function closePay(){document.getElementById('paydlg').classList.remove('on');}
 function finishSale(method){
   if(state.editSale){state.salePay='pm_'+method;closePay();return saveSaleEdit();}
   const items=cartItems();if(!items.length){closePay();return;}
-  const id=nextSaleFolio();
+  const fol=nextSaleFolio();const id='S'+uidPart();
   items.forEach(i=>{const p=P(i.id);if(p)p.stock=Math.max(0,p.stock-i.q);});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();
-  state.sales.unshift({id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q})),pay:'pm_'+method});
+  state.sales.unshift({id,folio:fol,ts:Date.now(),dev:deviceId(),total:tot,date:todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),pay:'pm_'+method});
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',...nt('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*p.price,ts:Date.now()},600);}});}
-  state.cart={};closePay();state.screen="ventas";persist();persistSales();render();toast(`${ti('ns_sale',{n:id})} · ${money(tot)} · ${t('pm_'+method)}`);}
+  state.cart={};closePay();state.screen="ventas";persist();persistSales();render();toast(`${ti('ns_sale',{n:fol})} · ${money(tot)} · ${t('pm_'+method)}`);}
 
 /* ---------------- perfil / registros / datos ---------------- */
 function saveProfile(){try{localStorage.setItem('abanico.profile',JSON.stringify(state.profile))}catch(_){}}
@@ -5339,6 +5339,112 @@ function sbClearDirty(id,key){delete SB_DIRTY[id+'|'+key];sbDirtySave();updateSy
 function sbIsDirty(id,key){return !!SB_DIRTY[id+'|'+key];}
 function sbOnline(){return !(typeof navigator!=='undefined'&&navigator.onLine===false);}
 function sbDocData(key){switch(key){case 'sales':return state.sales;case 'products':return state.products;case 'clients':return state.clients;case 'mermas':return state.mermas;case 'purchases':return state.purchases;case 'porders':return state.porders;case 'receipt':return state.receipt;}const md=modDoc(key);if(md)return state[md.st]||[];return undefined;}
+/* ---- Fusión de 3 vías por registro (base = última versión vista de la nube) ---- */
+function itemSnap(id,q,price){const p=P(id);const o={id,q,price};if(p){o.name=p.name;o.cost=+p.cost||0;}else if(state.editSale&&state.editSale.names&&state.editSale.names[id]){o.name=state.editSale.names[id];const c=(state.editSale.costs||{})[id];if(c!=null)o.cost=c;}return o;}
+function uidPart(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+let _DEVID=null;function deviceId(){if(_DEVID)return _DEVID;try{_DEVID=localStorage.getItem('abanico.devid');if(!_DEVID){_DEVID=Math.random().toString(36).slice(2,10);localStorage.setItem('abanico.devid',_DEVID);}}catch(_){_DEVID='x'+Math.random().toString(36).slice(2,8);}return _DEVID;}
+function syncKeys(){return ['products','clients','sales','mermas','purchases','porders','receipt',...MOD_DOCS.map(m=>m.key)];}
+function recKey(key,x){if(!x||typeof x!=='object')return null;if(key==='extracats')return (x.type||'')+'|'+(''+(x.name||'')).toUpperCase();return x.id!=null?''+x.id:null;}
+const BASE={};const BASES_LOADED={};
+function baseOf(id,key){return BASE[id+'|'+key]||null;}
+function mkBase(key,data){if(Array.isArray(data)){const map=new Map();data.forEach(x=>{const k=recKey(key,x);if(k!=null)map.set(k,JSON.stringify(x));});return {arr:true,map,json:JSON.stringify(data)};}return {arr:false,obj:data||{},json:JSON.stringify(data||{})};}
+function setBase(id,key,data,noSave){BASE[id+'|'+key]=mkBase(key,data);if(!noSave)try{idbKvPut('base:'+id+'|'+key,data);}catch(_){}}
+async function loadBases(id){if(!id||BASES_LOADED[id])return;BASES_LOADED[id]=true;for(const key of syncKeys()){if(BASE[id+'|'+key])continue;try{const v=await idbKvGet('base:'+id+'|'+key);if(v!=null)setBase(id,key,v,true);}catch(_){}}}
+function clearBases(id){syncKeys().forEach(key=>{delete BASE[id+'|'+key];try{idbKvPut('base:'+id+'|'+key,null);}catch(_){}});}
+function mergeList(b,l,r){const bs=(b||[]).map(x=>JSON.stringify(x)),ls=l.map(x=>JSON.stringify(x));const res=r.slice();const rs=res.map(x=>JSON.stringify(x));
+  ls.forEach((x,i)=>{if(!bs.includes(x)&&!rs.includes(x))res.push(l[i]);});
+  return res.filter(x=>{const j=JSON.stringify(x);return !(bs.includes(j)&&!ls.includes(j));});}
+function mergeRec(b,l,r){const out={...r};const keys=new Set([...Object.keys(b||{}),...Object.keys(l||{}),...Object.keys(r||{})]);
+  keys.forEach(f=>{const bv=JSON.stringify(b?b[f]:undefined),lv=JSON.stringify(l[f]),rv=JSON.stringify(r[f]);
+    if(lv===bv)return;
+    if(rv===bv||lv===rv){if(l[f]===undefined)delete out[f];else out[f]=l[f];return;}
+    if(f==='stock'&&typeof l[f]==='number'&&typeof r[f]==='number'&&b&&typeof b[f]==='number'){out[f]=Math.round((r[f]+(l[f]-b[f]))*1000)/1000;return;}
+    if(f==='pays'&&Array.isArray(l[f])&&Array.isArray(r[f])){out[f]=mergeList(b&&Array.isArray(b[f])?b[f]:[],l[f],r[f]);return;}
+    if(l[f]===undefined)delete out[f];else out[f]=l[f];   // choque real en el mismo campo: gana el cambio de este dispositivo
+  });return out;}
+function mergeArr(key,base,local,remote){
+  const L=new Map(),R=new Map(),oL=[],oR=[];
+  (local||[]).forEach(x=>{const k=recKey(key,x);if(k==null)return;if(!L.has(k))oL.push(k);L.set(k,x);});
+  (remote||[]).forEach(x=>{const k=recKey(key,x);if(k==null)return;if(!R.has(k))oR.push(k);R.set(k,x);});
+  const out=[],seen=new Set();
+  const take=k=>{if(seen.has(k))return;seen.add(k);const l=L.get(k),r=R.get(k),bj=base?base.get(k):undefined;
+    if(l&&r){const lj=JSON.stringify(l),rj=JSON.stringify(r);if(lj===rj){out.push(l);return;}
+      if(bj===undefined){out.push(base?r:l);return;}
+      const lc=lj!==bj,rc=rj!==bj;if(lc&&!rc){out.push(l);return;}if(!lc&&rc){out.push(r);return;}
+      out.push(mergeRec(JSON.parse(bj),l,r));return;}
+    if(l){if(bj===undefined||JSON.stringify(l)!==bj)out.push(l);return;}   // borrado en otro lado y sin cambios aquí → se va
+    if(r){if(bj===undefined||JSON.stringify(r)!==bj)out.push(r);return;}   // borrado aquí y sin cambios allá → se va
+  };
+  oL.forEach(take);oR.forEach(take);
+  if(key==='sales'||key==='purchases'){fixFolioClash(key,out,R);out.sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||''))||((+b.folio||0)-(+a.folio||0)));}
+  return out;
+}
+// Dos dispositivos sacaron el mismo folio a la vez: el registro más nuevo lo renumera el dispositivo que lo creó
+function fixFolioClash(key,list,remoteMap){const me=deviceId();const inR=x=>remoteMap&&remoteMap.has(''+x.id)?0:1;const by={};list.forEach(x=>{if(!x||x.dev==null||x.folio==null)return;(by[x.folio]=by[x.folio]||[]).push(x);});
+  let max=list.reduce((a,x)=>{const f=+x.folio;return isFinite(f)&&f>a?f:a;},0);
+  Object.values(by).forEach(g=>{if(g.length<2)return;g.sort((a,b)=>(inR(a)-inR(b))||((a.ts||0)-(b.ts||0))||(''+a.id).localeCompare(''+b.id));   // conserva el folio el que ya estaba en la nube
+    g.slice(1).forEach(x=>{if(x.dev===me){x.folio=++max;}});});}
+function mergeDoc(id,key,local,remote,forceUnion){
+  const b=forceUnion?null:baseOf(id,key);
+  if(Array.isArray(local)||Array.isArray(remote))return mergeArr(key,b?b.map:null,Array.isArray(local)?local:[],Array.isArray(remote)?remote:[]);
+  if(remote==null)return local;if(local==null)return remote;
+  return b?mergeRec(b.obj||{},local,remote):{...remote,...local};
+}
+function setStateDoc(key,d,id){
+  if(key==='receipt'){if(d&&typeof d==='object'&&!Array.isArray(d))state.receipt=d;return;}
+  if(!Array.isArray(d))return;
+  if(key==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));}
+  else if(key==='clients')state.clients=d;else if(key==='mermas')state.mermas=d;else if(key==='purchases')state.purchases=d;else if(key==='porders')state.porders=d;
+  else if(key==='sales'){state.sales=d;try{idbKvPut('sales:'+id,d);}catch(_){}}
+  else{const md=modDoc(key);if(md)state[md.st]=d;}
+}
+// Aplica un documento que llegó de la nube fusionándolo con lo local. Devuelve true si lo local tiene cambios que subir.
+function sbApplyRemote(id,key,remote,notify){
+  if(remote==null||id!==currentDataId())return false;
+  const local=sbDocData(key);
+  if(Array.isArray(remote)&&wouldWipeLocal(key,remote)){sbMarkDirty(id,key);return false;}   // un vacío no borra lo local
+  let merged;const b=baseOf(id,key);const pend=sbIsDirty(id,key)||!!SB_PENDING[id+'|'+key];
+  if(!b)merged=pend?mergeDoc(id,key,local,remote,true):remote;   // sin base: adoptar la nube (salvo cambios locales pendientes)
+  else merged=mergeDoc(id,key,local,remote);
+  if(notify&&b&&key==='sales'&&Array.isArray(merged))onRemoteSales(merged);
+  setBase(id,key,remote);setStateDoc(key,merged,id);
+  return JSON.stringify(merged)!==JSON.stringify(remote);
+}
+// Sube un documento: lee la nube, fusiona y escribe solo si nadie escribió en medio (compare-and-swap por updated_at)
+async function sbSyncWrite(sb,id,key){
+  await loadBases(id);
+  for(let attempt=0;attempt<5;attempt++){
+    const local=sbDocData(key);if(local===undefined)return {ok:true};
+    const lj=JSON.stringify(local);const b=baseOf(id,key);
+    if(b&&b.json===lj)return {ok:true,skip:true};   // sin cambios locales respecto a la nube
+    const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
+    if(r&&r.error)throw r.error;
+    const row=r&&r.data;const remote=row?row.data:null;const prevTs=row?row.updated_at:null;
+    const merged=row?mergeDoc(id,key,local,remote,!b):local;
+    if(CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length)return {ok:false,recover:true};
+    const ts=new Date().toISOString();let w;
+    if(row){
+      w=await sb.from('store_docs').update({data:merged,updated_at:ts}).eq('store_id',id).eq('doc_key',key).eq('updated_at',prevTs).select('doc_key');
+      if(w&&w.error){w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
+      else if(!w||!Array.isArray(w.data)||!w.data.length){   // nadie escribió en medio pero no actualizó (permisos): escribir normal
+        const c=await sb.from('store_docs').select('updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
+        if(c&&c.data&&c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio: fusionar otra vez
+        w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
+    }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
+    setBase(id,key,merged);LIVE_TS[key]=ts;
+    const mj=JSON.stringify(merged);
+    if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
+      const now=sbDocData(key);let fin=merged;
+      if(JSON.stringify(now)!==lj){const tmpB=mkBase(key,JSON.parse(lj));fin=Array.isArray(merged)?mergeArr(key,tmpB.map,now,merged):mergeRec(tmpB.obj||{},now,merged);}
+      SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}
+      if(JSON.stringify(fin)!==mj)sbPushDoc(id,key,sbDocData(key));
+      sbScheduleRender();
+    }
+    return {ok:true};
+  }
+  throw new Error('sync-conflict');
+}
+let _rnT=null;function sbScheduleRender(){clearTimeout(_rnT);_rnT=setTimeout(()=>{try{if(!document.getElementById('device').classList.contains('form-open'))render();if(document.getElementById('histdlg').classList.contains('on'))fillHist();}catch(_){}},120);}
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
@@ -5369,6 +5475,7 @@ function clearStoreLocal(id){
   try{localStorage.setItem('abanico.imgup.'+id,'1');}catch(e){}   // no subir fotos en caché (de otras tiendas) a esta
   try{localStorage.removeItem(cartDraftKey(id));}catch(e){}
   Object.keys(SB_DIRTY).filter(k=>k.indexOf(id+'|')===0).forEach(k=>delete SB_DIRTY[k]);sbDirtySave();
+  try{clearBases(id);}catch(e){}
   Object.keys(SB_PENDING).filter(k=>k.indexOf(id+'|')===0).forEach(k=>{clearTimeout(SB_TIMER[k]);delete SB_PENDING[k];});
 }
 function clearStoreState(){state.products=[];state.sales=[];state.cats=[];state.seq=1;state.extraMoves=[];state.clients=[];state.units=[];state.mermas=[];state.purchases=[];state.porders=[];state.receipt={};state.cart={};state.pcart={};MOD_DOCS.forEach(m=>{state[m.st]=[];});}
@@ -5411,8 +5518,10 @@ async function flushDirty(silent){
   try{const sb=await sbInit();if(!sb){FLUSHING=false;return;}
     if(await sbCheckWipe(id,sb,true)){FLUSHING=false;return;}   // se vació en otro dispositivo: no revivir datos viejos
     for(const key of keys){const data=sbDocData(key);if(data===undefined){sbClearDirty(id,key);continue;}
-      if(await sbWouldWipeCloud(sb,id,key,data)){sbClearDirty(id,key);await sbRecoverFromCloud(id,key);continue;}
-      try{await sb.from('store_docs').upsert({store_id:id,doc_key:key,data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});sbClearDirty(id,key);sbBroadcast(key);done++;}catch(e){/*sigue pendiente*/}
+      try{const res=await sbSyncWrite(sb,id,key);
+        if(res.recover){sbClearDirty(id,key);await sbRecoverFromCloud(id,key);continue;}
+        sbClearDirty(id,key);if(!res.skip){sbBroadcast(key);done++;}
+      }catch(e){/*sigue pendiente*/}
     }
   }catch(e){}
   FLUSHING=false;
@@ -5455,8 +5564,16 @@ function sbPushDoc(storeId,key,data){
     try{const sb=await sbInit();
       if(!sb||!sbOnline()){sbMarkDirty(p.storeId,p.key);return;}   // sin conexión → queda pendiente
       if(await sbCheckWipe(p.storeId,sb)){delete SB_PENDING[k];return;}   // se vació en otro dispositivo: no revivir datos viejos
+      if(p.storeId===currentDataId()&&syncKeys().includes(p.key)){
+        const res=await sbSyncWrite(sb,p.storeId,p.key);
+        if(res.recover){delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);await sbRecoverFromCloud(p.storeId,p.key);return;}
+        delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);
+        if(!res.skip)sbBroadcast(p.key);
+        return;
+      }
       if(await sbWouldWipeCloud(sb,p.storeId,p.key,p.data)){delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);await sbRecoverFromCloud(p.storeId,p.key);return;}
-      await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
+      const up=await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
+      if(up&&up.error)throw up.error;   // Supabase devuelve {error} sin lanzar: no tomarlo como subido
       delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);
       if(p.storeId===currentDataId())sbBroadcast(p.key);
     }catch(e){sbMarkDirty(p.storeId,p.key);}   // falló la subida → queda pendiente para reintentar
@@ -5495,19 +5612,16 @@ async function sbPullStore(id){
   const[p,c,s,mm,rc,pu,po]=await Promise.all([sbPullDoc(id,'products'),sbPullDoc(id,'clients'),sbPullDoc(id,'sales'),sbPullDoc(id,'mermas'),sbPullDoc(id,'receipt'),sbPullDoc(id,'purchases'),sbPullDoc(id,'porders')]);
   const MD=await Promise.all(MOD_DOCS.map(m=>sbPullDoc(id,m.key)));
   if(p==null&&c==null&&s==null&&mm==null&&rc==null&&pu==null&&po==null&&MD.every(x=>x==null))return false;
-  SYNC_APPLYING=true;
-  // No sobrescribir lo que tenga cambios locales sin subir (sbIsDirty): se conserva y luego se sube.
-  if(wouldWipeLocal('products',p))sbMarkDirty(id,'products');else if(Array.isArray(p)&&!sbIsDirty(id,'products'))state.products=p;
-  if(wouldWipeLocal('clients',c))sbMarkDirty(id,'clients');else if(Array.isArray(c)&&!sbIsDirty(id,'clients'))state.clients=c;
-  if(Array.isArray(mm)&&!sbIsDirty(id,'mermas'))state.mermas=mm;
-  if(wouldWipeLocal('purchases',pu))sbMarkDirty(id,'purchases');else if(Array.isArray(pu)&&!sbIsDirty(id,'purchases'))state.purchases=pu;
-  if(Array.isArray(po)&&!sbIsDirty(id,'porders'))state.porders=po;
-  if(rc&&typeof rc==='object'&&!Array.isArray(rc)&&!sbIsDirty(id,'receipt'))state.receipt=rc;
-  MOD_DOCS.forEach((m,i)=>{const d=MD[i];if(wouldWipeLocal(m.key,d))sbMarkDirty(id,m.key);else if(Array.isArray(d)&&!sbIsDirty(id,m.key))state[m.st]=d;});
-  if(Array.isArray(p)){ensureUniqueIds();state.products.forEach(x=>{x.unit=canonUnit(x.unit);});}   // ids únicos + unidades canónicas
-  if(p!=null||c!=null||mm!=null||rc!=null||pu!=null||po!=null||MD.some(x=>x!=null))persistLocal();
-  if(wouldWipeLocal('sales',s))sbMarkDirty(id,'sales');else if(Array.isArray(s)&&!sbIsDirty(id,'sales')){state.sales=s;persistSales();}
-  SYNC_APPLYING=false;
+  await loadBases(id);if(id!==currentDataId())return false;
+  SYNC_APPLYING=true;const toPush=[];
+  try{
+    // Fusión por registro: lo local que aún no subió se conserva; lo nuevo de la nube se agrega
+    const docs={products:p,clients:c,mermas:mm,purchases:pu,porders:po,receipt:rc};MOD_DOCS.forEach((m,i)=>docs[m.key]=MD[i]);
+    Object.keys(docs).forEach(k=>{const d=docs[k];if(d==null)return;if(k==='receipt'&&(typeof d!=='object'||Array.isArray(d)))return;if(k!=='receipt'&&!Array.isArray(d))return;if(sbApplyRemote(id,k,d))toPush.push(k);});
+    if(p!=null||c!=null||mm!=null||rc!=null||pu!=null||po!=null||MD.some(x=>x!=null))persistLocal();
+    if(Array.isArray(s)){if(sbApplyRemote(id,'sales',s))toPush.push('sales');}
+  }finally{SYNC_APPLYING=false;}
+  toPush.forEach(k=>sbPushDoc(id,k,sbDocData(k)));
   if(Array.isArray(p))migrateInlineImages(); // saca fotos base64 gigantes traídas de la nube
   flushDirty(true);   // sube cualquier cambio local pendiente que se conservó
   return true;
@@ -5598,29 +5712,8 @@ async function sbLiveSync(){
       LIVE_BUSY=false;return;
     }
     const changed=[];
-    r.data.forEach(row=>{if(row.doc_key==='wipe')return;if(LIVE_TS[row.doc_key]!==row.updated_at){if(LIVE_TS[row.doc_key]!==undefined)changed.push(row.doc_key);LIVE_TS[row.doc_key]=row.updated_at;}});
-    if(changed.length){
-      SYNC_APPLYING=true;
-      for(const k of changed){
-        if(sbIsDirty(id,k))continue;   // hay cambios locales sin subir: no sobrescribir
-        const d=await sbPullDoc(id,k);
-        if(wouldWipeLocal(k,d)){sbMarkDirty(id,k);continue;}   // un vacío no borra lo local; se restaura la nube
-        if(k==='receipt'){if(d&&typeof d==='object'&&!Array.isArray(d))state.receipt=d;continue;}
-        if(!Array.isArray(d))continue;
-        if(modDoc(k)){state[modDoc(k).st]=d;continue;}
-        if(k==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));}
-        else if(k==='clients')state.clients=d;
-        else if(k==='mermas')state.mermas=d;
-        else if(k==='purchases')state.purchases=d;
-        else if(k==='porders')state.porders=d;
-        else if(k==='sales'){onRemoteSales(d);state.sales=d;idbKvPut('sales:'+id,d);}
-      }
-      persistLocal();
-      SYNC_APPLYING=false;
-      flushDirty(true);
-      if(!document.getElementById('device').classList.contains('form-open'))render();
-      if(document.getElementById('histdlg').classList.contains('on'))fillHist();
-    }
+    r.data.forEach(row=>{if(row.doc_key==='wipe')return;if(LIVE_TS[row.doc_key]!==row.updated_at){changed.push(row.doc_key);LIVE_TS[row.doc_key]=row.updated_at;}});   // la primera revisión también aplica (antes solo anotaba)
+    if(changed.length){LIVE_BUSY=false;await sbPullAndApply(id,changed);return;}
   }catch(e){SYNC_APPLYING=false;}
   LIVE_BUSY=false;
 }
@@ -5650,30 +5743,30 @@ async function sbApplyChange(id,keys){
     if(id===currentDataId()&&await sbCheckWipe(id,null,true)&&currentDataId()===id){await sbPullStore(id);renderDrawer();render();}
     return;
   }
-  if(SYNC_APPLYING||id!==currentDataId())return;
-  if(document.getElementById('device').classList.contains('form-open'))return;
+  if(id!==currentDataId())return;
+  (keys||[]).forEach(k=>APPLY_Q.add(k));   // los avisos que llegan juntos se encolan (antes se perdían)
+  if(APPLY_BUSY)return;APPLY_BUSY=true;
   try{
-    SYNC_APPLYING=true;
-    for(const k of keys){
-      if(sbIsDirty(id,k))continue;   // hay cambios locales sin subir: no sobrescribir
-      const d=await sbPullDoc(id,k);
-      if(wouldWipeLocal(k,d)){sbMarkDirty(id,k);continue;}   // un vacío no borra lo local; se restaura la nube
-      if(k==='receipt'){if(d&&typeof d==='object'&&!Array.isArray(d))state.receipt=d;continue;}
-      if(!Array.isArray(d))continue;
-      if(modDoc(k)){state[modDoc(k).st]=d;continue;}
-      if(k==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));LIVE_TS['products']=undefined;}
-      else if(k==='clients')state.clients=d;
-      else if(k==='mermas')state.mermas=d;
-      else if(k==='purchases')state.purchases=d;
-      else if(k==='porders')state.porders=d;
-      else if(k==='sales'){onRemoteSales(d);state.sales=d;idbKvPut('sales:'+id,d);}
+    await new Promise(r=>setTimeout(r,150));
+    let guard=0;
+    while(APPLY_Q.size&&guard++<20){
+      if(id!==currentDataId()){APPLY_Q.clear();break;}
+      if(document.getElementById('device').classList.contains('form-open')){await new Promise(r=>setTimeout(r,1500));continue;}   // esperar a que cierre el formulario
+      const ks=[...APPLY_Q];APPLY_Q.clear();
+      await sbPullAndApply(id,ks);
     }
-    persistLocal();
-    SYNC_APPLYING=false;
-      flushDirty(true);
-    if(!document.getElementById('device').classList.contains('form-open'))render();
-    if(document.getElementById('histdlg').classList.contains('on'))fillHist();
-  }catch(e){SYNC_APPLYING=false;}
+  }finally{APPLY_BUSY=false;}
+}
+const APPLY_Q=new Set();let APPLY_BUSY=false;
+async function sbPullAndApply(id,keys){
+  if(id!==currentDataId())return;
+  const docs={};for(const k of keys){if(!syncKeys().includes(k))continue;docs[k]=await sbPullDoc(id,k);}
+  await loadBases(id);if(id!==currentDataId())return;
+  const toPush=[];SYNC_APPLYING=true;
+  try{for(const k of Object.keys(docs)){if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}
+  catch(e){}finally{SYNC_APPLYING=false;}
+  toPush.forEach(k=>sbPushDoc(id,k,sbDocData(k)));
+  flushDirty(true);sbScheduleRender();
 }
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[],purchases:[],porders:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
@@ -5742,7 +5835,7 @@ function saleNotify(sale){
 // Resumen compacto de una venta para la notificación (se guarda con la notificación)
 function saleSummary(s){
   let lines=[];
-  if(Array.isArray(s.items)&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {n:p?p.name:'—',q:+i.q||0,p:+price||0};});
+  if(Array.isArray(s.items)&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {n:p?p.name:(i.name||'—'),q:+i.q||0,p:+price||0};});
   else if(Array.isArray(s.lines))lines=s.lines.map(l=>({n:l.name,q:+l.qty||0,p:+l.price||0}));
   const tot=saleTotal(s);
   return {id:s.id,folio:s.folio||s.id,total:tot,client:s.client||'',pay:s.pay||'',date:s.date||'',time:s.time||'',
@@ -5794,7 +5887,7 @@ function renderOnbo(){
     <div class="au-devby"><span>${t('au_devby')}</span><img src="complex-logo.png" alt="Complex_" loading="lazy"></div>`;
   }else if(s==='stores'){
     const list=state.onbo.stores||[];
-    const cards=list.map(x=>`<button class="ocard" data-act="ob:pickstore:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[x.kind]||ROLE_ICON.tienda)}</div><div><div class="ot">${x.name}</div><div class="od">${x.id}</div></div></button>`).join('');
+    const cards=list.map(x=>`<button class="ocard" data-act="ob:pickstore:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[x.kind]||ROLE_ICON.tienda)}</div><div><div class="ot">${exEsc(x.name)}</div><div class="od">${x.id}</div></div></button>`).join('');
     h=`<h2>${LANG==='es'?'Tus negocios':'Your businesses'}</h2><div class="osub">${AUTH?ti('au_logged',{e:AUTH.email}):''}</div>${cards}
     <button class="btn ghost obtn" data-act="ob:start" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>
     <div style="text-align:center;margin-top:16px"><span data-act="logout" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">${t('au_logout')}</span></div>
@@ -5807,7 +5900,7 @@ function renderOnbo(){
     <button class="ocard" data-act="ob:role:bodega"><div class="oic">${svg(ROLE_ICON.bodega)}</div><div><div class="ot">${t('ob_bodega')}</div><div class="od">${t('ob_bodega_d')}</div></div></button>
     <button class="ocard" data-act="ob:role:tienda"><div class="oic">${svg(ROLE_ICON.tienda)}</div><div><div class="ot">${t('ob_tienda')}</div><div class="od">${t('ob_tienda_d')}</div></div></button>`;
   }else if(s==='dir'){
-    const cards=loadReg(role).map(x=>`<button class="ocard" data-pick="${role}:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[role])}</div><div><div class="ot">${x.name}</div><div class="od">${x.id}</div></div></button>`).join('');
+    const cards=loadReg(role).map(x=>`<button class="ocard" data-pick="${role}:${x.id}"><div class="oic" style="overflow:hidden">${x.logo?`<img src="${x.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(ROLE_ICON[role])}</div><div><div class="ot">${exEsc(x.name)}</div><div class="od">${x.id}</div></div></button>`).join('');
     h=`<h2>${role==='bodega'?t('ob_bodega_dir_title'):t('ob_tienda_dir_title')}</h2>${cards}<button class="btn ghost obtn" data-act="ob:new" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>`;
   }else if(s==='create'){
     h=`<h2>${role==='bodega'?t('ob_bodega_create'):t('ob_tienda_create')}</h2>
@@ -6543,7 +6636,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261001173933';
+const APP_VERSION='20261001181928';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

@@ -718,6 +718,43 @@
   .excat-row svg{width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:1.8}
   .excat-row.on{background:var(--sel)}
   .exf-l{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+  /* proveedores + empleados */
+  .prvcard{border:1.5px solid #4aa3df;border-radius:10px}
+  .prv-ic{border-radius:8px;background:transparent}.prv-ic svg{width:24px;height:24px;stroke:var(--ink)}
+  .provbook{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer}
+  .provbook svg{width:19px;height:19px;fill:none;stroke:var(--ink);stroke-width:1.8}
+  .pp-search{padding:12px 16px 6px}
+  .prv-quick{display:flex;gap:10px;justify-content:center}
+  .prv-q{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;font-size:12px;font-weight:600}
+  .prv-q svg{width:22px;height:22px;fill:none;stroke:#1e88e5;stroke-width:1.8}
+  .prv-hist{display:flex;align-items:center;gap:8px;justify-content:center;font-size:13px;color:var(--muted);font-weight:600}
+  .prv-hist svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}
+  .emplist{display:flex;flex-direction:column;gap:10px}
+  .empcard{background:var(--card);border:1.5px solid #4aa3df;border-radius:10px;padding:12px 14px;cursor:pointer}
+  .emp-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .emp-n{font-weight:700;font-size:15px;text-transform:uppercase}
+  .emp-sal{font-size:14px;color:#2e7d32}
+  .emp-r{font-size:12.5px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+  .emp-i{font-size:12.5px;color:var(--muted);text-align:center;margin-top:8px;text-transform:uppercase}
+  .emp-last{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
+  .emp-last svg,.emppay svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8}
+  .emptabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:2}
+  .emptab{flex:1;border:none;background:transparent;padding:13px 6px;font:inherit;font-weight:700;font-size:13.5px;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer}
+  .emptab.on{color:#1e88e5;border-bottom-color:#1e88e5}
+  .emp-sum{display:grid;grid-template-columns:1fr 1fr;text-align:center;background:var(--sel);border-radius:12px;padding:12px 6px}
+  .emp-sum span{display:block;font-size:12px;color:var(--muted)}.emp-sum b{font-size:19px}
+  .empform{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .emppay{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .emppay-t{display:flex;justify-content:space-between;align-items:center;font-size:13.5px}
+  .emppay-t span{display:flex;align-items:center;gap:6px}
+  .emppay-s{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:4px}
+  .att-mon{display:flex;align-items:center;justify-content:space-between}.att-mon b{font-size:15px}
+  .att-mon .round svg{width:18px;height:18px;fill:none;stroke:var(--ink);stroke-width:2}
+  .att-cnt{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+  .att-cnt div{border-radius:10px;padding:8px 2px;border:1.5px solid var(--c)}.att-cnt b{display:block;font-size:18px;color:var(--c)}.att-cnt span{font-size:11px;color:var(--muted)}
+  .att-seg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .att-b{border:1.5px solid var(--c);background:transparent;color:var(--c);border-radius:10px;padding:10px 4px;font:inherit;font-weight:700;cursor:pointer}
+  .att-b.on{background:var(--c);color:#fff}
 </style>
 
 <div class="device" id="device">
@@ -782,6 +819,9 @@
   <div class="sheetdlg" id="exfltdlg"><div class="sheetcard"><div class="sheet-h"><span id="exfltH"></span><button class="sheet-x" data-act="exfclose">✕</button></div><div class="sheet-list" id="exfltBody"></div></div></div>
   <div class="sheetdlg" id="exdlg"><div class="sheetcard"><div class="sheet-h"><span id="exH"></span><button class="sheet-x" data-act="exclose">✕</button></div><div class="sheet-list" id="exBody"></div></div></div>
   <div class="sheetdlg" id="excatdlg"><div class="sheetcard"><div class="sheet-h"><span id="excatH"></span><button class="sheet-x" data-act="excatclose">✕</button></div><div class="sheet-list" id="excatBody"></div></div></div>
+  <div class="sheetdlg" id="provdlg"><div class="sheetcard"><div class="sheet-h"><span id="provH"></span><button class="sheet-x" data-act="provclose">✕</button></div><div class="sheet-list" id="provBody"></div></div></div>
+  <div class="sheetdlg" id="provpickdlg"><div class="sheetcard"><div class="sheet-h"><span id="provpickH"></span><button class="sheet-x" data-act="provpickclose">✕</button></div><div class="sheet-list" id="provpickBody"></div></div></div>
+  <div class="sheetdlg" id="empdlg"><div class="sheetcard"><div class="sheet-h"><span id="empH"></span><button class="sheet-x" data-act="empclose">✕</button></div><div class="sheet-list" id="empBody"></div></div></div>
   <div class="sheetdlg" id="plistdlg"><div class="sheetcard"><div class="sheet-h"><span id="plistH"></span><button class="sheet-x" data-act="plclose">✕</button></div><div class="sheet-list" id="plistBody"></div></div></div>
   <div class="sheetdlg" id="pinfodlg"><div class="sheetcard"><div class="sheet-h"><span id="pinfoH"></span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="pinfoBody"></div></div></div>
   <div class="sheetdlg" id="sharedlg"><div class="sheetcard"><div class="sheet-h"><span id="shareTitle">Recibo / Ticket</span><button class="sheet-x" data-act="close-sheet">✕</button></div><div class="sheet-list" id="shareBody"></div></div></div>
@@ -873,7 +913,7 @@ const I18N={
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
     perm_title:"Permitir notificaciones",perm_body:"Ábaco necesita permiso para avisarte cuando el producto esté por vencer.",perm_allow:"Permitir",perm_deny:"Ahora no",
     save:"Guardar",saved:"Producto guardado",editProduct:"Editar producto",updated:"Producto actualizado",del:"Eliminar producto",deleted:"Producto eliminado",
-    ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",ob_bodega_dir_title:"Tus bodegas",ob_create_new:"Crear nuevo negocio",ob_logo:"Logo (opcional)",au_gate_sub:"Ingresa a tu cuenta para continuar",au_signin:"Iniciar sesión",au_signup:"Crear cuenta",au_email:"Usuario o correo",au_email_ph:"usuario o tucorreo@…",au_pass:"Contraseña",au_pass_ph:"Tu contraseña",au_pass2:"Repetir contraseña",au_do_signin:"Entrar",au_do_signup:"Registrarme",au_to_signup:"¿No tienes cuenta? Regístrate",au_to_signin:"¿Ya tienes cuenta? Inicia sesión",au_need_email:"Escribe tu correo",au_need_pass:"Escribe tu contraseña",au_pass_short:"La contraseña debe tener al menos 6 caracteres",au_pass_nomatch:"Las contraseñas no coinciden",au_bad_creds:"Correo o contraseña incorrectos",au_exists:"Ese correo ya está registrado. Inicia sesión.",au_check_email:"Te enviamos un correo para confirmar la cuenta. Ábrelo y vuelve a iniciar sesión.",au_err:"No se pudo completar. Revisa tu conexión e inténtalo de nuevo.",au_working:"Un momento…",au_logout:"Cerrar sesión",au_logged:"Sesión: {e}",au_offline:"Sin conexión. Conéctate para iniciar sesión.",au_created:"Cuenta creada",au_ask_admin:"¿No tienes cuenta? Solicítala al administrador.",au_devby:"Desarrollado por",m_empty_store:"Vaciar este negocio",empty_confirm:"¿Vaciar TODOS los datos de este negocio (productos, ventas, compras, clientes, fotos) en este dispositivo y en la nube? No se puede deshacer.",empty_done:"Negocio vaciado",app_title:"Abanico · Bodega y Local",ex_gasto:"Gasto",ex_ingreso:"Ingreso",ex_add_gasto:"Agregar Gasto",ex_add_ingreso:"Agregar Ingreso",ex_edit_gasto:"Editar Gasto",ex_edit_ingreso:"Editar Ingreso",ex_cat:"Categoría",ex_desc:"Descripción",ex_time:"Hora",ex_type:"Tipo",ex_paid:"Pagado",ex_topay:"Por pagar",ex_tocollect:"Por cobrar",ex_paid_amt:"Pagado $",ex_due:"Deuda",ex_pays:"Pagos",ex_add_pay:"Agregar pago",ex_none:"No hay ingresos ni gastos extras. Usa los botones de abajo para agregar uno.",ex_export:"Exportar CSV",ex_cat_pick:"Seleccione la categoría",ex_cat_new:"Nueva categoría",ex_cat_add:"Agregar",ex_cat_none:"Aún no hay categorías. Escribe una arriba.",ex_need_cat:"Elige o crea una categoría",ex_need_total:"Escribe un total mayor que 0",ex_need_pay:"Escribe el valor del pago",ex_saved:"Guardado",ex_deleted:"Eliminado",ex_del:"Eliminar",ex_del_confirm:"¿Eliminar este registro?",ex_all:"Todos",ex_f_in:"Ingresos",ex_f_out:"Gastos",ex_f_paid:"Pagados",ex_f_pend:"Pendientes",ex_f_status:"Estado",ex_from:"Desde",ex_to:"Hasta",ex_apply:"Aplicar",ex_clear:"Limpiar",ex_all_cats:"Todas las categorías",ep_sub:"Gastos extras por pagar",ep_none:"No tiene gastos extras por pagar.",lang_title:"Idioma de la app",lang_auto:"Automático (el del dispositivo)",lang_desc:"En automático, la app usa el idioma que tiene el dispositivo. Elige uno a mano si tu equipo lo detecta mal.",lang_changing:"Cambiando el idioma…",pl_title:"Lista de precios de venta",pl_base:"Precio 1",pl_none:"Este producto no tiene precios adicionales. Agrégalos en el producto, en «Precios de venta adicionales».",pl_set:"Precio: {n} · {p}",xp_title:"Precios de venta adicionales",xp_default:"Precio {n}",xp_add:"Agregar precio de venta adicional",xp_edit:"Editar precio de venta adicional",xp_name:"Nombre del precio",xp_name_ph:"Ej.: Mayorista",xp_price:"Precio",xp_need:"Escribe un precio mayor que 0",ic_info:"Información del producto",ic_price:"Precios del producto",ic_disc:"Descuento o recargo",pi_buy:"Compra $",pi_sale:"Venta $",pi_info:"Información adicional del producto",pi_extra:"Precio adicional $",sale_edit:"Editar venta",sale_edit_save:"Guardar cambios",sale_edit_cancel:"Cancelar edición",sale_editing:"Editando la venta #{n}",sale_edit_saved:"Venta #{n} actualizada",sale_edit_empty:"La venta debe tener al menos un producto",sale_edit_imported:"Venta importada de Mi Negocio: no se puede editar.",sale_edited:"Editada",draft_sale:"Pedido recuperado: {n} producto(s)",draft_purchase:"Compra en curso recuperada",pdf_h_cost:"COMPRA $",pdf_h_sale:"VENTA $",dz_remote_empty:"Esta tienda se vació desde otro dispositivo",dz_remote_deleted:"Esta tienda se eliminó desde otro dispositivo",dz_title:"Zona de peligro",dz_empty_t:"Vaciar tienda",dz_empty_d:"Borra TODOS los datos (productos, ventas, compras, clientes, fotos) pero conserva la tienda. No se puede deshacer.",dz_del_t:"Eliminar tienda",dz_del_d:"Elimina la tienda por completo (datos y acceso) en este dispositivo y en la nube. No se puede deshacer.",dz_type_empty:"Escribe VACIAR para confirmar",dz_type_del:"Escribe ELIMINAR para confirmar",dz_kw_empty:"VACIAR",dz_kw_del:"ELIMINAR",dz_bad:"Confirmación incorrecta. Escribe {w} exactamente.",dz_deleted:"Tienda eliminada",dz_reset_t:"Borrar todo y empezar de cero",dz_reset_d:"Elimina TODAS las tiendas y bodegas de esta cuenta, con todos sus datos, en este dispositivo y en la nube. La cuenta queda vacía, lista para crear un negocio nuevo. No se puede deshacer.",dz_type_reset:"Escribe BORRAR TODO para confirmar",dz_kw_reset:"BORRAR TODO",reset_done:"Todo borrado",cfg_coin:"Símbolo de la moneda",cfg_numfmt:"Formato numérico",cfg_dlfolder:"Carpeta descarga",cfg_pdf_h:"Formato del PDF para las ventas",cfg_pdf_status:"Agregar status en la venta",cfg_fmt_normal:"Formato Normal",cfg_fmt_ticket:"Formato Ticket",cfg_scanner_h:"Seleccione Tipo Scanner",cfg_scanner1:"Scanner I (predeterminado)",cfg_scanner2:"Scanner II",cfg_cam_h:"Seleccione la cámara para el scanner",cfg_cam_back:"Cámara Trasera",cfg_cam_front:"Cámara Frontal",cfg_scan_cont:"Escaneo Continuo",cfg_other_h:"Otras opciones",cfg_o_client:"Agregar Información del cliente en el recibo.",cfg_o_incqty:"Incrementar la cantidad del producto cuando se agrega.",cfg_o_date:"Seleccionar la fecha manualmente.",cfg_o_notify:"Notificar clientes no registrados en ventas.",cfg_o_newline:"Habilitar detectar salto de linea en campo de textos para agregar productos con lectores de codigo de barras externos.",cfg_o_charts:"Reportes: Incluir Gráficas",cfg_restrict:"Restringir acceso",cfg_export_h:"Exportar información",cfg_exp_inv:"Exportar inventario",cfg_exp_sales:"Exportar historial de ventas",cfg_test_sound:"Probar sonido de venta",sync_ok:"En línea",sync_offline:"Sin conexión",sync_pending:"Pendiente por subir ({n})",sync_uploaded:"Datos sincronizados ✓",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",
+    ob_start:"Comenzar",ob_role_q:"¿Qué eres?",ob_role_sub:"Elige cómo vas a usar Abanico",ob_bodega:"Bodega",ob_bodega_d:"Manejo el stock y el inventario",ob_local:"Local",ob_local_d:"Vendo en una tienda",ob_bodega_create:"Crea tu bodega",ob_bodega_name:"Nombre de la bodega",ob_bodega_name_ph:"Ej.: Carlos Almacén",ob_id_title:"¡Bodega creada!",ob_id_label:"ID de tu bodega",ob_id_sub:"Con este ID otros locales se conectan a tu bodega.",ob_local_q:"¿Cómo trabajas?",ob_local_ancla:"Conectar una bodega",ob_local_ancla_d:"Uso el stock de una bodega por su ID",ob_local_propia:"Tengo mi propio stock",ob_local_propia_d:"Manejo el inventario dentro de mi tienda",ob_local_name:"Nombre de tu local",ob_local_name_ph:"Ej.: Tienda La Esquina",ob_enter_id:"ID de la bodega",ob_enter_id_ph:"Ej.: BOD-AB12",ob_continue:"Continuar",ob_enter:"Entrar",ob_need_name:"Escribe un nombre",ob_need_id:"Escribe el ID de la bodega",ob_bodega_dir_title:"Tus bodegas",ob_create_new:"Crear nuevo negocio",ob_logo:"Logo (opcional)",au_gate_sub:"Ingresa a tu cuenta para continuar",au_signin:"Iniciar sesión",au_signup:"Crear cuenta",au_email:"Usuario o correo",au_email_ph:"usuario o tucorreo@…",au_pass:"Contraseña",au_pass_ph:"Tu contraseña",au_pass2:"Repetir contraseña",au_do_signin:"Entrar",au_do_signup:"Registrarme",au_to_signup:"¿No tienes cuenta? Regístrate",au_to_signin:"¿Ya tienes cuenta? Inicia sesión",au_need_email:"Escribe tu correo",au_need_pass:"Escribe tu contraseña",au_pass_short:"La contraseña debe tener al menos 6 caracteres",au_pass_nomatch:"Las contraseñas no coinciden",au_bad_creds:"Correo o contraseña incorrectos",au_exists:"Ese correo ya está registrado. Inicia sesión.",au_check_email:"Te enviamos un correo para confirmar la cuenta. Ábrelo y vuelve a iniciar sesión.",au_err:"No se pudo completar. Revisa tu conexión e inténtalo de nuevo.",au_working:"Un momento…",au_logout:"Cerrar sesión",au_logged:"Sesión: {e}",au_offline:"Sin conexión. Conéctate para iniciar sesión.",au_created:"Cuenta creada",au_ask_admin:"¿No tienes cuenta? Solicítala al administrador.",au_devby:"Desarrollado por",m_empty_store:"Vaciar este negocio",empty_confirm:"¿Vaciar TODOS los datos de este negocio (productos, ventas, compras, clientes, fotos) en este dispositivo y en la nube? No se puede deshacer.",empty_done:"Negocio vaciado",app_title:"Abanico · Bodega y Local",prv_search:"Nombre Proveedor",prv_nocompany:"SIN EMPRESA",prv_new:"Agregar proveedor",prv_edit:"Editar proveedor",prv_company:"Empresa",prv_contact:"Contacto",prv_phone1:"Teléfono 1",prv_phone2:"Teléfono 2",prv_email:"Correo",prv_notes:"Comentario",prv_need:"Escribe el contacto o la empresa",prv_saved:"Proveedor guardado",prv_deleted:"Proveedor eliminado",prv_del:"Eliminar proveedor",prv_del_confirm:"¿Eliminar este proveedor? Sus compras no se borran.",prv_empty:"Aún no tienes proveedores. Agrégalos con el botón de la derecha o importa tu copia de Mi Negocio.",prv_nomatch:"Ningún proveedor coincide",prv_links:"Bodegas vinculadas",prv_purch:"Compras: {n} · {t}",prv_pick:"Seleccione el proveedor",prv_call:"Llamar",prv_from_contacts:"Desde contactos",prv_no_contacts:"No se pudo abrir los contactos del teléfono",prv_dup:"Ya existe ese proveedor",prv_csv_name:"Proveedores",emp_search:"Nombre del empleado",emp_new:"Agregar empleado",emp_name:"Nombre",emp_role:"Cargo",emp_salary:"Pago (salario) $",emp_phone:"Teléfono",emp_email:"Correo",emp_notes:"Información adicional",emp_need:"Escribe el nombre del empleado",emp_saved:"Empleado guardado",emp_deleted:"Empleado eliminado",emp_del:"Eliminar empleado",emp_del_confirm:"¿Eliminar este empleado? Sus pagos de nómina se conservan en los reportes.",emp_empty:"Aún no tienes empleados. Agrégalos con el botón de la derecha.",emp_nomatch:"Ningún empleado coincide",emp_tab_info:"Información",emp_tab_pay:"Nómina",emp_tab_att:"Asistencia",emp_pay_add:"Registrar pago",emp_pay_amt:"Monto",emp_pay_desc:"Descripción",emp_pay_none:"Sin pagos de nómina",emp_pay_total:"Total pagado",emp_pay_count:"Pagos",emp_pay_saved:"Pago de nómina registrado",emp_pay_del_confirm:"¿Eliminar este pago de nómina?",emp_pay_need:"Escribe el monto del pago",emp_att_add:"Registrar asistencia",emp_att_none:"Sin registros este mes",emp_att_saved:"Registro guardado",emp_last_pay:"Último pago: {d} · {m}",att_present:"Asistencia",att_absent:"Falta",att_late:"Retardo",att_permit:"Permiso",bk_extras:"Ingresos-Gastos",bk_see_prov:"Ver proveedores",bk_see_emp:"Ver empleados",ex_gasto:"Gasto",ex_ingreso:"Ingreso",ex_add_gasto:"Agregar Gasto",ex_add_ingreso:"Agregar Ingreso",ex_edit_gasto:"Editar Gasto",ex_edit_ingreso:"Editar Ingreso",ex_cat:"Categoría",ex_desc:"Descripción",ex_time:"Hora",ex_type:"Tipo",ex_paid:"Pagado",ex_topay:"Por pagar",ex_tocollect:"Por cobrar",ex_paid_amt:"Pagado $",ex_due:"Deuda",ex_pays:"Pagos",ex_add_pay:"Agregar pago",ex_none:"No hay ingresos ni gastos extras. Usa los botones de abajo para agregar uno.",ex_export:"Exportar CSV",ex_cat_pick:"Seleccione la categoría",ex_cat_new:"Nueva categoría",ex_cat_add:"Agregar",ex_cat_none:"Aún no hay categorías. Escribe una arriba.",ex_need_cat:"Elige o crea una categoría",ex_need_total:"Escribe un total mayor que 0",ex_need_pay:"Escribe el valor del pago",ex_saved:"Guardado",ex_deleted:"Eliminado",ex_del:"Eliminar",ex_del_confirm:"¿Eliminar este registro?",ex_all:"Todos",ex_f_in:"Ingresos",ex_f_out:"Gastos",ex_f_paid:"Pagados",ex_f_pend:"Pendientes",ex_f_status:"Estado",ex_from:"Desde",ex_to:"Hasta",ex_apply:"Aplicar",ex_clear:"Limpiar",ex_all_cats:"Todas las categorías",ep_sub:"Gastos extras por pagar",ep_none:"No tiene gastos extras por pagar.",lang_title:"Idioma de la app",lang_auto:"Automático (el del dispositivo)",lang_desc:"En automático, la app usa el idioma que tiene el dispositivo. Elige uno a mano si tu equipo lo detecta mal.",lang_changing:"Cambiando el idioma…",pl_title:"Lista de precios de venta",pl_base:"Precio 1",pl_none:"Este producto no tiene precios adicionales. Agrégalos en el producto, en «Precios de venta adicionales».",pl_set:"Precio: {n} · {p}",xp_title:"Precios de venta adicionales",xp_default:"Precio {n}",xp_add:"Agregar precio de venta adicional",xp_edit:"Editar precio de venta adicional",xp_name:"Nombre del precio",xp_name_ph:"Ej.: Mayorista",xp_price:"Precio",xp_need:"Escribe un precio mayor que 0",ic_info:"Información del producto",ic_price:"Precios del producto",ic_disc:"Descuento o recargo",pi_buy:"Compra $",pi_sale:"Venta $",pi_info:"Información adicional del producto",pi_extra:"Precio adicional $",sale_edit:"Editar venta",sale_edit_save:"Guardar cambios",sale_edit_cancel:"Cancelar edición",sale_editing:"Editando la venta #{n}",sale_edit_saved:"Venta #{n} actualizada",sale_edit_empty:"La venta debe tener al menos un producto",sale_edit_imported:"Venta importada de Mi Negocio: no se puede editar.",sale_edited:"Editada",draft_sale:"Pedido recuperado: {n} producto(s)",draft_purchase:"Compra en curso recuperada",pdf_h_cost:"COMPRA $",pdf_h_sale:"VENTA $",dz_remote_empty:"Esta tienda se vació desde otro dispositivo",dz_remote_deleted:"Esta tienda se eliminó desde otro dispositivo",dz_title:"Zona de peligro",dz_empty_t:"Vaciar tienda",dz_empty_d:"Borra TODOS los datos (productos, ventas, compras, clientes, fotos) pero conserva la tienda. No se puede deshacer.",dz_del_t:"Eliminar tienda",dz_del_d:"Elimina la tienda por completo (datos y acceso) en este dispositivo y en la nube. No se puede deshacer.",dz_type_empty:"Escribe VACIAR para confirmar",dz_type_del:"Escribe ELIMINAR para confirmar",dz_kw_empty:"VACIAR",dz_kw_del:"ELIMINAR",dz_bad:"Confirmación incorrecta. Escribe {w} exactamente.",dz_deleted:"Tienda eliminada",dz_reset_t:"Borrar todo y empezar de cero",dz_reset_d:"Elimina TODAS las tiendas y bodegas de esta cuenta, con todos sus datos, en este dispositivo y en la nube. La cuenta queda vacía, lista para crear un negocio nuevo. No se puede deshacer.",dz_type_reset:"Escribe BORRAR TODO para confirmar",dz_kw_reset:"BORRAR TODO",reset_done:"Todo borrado",cfg_coin:"Símbolo de la moneda",cfg_numfmt:"Formato numérico",cfg_dlfolder:"Carpeta descarga",cfg_pdf_h:"Formato del PDF para las ventas",cfg_pdf_status:"Agregar status en la venta",cfg_fmt_normal:"Formato Normal",cfg_fmt_ticket:"Formato Ticket",cfg_scanner_h:"Seleccione Tipo Scanner",cfg_scanner1:"Scanner I (predeterminado)",cfg_scanner2:"Scanner II",cfg_cam_h:"Seleccione la cámara para el scanner",cfg_cam_back:"Cámara Trasera",cfg_cam_front:"Cámara Frontal",cfg_scan_cont:"Escaneo Continuo",cfg_other_h:"Otras opciones",cfg_o_client:"Agregar Información del cliente en el recibo.",cfg_o_incqty:"Incrementar la cantidad del producto cuando se agrega.",cfg_o_date:"Seleccionar la fecha manualmente.",cfg_o_notify:"Notificar clientes no registrados en ventas.",cfg_o_newline:"Habilitar detectar salto de linea en campo de textos para agregar productos con lectores de codigo de barras externos.",cfg_o_charts:"Reportes: Incluir Gráficas",cfg_restrict:"Restringir acceso",cfg_export_h:"Exportar información",cfg_exp_inv:"Exportar inventario",cfg_exp_sales:"Exportar historial de ventas",cfg_test_sound:"Probar sonido de venta",sync_ok:"En línea",sync_offline:"Sin conexión",sync_pending:"Pendiente por subir ({n})",sync_uploaded:"Datos sincronizados ✓",logout:"Salir",mode_bodega:"Bodega",mode_local_ancla:"Local · bodega",mode_local_propia:"Local · stock propio",f_stockmin:"Stock mínimo",f_stockmax:"Stock máximo",f_location:"Ubicación en bodega",f_lote:"Lote",
     ob_tienda:"Tienda",ob_tienda_d:"Vendo en una tienda",ob_tienda_dir_title:"Tus tiendas",ob_tienda_create:"Crea tu tienda",ob_tienda_name:"Nombre de la tienda",ob_tienda_name_ph:"Ej.: Tienda La Esquina",ob_pass:"Contraseña de ingreso",ob_pass_ph:"••••",ob_need_pass:"Escribe la contraseña",ob_wrong_pass:"Contraseña incorrecta",ob_id_tienda_label:"ID de tu tienda",ob_enter_existing:"Entrar",mode_tienda:"Tienda",m_tiendas:"Tiendas",m_proveedores:"Proveedor",m_recepcion:"Recepción",m_despacho:"Despacho",m_movimientos:"Movimientos",m_control:"Control y auditoría",m_abastecimiento:"Abastecimiento",m_catalogo:"Catálogo",notifs:"Notificaciones",no_notifs:"Sin notificaciones",approve:"Aprobar",deny:"Rechazar",prov_hint:"Ingresa el ID de una bodega para pedir acceso a su catálogo.",prov_id_ph:"ID de la bodega (BOD-XXXX)",prov_request:"Solicitar acceso",prov_linked:"Bodegas conectadas",prov_empty:"Aún no tienes bodegas conectadas",prov_pending:"Solicitud enviada · esperando aprobación",prov_pending_h:"Solicitudes enviadas",req_sent:"Solicitud enviada",access_granted:"Conectado a la bodega",already_linked:"Ya estás conectado a esa bodega",approved_done:"Acceso aprobado ✓",rejected_done:"Acceso rechazado",m_ajustes:"Ajustes",ajustes_desc:"Gestiona el acceso de las tiendas a tu bodega.",unlink_h:"Tiendas con acceso",unlink_one:"Desvincular",unlink_all:"Desvincular todas las tiendas",unlinked_done:"Tienda desvinculada",unlinked_all_done:"Tiendas desvinculadas",n_unlinked:'La bodega "{b}" retiró tu acceso al catálogo',taken_h:"Productos tomados de tu catálogo",taken_qty:"Tomado de tu bodega",taken_sub:"Esta tienda ha tomado {n} unidad(es) de tu catálogo.",no_taken:"Esta tienda aún no ha tomado productos.",from_bodega:"De bodega: {b}",own_product:"Propio",rep_tsales_h:"Ventas de tus tiendas",rep_no_tsales:"Aún no hay ventas de tus tiendas.",rep_tot_rev:"Ventas totales",rep_units:"Unidades",rep_stores:"Tiendas",rep_by_store:"Ventas por tienda",rep_top_stores:"Top tiendas",rep_top_prod:"Productos más vendidos",rep_losses_h:"Pérdidas (Mermas)",rep_loss_total:"Pérdidas",rep_loss_count:"Mermas",rep_loss_by_prod:"Pérdidas por producto",rep_no_losses:"Aún no hay mermas registradas.",bodega_not_found:"No existe una bodega con ese ID",already_req:"Ya enviaste una solicitud a esa bodega",cat_title:"Catálogo",cat_add:"Agregar",cat_visible:"Solo ves nombre, cantidad disponible y precio de venta.",added_to_inv:"Agregado a tu inventario",no_stock:"Sin stock en la bodega",tiendas_title:"Tiendas vinculadas",requests_title:"Solicitudes de acceso",no_tiendas:"Aún no hay tiendas vinculadas",no_requests:"Sin solicitudes",n_req:'La tienda "{t}" quiere acceder a tu catálogo',n_approved:'La bodega "{b}" aprobó tu acceso',n_denied:'La bodega "{b}" negó tu acceso',n_dispatch:'La tienda "{t}" tomó {n} de "{p}"',n_sold:'La tienda "{t}" vendió {n} de "{p}"',n_sale_self:'Venta registrada #{n} · {m}',ns_sale:'Venta #{n}',ns_more:'+{n} producto(s) más',ns_units:'{n} unid.',needNameKey:"Escribe el nombre y la clave del producto",namePh:"Ej.: Arroz Diana 500 g",notif:"Notificaciones",more:"Más opciones",scanner:"Escáner de código de barras (demo)",categories:"Categorías",filters:"Filtros",addMove:"Registrar movimiento (demo)",closeRegDemo:"Cierre de caja (demo)"},
   en:{sync:"Synced · offline",soon:"Soon",
     m_inventario:"Inventory",m_servicios:"Services",m_ventas:"Sales",m_compras:"Purchases",m_caja:"Extra income-expenses",m_reportes:"Reports",m_empleados:"Employees",m_proveedores:"Provider",m_clientes:"Clients",m_calendario:"Calendar",m_respaldo:"Backup",m_vincular:"Link Web",m_recibo:"Receipt / Ticket",m_config:"Settings",m_tutorial:"Tutorial",m_contactar:"Contact",m_terminos:"Terms & Conditions",
@@ -892,7 +932,7 @@ const I18N={
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
     perm_title:"Allow notifications",perm_body:"Ábaco needs permission to alert you when the product is about to expire.",perm_allow:"Allow",perm_deny:"Not now",
     save:"Save",saved:"Product saved",editProduct:"Edit product",updated:"Product updated",del:"Delete product",deleted:"Product deleted",
-    ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",ob_bodega_dir_title:"Your warehouses",ob_create_new:"Create new business",ob_logo:"Logo (optional)",au_gate_sub:"Sign in to your account to continue",au_signin:"Sign in",au_signup:"Create account",au_email:"Username or email",au_email_ph:"username or you@…",au_pass:"Password",au_pass_ph:"Your password",au_pass2:"Repeat password",au_do_signin:"Sign in",au_do_signup:"Sign up",au_to_signup:"No account? Sign up",au_to_signin:"Have an account? Sign in",au_need_email:"Enter your email",au_need_pass:"Enter your password",au_pass_short:"Password must be at least 6 characters",au_pass_nomatch:"Passwords don't match",au_bad_creds:"Wrong email or password",au_exists:"That email is already registered. Sign in.",au_check_email:"We sent a confirmation email. Open it and sign in again.",au_err:"Couldn't complete. Check your connection and try again.",au_working:"One moment…",au_logout:"Sign out",au_logged:"Session: {e}",au_offline:"Offline. Connect to sign in.",au_created:"Account created",au_ask_admin:"No account? Ask your administrator.",au_devby:"Developed by",m_empty_store:"Empty this business",empty_confirm:"Erase ALL data of this business (products, sales, purchases, clients, photos) on this device and in the cloud? This cannot be undone.",empty_done:"Business emptied",app_title:"Abanico · Warehouse & Store",ex_gasto:"Expense",ex_ingreso:"Income",ex_add_gasto:"Add expense",ex_add_ingreso:"Add income",ex_edit_gasto:"Edit expense",ex_edit_ingreso:"Edit income",ex_cat:"Category",ex_desc:"Description",ex_time:"Time",ex_type:"Type",ex_paid:"Paid",ex_topay:"To pay",ex_tocollect:"To collect",ex_paid_amt:"Paid $",ex_due:"Debt",ex_pays:"Payments",ex_add_pay:"Add payment",ex_none:"No extra income or expenses yet. Use the buttons below to add one.",ex_export:"Export CSV",ex_cat_pick:"Select the category",ex_cat_new:"New category",ex_cat_add:"Add",ex_cat_none:"No categories yet. Type one above.",ex_need_cat:"Choose or create a category",ex_need_total:"Enter a total greater than 0",ex_need_pay:"Enter the payment amount",ex_saved:"Saved",ex_deleted:"Deleted",ex_del:"Delete",ex_del_confirm:"Delete this record?",ex_all:"All",ex_f_in:"Income",ex_f_out:"Expenses",ex_f_paid:"Paid",ex_f_pend:"Pending",ex_f_status:"Status",ex_from:"From",ex_to:"To",ex_apply:"Apply",ex_clear:"Clear",ex_all_cats:"All categories",ep_sub:"Extra expenses payable",ep_none:"You have no extra expenses payable.",lang_title:"App language",lang_auto:"Automatic (device language)",lang_desc:"On automatic, the app uses the device language. Pick one manually if your device detects it wrong.",lang_changing:"Changing the language…",pl_title:"Sale price list",pl_base:"Price 1",pl_none:"This product has no additional prices. Add them in the product, under “Additional sale prices”.",pl_set:"Price: {n} · {p}",xp_title:"Additional sale prices",xp_default:"Price {n}",xp_add:"Add additional sale price",xp_edit:"Edit additional sale price",xp_name:"Price name",xp_name_ph:"E.g.: Wholesale",xp_price:"Price",xp_need:"Enter a price greater than 0",ic_info:"Product info",ic_price:"Product prices",ic_disc:"Discount or surcharge",pi_buy:"Purchase $",pi_sale:"Sale $",pi_info:"Product additional info",pi_extra:"Additional price $",sale_edit:"Edit sale",sale_edit_save:"Save changes",sale_edit_cancel:"Cancel editing",sale_editing:"Editing sale #{n}",sale_edit_saved:"Sale #{n} updated",sale_edit_empty:"The sale must have at least one product",sale_edit_imported:"Sale imported from Mi Negocio: it can't be edited.",sale_edited:"Edited",draft_sale:"Order restored: {n} item(s)",draft_purchase:"Purchase in progress restored",pdf_h_cost:"PURCHASE $",pdf_h_sale:"SALE $",dz_remote_empty:"This store was emptied on another device",dz_remote_deleted:"This store was deleted on another device",dz_title:"Danger zone",dz_empty_t:"Empty store",dz_empty_d:"Erases ALL data (products, sales, purchases, clients, photos) but keeps the store. Cannot be undone.",dz_del_t:"Delete store",dz_del_d:"Deletes the store completely (data and access) on this device and in the cloud. Cannot be undone.",dz_type_empty:"Type EMPTY to confirm",dz_type_del:"Type DELETE to confirm",dz_kw_empty:"EMPTY",dz_kw_del:"DELETE",dz_bad:"Wrong confirmation. Type {w} exactly.",dz_deleted:"Store deleted",dz_reset_t:"Erase everything and start over",dz_reset_d:"Deletes ALL stores and warehouses of this account, with all their data, on this device and in the cloud. The account is left empty, ready to create a new business. Cannot be undone.",dz_type_reset:"Type ERASE ALL to confirm",dz_kw_reset:"ERASE ALL",reset_done:"Everything erased",cfg_coin:"Currency symbol",cfg_numfmt:"Number format",cfg_dlfolder:"Download folder",cfg_pdf_h:"Sales PDF format",cfg_pdf_status:"Add status on the sale",cfg_fmt_normal:"Normal format",cfg_fmt_ticket:"Ticket format",cfg_scanner_h:"Select scanner type",cfg_scanner1:"Scanner I (default)",cfg_scanner2:"Scanner II",cfg_cam_h:"Select camera for scanner",cfg_cam_back:"Back camera",cfg_cam_front:"Front camera",cfg_scan_cont:"Continuous scan",cfg_other_h:"Other options",cfg_o_client:"Add client info on the receipt.",cfg_o_incqty:"Increase product quantity when added.",cfg_o_date:"Select the date manually.",cfg_o_notify:"Notify unregistered clients in sales.",cfg_o_newline:"Detect line breaks in text fields to add products with external barcode readers.",cfg_o_charts:"Reports: Include charts",cfg_restrict:"Restrict access",cfg_export_h:"Export data",cfg_exp_inv:"Export inventory",cfg_exp_sales:"Export sales history",cfg_test_sound:"Test sale sound",sync_ok:"Online",sync_offline:"Offline",sync_pending:"Pending upload ({n})",sync_uploaded:"Data synced ✓",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",
+    ob_start:"Start",ob_role_q:"What are you?",ob_role_sub:"Choose how you'll use Abanico",ob_bodega:"Warehouse",ob_bodega_d:"I manage stock and inventory",ob_local:"Store",ob_local_d:"I sell in a shop",ob_bodega_create:"Create your warehouse",ob_bodega_name:"Warehouse name",ob_bodega_name_ph:"e.g. Carlos Warehouse",ob_id_title:"Warehouse created!",ob_id_label:"Your warehouse ID",ob_id_sub:"Stores connect to your warehouse with this ID.",ob_local_q:"How do you work?",ob_local_ancla:"Connect a warehouse",ob_local_ancla_d:"I use a warehouse's stock by its ID",ob_local_propia:"I have my own stock",ob_local_propia_d:"I manage inventory in my store",ob_local_name:"Your store name",ob_local_name_ph:"e.g. Corner Store",ob_enter_id:"Warehouse ID",ob_enter_id_ph:"e.g. BOD-AB12",ob_continue:"Continue",ob_enter:"Enter",ob_need_name:"Enter a name",ob_need_id:"Enter the warehouse ID",ob_bodega_dir_title:"Your warehouses",ob_create_new:"Create new business",ob_logo:"Logo (optional)",au_gate_sub:"Sign in to your account to continue",au_signin:"Sign in",au_signup:"Create account",au_email:"Username or email",au_email_ph:"username or you@…",au_pass:"Password",au_pass_ph:"Your password",au_pass2:"Repeat password",au_do_signin:"Sign in",au_do_signup:"Sign up",au_to_signup:"No account? Sign up",au_to_signin:"Have an account? Sign in",au_need_email:"Enter your email",au_need_pass:"Enter your password",au_pass_short:"Password must be at least 6 characters",au_pass_nomatch:"Passwords don't match",au_bad_creds:"Wrong email or password",au_exists:"That email is already registered. Sign in.",au_check_email:"We sent a confirmation email. Open it and sign in again.",au_err:"Couldn't complete. Check your connection and try again.",au_working:"One moment…",au_logout:"Sign out",au_logged:"Session: {e}",au_offline:"Offline. Connect to sign in.",au_created:"Account created",au_ask_admin:"No account? Ask your administrator.",au_devby:"Developed by",m_empty_store:"Empty this business",empty_confirm:"Erase ALL data of this business (products, sales, purchases, clients, photos) on this device and in the cloud? This cannot be undone.",empty_done:"Business emptied",app_title:"Abanico · Warehouse & Store",prv_search:"Provider name",prv_nocompany:"NO COMPANY",prv_new:"Add provider",prv_edit:"Edit provider",prv_company:"Company",prv_contact:"Contact",prv_phone1:"Phone 1",prv_phone2:"Phone 2",prv_email:"Email",prv_notes:"Comment",prv_need:"Enter the contact or the company",prv_saved:"Provider saved",prv_deleted:"Provider deleted",prv_del:"Delete provider",prv_del_confirm:"Delete this provider? Their purchases are kept.",prv_empty:"You have no providers yet. Add them with the button on the right or import your Mi Negocio backup.",prv_nomatch:"No provider matches",prv_links:"Linked warehouses",prv_purch:"Purchases: {n} · {t}",prv_pick:"Select the provider",prv_call:"Call",prv_from_contacts:"From contacts",prv_no_contacts:"Couldn't open the phone contacts",prv_dup:"That provider already exists",prv_csv_name:"Providers",emp_search:"Employee name",emp_new:"Add employee",emp_name:"Name",emp_role:"Position",emp_salary:"Pay (salary) $",emp_phone:"Phone",emp_email:"Email",emp_notes:"Additional information",emp_need:"Enter the employee's name",emp_saved:"Employee saved",emp_deleted:"Employee deleted",emp_del:"Delete employee",emp_del_confirm:"Delete this employee? Their payroll payments stay in the reports.",emp_empty:"You have no employees yet. Add them with the button on the right.",emp_nomatch:"No employee matches",emp_tab_info:"Information",emp_tab_pay:"Payroll",emp_tab_att:"Attendance",emp_pay_add:"Record payment",emp_pay_amt:"Amount",emp_pay_desc:"Description",emp_pay_none:"No payroll payments",emp_pay_total:"Total paid",emp_pay_count:"Payments",emp_pay_saved:"Payroll payment recorded",emp_pay_del_confirm:"Delete this payroll payment?",emp_pay_need:"Enter the payment amount",emp_att_add:"Record attendance",emp_att_none:"No records this month",emp_att_saved:"Record saved",emp_last_pay:"Last payment: {d} · {m}",att_present:"Present",att_absent:"Absent",att_late:"Late",att_permit:"Leave",bk_extras:"Income-Expenses",bk_see_prov:"See providers",bk_see_emp:"See employees",ex_gasto:"Expense",ex_ingreso:"Income",ex_add_gasto:"Add expense",ex_add_ingreso:"Add income",ex_edit_gasto:"Edit expense",ex_edit_ingreso:"Edit income",ex_cat:"Category",ex_desc:"Description",ex_time:"Time",ex_type:"Type",ex_paid:"Paid",ex_topay:"To pay",ex_tocollect:"To collect",ex_paid_amt:"Paid $",ex_due:"Debt",ex_pays:"Payments",ex_add_pay:"Add payment",ex_none:"No extra income or expenses yet. Use the buttons below to add one.",ex_export:"Export CSV",ex_cat_pick:"Select the category",ex_cat_new:"New category",ex_cat_add:"Add",ex_cat_none:"No categories yet. Type one above.",ex_need_cat:"Choose or create a category",ex_need_total:"Enter a total greater than 0",ex_need_pay:"Enter the payment amount",ex_saved:"Saved",ex_deleted:"Deleted",ex_del:"Delete",ex_del_confirm:"Delete this record?",ex_all:"All",ex_f_in:"Income",ex_f_out:"Expenses",ex_f_paid:"Paid",ex_f_pend:"Pending",ex_f_status:"Status",ex_from:"From",ex_to:"To",ex_apply:"Apply",ex_clear:"Clear",ex_all_cats:"All categories",ep_sub:"Extra expenses payable",ep_none:"You have no extra expenses payable.",lang_title:"App language",lang_auto:"Automatic (device language)",lang_desc:"On automatic, the app uses the device language. Pick one manually if your device detects it wrong.",lang_changing:"Changing the language…",pl_title:"Sale price list",pl_base:"Price 1",pl_none:"This product has no additional prices. Add them in the product, under “Additional sale prices”.",pl_set:"Price: {n} · {p}",xp_title:"Additional sale prices",xp_default:"Price {n}",xp_add:"Add additional sale price",xp_edit:"Edit additional sale price",xp_name:"Price name",xp_name_ph:"E.g.: Wholesale",xp_price:"Price",xp_need:"Enter a price greater than 0",ic_info:"Product info",ic_price:"Product prices",ic_disc:"Discount or surcharge",pi_buy:"Purchase $",pi_sale:"Sale $",pi_info:"Product additional info",pi_extra:"Additional price $",sale_edit:"Edit sale",sale_edit_save:"Save changes",sale_edit_cancel:"Cancel editing",sale_editing:"Editing sale #{n}",sale_edit_saved:"Sale #{n} updated",sale_edit_empty:"The sale must have at least one product",sale_edit_imported:"Sale imported from Mi Negocio: it can't be edited.",sale_edited:"Edited",draft_sale:"Order restored: {n} item(s)",draft_purchase:"Purchase in progress restored",pdf_h_cost:"PURCHASE $",pdf_h_sale:"SALE $",dz_remote_empty:"This store was emptied on another device",dz_remote_deleted:"This store was deleted on another device",dz_title:"Danger zone",dz_empty_t:"Empty store",dz_empty_d:"Erases ALL data (products, sales, purchases, clients, photos) but keeps the store. Cannot be undone.",dz_del_t:"Delete store",dz_del_d:"Deletes the store completely (data and access) on this device and in the cloud. Cannot be undone.",dz_type_empty:"Type EMPTY to confirm",dz_type_del:"Type DELETE to confirm",dz_kw_empty:"EMPTY",dz_kw_del:"DELETE",dz_bad:"Wrong confirmation. Type {w} exactly.",dz_deleted:"Store deleted",dz_reset_t:"Erase everything and start over",dz_reset_d:"Deletes ALL stores and warehouses of this account, with all their data, on this device and in the cloud. The account is left empty, ready to create a new business. Cannot be undone.",dz_type_reset:"Type ERASE ALL to confirm",dz_kw_reset:"ERASE ALL",reset_done:"Everything erased",cfg_coin:"Currency symbol",cfg_numfmt:"Number format",cfg_dlfolder:"Download folder",cfg_pdf_h:"Sales PDF format",cfg_pdf_status:"Add status on the sale",cfg_fmt_normal:"Normal format",cfg_fmt_ticket:"Ticket format",cfg_scanner_h:"Select scanner type",cfg_scanner1:"Scanner I (default)",cfg_scanner2:"Scanner II",cfg_cam_h:"Select camera for scanner",cfg_cam_back:"Back camera",cfg_cam_front:"Front camera",cfg_scan_cont:"Continuous scan",cfg_other_h:"Other options",cfg_o_client:"Add client info on the receipt.",cfg_o_incqty:"Increase product quantity when added.",cfg_o_date:"Select the date manually.",cfg_o_notify:"Notify unregistered clients in sales.",cfg_o_newline:"Detect line breaks in text fields to add products with external barcode readers.",cfg_o_charts:"Reports: Include charts",cfg_restrict:"Restrict access",cfg_export_h:"Export data",cfg_exp_inv:"Export inventory",cfg_exp_sales:"Export sales history",cfg_test_sound:"Test sale sound",sync_ok:"Online",sync_offline:"Offline",sync_pending:"Pending upload ({n})",sync_uploaded:"Data synced ✓",logout:"Log out",mode_bodega:"Warehouse",mode_local_ancla:"Store · warehouse",mode_local_propia:"Store · own stock",f_stockmin:"Minimum stock",f_stockmax:"Maximum stock",f_location:"Location in warehouse",f_lote:"Batch/Lot",
     ob_tienda:"Store",ob_tienda_d:"I sell in a shop",ob_tienda_dir_title:"Your stores",ob_tienda_create:"Create your store",ob_tienda_name:"Store name",ob_tienda_name_ph:"e.g. Corner Store",ob_pass:"Access password",ob_pass_ph:"••••",ob_need_pass:"Enter the password",ob_wrong_pass:"Wrong password",ob_id_tienda_label:"Your store ID",ob_enter_existing:"Enter",mode_tienda:"Store",m_tiendas:"Stores",m_proveedores:"Provider",m_recepcion:"Receiving",m_despacho:"Dispatch",m_movimientos:"Movements",m_control:"Audit & control",m_abastecimiento:"Restocking",m_catalogo:"Catalog",notifs:"Notifications",no_notifs:"No notifications",approve:"Approve",deny:"Reject",prov_hint:"Enter a warehouse ID to request access to its catalog.",prov_id_ph:"Warehouse ID (BOD-XXXX)",prov_request:"Request access",prov_linked:"Connected warehouses",prov_empty:"No connected warehouses yet",prov_pending:"Request sent · awaiting approval",prov_pending_h:"Sent requests",req_sent:"Request sent",access_granted:"Connected to warehouse",already_linked:"You're already connected to that warehouse",approved_done:"Access approved ✓",rejected_done:"Access rejected",m_ajustes:"Settings",ajustes_desc:"Manage stores' access to your warehouse.",unlink_h:"Stores with access",unlink_one:"Unlink",unlink_all:"Unlink all stores",unlinked_done:"Store unlinked",unlinked_all_done:"Stores unlinked",n_unlinked:'Warehouse "{b}" revoked your catalog access',taken_h:"Products taken from your catalog",taken_qty:"Taken from your warehouse",taken_sub:"This store has taken {n} unit(s) from your catalog.",no_taken:"This store hasn't taken any products yet.",from_bodega:"From warehouse: {b}",own_product:"Own",rep_tsales_h:"Your stores' sales",rep_no_tsales:"No sales from your stores yet.",rep_tot_rev:"Total sales",rep_units:"Units",rep_stores:"Stores",rep_by_store:"Sales by store",rep_top_stores:"Top stores",rep_top_prod:"Top products",rep_losses_h:"Losses (Shrinkage)",rep_loss_total:"Losses",rep_loss_count:"Shrinkage",rep_loss_by_prod:"Losses by product",rep_no_losses:"No shrinkage recorded yet.",bodega_not_found:"No warehouse with that ID",already_req:"You already requested that warehouse",cat_title:"Catalog",cat_add:"Add",cat_visible:"You only see name, available quantity and sale price.",added_to_inv:"Added to your inventory",no_stock:"No stock in the warehouse",tiendas_title:"Linked stores",requests_title:"Access requests",no_tiendas:"No linked stores yet",no_requests:"No requests",n_req:'Store "{t}" wants access to your catalog',n_approved:'Warehouse "{b}" approved your access',n_denied:'Warehouse "{b}" denied your access',n_dispatch:'Store "{t}" took {n} of "{p}"',n_sold:'Store "{t}" sold {n} of "{p}"',n_sale_self:'Sale registered #{n} · {m}',ns_sale:'Sale #{n}',ns_more:'+{n} more product(s)',ns_units:'{n} units',needNameKey:"Enter the product name and key",namePh:"e.g. Rice 500 g",notif:"Notifications",more:"More options",scanner:"Barcode scanner (demo)",categories:"Categories",filters:"Filters",addMove:"Register movement (demo)",closeRegDemo:"Close register (demo)"}
 };
 const L=(()=>{const q=new URLSearchParams(location.search).get("lang");if(q)return q.slice(0,2).toLowerCase();
@@ -929,7 +969,7 @@ function svg(p,s){return `<svg viewBox="0 0 24 24" ${s?`class="${s}"`:""}>${p}</
 const IC={inventario:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>',servicios:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/>',ventas:'<path d="M6 8h12l-1 11H7z"/><path d="M9 8a3 3 0 016 0"/>',compras:'<path d="M6 6h15l-1.5 9H8z"/><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M6 6L5 3H3"/>',caja:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',reportes:'<path d="M5 20V4M5 20h15M9 16v-5M13 16v-9M17 16v-3"/>',empleados:'<circle cx="12" cy="8" r="3"/><rect x="5" y="14" width="14" height="6" rx="3"/>',proveedores:'<circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M16 6a3 3 0 010 6"/>',clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>',calendario:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',respaldo:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',vincular:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',recibo:'<path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h5"/>',config:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M16.9 16.9l2.1 2.1M19.1 4.9l-2.1 2.1M6.9 16.9l-2.1 2.1"/>',ajustes:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M16.9 16.9l2.1 2.1M19.1 4.9l-2.1 2.1M6.9 16.9l-2.1 2.1"/>',tutorial:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.4 2.4 0 114.4 1.3c-.5.8-2 1.1-2 2.5"/><circle cx="12" cy="16.6" r="0.6"/>',contactar:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',terminos:'<path d="M12 3l7 3v6c0 4-3 7-7 8-4-1-7-4-7-8V6z"/><path d="M9 12l2 2 4-4"/>',
   tiendas:'<path d="M4 9l1.2-4h13.6L20 9"/><path d="M5 9v10h14V9"/><path d="M9 19v-5h6v5"/>',recepcion:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',despacho:'<path d="M3 7h13v9H3z"/><path d="M16 10h4l1 3v3h-5z"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',movimientos:'<path d="M7 7h11l-3-3M18 17H7l3 3"/>',control:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',abastecimiento:'<path d="M20 12a8 8 0 10-2.4 5.7"/><path d="M20 6v5h-5"/>',catalogo:'<path d="M6 4h11a2 2 0 012 2v14l-4-2-4 2-4-2V6a2 2 0 011-2z"/>'};
 const DRAWER_BODEGA=[{id:'inventario'},{id:'tiendas'},{id:'clientes'},{sep:1},{id:'recepcion',soon:1},{id:'despacho',soon:1},{id:'movimientos',soon:1},{sep:1},{id:'reportes'},{sep:1},{id:'control',soon:1},{id:'abastecimiento',soon:1},{sep:1},{id:'respaldo'},{id:'ajustes'}];
-const DRAWER_TIENDA=[{id:'inventario'},{id:'servicios',soon:1},{sep:1},{id:'ventas'},{id:'compras'},{id:'caja'},{id:'reportes'},{sep:1},{id:'empleados',soon:1},{id:'proveedores'},{id:'clientes'},{sep:1},{id:'calendario',soon:1},{id:'respaldo'},{id:'vincular',soon:1},{id:'recibo'},{id:'ajustes'},{sep:1},{id:'tutorial',soon:1},{id:'contactar',soon:1},{id:'terminos',soon:1}];
+const DRAWER_TIENDA=[{id:'inventario'},{id:'servicios',soon:1},{sep:1},{id:'ventas'},{id:'compras'},{id:'caja'},{id:'reportes'},{sep:1},{id:'empleados'},{id:'proveedores'},{id:'clientes'},{sep:1},{id:'calendario',soon:1},{id:'respaldo'},{id:'vincular',soon:1},{id:'recibo'},{id:'ajustes'},{sep:1},{id:'tutorial',soon:1},{id:'contactar',soon:1},{id:'terminos',soon:1}];
 function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRAWER_TIENDA:DRAWER_BODEGA;}
 
 const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,filterUnit:null,filterInfo:null,saleCatOpen:{},saleProdQ:'',cartPrice:{},saleStatus:'pagado',saleClient:'',salePay:'',saleTag:'',saleNote:'',saleAuto:true,receipt:{},repSel:{},repCharts:true,repRange:null,txDate:null,txType:'ventas',txBar:null,txtType:'ventas',txtInclCobrar:false,txtInclPagos:true,txtPt:null,purchases:[],porders:[],pcart:{},pcost:{},pprice:{},pprovider:'',pstatus:'pagado',pnote:'',pordForm:null,phistLimit:31,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null,rsvFilter:'all',units:[],mermas:[],mermaForm:null,catOpts:{layout:'list',name:true,key:true,sale:true,cost:false,qty:false,photo:true,info:false,instock:false,wholesale:false}};
@@ -1921,7 +1961,7 @@ function scReportesBodega(){
   <div class="section-h"><h2>${t('rep_top_prod')}</h2></div><div class="list">${topRows}</div>`;
 }
 /* ==================== COMPRAS ==================== */
-function providerNames(){const s=new Set();(state.purchases||[]).forEach(p=>{if(p.provider)s.add(p.provider);});(state.porders||[]).forEach(p=>{if(p.provider)s.add(p.provider);});return [...s];}
+function providerNames(){const s=new Set();provLive().forEach(p=>{const n=provName(p);if(n)s.add(n);});(state.purchases||[]).forEach(p=>{if(p.provider)s.add(p.provider);});(state.porders||[]).forEach(p=>{if(p.provider)s.add(p.provider);});return [...s];}
 function compraRow(p,box){
   const inCart=state.pcart[p.id]||0;
   const av=saleProdImg(p,box);
@@ -1964,7 +2004,7 @@ function compraCartHTML(){
   const opt=t('optional');
   const dl=`<datalist id="provList">${providerNames().map(n=>`<option value="${(''+n).replace(/"/g,'&quot;')}">`).join('')}</datalist>`;
   const fields=`
-    <div class="cfld"><input class="inp" id="pProvider" list="provList" autocomplete="off" placeholder="${t('cp_provider')} ${opt}" value="${(state.pprovider||'').replace(/"/g,'&quot;')}">${dl}</div>
+    <div class="cfld"><input class="inp" id="pProvider" list="provList" autocomplete="off" style="padding-right:50px" placeholder="${t('cp_provider')} ${opt}" value="${(state.pprovider||'').replace(/"/g,'&quot;')}">${dl}<button class="provbook" data-act="provpick:p" title="${t('prv_pick')}">${svg(PRV_BOOK)}</button></div>
     <div class="cfld"><textarea class="inp" id="pNote" rows="2" placeholder="${t('cp_note')} ${opt}">${(state.pnote||'')}</textarea></div>`;
   const actions=`<div class="saveact"><button class="cancelbtn" data-act="compracancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savecompra">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>`;
   return `<div class="cartwrap">${rows}${seg}${total}${fields}${actions}</div>`;
@@ -1972,13 +2012,13 @@ function compraCartHTML(){
 function pAdd(id){id=+id;state.pcart[id]=(state.pcart[id]||0)+1;if(state.screen==='compras')state.q='';render();}
 function pDec(id){id=+id;state.pcart[id]=Math.max(0,(state.pcart[id]||0)-1);if(!state.pcart[id]){delete state.pcart[id];if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}render();}
 function compraCancel(){state.pcart={};state.pcost={};state.pprice={};state.pprovider='';state.pnote='';state.pstatus='pagado';state.q='';render();}
-function provTpl(){if(!state.pprovider)state.pprovider=t('cp_provider_tpl');toast(state.pprovider);render();}
+function provTpl(){if(provLive().length)return openProvPick('p');if(!state.pprovider)state.pprovider=t('cp_provider_tpl');toast(state.pprovider);render();}
 function saveCompra(){
   const items=pcartItems();if(!items.length){toast(t('io_empty'));return;}
   const nums=(state.purchases||[]).map(p=>+p.id).filter(n=>isFinite(n));const id=(nums.length?Math.max(...nums):400)+1;
   items.forEach(i=>{const p=P(i.id);if(p){p.stock=(+p.stock||0)+i.q;const c=pLineCost(i.id);if(c>0)p.cost=c;const s=pLineSale(i.id);if(s>0)p.price=s;}});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=pcartTotal();
-  const purchase={id,folio:id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id)})),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};
+  const purchase={id,folio:id,date:todayISO(),time:tm,items:items.map(i=>({id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id)})),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=provByName(purchase.provider);if(pv)purchase.provId=pv.id;}
   state.purchases.unshift(purchase);
   state.pcart={};state.pcost={};state.pprice={};state.pprovider='';state.pnote='';state.pstatus='pagado';state.q='';
   persist();render();toast(`${t('cp_saved')} #${id} · ${money(tot)}`);
@@ -2002,7 +2042,7 @@ function scPOrders(){
     const dl=`<datalist id="provList2">${providerNames().map(n=>`<option value="${(''+n).replace(/"/g,'&quot;')}">`).join('')}</datalist>`;
     return `<div class="backrow" data-act="pordcancel">${chev} ${t('po_new')}</div>
     <div class="pad" style="padding-top:8px"><div style="display:flex;flex-direction:column;gap:12px">
-      <div class="fld"><span class="fl">${t('cp_provider')}</span><input class="inp" id="po_provider" list="provList2" value="${(f.provider||'').replace(/"/g,'&quot;')}">${dl}</div>
+      <div class="fld"><span class="fl">${t('cp_provider')}</span><div class="cfld"><input class="inp" id="po_provider" list="provList2" style="padding-right:50px" value="${(f.provider||'').replace(/"/g,'&quot;')}">${dl}<button class="provbook" data-act="provpick:po" title="${t('prv_pick')}">${svg(PRV_BOOK)}</button></div></div>
       <div style="display:flex;gap:10px">
         <div class="fld" style="flex:1"><span class="fl">${t('po_issue')}</span><input class="inp" id="po_issue" type="date" value="${f.issue||todayISO()}"></div>
         <div class="fld" style="flex:1"><span class="fl">${t('po_due')}</span><input class="inp" id="po_due" type="date" value="${f.due||''}"></div>
@@ -2709,7 +2749,8 @@ function scProveedores(){
   const pend=loadReq().filter(r=>r.tiendaId===tid&&r.status==='pending');
   const linkRows=linked.length?linked.map(bid=>{const b=getEntity('bodega',bid);return `<div class="row" data-catalog="${bid}"><div class="av" style="overflow:hidden">${b&&b.logo?`<img src="${b.logo}" style="width:100%;height:100%;object-fit:cover">`:svg(IC.inventario)}</div><div><div class="t">${b?b.name:bid}</div><div class="s">${bid} · ${t('cat_title')}</div></div><div class="r">${svg('<path d="M9 6l6 6-6 6"/>')}</div></div>`;}).join(''):`<div class="empty">${t('prov_empty')}</div>`;
   const pendRows=pend.map(r=>{const b=getEntity('bodega',r.bodegaId);return `<div class="row"><div class="av">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}</div><div><div class="t">${b?b.name:r.bodegaId}</div><div class="s">${t('prov_pending')}</div></div></div>`;}).join('');
-  return `<div class="osub" style="padding:2px 2px 10px;font-size:13px;color:var(--muted)">${t('prov_hint')}</div>
+  return `<div class="backrow" data-nav="proveedores" style="margin:-4px -4px 8px">${svg('<path d="M15 6l-6 6 6 6"/>')} ${t('m_proveedores')}</div>
+  <div class="osub" style="padding:2px 2px 10px;font-size:13px;color:var(--muted)">${t('prov_hint')}</div>
   <div class="isearch" style="margin-bottom:10px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="provId" placeholder="${t('prov_id_ph')}"></div>
   <button class="btn" data-act="reqaccess"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('prov_request')}</button>
   ${pend.length?`<div class="section-h"><h2>${t('prov_pending_h')}</h2></div><div class="list">${pendRows}</div>`:''}
@@ -2718,7 +2759,7 @@ function scProveedores(){
 function scCatalogo(){
   const bid=state.catBodega;const b=getEntity('bodega',bid);const d=loadDataOf(bid);
   const rows=(d.products||[]).length?(d.products).map(p=>`<div class="pick"><div class="info"><div class="t">${p.name}</div><div class="s">${p.cat||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
-  return `<div class="backrow" data-nav="proveedores">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
+  return `<div class="backrow" data-nav="bodegalinks">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
 }
 function scAjustes(){
   const isBod=state.profile&&state.profile.kind==='bodega';
@@ -2923,8 +2964,246 @@ function saveClient(){
   persist();closeCli();render();toast(t('cli_saved'));
 }
 function delClient(){if(!state.cliEdit)return;state.clients=state.clients.filter(c=>c.id!==state.cliEdit);state.cliEdit=null;persist();closeCli();render();toast(t('cli_deleted'));}
-const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProveedores,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes,recibo:scRecibo,repview:scRepView,compras:scCompras,phist:scPHist,porders:scPOrders};
-const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo',clientes:'m_clientes',recibo:'m_recibo',repview:'m_reportes',compras:'m_compras',phist:'cp_hist',porders:'cp_order'};
+/* ---------------- Proveedor (directorio, como Mi Negocio) ---------------- */
+const PRV_ICO='<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="2.6"/><path d="M8 16.5c.6-2 2.2-3 4-3s3.4 1 4 3"/><path d="M3 7h2M3 12h2M3 17h2"/>';
+const PRV_BOOK='<path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13.5"/>';
+const IC_WA='<path d="M4 20l1.3-4A8 8 0 1112 20a8 8 0 01-4-1.1z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 01-1.8-1.8l.8-1-1-2z"/>';
+function provLive(){return (state.providers||[]).filter(p=>p&&!p.del);}
+function provName(p){return (''+((p&&(p.contact||p.company))||'')).trim();}
+function provById(id){return provLive().find(p=>''+p.id===''+id);}
+function provByName(n){n=(''+(n||'')).trim().toLowerCase();if(!n)return null;return provLive().find(p=>provName(p).toLowerCase()===n)||provLive().find(p=>(''+(p.company||'')).trim().toLowerCase()===n)||null;}
+function provPurch(p){const n=provName(p).toLowerCase();return (state.purchases||[]).filter(c=>c&&(c.provId===p.id||(n&&(''+(c.provider||'')).trim().toLowerCase()===n)));}
+function telHref(x){return 'tel:'+(''+x).replace(/[^0-9+]/g,'');}
+function waHref(x){let d=(''+x).replace(/[^0-9]/g,'');if(d.length===10)d='57'+d;return 'https://wa.me/'+d;}
+function scProvList(){
+  const q=(state.q||'').toLowerCase().trim();
+  let list=provLive();
+  if(q)list=list.filter(p=>[p.contact,p.company,p.phone,p.phone2,p.email].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  list.sort((a,b)=>provName(a).localeCompare(provName(b)));
+  const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
+  const rows=shown.map(p=>{
+    const ph=p.phone||p.phone2;
+    return `<div class="clicard prvcard"><div class="cli-main" data-act="provedit:${exEsc(p.id)}"><div class="cli-ic prv-ic">${svg(PRV_ICO)}</div><div class="cli-tx"><div class="cli-n">${exEsc(provName(p))||'—'}</div><div class="cli-a">${p.company?exEsc(p.company):t('prv_nocompany')}</div></div></div><div class="cli-actions">${ph?`<a class="cli-act" href="${telHref(ph)}">${svg(IC_PHONE)}</a>`:''}</div></div>`;
+  }).join('');
+  const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
+  const isT=state.profile&&state.profile.kind==='tienda';
+  const chips=`<div class="chips">
+    <span class="fchip io" data-act="provcsv">${svg('<path d="M12 3v11M8 10l4 4 4-4"/><path d="M5 20h14"/>')} ${t('ex_export')}</span>
+    ${isT?`<span class="fchip" data-nav="bodegalinks">${svg(IC.inventario)} ${t('prv_links')}</span>`:''}
+  </div>`;
+  const canPick=('contacts' in navigator)&&('ContactsManager' in window);
+  const head=`<div class="invhead">
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('prv_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    ${canPick?`<button class="round" data-act="provcontact" title="${t('prv_from_contacts')}">${svg(PRV_BOOK)}</button>`:''}
+    <button class="round" data-act="provnew" title="${t('prv_new')}">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
+  </div>`;
+  return chips+head+(total?`<div class="list clilist">${rows}</div>${more}`:`<div class="empty" style="margin-top:30px">${provLive().length?t('prv_nomatch'):t('prv_empty')}</div>`);
+}
+function openProvForm(id,pre){
+  const p=id?provById(id):null;if(id&&!p)return;state.provEdit=p?p.id:null;
+  const v=p||pre||{};
+  document.getElementById('provH').textContent=t(p?'prv_edit':'prv_new');
+  const fld=(k,key,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp" id="pv_${key}" ${type?`type="${type}"`:''} value="${exEsc(v[key]||'')}"></div>`;
+  const ph=v.phone||v.phone2;
+  const quick=p&&(ph||p.email)?`<div class="prv-quick">
+      ${ph?`<a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(ph)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a>`:''}
+      ${p.email?`<a class="prv-q" href="mailto:${exEsc(p.email)}">${svg(IC_MAIL)}<span>${t('prv_email')}</span></a>`:''}
+    </div>`:'';
+  let hist='';if(p){const l=provPurch(p);if(l.length)hist=`<div class="prv-hist">${svg(IC.compras)} ${ti('prv_purch',{n:l.length,t:money(l.reduce((a,c)=>a+(+c.total||0),0))})}</div>`;}
+  document.getElementById('provBody').innerHTML=`<div class="exform">
+    ${quick}${hist}
+    ${fld('prv_contact','contact')}
+    ${fld('prv_company','company')}
+    ${fld('prv_phone1','phone','tel')}
+    ${fld('prv_phone2','phone2','tel')}
+    ${fld('prv_email','email','email')}
+    <div class="fld"><span class="fl">${t('prv_notes')}</span><textarea class="inp" id="pv_notes" rows="3">${exEsc(v.notes||'')}</textarea></div>
+    <div class="saveact"><button class="cancelbtn" data-act="provclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="provsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
+    ${p?`<button class="btn ghost exdel" data-act="provdel">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('prv_del')}</button>`:''}
+  </div>`;
+  document.getElementById('provdlg').classList.add('on');
+}
+function closeProvForm(){const d=document.getElementById('provdlg');if(d)d.classList.remove('on');}
+function saveProv(){
+  const g=k=>{const e=document.getElementById('pv_'+k);return e?e.value.trim():'';};
+  const data={contact:g('contact'),company:g('company'),phone:g('phone'),phone2:g('phone2'),email:g('email'),notes:g('notes')};
+  if(!data.contact&&!data.company){toast(t('prv_need'));return;}
+  state.providers=state.providers||[];
+  const nm=(data.contact||data.company).toLowerCase();
+  const dup=provLive().find(p=>p.id!==state.provEdit&&provName(p).toLowerCase()===nm&&(''+(p.company||'')).toLowerCase()===data.company.toLowerCase());
+  if(dup){toast(t('prv_dup'));return;}
+  if(state.provEdit){const p=provById(state.provEdit);if(p){Object.assign(p,data);p.edited=Date.now();}}
+  else{const folio=(state.providers||[]).reduce((a,p)=>Math.max(a,+p.folio||0),0)+1;state.providers.push({id:'P'+Date.now().toString(36)+Math.floor(Math.random()*1e3),folio,...data});}
+  persist();closeProvForm();render();toast(t('prv_saved'));
+}
+function delProv(){
+  const p=state.provEdit&&provById(state.provEdit);if(!p)return;if(!window.confirm(t('prv_del_confirm')))return;
+  p.del=true;p.edited=Date.now();state.provEdit=null;persist();closeProvForm();render();toast(t('prv_deleted'));
+}
+async function provFromContacts(){
+  try{const r=await navigator.contacts.select(['name','tel','email'],{multiple:false});const c=r&&r[0];if(!c)return;
+    openProvForm(null,{contact:((c.name||[])[0]||'').trim(),phone:((c.tel||[])[0]||'').trim(),phone2:((c.tel||[])[1]||'').trim(),email:((c.email||[])[0]||'').trim()});
+  }catch(e){toast(t('prv_no_contacts'));}
+}
+function exportProvCSV(){
+  const l=provLive().slice().sort((a,b)=>provName(a).localeCompare(provName(b)));if(!l.length){toast(t('io_empty'));return;}
+  const rows=[[t('prv_company'),t('prv_contact'),t('prv_phone1'),t('prv_phone2'),t('prv_email'),t('prv_notes')]];
+  l.forEach(p=>rows.push([p.company||'',p.contact||'',p.phone||'',p.phone2||'',p.email||'',p.notes||'']));
+  const csv='\ufeff'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
+  saveWithPicker(t('prv_csv_name')+' '+todayISO()+'.csv','text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
+}
+// Selector de proveedor (Compras y Orden de compra)
+let PROVPICK_T='p',PROVPICK_Q='';
+function openProvPick(target){
+  PROVPICK_T=target||'p';PROVPICK_Q='';
+  document.getElementById('provpickH').textContent=t('prv_pick');
+  document.getElementById('provpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="provPickQ" placeholder="${t('prv_search')}"></div></div><div id="provPickList"></div>`;
+  fillProvPick();
+  const q=document.getElementById('provPickQ');if(q)q.addEventListener('input',e=>{PROVPICK_Q=e.target.value;fillProvPick();});
+  document.getElementById('provpickdlg').classList.add('on');
+}
+function fillProvPick(){
+  const q=PROVPICK_Q.toLowerCase().trim();
+  let l=provLive();if(q)l=l.filter(p=>[p.contact,p.company,p.phone].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  l.sort((a,b)=>provName(a).localeCompare(provName(b)));
+  const box=document.getElementById('provPickList');if(!box)return;
+  box.innerHTML=l.length?l.map(p=>`<div class="row" data-act="provpicked:${exEsc(p.id)}"><div class="av">${svg(PRV_ICO)}</div><div style="min-width:0"><div class="t">${exEsc(provName(p))}</div><div class="s">${p.company?exEsc(p.company):t('prv_nocompany')}</div></div></div>`).join(''):`<div class="empty" style="margin-top:24px">${provLive().length?t('prv_nomatch'):t('prv_empty')}</div>`;
+}
+function closeProvPick(){const d=document.getElementById('provpickdlg');if(d)d.classList.remove('on');}
+function provPicked(id){
+  const p=provById(id);if(!p)return;const n=provName(p);closeProvPick();
+  if(PROVPICK_T==='po'){const e=document.getElementById('po_provider');if(e)e.value=n;if(state.pordForm)state.pordForm.provider=n;return;}
+  state.pprovider=n;const e=document.getElementById('pProvider');if(e)e.value=n;else{render();toast(t('cp_provider')+': '+n);}
+}
+
+/* ---------------- Empleados (con nómina y asistencia) ---------------- */
+const EMP_ICO='<circle cx="12" cy="7.5" r="3.4"/><path d="M5 21c0-4 3.2-6.5 7-6.5s7 2.5 7 6.5"/><path d="M10 14.8l2 2.2 2-2.2"/>';
+const ATT_TYPES=['att_present','att_absent','att_late','att_permit'];
+const ATT_COL={att_present:'#43a047',att_absent:'#e53935',att_late:'#f0a020',att_permit:'#4aa3df'};
+const ATT_FROM_MN={1:'att_present',2:'att_absent',3:'att_late',4:'att_permit'};
+function empLive(){return (state.employees||[]).filter(e=>e&&!e.del);}
+function empById(id){return (state.employees||[]).find(e=>''+e.id===''+id);}
+function empPays(id){return (state.payroll||[]).filter(p=>p&&!p.del&&''+p.emp===''+id).sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')));}
+function empAtt(id){return (state.attendance||[]).filter(a=>a&&!a.del&&''+a.emp===''+id);}
+function scEmpleados(){
+  const q=(state.q||'').toLowerCase().trim();
+  let list=empLive();
+  if(q)list=list.filter(e=>[e.name,e.role,e.phone].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const rows=list.map(e=>{const last=empPays(e.id)[0];
+    return `<div class="empcard" data-act="empopen:${exEsc(e.id)}">
+      <div class="emp-top"><div class="emp-n">${exEsc(e.name)}</div>${+e.salary?`<b class="num emp-sal">${money(+e.salary)}</b>`:''}</div>
+      <div class="emp-r">${exEsc(e.role||'')||t('sin_info')}</div>
+      <div class="emp-i">${exEsc(e.notes||'')||t('sin_info')}</div>
+      ${last?`<div class="emp-last">${svg(EX_IC.cal)} ${ti('emp_last_pay',{d:exEsc(last.date),m:money(+last.amount||0)})}</div>`:''}
+    </div>`;}).join('');
+  const head=`<div class="invhead">
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('emp_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <button class="round" data-act="empnew" title="${t('emp_new')}">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
+  </div>`;
+  return head+(list.length?`<div class="emplist">${rows}</div>`:`<div class="empty" style="margin-top:30px">${empLive().length?t('emp_nomatch'):t('emp_empty')}</div>`);
+}
+function openEmp(id,tab){
+  const e=id?empById(id):null;if(id&&(!e||e.del))return;
+  state.empSel=e?e.id:null;state.empTab=e?(tab||state.empTab||'info'):'info';state.empPayForm=null;state.empAttForm=null;
+  if(!state.empMonth)state.empMonth=todayISO().slice(0,7);
+  renderEmp();document.getElementById('empdlg').classList.add('on');
+}
+function closeEmp(){const d=document.getElementById('empdlg');if(d)d.classList.remove('on');}
+function pmOptions(cur){const pm=['','pm_efectivo','pm_nequi','pm_daviplata','pm_transferencia'];if(cur&&!pm.includes(cur))pm.push(cur);return pm.map(v=>`<option value="${exEsc(v)}" ${v===(cur||'')?'selected':''}>${v?exEsc(payLbl(v)):t('sale_payform')+' '+t('optional')}</option>`).join('');}
+function renderEmp(){
+  const e=state.empSel?empById(state.empSel):null;const tab=state.empTab||'info';
+  document.getElementById('empH').textContent=e?e.name:t('emp_new');
+  const tabs=e?`<div class="emptabs">${['info','pay','att'].map(k=>`<button class="emptab ${tab===k?'on':''}" data-act="emptab:${k}">${t('emp_tab_'+k)}</button>`).join('')}</div>`:'';
+  let body='';
+  const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
+  if(tab==='info'||!e){
+    const v=e||{};
+    const fld=(k,key,type,extra)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp ${type==='number'?'num':''}" id="em_${key}" ${type?`type="${type}"`:''} ${extra||''} value="${exEsc(v[key]==null?'':v[key])}"></div>`;
+    const ph=v.phone;
+    body=`<div class="exform">
+      ${e&&ph?`<div class="prv-quick"><a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(ph)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a></div>`:''}
+      ${fld('emp_name','name')}
+      ${fld('emp_role','role')}
+      ${fld('emp_salary','salary','number','inputmode="decimal" step="any"')}
+      ${fld('emp_phone','phone','tel')}
+      ${fld('emp_email','email','email')}
+      <div class="fld"><span class="fl">${t('emp_notes')}</span><textarea class="inp" id="em_notes" rows="3">${exEsc(v.notes||'')}</textarea></div>
+      <div class="saveact"><button class="cancelbtn" data-act="empclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="empsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
+      ${e?`<button class="btn ghost exdel" data-act="empdel">${trash} ${t('emp_del')}</button>`:''}
+    </div>`;
+  }else if(tab==='pay'){
+    const l=empPays(e.id);const tot=l.reduce((a,p)=>a+(+p.amount||0),0);const f=state.empPayForm;
+    const form=f?`<div class="empform">
+        <div class="ex-dt2"><input class="inp" id="ep_date" type="date" value="${exEsc(f.date)}"><input class="inp" id="ep_time" type="time" value="${exEsc(f.time)}"></div>
+        <div class="ctotal ex-total"><span class="l">${t('emp_pay_amt')} $</span><input class="inp num" id="ep_amt" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.amount)}"></div>
+        <div class="cfld"><select class="inp" id="ep_pay">${pmOptions(f.pay)}</select></div>
+        <div class="cfld"><textarea class="inp" id="ep_desc" rows="2" placeholder="${exEsc(t('emp_pay_desc'))}">${exEsc(f.desc)}</textarea></div>
+        <div class="saveact"><button class="cancelbtn" data-act="emppaycancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="emppaysave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
+      </div>`:`<button class="btn" data-act="emppaynew">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('emp_pay_add')}</button>`;
+    body=`<div class="exform">
+      <div class="emp-sum"><div><span>${t('emp_pay_total')}</span><b class="num">${money(tot)}</b></div><div><span>${t('emp_pay_count')}</span><b class="num">${l.length}</b></div></div>
+      ${form}
+      ${l.length?l.map(p=>`<div class="emppay"><div class="emppay-t"><span>${svg(EX_IC.cal)} ${exEsc(p.date)} ${exEsc((p.time||'').slice(0,5))}</span><b class="num">${money(+p.amount||0)}</b></div>
+        <div class="emppay-s"><span>${p.desc?exEsc(p.desc):t('sin_info')}${p.pay?' · '+exEsc(payLbl(p.pay)):''}</span><button class="cico del" data-act="emppaydel:${exEsc(p.id)}" title="${t('remove')}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:12px">${t('emp_pay_none')}</div>`}
+    </div>`;
+  }else{
+    const mo=state.empMonth||todayISO().slice(0,7);
+    const l=empAtt(e.id).filter(a=>(a.date||'').slice(0,7)===mo).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const cnt={};ATT_TYPES.forEach(k=>cnt[k]=0);l.forEach(a=>{cnt[a.type]=(cnt[a.type]||0)+1;});
+    const [yy,mm]=mo.split('-').map(Number);const mlabel=new Date(yy,mm-1,1).toLocaleDateString(LANG==='en'?'en-US':'es-CO',{month:'long',year:'numeric'});const mlabelC=mlabel.charAt(0).toUpperCase()+mlabel.slice(1);
+    const f=state.empAttForm;
+    const form=f?`<div class="empform">
+        <input class="inp" id="ea_date" type="date" value="${exEsc(f.date)}">
+        <div class="att-seg">${ATT_TYPES.map(k=>`<button class="att-b ${f.type===k?'on':''}" style="--c:${ATT_COL[k]}" data-act="empatttype:${k}">${t(k)}</button>`).join('')}</div>
+        <div class="cfld"><textarea class="inp" id="ea_desc" rows="2" placeholder="${exEsc(t('emp_pay_desc'))} ${t('optional')}">${exEsc(f.desc)}</textarea></div>
+        <div class="saveact"><button class="cancelbtn" data-act="empattcancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="empattsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
+      </div>`:`<button class="btn" data-act="empattnew">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('emp_att_add')}</button>`;
+    body=`<div class="exform">
+      <div class="att-mon"><button class="round" data-act="empmon:-1">${svg('<path d="M15 6l-6 6 6 6"/>')}</button><b>${mlabelC}</b><button class="round" data-act="empmon:1">${svg('<path d="M9 6l6 6-6 6"/>')}</button></div>
+      <div class="att-cnt">${ATT_TYPES.map(k=>`<div style="--c:${ATT_COL[k]}"><b class="num">${cnt[k]||0}</b><span>${t(k)}</span></div>`).join('')}</div>
+      ${form}
+      ${l.length?l.map(a=>`<div class="emppay"><div class="emppay-t"><span>${svg(EX_IC.cal)} ${exEsc(a.date)}</span><b style="color:${ATT_COL[a.type]||'var(--ink)'}">${t(a.type||'att_present')}</b></div>
+        <div class="emppay-s"><span>${a.desc?exEsc(a.desc):t('sin_info')}</span><button class="cico del" data-act="empattdel:${exEsc(a.id)}" title="${t('remove')}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:12px">${t('emp_att_none')}</div>`}
+    </div>`;
+  }
+  document.getElementById('empBody').innerHTML=tabs+body;
+}
+function saveEmp(){
+  const g=k=>{const el=document.getElementById('em_'+k);return el?el.value.trim():'';};
+  const data={name:g('name'),role:g('role'),salary:+g('salary')||0,phone:g('phone'),email:g('email'),notes:g('notes')};
+  if(!data.name){toast(t('emp_need'));return;}
+  state.employees=state.employees||[];
+  if(state.empSel){const e=empById(state.empSel);if(e){Object.assign(e,data);e.edited=Date.now();}persist();renderEmp();render();toast(t('emp_saved'));return;}
+  const folio=state.employees.reduce((a,e)=>Math.max(a,+e.folio||0),0)+1;const id='M'+Date.now().toString(36)+Math.floor(Math.random()*1e3);
+  state.employees.push({id,folio,...data});persist();render();state.empSel=id;state.empTab='info';renderEmp();toast(t('emp_saved'));
+}
+function delEmp(){const e=state.empSel&&empById(state.empSel);if(!e)return;if(!window.confirm(t('emp_del_confirm')))return;e.del=true;e.edited=Date.now();state.empSel=null;persist();closeEmp();render();toast(t('emp_deleted'));}
+function readEmpPay(){const f=state.empPayForm;if(!f)return;const g=id=>document.getElementById(id);if(g('ep_date'))f.date=g('ep_date').value;if(g('ep_time'))f.time=g('ep_time').value;if(g('ep_amt'))f.amount=g('ep_amt').value;if(g('ep_pay'))f.pay=g('ep_pay').value;if(g('ep_desc'))f.desc=g('ep_desc').value;}
+function saveEmpPay(){
+  readEmpPay();const f=state.empPayForm;const e=state.empSel&&empById(state.empSel);if(!f||!e)return;
+  const amt=+f.amount||0;if(amt<=0){toast(t('emp_pay_need'));return;}
+  state.payroll=state.payroll||[];
+  state.payroll.push({id:'N'+Date.now().toString(36)+Math.floor(Math.random()*1e3),emp:e.id,empName:e.name,date:f.date||todayISO(),time:f.time||'',amount:amt,pay:f.pay||'',desc:(f.desc||'').trim()});
+  state.empPayForm=null;persist();renderEmp();toast(t('emp_pay_saved'));
+}
+function delEmpPay(id){const p=(state.payroll||[]).find(x=>''+x.id===''+id);if(!p)return;if(!window.confirm(t('emp_pay_del_confirm')))return;p.del=true;p.edited=Date.now();persist();renderEmp();}
+function saveEmpAtt(){
+  const f=state.empAttForm;const e=state.empSel&&empById(state.empSel);if(!f||!e)return;
+  const g=id=>document.getElementById(id);if(g('ea_date'))f.date=g('ea_date').value;if(g('ea_desc'))f.desc=g('ea_desc').value;
+  state.attendance=state.attendance||[];
+  state.attendance.push({id:'A'+Date.now().toString(36)+Math.floor(Math.random()*1e3),emp:e.id,date:f.date||todayISO(),type:f.type||'att_present',desc:(f.desc||'').trim()});
+  state.empMonth=(f.date||todayISO()).slice(0,7);state.empAttForm=null;persist();renderEmp();toast(t('emp_att_saved'));
+}
+function delEmpAtt(id){const a=(state.attendance||[]).find(x=>''+x.id===''+id);if(!a)return;a.del=true;a.edited=Date.now();persist();renderEmp();}
+function empMonthShift(d){const [y,m]=(state.empMonth||todayISO().slice(0,7)).split('-').map(Number);const dt=new Date(y,m-1+d,1);state.empMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');renderEmp();}
+function clip(x){x=(''+(x==null?'':x)).trim();return /^sin informaci[oó]n$/i.test(x)?'':x;}
+function bkMergeById(stKey,list){
+  if(!list||!list.length)return 0;state[stKey]=state[stKey]||[];const by={};state[stKey].forEach(x=>{if(x)by[''+x.id]=x;});let n=0;
+  list.forEach(x=>{const ex=by[''+x.id];if(ex){if(!ex.edited&&!ex.del)Object.assign(ex,x);}else{state[stKey].push(x);n++;}});return n;
+}
+const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProvList,bodegalinks:scProveedores,empleados:scEmpleados,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes,recibo:scRecibo,repview:scRepView,compras:scCompras,phist:scPHist,porders:scPOrders};
+const secKey={inventario:'m_inventario',ventas:'m_ventas',caja:'m_caja',reportes:'m_reportes',nueva:'newSale',tiendas:'m_tiendas',tiendadet:'m_tiendas',proveedores:'m_proveedores',bodegalinks:'prv_links',empleados:'m_empleados',catalogo:'m_catalogo',ajustes:'m_ajustes',respaldo:'m_respaldo',clientes:'m_clientes',recibo:'m_recibo',repview:'m_reportes',compras:'m_compras',phist:'cp_hist',porders:'cp_order'};
 
 /* ---------------- add product form ---------------- */
 function formHTML(){
@@ -3484,7 +3763,7 @@ async function bkHandleFile(file){
     let purchases=[];let purchaseLines={};try{
       const compRows=bkExec(db,'SELECT * FROM compra_pedido');   // SELECT * = resiliente a esquemas distintos
       const cQty={};try{bkExec(db,'SELECT * FROM compra_producto').forEach(l=>{const k='C'+l.folio;(purchaseLines[k]=purchaseLines[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,cost:+l.p_compra||0,price:+l.p_venta||0,subtotal:(+l.p_compra||0)*(+l.cantidad||0)});cQty[l.folio]=(cQty[l.folio]||0)+(+l.cantidad||0);});}catch(_){}
-      purchases=compRows.map(c=>{const o={id:'C'+c.folio,folio:c.folio,date:(''+(c.fecha||'')).trim(),time:c.hora||'',total:+c.total||0,provider:c.nombre_proveedor||'',pay:payMap[c.id_forma_pago]||'',note:c.info_adicional||'',status:(+c.status===2?'porpagar':'pagado'),n:cQty[c.folio]||0,imported:true};const pays=parsePays(c.pagos);if(pays.length)o.pays=pays;
+      purchases=compRows.map(c=>{const o={id:'C'+c.folio,folio:c.folio,date:(''+(c.fecha||'')).trim(),time:c.hora||'',total:+c.total||0,provider:c.nombre_proveedor||'',provId:(+c.id_proveedor>0?'P'+c.id_proveedor:undefined),pay:payMap[c.id_forma_pago]||'',note:c.info_adicional||'',status:(+c.status===2?'porpagar':'pagado'),n:cQty[c.folio]||0,imported:true};const pays=parsePays(c.pagos);if(pays.length)o.pays=pays;
         // Compras por pagar (con deuda): incrustar el detalle para que viaje a todo dispositivo (precio = compra)
         const paid=pays.length?pays.reduce((a,x)=>a+(+x.p||0),0):((+c.status===2)?0:(+c.total||0));
         const ls=purchaseLines['C'+c.folio];
@@ -3497,9 +3776,16 @@ async function bkHandleFile(file){
         const tot=+c.total||0;const o={id:'E'+c.folio,folio:c.folio,date:(''+(c.fecha||'')).trim().slice(0,10),time:(''+(c.hora||'')).trim(),type:(+c.tipo===1?'in':'out'),cat:(''+(c.categoria||'')).trim(),desc,concept:desc||(''+(c.categoria||'')).trim(),total:tot,amount:tot,status:(+c.status===2?'pendiente':'pagado'),pay:payMap[c.id_forma_pago]||'',imported:true};if(pays.length)o.pays=pays;return o;});
       extraCats=bkExec(db,'SELECT * FROM categoria_nominal').map(c=>({name:(''+(c.categoria||'')).trim(),type:(+c.tipo===1?'in':'out')})).filter(c=>c.name);
     }catch(_){extras=[];extraCats=[];}
+    // Proveedores + Empleados (nómina y asistencia)
+    let providers=[],employees=[],payroll=[],attendance=[];
+    try{providers=bkExec(db,'SELECT * FROM proveedor').map(r=>({id:'P'+r.folio,folio:+r.folio||0,company:clip(r.empresa),contact:clip(r.contacto),phone:clip(r.telefono1),phone2:clip(r.telefono2),email:clip(r.correo),notes:clip(r.comentario),imported:true})).filter(p=>p.company||p.contact);}catch(_){providers=[];}
+    try{employees=bkExec(db,'SELECT * FROM empleado').map(r=>({id:'M'+r.folio,folio:+r.folio||0,name:clip(r.nombre),role:clip(r.etiqueta),salary:+r.pago||0,phone:clip(r.telefono1),email:clip(r.correo),notes:clip(r.info_adicional),imported:true})).filter(e=>e.name);}catch(_){employees=[];}
+    const empName={};employees.forEach(e=>empName[e.id]=e.name);
+    try{payroll=bkExec(db,'SELECT * FROM empleado_nomina').map(r=>{const f=(''+(r.fecha||'')).trim();return {id:'N'+r.id,emp:'M'+r.folio,empName:empName['M'+r.folio]||'',date:f.slice(0,10),time:f.slice(10).trim().slice(0,5),amount:+r.pago||0,pay:payMap[r.id_forma_pago]||'',desc:clip(r.descripcion),imported:true};}).filter(p=>p.date);}catch(_){payroll=[];}
+    try{attendance=bkExec(db,'SELECT * FROM empleado_asistencia').map(r=>({id:'A'+r.id,emp:'M'+r.folio,date:(''+(r.fecha||'')).trim().slice(0,10),type:ATT_FROM_MN[+r.tipo]||'att_present',desc:clip(r.descripcion),imported:true})).filter(a=>a.date);}catch(_){attendance=[];}
     // Archivo crudo: guardar TODA tabla que aún no tiene módulo, para no perder nada y poder consultarla
     let rawTables={};try{
-      const skip=new Set(['android_metadata','producto','categorias','cliente','venta','venta_producto','compra_pedido','compra_producto','cuenta_nominal','categoria_nominal']);
+      const skip=new Set(['android_metadata','producto','categorias','cliente','venta','venta_producto','compra_pedido','compra_producto','cuenta_nominal','categoria_nominal','proveedor','empleado','empleado_nomina','empleado_asistencia']);
       const tnames=bkExec(db,"SELECT name FROM sqlite_master WHERE type='table'").map(r=>r.name).filter(n=>n&&!skip.has(n));
       tnames.forEach(tn=>{try{const rows=bkExec(db,'SELECT * FROM "'+tn+'"');if(rows&&rows.length)rawTables[tn]=rows;}catch(_){}});
     }catch(_){rawTables={};}
@@ -3511,6 +3797,7 @@ async function bkHandleFile(file){
       clientes:+bkScalar(db,'SELECT COUNT(*) FROM cliente')||0,
       proveedores:+bkScalar(db,'SELECT COUNT(*) FROM proveedor')||0,
       compras:+bkScalar(db,'SELECT COUNT(*) FROM compra_pedido')||0,
+      empleados:employees.length,extras:extras.length,
       imagenes:imgCount,
       fmin:bkScalar(db,'SELECT MIN(fecha) FROM venta')||'',
       fmax:bkScalar(db,'SELECT MAX(fecha) FROM venta')||'',
@@ -3519,7 +3806,7 @@ async function bkHandleFile(file){
     };
     db.close();
     BKZIP=zip;
-    state.bk={biz,catMap,products,clients,sales,purchases,purchaseLines,extras,extraCats,rawTables,saleLines:linesByFolio,stats,imgSet,units,fileName:file.name};
+    state.bk={biz,catMap,products,clients,sales,purchases,purchaseLines,extras,extraCats,providers,employees,payroll,attendance,rawTables,saleLines:linesByFolio,stats,imgSet,units,fileName:file.name};
     bkStatus(t('bk_importing'));await bkYield();
     state.bkLoading=false;state.bkImgUrls={};
     if(state.bkInvOnly)bkImportInventory();   // desde Importar/Exportar: SOLO inventario
@@ -3581,6 +3868,10 @@ function bkImportAll(){
   const sv=bkMergeSales();                  // ventas (historial)
   const cp=bkMergePurchases();              // compras (historial)
   bkMergeExtras();                          // ingresos y gastos extras + categorías
+  bkMergeById('providers',state.bk.providers);   // proveedores
+  bkMergeById('employees',state.bk.employees);   // empleados
+  bkMergeById('payroll',state.bk.payroll);       // nómina (alimenta "Salario" en los reportes)
+  bkMergeById('attendance',state.bk.attendance); // asistencia
   // Datos del recibo desde la copia de Mi Negocio (solo si aún no se personalizó)
   const biz=state.bk.biz||{};const rcur=state.receipt||{};
   {const rc=Object.assign({},rcur);let ch=false;const fill=(k,v)=>{if(!rc[k]&&v){rc[k]=v;ch=true;}};
@@ -3654,12 +3945,15 @@ function scBackup(){
     <div class="kpis kpis3"><div class="kpi hero"><div class="k-l" style="color:#e2e4e6">${t('bk_val_venta')}</div><div class="k-v num">${money(s.valorVenta)}</div><div class="k-sub" style="color:#e2e4e6">${t('bk_val_costo')} ${money(s.valorCosto)}</div></div></div>
     <div class="kpis kpis3">${stat(t('kpi_products'),s.productos)}${stat(t('m_categorias'),s.categorias)}${stat(t('bk_images'),s.imagenes)}</div>
     <div class="kpis kpis3">${stat(t('m_ventas'),s.ventas)}${stat(t('m_clientes'),s.clientes)}${stat(t('m_compras'),s.compras)}</div>
+    <div class="kpis kpis3">${stat(t('m_proveedores'),s.proveedores||0)}${stat(t('m_empleados'),s.empleados||0)}${stat(t('bk_extras'),s.extras||0)}</div>
     <div class="bkdates">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('bk_sales_range')}: <b>${dates}</b></div>
     ${b.imported?`<div class="bkok">${svg('<path d="M5 12l5 5L20 7"/>')} ${b.imported.invOnly?ti('bk_inv_ok',{p:b.imported.p}):ti('bk_imported_ok',{p:b.imported.p,c:b.imported.c,v:b.imported.v||0,cp:b.imported.cp||0})}</div>
     <button class="btn" data-act="bk:seeinv">${svg(IC.inventario)} ${t('bk_see_inv')}</button>
     ${b.imported.v?`<button class="btn ghost" data-act="bk:seeven" style="margin-top:8px">${svg(IC.ventas)} ${t('bk_see_ven')}</button>`:''}
     ${b.imported.cp?`<button class="btn ghost" data-act="bk:seecompras" style="margin-top:8px">${svg(IC.compras)} ${t('bk_see_compras')}</button>`:''}
-    ${b.imported.c?`<button class="btn ghost" data-act="bk:seecli" style="margin-top:8px">${svg(CLI_ICO)} ${t('bk_see_cli')}</button>`:''}`:''}
+    ${b.imported.c?`<button class="btn ghost" data-act="bk:seecli" style="margin-top:8px">${svg(CLI_ICO)} ${t('bk_see_cli')}</button>`:''}
+    ${(b.providers||[]).length?`<button class="btn ghost" data-nav="proveedores" style="margin-top:8px">${svg(PRV_ICO)} ${t('bk_see_prov')}</button>`:''}
+    ${(b.employees||[]).length?`<button class="btn ghost" data-nav="empleados" style="margin-top:8px">${svg(EMP_ICO)} ${t('bk_see_emp')}</button>`:''}`:''}
     <button class="btn ghost" data-act="bk:reset" style="margin-top:8px">${t('bk_other')}</button>
     <div class="section-h"><h2>${ti('bk_prev',{n:Math.min(40,s.productos)})}</h2></div>
     <div class="list">${preview}</div>
@@ -3689,7 +3983,7 @@ function render(){
   document.getElementById("screen").firstElementChild.className=noPad?"":"pad";
   body.className=noPad?"":"pad";body.innerHTML=SCREENS[state.screen]();
   document.getElementById("barShop").textContent=(state.profile&&state.profile.name)||'Abanico';
-  document.getElementById("barSection").textContent=(state.screen==='nueva'&&state.editSale?t('sale_edit'):t(secKey[state.screen]||'m_inventario'))+(state.screen==='clientes'?'  #'+state.clients.length:'');
+  document.getElementById("barSection").textContent=(state.screen==='nueva'&&state.editSale?t('sale_edit'):t(secKey[state.screen]||'m_inventario'))+(state.screen==='clientes'?'  #'+state.clients.length:(state.screen==='proveedores'?'  #'+provLive().length:(state.screen==='empleados'?'  #'+empLive().length:'')));
   const fabShow=(state.screen==='inventario'||state.screen==='ventas')&&!document.getElementById('device').classList.contains('form-open');
   document.getElementById("fab").style.display=fabShow?"grid":"none";
   const bd=document.getElementById('bellDot');if(bd)bd.hidden=unreadCount(currentDataId())===0;
@@ -3704,7 +3998,7 @@ function render(){
 }
 let toastT;function toast(m){const t2=document.getElementById("toast");document.getElementById("toastMsg").textContent=m;t2.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t2.classList.remove("on"),2200);}
 function drawer(open){document.getElementById("device").classList.toggle("drawer-open",open);}
-function go(s){if(s==="nueva"||s==="inventario"||s==="clientes"||s==="ventas"||s==="compras")state.q="";if(s==="phist")state.phistLimit=31;state.bkInvOnly=false;state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
+function go(s){if(s==="nueva"||s==="inventario"||s==="clientes"||s==="ventas"||s==="compras"||s==="proveedores"||s==="empleados")state.q="";if(s==="phist")state.phistLimit=31;state.bkInvOnly=false;state._keep=0;state.invLimit=INV_PAGE;state.screen=s;drawer(false);render();}
 function checkout(){if(!cartItems().length)return;openPay();}
 const PAY_METHODS=['efectivo','nequi','daviplata','transferencia'];
 function openPay(){
@@ -3756,7 +4050,7 @@ function sbDocData(key){switch(key){case 'sales':return state.sales;case 'produc
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'}];
+const MOD_DOCS=[{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true}];
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases',...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -4646,6 +4940,32 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="setpay"){state.salePay='pm_'+el.dataset.act.split(":")[1];closePay();return render();}
     if(a==="savesale")return saveSale();
     if(a==="salecancel")return saleCancel();
+    if(a==="provnew")return openProvForm(null);
+    if(a==="provedit")return openProvForm(el.dataset.act.slice(9));
+    if(a==="provsave")return saveProv();
+    if(a==="provdel")return delProv();
+    if(a==="provclose")return closeProvForm();
+    if(a==="provcsv")return exportProvCSV();
+    if(a==="provcontact")return provFromContacts();
+    if(a==="provpick")return openProvPick(el.dataset.act.split(":")[1]);
+    if(a==="provpicked")return provPicked(el.dataset.act.slice(11));
+    if(a==="provpickclose")return closeProvPick();
+    if(a==="empnew")return openEmp(null);
+    if(a==="empopen")return openEmp(el.dataset.act.slice(8));
+    if(a==="empclose")return closeEmp();
+    if(a==="empsave")return saveEmp();
+    if(a==="empdel")return delEmp();
+    if(a==="emptab"){readEmpPay();state.empTab=el.dataset.act.split(":")[1];return renderEmp();}
+    if(a==="emppaynew"){const e=empById(state.empSel);const d=new Date();state.empPayForm={date:todayISO(),time:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),amount:e&&+e.salary?+e.salary:'',pay:'',desc:''};return renderEmp();}
+    if(a==="emppaycancel"){state.empPayForm=null;return renderEmp();}
+    if(a==="emppaysave")return saveEmpPay();
+    if(a==="emppaydel")return delEmpPay(el.dataset.act.slice(10));
+    if(a==="empattnew"){state.empAttForm={date:todayISO(),type:'att_present',desc:''};return renderEmp();}
+    if(a==="empatttype"){const f=state.empAttForm;if(f){const g=id=>document.getElementById(id);if(g('ea_date'))f.date=g('ea_date').value;if(g('ea_desc'))f.desc=g('ea_desc').value;f.type=el.dataset.act.split(":")[1];}return renderEmp();}
+    if(a==="empattcancel"){state.empAttForm=null;return renderEmp();}
+    if(a==="empattsave")return saveEmpAtt();
+    if(a==="empattdel")return delEmpAtt(el.dataset.act.slice(10));
+    if(a==="empmon")return empMonthShift(+el.dataset.act.split(":")[1]);
     if(a==="exnew")return openExForm(el.dataset.act.split(":")[1]);
     if(a==="exedit")return openExForm(null,el.dataset.act.slice(7));
     if(a==="exclose")return closeExForm();
@@ -4773,7 +5093,7 @@ function topLayer(){
   return list[0];
 }
 // Cada ventana se cierra igual que con su X
-const BACK_CLOSE={permdlg:()=>permResult(false),sharedlg:()=>closeShareRecibo(),pinfodlg:()=>closePInfo(),exdlg:()=>closeExForm(),excatdlg:()=>closeExCat(),exfltdlg:()=>closeExFlt(),plistdlg:()=>closePriceList(),xpdlg:()=>closeXp(),paydlg:()=>closePay(),unitdlg:()=>closeUnit(),catpickdlg:()=>closeCatPick(),catmenudlg:()=>closeCatMenu(),
+const BACK_CLOSE={permdlg:()=>permResult(false),sharedlg:()=>closeShareRecibo(),pinfodlg:()=>closePInfo(),exdlg:()=>closeExForm(),provdlg:()=>closeProvForm(),provpickdlg:()=>closeProvPick(),empdlg:()=>closeEmp(),excatdlg:()=>closeExCat(),exfltdlg:()=>closeExFlt(),plistdlg:()=>closePriceList(),xpdlg:()=>closeXp(),paydlg:()=>closePay(),unitdlg:()=>closeUnit(),catpickdlg:()=>closeCatPick(),catmenudlg:()=>closeCatMenu(),
   mermapickdlg:()=>closeMermaPick(),mermaadddlg:()=>closeMermaAdd(),mermadlg:()=>closeMerma(),scandlg:()=>closeScanner(),saleproddlg:()=>closeSaleProd(),clidlg:()=>closeCli(),
   saledlg:()=>closeSale(),rsvdlg:()=>closeReserva(),notifdlg:()=>closeNotifs(),iodlg:()=>closeIO(),catdlg:()=>closeCat(),filterdlg:()=>closeFilter(),catalogdlg:()=>closeCatalog(),
   histdlg:()=>closeHist(),formscreen:()=>closeForm()};
@@ -4823,7 +5143,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20260930220757';
+const APP_VERSION='20260930222058';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||cartItems().length>0||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

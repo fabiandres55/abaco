@@ -1166,7 +1166,7 @@ function scInventario(){
   else if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   if(state.filterUnit)items=items.filter(p=>unitLabel(p.unit)===state.filterUnit);
   if(state.filterInfo)items=items.filter(p=>(''+(p.desc||p.info||'')).trim()===state.filterInfo);
-  items.sort((a,b)=>a.stock-b.stock);
+  items.sort(prodCmp);
   const total=items.length;const limit=state.invLimit||INV_PAGE;const shown=items.slice(0,limit);
   const warnTri=c=>`<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="${c}"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>`;
   const bod=state.profile&&state.profile.kind==='bodega';
@@ -1322,7 +1322,7 @@ function openCatalog(){document.getElementById('catalogH').textContent=t('chip_c
 // Encabezado de tabla de inventario en los PDF (Catálogo Simple / Productos en reserva), en el idioma del dispositivo
 function pdfInvHead(){return [[t('f_key').toUpperCase(),t('sr_col_prod'),t('sr_col_qty'),t('pdf_h_cost'),t('pdf_h_sale'),t('rsv_label').toUpperCase()]];}
 async function catExportSimplePDF(){
-  const l=state.products.slice().sort((a,b)=>{const x=''+(a.key||''),y=''+(b.key||'');return x<y?-1:x>y?1:0;});
+  const l=state.products.slice().sort(prodCmp);
   if(!l.length){toast(t('io_empty'));return;}
   try{
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
@@ -1946,7 +1946,7 @@ function fillSaleProd(){
   const search=`<div style="padding:8px 14px 6px"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="saleProdSearch" placeholder="${t('searchProd')}" value="${(state.saleProdQ||'').replace(/"/g,'&quot;')}"></div></div>`;
   const groups={};state.products.forEach(p=>{const c=(p.cat&&(''+p.cat).trim())||t('cat_none');(groups[c]||(groups[c]=[])).push(p);});
   const uncat=t('cat_none');
-  const cats=Object.keys(groups).sort((a,b)=>a===uncat?-1:b===uncat?1:a.localeCompare(b));
+  const cats=Object.keys(groups).sort((a,b)=>a===uncat?-1:b===uncat?1:prodColl().compare(a,b));
   const chev=svg('<path d="M6 9l6 6 6-6"/>');const chk=svg('<path d="M5 12l5 5L20 7"/>');
   let html='';
   cats.forEach(c=>{
@@ -2917,7 +2917,7 @@ function scProveedores(){
 }
 function scCatalogo(){
   const bid=state.catBodega;const b=getEntity('bodega',bid);const d=loadDataOf(bid);
-  const rows=(d.products||[]).length?(d.products).map(p=>`<div class="pick"><div class="info"><div class="t">${p.name}</div><div class="s">${p.cat||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
+  const rows=(d.products||[]).length?(d.products).slice().sort(prodCmp).map(p=>`<div class="pick"><div class="info"><div class="t">${p.name}</div><div class="s">${p.cat||'—'} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
   return `<div class="backrow" data-nav="bodegalinks">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
 }
 function scAjustes(){
@@ -3039,7 +3039,7 @@ function rsvList(){
   const f=state.rsvFilter||'all';
   if(f==='red')l=l.filter(p=>rsvLevel(p)==='red');
   else if(f==='orange')l=l.filter(p=>rsvLevel(p)==='orange');
-  return l.sort((a,b)=>(b.reserve||0)-(a.reserve||0));
+  return l.sort(prodCmp);
 }
 function fillReserva(){
   const list=rsvList();const f=state.rsvFilter||'all';
@@ -3525,6 +3525,15 @@ function bkDueBanner(){
     b.insertAdjacentHTML('afterbegin',`<div class="bkdue">${svg('<path d="M12 9v4M12 17v.5"/><path d="M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>')}<span>${ds==null?t('fb_due_never'):ti('fb_due',{n:ds})}</span><button data-act="fullbk">${t('fb_now')}</button><button class="x" data-act="bkdismiss">✕</button></div>`);
   }catch(_){}
 }
+/* ---------------- Orden alfabético de productos ---------------- */
+let PROD_COLL=null;
+function prodColl(){return PROD_COLL||(PROD_COLL=new Intl.Collator('es',{sensitivity:'base',numeric:true}));}
+// quita la unidad que Mi Negocio pone al inicio del nombre: "... ", "METRO ... ", una unidad conocida o una medida (25X35CM)
+function prodSortName(p){let n=(''+((p&&p.name)||'')).trim();if(/^(\S+\s+)?\.\.\.\s+/.test(n))return n.replace(/^(\S+\s+)?\.\.\.\s+/,'');
+  const tok=n.split(/\s+/)[0]||'';const up=tok.toUpperCase();const units=(state.units||[]).map(u=>(''+u).toUpperCase());
+  if(tok&&n.length>tok.length&&(units.includes(up)||/^\d+([.,]\d+)?X\d+([.,]\d+)?(CM|MM|M)?$/i.test(tok)))return n.slice(tok.length).trim();return n;}
+function prodCmp(a,b){return prodColl().compare(prodSortName(a),prodSortName(b))||prodColl().compare(''+((a&&a.key)||''),''+((b&&b.key)||''));}
+function ensureProdOrder(){const l=state.products;if(!Array.isArray(l)||l.length<2)return;for(let i=1;i<l.length;i++){if(prodCmp(l[i-1],l[i])>0){l.sort(prodCmp);return;}}}
 /* ---------------- Reportes (resto, como Mi Negocio) ---------------- */
 let REP_CSV={};
 function inR(d){const r=repEnsureRange();return !!d&&d>=r.from&&d<=r.to;}
@@ -3684,7 +3693,7 @@ function repTopProd(){
 }
 // 5) Productos a detalle (inventario actual)
 function repProdDetail(){
-  const l=(state.products||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));if(!l.length)return repEmpty();
+  const l=(state.products||[]).slice().sort(prodCmp);if(!l.length)return repEmpty();
   return repSub(ti('rp_prod_n',{n:l.length}))+repCards('prod_detail',[[t('f_qty')],[t('pi_buy')],[t('pi_sale')],[t('rp_margin')]],l.map(p=>{const m=+p.price>0?Math.round(((+p.price||0)-(+p.cost||0))*1000/(+p.price))/10:0;return {t:p.name,badge:p.key?`<span class="rkey">${exEsc(p.key)}</span>`:'',c:[[null,+p.stock||0,'n',(+p.stock||0)<=(+p.reserve||0)?'neg':''],[null,+p.cost||0,'m'],[null,+p.price||0,'m'],[null,m,'p']]};}),{first:t('rc_product')});
 }
 // 6) Categoría (ventas del rango + inventario)
@@ -4598,7 +4607,7 @@ function openUnit(){
 function closeUnit(){document.getElementById('unitdlg').classList.remove('on');}
 function pickUnit(v){state.form.unit=canonUnit(v);closeUnit();document.getElementById('formBody').innerHTML=formHTML();attachForm();}
 function addUnit(){let v=window.prompt(t('u_new'));if(v==null)return;v=canonUnit(v.trim());if(!v)return;if(!isKnownUnit(v))state.units=[...(state.units||[]),v];pickUnit(v);}
-function allCats(){return [...new Set([...(state.cats||[]),...state.products.map(p=>p.cat).filter(Boolean)])].sort((a,b)=>(''+a).localeCompare(''+b));}
+function allCats(){return [...new Set([...(state.cats||[]),...state.products.map(p=>p.cat).filter(Boolean)])].sort((a,b)=>prodColl().compare(''+a,''+b));}
 function openCatPick(){
   readForm();
   const cur=(state.form.cat||'').trim();
@@ -4645,7 +4654,7 @@ function catDelAction(){
 
 /* ---------------- category filter ---------------- */
 function openCatFilter(){
-  const cats=[...new Set(state.products.map(p=>p.cat).filter(Boolean))].sort((a,b)=>(''+a).localeCompare(''+b));
+  const cats=[...new Set(state.products.map(p=>p.cat).filter(Boolean))].sort((a,b)=>prodColl().compare(''+a,''+b));
   document.getElementById('catdlgH').textContent=t('cat_pick_title');
   const ck=svg('<path d="M5 12l5 5L20 7"/>');
   const opt=(val,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-catpick="${(val+'').replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${label}</span></div>`;
@@ -5251,6 +5260,7 @@ function renderDrawer(){
   }).join("");
 }
 function render(){
+  try{ensureProdOrder();}catch(_){}
   try{saveCartDraft();}catch(_){}
   const body=document.getElementById("body");const isNueva=state.screen==="nueva";const noPad=isNueva||state.screen==="catalogo"||state.screen==="repview"||state.screen==="phist"||state.screen==="porders"||state.screen==="quotes";
   document.getElementById("screen").firstElementChild.className=noPad?"":"pad";
@@ -6533,7 +6543,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261001171654';
+const APP_VERSION='20261001173933';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

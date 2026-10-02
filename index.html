@@ -5326,7 +5326,7 @@ function renderDrawer(){
 }
 function render(){
   try{ensureProdOrder();}catch(_){}
-  const _sc=document.getElementById("screen");const _prevTop=_sc?_sc.scrollTop:0;const _same=RENDER_LAST===state.screen;
+  const _sc=document.getElementById("screen");const _prevTop=_sc?_sc.scrollTop:0;const _same=RENDER_LAST===state.screen;const _navLeave={y:_prevTop,q:NAV_Q,lim:NAV_LIM};
   try{saveCartDraft();}catch(_){}
   const body=document.getElementById("body");const isNueva=state.screen==="nueva";const noPad=isNueva||state.screen==="catalogo"||state.screen==="repview"||state.screen==="phist"||state.screen==="porders"||state.screen==="quotes";
   document.getElementById("screen").firstElementChild.className=noPad?"":"pad";
@@ -5355,6 +5355,7 @@ function render(){
   if(state._keep!==undefined&&state._keep!==null)_sc.scrollTop=state._keep;else _sc.scrollTop=_same?_prevTop:0;
   state._keep=undefined;RENDER_LAST=state.screen;
   try{decorateSearches(document.getElementById('body'));}catch(_){}
+  NAV_Q=state.q;NAV_LIM=state.invLimit;try{navSync(_same?null:_navLeave);}catch(_){}
   if(state.screen==='calendario'&&state.agScroll){state.agScroll=false;agScrollNow();}
 }
 let RENDER_LAST=null;
@@ -6319,7 +6320,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-di")){if(el.dataset.soon==="1"){drawer(false);return toast(t('m_'+el.dataset.di)+" · "+t('soon'));}return go(el.dataset.di);}
   if(el.hasAttribute("data-fab"))return state.screen==="inventario"?openForm():state.screen==="servicios"?openSvcForm(null):state.screen==="empleados"?openEmp(null):state.screen==="calendario"?openEv(null,todayISO(),null):go("nueva");
   if(el.hasAttribute("data-edit"))return openForm(+el.dataset.edit);
-  if(el.dataset.nav)return go(el.dataset.nav);
+  if(el.dataset.nav){if(el.classList.contains('backrow')&&navBackTo(el.dataset.nav))return;return go(el.dataset.nav);}
   if(el.dataset.inc){const id=+el.dataset.inc;state.cart[id]=(state.cart[id]||0)+1;if(state.screen==='nueva')state.q='';return render();}
   if(el.dataset.dec){const id=+el.dataset.dec;state.cart[id]=Math.max(0,(state.cart[id]||0)-1);return render();}
   if(el.dataset.stock){const[id,dd]=el.dataset.stock.split(":");const p=P(+id);if(p)p.stock=Math.max(0,p.stock+ +dd);persist();return render();}
@@ -6638,23 +6639,91 @@ document.getElementById("screen").addEventListener("scroll",()=>{
 },{passive:true});
 /* ---------------- Gesto/botón "atrás" de Android ----------------
    La app instalada cerraba al ir "atrás" (no había historial) y se perdía el pedido en curso.
-   Ahora "atrás" hace lo mismo que la X de lo que esté abierto; en la pantalla principal no hace nada:
-   la app se minimiza deslizando (inicio) y se cierra desde recientes.
-   Entradas de guarda en el historial: se crean SOLO tras un toque real (Chrome salta las creadas sin
-   interacción) y se reponen en el siguiente toque. */
-const BACK_GUARDS=3;let BACK_RELOADING=false;
+   Cada paso (otra pantalla, abrir una ventana o el menú) crea su propia entrada en el historial con el estado al que
+   lleva, y "atrás" vuelve al estado de la entrada anterior: la pantalla donde estaba (con su posición y búsqueda) o la
+   misma pantalla sin la ventana. Así la vista previa del gesto de Chrome (la captura de la entrada anterior) coincide
+   con lo que aparece al soltar; antes las entradas eran genéricas y se veía otra pantalla un instante.
+   En la pantalla principal "atrás" no hace nada: la app se minimiza deslizando (inicio) y se cierra desde recientes.
+   Entradas de guarda al fondo: se crean SOLO tras un toque real (Chrome salta las creadas sin interacción). */
+const BACK_GUARDS=3;let BACK_RELOADING=false;let NAV_RESTORING=false;const NAV_LOG=[];let NAV_Q='',NAV_LIM=0;
 function backDepth(){const st=history.state;return (st&&st.abBack)||0;}
-function backTopUp(e){if(e&&e.isTrusted===false)return;if(BACK_RELOADING)return;try{let d=backDepth();while(d<BACK_GUARDS){d++;history.pushState({abBack:d},'');}}catch(_){}}
+// estado visible: pantalla, tienda y capas abiertas (de abajo hacia arriba)
+function navLayers(){
+  const dev=document.getElementById('device');const L=[];if(dev.classList.contains('drawer-open'))L.push('drawer');
+  const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on')];if(dev.classList.contains('form-open'))list.push(document.getElementById('formscreen'));
+  return L.concat(layerSort(list).reverse().map(e=>e.id));
+}
+function navCur(){return {s:state.screen,p:(state.profile&&state.profile.id)||'',L:navLayers()};}
+function navSame(a,b){return !!(a&&b)&&a.s===b.s&&(a.p||'')===(b.p||'')&&(a.L||[]).join()===(b.L||[]).join();}
+function navPush(o){const d=backDepth()+1;const st={...o,abBack:d};history.pushState(st,'');NAV_LOG[d]=st;NAV_LOG.length=d+1;}
+function navReplace(o){const d=backDepth();const st={...o,abBack:d};history.replaceState(st,'');NAV_LOG[d]=st;}
+function backTopUp(e){if(e&&e.isTrusted===false)return;if(BACK_RELOADING)return;try{for(let i=0;i<BACK_GUARDS&&backDepth()<BACK_GUARDS;i++)navPush({...navCur(),g:1});}catch(_){}}
 ['click','pointerup','touchend','keydown'].forEach(ev=>window.addEventListener(ev,backTopUp,{capture:true,passive:true}));
+// Registra cada paso visible en el historial (al dibujar y al abrir/cerrar ventanas o el menú).
+// leave: posición y búsqueda de la pantalla que se deja (la pantalla ya cambió cuando se llama desde render)
+function navSync(leave){
+  try{
+    if(NAV_RESTORING||BACK_RELOADING)return;
+    if(document.getElementById('onbo').classList.contains('on'))return;
+    const cur=navCur();const st=history.state;
+    if(!st||st.s==null){navReplace({...(st||{}),...cur});return;}   // primera entrada (al abrir): solo se etiqueta
+    if(navSame(cur,st))return;
+    const sl=st.L||[];const kept=sl.filter(x=>cur.L.includes(x));const closed=kept.length<sl.length;
+    const moved=cur.s!==st.s||cur.p!==(st.p||'');
+    if(closed&&moved){navReplace({...cur,g:st.g});return;}   // la ventana o el menú llevó a otra pantalla: es el mismo paso
+    if(closed){navReplace({...st,L:kept});if(navSame(cur,history.state))return;}   // se cerró con su X o al guardar
+    const sc=document.getElementById('screen');
+    const lv=(moved&&leave)?leave:{y:sc?sc.scrollTop:0,q:state.q,lim:state.invLimit};
+    history.replaceState({...history.state,y:lv.y,q:lv.q,lim:lv.lim},'');NAV_LOG[backDepth()]=history.state;
+    navPush(cur);
+  }catch(_){}
+}
+// Vuelve al estado de una entrada: cierra las ventanas que sobran y cambia de pantalla (nunca abre ventanas).
+// Devuelve false si el usuario prefirió quedarse (no quiso descartar cambios).
+function navRestore(tg){
+  const want=tg.L||[];
+  const closeExtra=()=>{for(let i=0;i<15;i++){const top=topLayer();if(!top||want.includes(top.id))return true;const fn=BACK_CLOSE[top.id];if(fn)fn();else top.classList.remove('on');if(topLayer()===top)return false;}return true;};
+  if(!closeExtra())return false;
+  if(document.getElementById('device').classList.contains('drawer-open')&&!want.includes('drawer'))drawer(false);
+  const pid=(state.profile&&state.profile.id)||'';
+  if(tg.s&&tg.s!==state.screen&&SCREENS[tg.s]&&(tg.p||'')===pid&&!topLayer()){
+    const br=document.querySelector('#body .backrow[data-act]');   // modo en curso (editar venta, cotización, pedido): se sale como con su flecha
+    if(br){const act=br.dataset.act;br.click();
+      const still=document.querySelector('#body .backrow[data-act]');if(still&&still.dataset.act===act)return false;   // no quiso descartar los cambios: se queda
+      if(!closeExtra())return false;}   // salir del modo puede reabrir ventanas (detalle de la venta): se vuelve al estado de la entrada
+    if(state.screen!==tg.s&&!topLayer()){
+      go(tg.s);
+      if(state.screen===tg.s){   // donde estaba: búsqueda, cuántos productos cargados y posición
+        let re=false;if(tg.q!=null&&tg.q!==state.q){state.q=tg.q;re=true;}if(tg.lim>(state.invLimit||0)){state.invLimit=tg.lim;re=true;}
+        if(re){state._keep=0;render();}
+        const sc=document.getElementById('screen');if(sc&&tg.y)sc.scrollTop=tg.y;
+      }
+    }
+  }
+}
+// La flecha "atrás" de la pantalla: si la entrada anterior es esa pantalla, se vuelve por el historial (no se apila otra)
+function navBackTo(scr){
+  if(NAV_RESTORING)return false;
+  const d=backDepth();const prev=NAV_LOG[d-1];const st=history.state;
+  if(d>0&&prev&&prev.s===scr&&st&&st.s===state.screen&&!(st.L||[]).length){history.back();return true;}
+  return false;
+}
+function initNav(){
+  const mo=new MutationObserver(()=>navSync());
+  document.querySelectorAll('.histdlg,.sheetdlg,.permdlg').forEach(d=>mo.observe(d,{attributes:true,attributeFilter:['class']}));
+  mo.observe(document.getElementById('device'),{attributes:true,attributeFilter:['class']});
+  if(history.state)NAV_LOG[backDepth()]=history.state;
+}
+setTimeout(initNav,0);
 // Recargar sin dejar entradas viejas en el historial (si no, "atrás" recargaría la app)
 function appReload(){const d=backDepth();if(d>0){BACK_RELOADING=true;try{history.go(-d);}catch(_){location.reload();return;}setTimeout(()=>location.reload(),900);}else location.reload();}
 // La capa abierta que está encima (mayor z-index; a igual z-index, la última en el HTML)
+function layerSort(list){return list.sort((a,b)=>{const za=parseInt(getComputedStyle(a).zIndex)||0,zb=parseInt(getComputedStyle(b).zIndex)||0;if(za!==zb)return zb-za;return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?1:-1;});}   // de arriba hacia abajo
 function topLayer(){
   const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on')];
   if(document.getElementById('device').classList.contains('form-open'))list.push(document.getElementById('formscreen'));
   if(!list.length)return null;
-  list.sort((a,b)=>{const za=parseInt(getComputedStyle(a).zIndex)||0,zb=parseInt(getComputedStyle(b).zIndex)||0;if(za!==zb)return zb-za;return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?1:-1;});
-  return list[0];
+  return layerSort(list)[0];
 }
 // Cada ventana se cierra igual que con su X
 const BACK_CLOSE={permdlg:()=>permResult(false),sharedlg:()=>closeShareRecibo(),pinfodlg:()=>closePInfo(),exdlg:()=>closeExForm(),provdlg:()=>closeProvForm(),svcdlg:()=>closeSvcForm(),evdlg:()=>closeEv(),quotedlg:()=>{state.poOpen=null;closeQuote();},cfgdlg:()=>{closeCfgDlg();PIN_NEXT=null;},svcpickdlg:()=>closeSvcPick(),pctdlg:()=>closePct(),provpickdlg:()=>closeProvPick(),empdlg:()=>closeEmp(),excatdlg:()=>closeExCat(),exfltdlg:()=>closeExFlt(),plistdlg:()=>closePriceList(),xpdlg:()=>closeXp(),paydlg:()=>closePay(),unitdlg:()=>closeUnit(),catpickdlg:()=>closeCatPick(),catmenudlg:()=>closeCatMenu(),
@@ -6674,7 +6743,30 @@ function appBack(){
   if(state.profile&&state.screen!=='inventario'){go('inventario');return;}
   // pantalla principal: no cerrar la app
 }
-window.addEventListener('popstate',()=>{if(BACK_RELOADING){location.reload();return;}try{appBack();}catch(_){}});
+let NAV_SKIP_POP=0;
+window.addEventListener('popstate',e=>{
+  if(BACK_RELOADING){location.reload();return;}
+  if(NAV_SKIP_POP&&Date.now()-NAV_SKIP_POP<1500){NAV_SKIP_POP=0;return;}   // regreso a la entrada actual tras quedarse
+  NAV_SKIP_POP=0;
+  const tg=e.state;if(tg&&tg.abBack!=null)NAV_LOG[tg.abBack]=tg;
+  const onbo=()=>document.getElementById('onbo').classList.contains('on');
+  NAV_RESTORING=true;let again=false,stay=false;
+  try{
+    if(onbo())appBack();
+    else{
+      const before=navCur();
+      stay=tg&&tg.s!=null&&navRestore(tg)===false;
+      if(!stay&&navSame(before,navCur())){
+        if(tg&&tg.s!=null&&!tg.g&&tg.abBack>0)again=true;   // entrada repetida (una ventana que se cerró con su X): un paso más
+        else appBack();   // fondo del historial: cierra lo abierto o va a la pantalla principal
+      }
+    }
+  }catch(_){}
+  NAV_RESTORING=false;
+  if(stay){NAV_SKIP_POP=Date.now();history.forward();return;}   // se quedó (no descartó cambios): el historial vuelve a la entrada actual
+  try{const cur=navCur();if(!onbo()&&!navSame(cur,history.state))navReplace({...(history.state||{}),...cur});}catch(_){}
+  if(again)history.back();
+});
 
 /* ---------------- Pedido en curso guardado en el dispositivo ----------------
    Si Android cierra la app (atrás, falta de memoria, recientes), al volver a abrir la tienda el pedido
@@ -6707,7 +6799,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261001212710';
+const APP_VERSION='20261001215126';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

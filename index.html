@@ -891,6 +891,8 @@
   .isearch .clr:active,.search .clr:active{background:var(--line2)}
   .isearch .clrx,.search .clrx{display:none}.isearch.has-text .clrx,.search.has-text .clrx{display:grid}
   .search{position:relative}
+  /* PIN y claves que no son la contraseña de la cuenta: se ven como puntos sin ser type=password */
+  .pinmask{-webkit-text-security:disc}
 </style>
 
 <div class="device" id="device">
@@ -994,8 +996,8 @@
 
   <!-- catálogo (PDF) — pantalla completa -->
   <div class="histdlg" id="catalogdlg"><div class="histbar"><button class="sheet-x" data-act="closecatalog">✕</button><span class="histbar-t" id="catalogH"></span><span style="width:34px;flex:none"></span></div><div class="histbody" id="catalogBody" style="padding:14px 0 24px"></div></div>
-  <input type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
-  <input type="file" id="bkFile" style="display:none">
+  <input autocomplete="off" type="file" id="ioFile" accept=".csv,.json,text/csv,application/json" style="display:none">
+  <input autocomplete="off" type="file" id="bkFile" style="display:none">
 
   <!-- notification permission dialog -->
   <div class="permdlg" id="permdlg">
@@ -1149,7 +1151,7 @@ const ganancia=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleProfit(s),0);
 /* ---------------- screens ---------------- */
 function invHeader(){
   return `<div class="invhead">
-    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('searchNameKey')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('searchNameKey')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     <button class="round" data-act="filtercat">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
     <button class="round" data-act="scan">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
   </div>
@@ -1259,13 +1261,13 @@ function mermaAddHTML(){
     <div class="fld"><span class="fl">${t('me_product')}</span>
       <div class="inp sellike" data-act="mermapick"><span class="${f.pid?'':'ph'}">${exEsc(f.name||t('me_product'))}</span>${chev}</div></div>
     <div class="two">
-      <div class="fld"><span class="fl">${t('me_qty')}</span><input class="inp num" id="me_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
-      <div class="fld"><span class="fl">${t('me_cost')}</span><input class="inp num" id="me_cost" type="number" inputmode="numeric" value="${f.cost??''}" placeholder="0"></div>
+      <div class="fld"><span class="fl">${t('me_qty')}</span><input autocomplete="off" class="inp num" id="me_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
+      <div class="fld"><span class="fl">${t('me_cost')}</span><input autocomplete="off" class="inp num" id="me_cost" type="number" inputmode="numeric" value="${f.cost??''}" placeholder="0"></div>
     </div>
-    <div class="fld"><span class="fl">${t('me_note')}</span><input class="inp" id="me_note" value="${(f.note||'').replace(/"/g,'&quot;')}" placeholder="${t('me_lost')}"></div>
+    <div class="fld"><span class="fl">${t('me_note')}</span><input autocomplete="off" class="inp" id="me_note" value="${(f.note||'').replace(/"/g,'&quot;')}" placeholder="${t('me_lost')}"></div>
     <div class="two">
-      <div class="fld"><span class="fl">${t('me_date')}</span><input class="inp" id="me_date" type="date" value="${f.date||''}"></div>
-      <div class="fld"><span class="fl">${t('me_time')}</span><input class="inp" id="me_time" type="time" value="${f.time||''}"></div>
+      <div class="fld"><span class="fl">${t('me_date')}</span><input autocomplete="off" class="inp" id="me_date" type="date" value="${f.date||''}"></div>
+      <div class="fld"><span class="fl">${t('me_time')}</span><input autocomplete="off" class="inp" id="me_time" type="time" value="${f.time||''}"></div>
     </div>
     <div class="kpis" style="margin:2px 0 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num" id="me_total">${money((+f.qty||0)*(+f.cost||0))}</div></div></div>
   </div>`;
@@ -1293,7 +1295,7 @@ function fillMermaPick(){
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
     return `<div class="row" data-mermapick="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><div class="r"><span class="price num" style="font-weight:700">${money(p.cost||p.price||0)}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty">${t('noResults')}</div>`;
-  document.getElementById('mermaPickBody').innerHTML=`<div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="mermaSearch" placeholder="${t('me_search')}" value="${MERMA_Q.replace(/"/g,'&quot;')}"></div>${rows}`;
+  document.getElementById('mermaPickBody').innerHTML=`<div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="mermaSearch" placeholder="${t('me_search')}" value="${MERMA_Q.replace(/"/g,'&quot;')}"></div>${rows}`;
   const s=document.getElementById('mermaSearch');if(s)s.addEventListener('input',e=>{MERMA_Q=e.target.value;const p=document.getElementById('mermaPickBody').scrollTop;fillMermaPick();document.getElementById('mermaPickBody').scrollTop=p;const ns=document.getElementById('mermaSearch');if(ns){ns.focus();ns.setSelectionRange(ns.value.length,ns.value.length);}});
   bkApplyInvImages();
 }
@@ -1594,10 +1596,10 @@ async function openPurchaseDet(id){
 /* ---------------- Recibo / Ticket ---------------- */
 function scRecibo(){
   const c=receiptCfg();
-  const fld=(id,key,val,type)=>`<div class="fld"><span class="fl">${t(key)}</span><input class="inp" id="${id}" ${type?`type="${type}"`:''} value="${(''+(val||'')).replace(/"/g,'&quot;')}"></div>`;
+  const fld=(id,key,val,type)=>`<div class="fld"><span class="fl">${t(key)}</span><input autocomplete="off" class="inp" id="${id}" ${type?`type="${type}"`:''} value="${(''+(val||'')).replace(/"/g,'&quot;')}"></div>`;
   return `<div class="osub" style="padding:2px 2px 12px;font-size:13px;color:var(--muted)">${t('rc_cfg_intro')}</div>
   <div style="display:flex;flex-direction:column;gap:12px">
-    <div class="fld" style="align-items:center"><span class="fl" style="align-self:flex-start">${t('rc_logo')}</span><label class="logopick" style="width:88px;height:88px">${c.logo?`<img src="${c.logo}">`:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<input type="file" id="rc_logo" accept="image/*"></label></div>
+    <div class="fld" style="align-items:center"><span class="fl" style="align-self:flex-start">${t('rc_logo')}</span><label class="logopick" style="width:88px;height:88px">${c.logo?`<img src="${c.logo}">`:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<input autocomplete="off" type="file" id="rc_logo" accept="image/*"></label></div>
     ${fld('rc_name','rc_biz',c.name)}
     ${fld('rc_owner','rc_owner',c.owner)}
     ${fld('rc_email','rc_email',c.email,'email')}
@@ -1784,7 +1786,7 @@ function scNueva(){
   const list=q?state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)).map(p=>saleRow(p,box)).join(""):'';
   const hint=`<div class="salehelp" style="margin-top:26px">${t('sale_help_add')}</div><div class="salebtns"><button class="btn ghost" data-act="salehelpbtn">${t('sale_help_btn')}</button><button class="btn ghost" data-act="saleopts">${t('sale_opts_btn')}</button></div><div style="display:flex;justify-content:center;margin-top:14px"><span class="fchip" data-act="clipick">${svg(S_PER)} ${state.saleClient?exEsc(state.saleClient):t('cli_tpl')}</span></div>`;
   if(state.quoteMode)return quoteHeadHTML()+`<div class="pad" style="padding-top:8px">
-    <div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
       <button class="round" data-act="svcpick" title="${t('svc_pick')}">${svg(SVC_ICO)}</button>
       <button class="round" data-act="saleprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
       <button class="round" data-act="scan:sale">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
@@ -1793,7 +1795,7 @@ function scNueva(){
   </div>`;
   return `${state.editSale?`<div class="backrow" data-act="salecancel">${svg('<path d="M15 6l-6 6 6 6"/>')} ${t('sale_edit_cancel')}</div><div class="editbanner">${svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>')} ${ti('sale_editing',{n:state.editSale.folio})}</div>`:`<div class="backrow" data-nav="ventas">${svg('<path d="M15 6l-6 6 6 6"/>')} ${t('cancelSale')}</div>`}
   <div class="pad" style="padding-top:8px">
-    <div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
       <button class="round" data-act="svcpick" title="${t('svc_pick')}">${svg(SVC_ICO)}</button>
       <button class="round" data-act="saleprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
       <button class="round" data-act="scan:sale">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
@@ -1855,8 +1857,8 @@ function saleCartHTML(){
     return `<div class="crow">
       <div class="crow-name">${p?exEsc(p.name):exEsc((state.editSale&&(state.editSale.names||{})[i.id])||'—')}</div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input class="cinp num" data-cqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
-        <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"></div>
+        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"></div>
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>
       </div>
       ${pn?`<div class="cpx">${svg(IC_TAG)}<span>${(''+pn).replace(/</g,'&lt;')}</span></div>`:''}${adjCap(i.id)}
@@ -1870,9 +1872,9 @@ function saleCartHTML(){
   const fields=`
     <div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>
     <div class="cfld sellike" data-act="salepay"><span class="${state.salePay?'':'ph'}">${payLbl(state.salePay)||(t('sale_payform')+' '+opt)}</span>${state.salePay?`<button class="clrx" data-act="salepayclear">✕</button>`:chev}</div>
-    ${opts().manualDate&&!state.editSale?`<div class="fld"><span class="fl">${t('sale_date')}</span><input class="inp" id="saleDateIn" type="date" value="${exEsc(state.saleDate||todayISO())}"></div>`:''}
+    ${opts().manualDate&&!state.editSale?`<div class="fld"><span class="fl">${t('sale_date')}</span><input autocomplete="off" class="inp" id="saleDateIn" type="date" value="${exEsc(state.saleDate||todayISO())}"></div>`:''}
     <div class="cfld"><input class="inp" id="saleAddr" autocomplete="off" placeholder="${t('sale_addr')} ${opt}" value="${exEsc(state.saleAddr||'')}"></div>
-    <div class="cfld"><input class="inp" id="saleTag" placeholder="${t('sale_label')} ${opt}" value="${(state.saleTag||'').replace(/"/g,'&quot;')}"></div>
+    <div class="cfld"><input autocomplete="off" class="inp" id="saleTag" placeholder="${t('sale_label')} ${opt}" value="${(state.saleTag||'').replace(/"/g,'&quot;')}"></div>
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
   const actions=`<div class="saveact"><button class="cancelbtn" data-act="salecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savesale">${svg('<path d="M5 12l5 5L20 7"/>')} ${state.editSale?t('sale_edit_save'):t('save')}</button></div>`;
   return `<div class="cartwrap">${rows}${svcRowsHTML()}${state.quoteMode?'':seg}${total}${state.quoteMode?quoteFieldsHTML():fields}${state.quoteMode?quoteActionsHTML():actions}</div>`;
@@ -1948,7 +1950,7 @@ function fillSaleProd(){
   try{saveCartDraft();}catch(_){}
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
   const q=(state.saleProdQ||'').toLowerCase().trim();
-  const search=`<div style="padding:8px 14px 6px"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="saleProdSearch" placeholder="${t('searchProd')}" value="${(state.saleProdQ||'').replace(/"/g,'&quot;')}"></div></div>`;
+  const search=`<div style="padding:8px 14px 6px"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="saleProdSearch" placeholder="${t('searchProd')}" value="${(state.saleProdQ||'').replace(/"/g,'&quot;')}"></div></div>`;
   const groups={};state.products.forEach(p=>{const c=(p.cat&&(''+p.cat).trim())||t('cat_none');(groups[c]||(groups[c]=[])).push(p);});
   const uncat=t('cat_none');
   const cats=Object.keys(groups).sort((a,b)=>a===uncat?-1:b===uncat?1:prodColl().compare(a,b));
@@ -2044,14 +2046,14 @@ function renderExForm(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const paysHtml=pend?`<div class="expays"><div class="expays-h">${t('ex_pays')}</div>
       ${pays.map((x,i)=>`<div class="expay"><span class="num">${money(x.p)}</span><span class="s">${exEsc(x.f)}</span><button class="cico del" data-act="expaydel:${i}" title="${t('remove')}">${trash}</button></div>`).join('')}
-      <div class="ex-addpay"><input class="inp num" id="ex_payamt" type="number" inputmode="decimal" step="any" placeholder="$ 0"><button class="btn" data-act="expayadd">${t('ex_add_pay')}</button></div>
+      <div class="ex-addpay"><input autocomplete="off" class="inp num" id="ex_payamt" type="number" inputmode="decimal" step="any" placeholder="$ 0"><button class="btn" data-act="expayadd">${t('ex_add_pay')}</button></div>
       <div class="osub" style="margin-top:6px">${t('ex_due')}: <b class="num">${money(Math.max(0,(+f.total||0)-paid))}</b></div></div>`:'';
   document.getElementById('exBody').innerHTML=`<div class="exform">
     <div class="cfld sellike exsel" data-act="excat"><span class="${f.cat?'':'ph'}">${svg(EX_IC.cat)} ${f.cat?exEsc(f.cat):t('ex_cat')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <div class="cfld"><textarea class="inp" id="ex_desc" rows="3" placeholder="${exEsc(t('ex_desc'))}">${exEsc(f.desc)}</textarea></div>
-    <div class="ex-dt2"><input class="inp" id="ex_date" type="date" value="${exEsc(f.date)}"><input class="inp" id="ex_time" type="time" step="1" value="${exEsc(f.time)}"></div>
+    <div class="ex-dt2"><input autocomplete="off" class="inp" id="ex_date" type="date" value="${exEsc(f.date)}"><input autocomplete="off" class="inp" id="ex_time" type="time" step="1" value="${exEsc(f.time)}"></div>
     <div class="segrow"><button class="seg ${!pend?'on':''}" data-act="exst:pagado">${radio(!pend)} ${t('ex_paid')}</button><button class="seg ${pend?'on':''}" data-act="exst:pendiente">${radio(pend)} ${t(isIn?'ex_tocollect':'ex_topay')}</button></div>
-    <div class="ctotal ex-total"><span class="l">${t('total')} $</span><input class="inp num" id="ex_total" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.total)}"></div>
+    <div class="ctotal ex-total"><span class="l">${t('total')} $</span><input autocomplete="off" class="inp num" id="ex_total" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.total)}"></div>
     <div class="cfld"><select class="inp" id="ex_pay">${pm.map(v=>`<option value="${exEsc(v)}" ${v===(f.pay||'')?'selected':''}>${v?exEsc(payLbl(v)):t('sale_payform')+' '+t('optional')}</option>`).join('')}</select></div>
     ${paysHtml}
     <div class="saveact"><button class="cancelbtn" data-act="exclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="exsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
@@ -2100,7 +2102,7 @@ function renderExFlt(){const f=state.exFltTmp||{};const cats=[...new Set(extrasL
     <div class="expays-h">${t('ex_type')}</div><div class="segrow">${seg('type','',t('ex_all'))}${seg('type','in',t('ex_f_in'))}${seg('type','out',t('ex_f_out'))}</div>
     <div class="expays-h">${t('ex_f_status')}</div><div class="segrow">${seg('status','',t('ex_all'))}${seg('status','paid',t('ex_f_paid'))}${seg('status','pend',t('ex_f_pend'))}</div>
     <div class="expays-h">${t('ex_cat')}</div><select class="inp" id="exf_cat"><option value="">${t('ex_all_cats')}</option>${cats.map(c=>`<option value="${exEsc(c)}" ${c===f.cat?'selected':''}>${exEsc(c)}</option>`).join('')}</select>
-    <div class="ex-dt2"><label class="exf-l">${t('ex_from')}<input class="inp" id="exf_from" type="date" value="${exEsc(f.from||'')}"></label><label class="exf-l">${t('ex_to')}<input class="inp" id="exf_to" type="date" value="${exEsc(f.to||'')}"></label></div>
+    <div class="ex-dt2"><label class="exf-l">${t('ex_from')}<input autocomplete="off" class="inp" id="exf_from" type="date" value="${exEsc(f.from||'')}"></label><label class="exf-l">${t('ex_to')}<input autocomplete="off" class="inp" id="exf_to" type="date" value="${exEsc(f.to||'')}"></label></div>
     <div class="saveact"><button class="btn ghost" data-act="exfclear">${t('ex_clear')}</button><button class="savebtn" data-act="exfapply">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('ex_apply')}</button></div>
   </div>`;}
 function readExFlt(){const f=state.exFltTmp||{};const g=id=>document.getElementById(id);if(g('exf_cat'))f.cat=g('exf_cat').value;if(g('exf_from'))f.from=g('exf_from').value;if(g('exf_to'))f.to=g('exf_to').value;state.exFltTmp=f;}
@@ -2147,7 +2149,7 @@ function scCompras(){
     <span class="fchip" data-act="porders">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')} ${t('cp_order')}</span>
     <span class="fchip" data-act="pnewprod">${svg('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>')} ${t('cp_new_prod')}</span>
   </div>`;
-  const search=`<div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+  const search=`<div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     <button class="round" data-act="compraprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
     <button class="round" data-act="scan:purchase">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
   </div>`;
@@ -2164,9 +2166,9 @@ function compraCartHTML(){
     return `<div class="crow">
       <div class="crow-name">${exEsc(p.name)} <b class="num" style="float:right">${money(sub)}</b></div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input class="cinp num" data-pqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
-        <div class="cfield"><span class="cfl">${t('cp_pcost')}</span><input class="cinp num" data-pcost="${i.id}" type="number" inputmode="numeric" value="${cost}"></div>
-        ${state.poMode?`<div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>`:`<div class="cfield"><span class="cfl">${t('cp_psale')}</span><input class="cinp num" data-pprice="${i.id}" type="number" inputmode="numeric" value="${sale}"></div>`}
+        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-pqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl">${t('cp_pcost')}</span><input autocomplete="off" class="cinp num" data-pcost="${i.id}" type="number" inputmode="numeric" value="${cost}"></div>
+        ${state.poMode?`<div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>`:`<div class="cfield"><span class="cfl">${t('cp_psale')}</span><input autocomplete="off" class="cinp num" data-pprice="${i.id}" type="number" inputmode="numeric" value="${sale}"></div>`}
       </div>
       <div class="crow-ico"><button class="cico del" data-pcdel="${i.id}">${trash}</button></div>
     </div>`;}).join('');
@@ -2179,7 +2181,7 @@ function compraCartHTML(){
     <div class="cfld"><input class="inp" id="pProvider" list="provList" autocomplete="off" style="padding-right:50px" placeholder="${t('cp_provider')} ${opt}" value="${(state.pprovider||'').replace(/"/g,'&quot;')}">${dl}<button class="provbook" data-act="provpick:p" title="${t('prv_pick')}">${svg(PRV_BOOK)}</button></div>
     <div class="cfld"><textarea class="inp" id="pNote" rows="2" placeholder="${t('cp_note')} ${opt}">${(state.pnote||'')}</textarea></div>`;
   const actions=`<div class="saveact"><button class="cancelbtn" data-act="compracancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savecompra">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>`;
-  if(state.poMode)return `<div class="cartwrap">${rows}${total}${fields.replace(/<div class="cfld"><textarea[\s\S]*$/,'')}<div class="fld"><span class="fl">${t('po_due')}</span><input class="inp" id="poDue" type="date" value="${exEsc(state.poMode.due||'')}"></div><div class="cfld"><textarea class="inp" id="pNote" rows="2" placeholder="${t('cp_note')} ${opt}">${exEsc(state.pnote||'')}</textarea></div><div class="saveact"><button class="cancelbtn" data-act="pocancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="posave2">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('po_save')}</button></div></div>`;
+  if(state.poMode)return `<div class="cartwrap">${rows}${total}${fields.replace(/<div class="cfld"><textarea[\s\S]*$/,'')}<div class="fld"><span class="fl">${t('po_due')}</span><input autocomplete="off" class="inp" id="poDue" type="date" value="${exEsc(state.poMode.due||'')}"></div><div class="cfld"><textarea class="inp" id="pNote" rows="2" placeholder="${t('cp_note')} ${opt}">${exEsc(state.pnote||'')}</textarea></div><div class="saveact"><button class="cancelbtn" data-act="pocancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="posave2">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('po_save')}</button></div></div>`;
   return `<div class="cartwrap">${rows}${seg}${total}${fields}${actions}</div>`;
 }
 function pAdd(id){id=+id;state.pcart[id]=(state.pcart[id]||0)+1;if(state.screen==='compras')state.q='';render();}
@@ -2256,8 +2258,8 @@ function scRepView(){
   const li=LANG==='es'?'Fecha Inicial':'Start date',lf=LANG==='es'?'Fecha Final':'End date';
   const showRange=ids.some(id=>RANGE_REPORTS.has(id));
   const dateCard=showRange?`<div class="rvdates">
-    <label class="rvdate"><span class="rvd-l">${cal} ${li}</span><input type="date" id="rvFrom" value="${r.from}"></label>
-    <label class="rvdate"><span class="rvd-l">${cal} ${lf}</span><input type="date" id="rvTo" value="${r.to}"></label>
+    <label class="rvdate"><span class="rvd-l">${cal} ${li}</span><input autocomplete="off" type="date" id="rvFrom" value="${r.from}"></label>
+    <label class="rvdate"><span class="rvd-l">${cal} ${lf}</span><input autocomplete="off" type="date" id="rvTo" value="${r.to}"></label>
   </div>`:'';
   REP_CSV={};
   const secs=ids.map(id=>{const fn=REP_RENDER[id];const body=fn?fn():`<div class="empty">${t('soon')}</div>`;const hdr=ids.length>1?`<div class="section-h" style="margin-top:4px"><h2>${t('rep_'+id)}</h2></div>`:'';return hdr+body;}).join('');
@@ -2337,7 +2339,7 @@ function repTxDay(){
   const d=txDayData(date);
   const cal=svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>');
   const opts=TX_TYPES.map(([k,lk])=>`<option value="${k}" ${type===k?'selected':''}>${t(lk)}</option>`).join('');
-  const head=`<div class="txhead"><label class="txdate">${cal}<input type="date" id="txDate" value="${date}"></label><select id="txType" class="txsel">${opts}</select></div>`;
+  const head=`<div class="txhead"><label class="txdate">${cal}<input autocomplete="off" type="date" id="txDate" value="${date}"></label><select id="txType" class="txsel">${opts}</select></div>`;
   const items=txItems(d,type);
   const chart=txChart(items,type);
   const kpi=(l,v)=>`<div class="txkpi"><div class="txk-l">${l}</div><div class="txk-v num">${money(v)}</div></div>`;
@@ -2915,7 +2917,7 @@ function scProveedores(){
   const pendRows=pend.map(r=>{const b=getEntity('bodega',r.bodegaId);return `<div class="row"><div class="av">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}</div><div><div class="t">${b?b.name:r.bodegaId}</div><div class="s">${t('prov_pending')}</div></div></div>`;}).join('');
   return `<div class="backrow" data-nav="proveedores" style="margin:-4px -4px 8px">${svg('<path d="M15 6l-6 6 6 6"/>')} ${t('m_proveedores')}</div>
   <div class="osub" style="padding:2px 2px 10px;font-size:13px;color:var(--muted)">${t('prov_hint')}</div>
-  <div class="isearch" style="margin-bottom:10px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="provId" placeholder="${t('prov_id_ph')}"></div>
+  <div class="isearch" style="margin-bottom:10px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="provId" placeholder="${t('prov_id_ph')}"></div>
   <button class="btn" data-act="reqaccess"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('prov_request')}</button>
   ${pend.length?`<div class="section-h"><h2>${t('prov_pending_h')}</h2></div><div class="list">${pendRows}</div>`:''}
   <div class="section-h"><h2>${t('prov_linked')}</h2></div><div class="list">${linkRows}</div>`;
@@ -3013,7 +3015,7 @@ function scClientes(){
   }).join('');
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const head=`<div class="invhead">
-    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('cli_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('cli_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     ${('contacts' in navigator)&&('ContactsManager' in window)?`<button class="round" data-act="clicontact" title="${t('prv_from_contacts')}">${svg(PRV_BOOK)}</button>`:''}
     <button class="round" data-act="cli:new">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
   </div>`;
@@ -3023,7 +3025,7 @@ function cliById(id){return state.clients.find(c=>c.id===id);}
 function openCliForm(id){
   const c=id?cliById(id):null;state.cliEdit=id||null;
   document.getElementById('cliH').textContent=t(c?'cli_edit_title':'cli_new_title');
-  const fld=(k,ph,val,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp" id="cf_${k}" placeholder="${ph||''}" ${type?`type="${type}"`:''} value="${val?(''+val).replace(/"/g,'&quot;'):''}"></div>`;
+  const fld=(k,ph,val,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input autocomplete="off" class="inp" id="cf_${k}" placeholder="${ph||''}" ${type?`type="${type}"`:''} value="${val?(''+val).replace(/"/g,'&quot;'):''}"></div>`;
   document.getElementById('cliBody').innerHTML=`<div style="padding:12px 16px 18px;display:flex;flex-direction:column;gap:12px">${c?cliQuickHTML(c):''}
     ${fld('cli_name','',c&&c.name)}
     ${fld('cli_alias','',c&&c.alias)}
@@ -3164,7 +3166,7 @@ function scProvList(){
   </div>`;
   const canPick=('contacts' in navigator)&&('ContactsManager' in window);
   const head=`<div class="invhead">
-    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('prv_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('prv_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     ${canPick?`<button class="round" data-act="provcontact" title="${t('prv_from_contacts')}">${svg(PRV_BOOK)}</button>`:''}
     <button class="round" data-act="provnew" title="${t('prv_new')}">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
   </div>`;
@@ -3174,7 +3176,7 @@ function openProvForm(id,pre){
   const p=id?provById(id):null;if(id&&!p)return;state.provEdit=p?p.id:null;
   const v=p||pre||{};
   document.getElementById('provH').textContent=t(p?'prv_edit':'prv_new');
-  const fld=(k,key,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp" id="pv_${key}" ${type?`type="${type}"`:''} value="${exEsc(v[key]||'')}"></div>`;
+  const fld=(k,key,type)=>`<div class="fld"><span class="fl">${t(k)}</span><input autocomplete="off" class="inp" id="pv_${key}" ${type?`type="${type}"`:''} value="${exEsc(v[key]||'')}"></div>`;
   const ph=v.phone||v.phone2;
   const quick=p&&(ph||p.email)?`<div class="prv-quick">
       ${ph?`<a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(ph)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a>`:''}
@@ -3228,7 +3230,7 @@ let PROVPICK_T='p',PROVPICK_Q='';
 function openProvPick(target){
   PROVPICK_T=target||'p';PROVPICK_Q='';
   document.getElementById('provpickH').textContent=t('prv_pick');
-  document.getElementById('provpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="provPickQ" placeholder="${t('prv_search')}"></div></div><div id="provPickList"></div>`;
+  document.getElementById('provpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="provPickQ" placeholder="${t('prv_search')}"></div></div><div id="provPickList"></div>`;
   fillProvPick();
   const q=document.getElementById('provPickQ');if(q)q.addEventListener('input',e=>{PROVPICK_Q=e.target.value;fillProvPick();});
   document.getElementById('provpickdlg').classList.add('on');
@@ -3287,7 +3289,7 @@ function openCfgDlg(kind){
   const o=opts();state.cfgKind=kind;let h='',body='';
   if(kind==='coin'){h=t('cfg_coin');
     body=`<div class="exform"><div class="coin-grid">${COINS.map(c=>`<button class="coin ${o.sym===c?'on':''}" data-act="cfgsym:${encodeURIComponent(c)}">${c}</button>`).join('')}</div>
-      <div class="fld"><span class="fl">${t('cfg_coin_other')}</span><div class="ex-addpay"><input class="inp" id="cfgSymIn" maxlength="5" value="${COINS.includes(o.sym)?'':exEsc(o.sym)}"><button class="btn" data-act="cfgsymin">${t('save')}</button></div></div>
+      <div class="fld"><span class="fl">${t('cfg_coin_other')}</span><div class="ex-addpay"><input autocomplete="off" class="inp" id="cfgSymIn" maxlength="5" value="${COINS.includes(o.sym)?'':exEsc(o.sym)}"><button class="btn" data-act="cfgsymin">${t('save')}</button></div></div>
       <div class="osub" style="text-align:center">${t('cfg_preview')}: <b>${money(1234567)}</b></div></div>`;}
   else if(kind==='num'){h=t('cfg_numfmt');const sep=o.sep||(LANG==='es'?'es':'en');
     const r=(on,act,lbl)=>`<div class="cfg-row" data-act="${act}" style="cursor:pointer"><span class="cfg-rd ${on?'on':''}">${on?'<span></span>':''}</span><span>${lbl}</span></div>`;
@@ -3296,12 +3298,12 @@ function openCfgDlg(kind){
       <div class="osub" style="text-align:center;margin-top:6px">${t('cfg_preview')}: <b>${money(1234567.891)}</b></div></div>`;}
   else if(kind==='lock'){h=t('cfg_restrict');const L=o.lock;const secs=(L&&L.secs)||['reportes','compras','caja','empleados','ajustes','respaldo'];state.lockSecs=secs.slice();
     body=L?`<div class="exform"><div class="osub">${t('cfg_lock_active')}</div><div class="lock-secs">${LOCKABLE.map(k=>`<span class="fchip act">${t('m_'+k)}</span>`).filter((x,i)=>L.secs.includes(LOCKABLE[i])).join('')}</div>
-        <div class="fld"><span class="fl">${t('cfg_pin_cur')}</span><input class="inp num" id="pinCur" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        <div class="fld"><span class="fl">${t('cfg_pin_cur')}</span><input class="inp num pinmask" id="pinCur" type="text" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" maxlength="6" autocomplete="off"></div>
         <button class="btn ghost exdel" data-act="cfglockoff">${t('cfg_lock_off')}</button></div>`
       :`<div class="exform"><div class="osub">${t('cfg_lock_intro')}</div><div class="cfg-warn">${t('cfg_lock_warn')}</div>
         <div class="cfg-h">${t('cfg_lock_secs')}</div><div class="lock-secs" id="lockSecs">${LOCKABLE.map(k=>`<span class="fchip ${secs.includes(k)?'act':''}" data-act="locksec:${k}">${t('m_'+k)}</span>`).join('')}</div>
-        <div class="fld"><span class="fl">${t('cfg_pin_new')}</span><input class="inp num" id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
-        <div class="fld"><span class="fl">${t('cfg_pin_rep')}</span><input class="inp num" id="pinRep" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        <div class="fld"><span class="fl">${t('cfg_pin_new')}</span><input class="inp num pinmask" id="pinNew" type="text" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        <div class="fld"><span class="fl">${t('cfg_pin_rep')}</span><input class="inp num pinmask" id="pinRep" type="text" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" maxlength="6" autocomplete="off"></div>
         <button class="btn" data-act="cfglockon">${t('cfg_lock_set')}</button></div>`;}
   document.getElementById('cfgH').textContent=h;document.getElementById('cfgBody').innerHTML=body;document.getElementById('cfgdlg').classList.add('on');
 }
@@ -3314,7 +3316,7 @@ function lockUnlocked(){try{return sessionStorage.getItem('abanico.unlock.'+curr
 function lockAllActive(){const L=opts().lock;return !!(L&&L.h&&Array.isArray(L.secs)&&L.secs.includes('all')&&!lockUnlocked());}
 function lockNeeds(s){const L=opts().lock;if(!L||!L.h||!Array.isArray(L.secs))return false;if(!L.secs.includes(s)&&!(s==='ajustes')&&!L.secs.includes('all'))return false;if(state.screen===s)return false;return !lockUnlocked();}
 let PIN_NEXT=null;
-function askPin(next){PIN_NEXT=next;document.getElementById('cfgH').textContent=t('cfg_pin_ask_h');document.getElementById('cfgBody').innerHTML=`<div class="exform"><div class="osub">${t('cfg_pin_ask')}</div><input class="inp num pin-in" id="pinAsk" type="password" inputmode="numeric" maxlength="6" autocomplete="off"><button class="btn" data-act="pinok">${t('cfg_unlock')}</button></div>`;state.cfgKind=null;document.getElementById('cfgdlg').classList.add('on');setTimeout(()=>{const e=document.getElementById('pinAsk');if(e){e.focus();e.addEventListener('keydown',ev=>{if(ev.key==='Enter')pinOk();});}},80);}
+function askPin(next){PIN_NEXT=next;document.getElementById('cfgH').textContent=t('cfg_pin_ask_h');document.getElementById('cfgBody').innerHTML=`<div class="exform"><div class="osub">${t('cfg_pin_ask')}</div><input class="inp num pin-in pinmask" id="pinAsk" type="text" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" maxlength="6" autocomplete="off"><button class="btn" data-act="pinok">${t('cfg_unlock')}</button></div>`;state.cfgKind=null;document.getElementById('cfgdlg').classList.add('on');setTimeout(()=>{const e=document.getElementById('pinAsk');if(e){e.focus();e.addEventListener('keydown',ev=>{if(ev.key==='Enter')pinOk();});}},80);}
 async function pinOk(){const e=document.getElementById('pinAsk');const v=(e&&e.value||'').trim();const L=opts().lock;if(!L)return;if(await pinHash(v)!==L.h){toast(t('cfg_pin_bad'));if(e){e.value='';e.focus();}return;}
   try{sessionStorage.setItem('abanico.unlock.'+currentDataId(),'1');}catch(_){window.__unl=1;}closeCfgDlg();const n=PIN_NEXT;PIN_NEXT=null;if(n)n();}
 async function lockOn(){const a=(document.getElementById('pinNew').value||'').trim(),b=(document.getElementById('pinRep').value||'').trim();
@@ -3333,7 +3335,7 @@ function exportPurchCSV(){
 let CLIPICK_Q='';
 function openCliPick(){
   CLIPICK_Q='';document.getElementById('provpickH').textContent=t('cli_pick');
-  document.getElementById('provpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="cliPickQ" placeholder="${t('cli_search')}"></div></div><div id="cliPickList"></div>`;
+  document.getElementById('provpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="cliPickQ" placeholder="${t('cli_search')}"></div></div><div id="cliPickList"></div>`;
   fillCliPick();const q=document.getElementById('cliPickQ');if(q)q.addEventListener('input',e=>{CLIPICK_Q=e.target.value;fillCliPick();});
   document.getElementById('provpickdlg').classList.add('on');
 }
@@ -3610,8 +3612,8 @@ function openPayAdd(kind,id){
   document.getElementById('cfgBody').innerHTML=`<div class="exform">
     <div class="pl-prod" style="padding:0">${t('sale_folio')}: ${exEsc(r.folio||r.id)} · ${exEsc(kind==='purch'?(r.provider||''):(r.client||''))}</div>
     <div class="pay-sum"><div><span>${t('sr_total_lbl')}</span><b class="num">${money(recTotal(kind,r))}</b></div><div><span>${t('sr_pagos_lbl')}</span><b class="num">${money(recPaid(kind,r))}</b></div><div><span>${t('ttx_deuda')}</span><b class="num neg">${money(due)}</b></div></div>
-    <div class="ctotal ex-total"><span class="l">${t('pay_amount')} $</span><input class="inp num" id="pay_amt" type="number" inputmode="decimal" step="any" placeholder="0"></div>
-    <div class="ex-dt2"><input class="inp" id="pay_date" type="date" max="${todayISO()}" value="${todayISO()}"><input class="inp" id="pay_time" type="time" value="${p2(d.getHours())+':'+p2(d.getMinutes())}"></div>
+    <div class="ctotal ex-total"><span class="l">${t('pay_amount')} $</span><input autocomplete="off" class="inp num" id="pay_amt" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+    <div class="ex-dt2"><input autocomplete="off" class="inp" id="pay_date" type="date" max="${todayISO()}" value="${todayISO()}"><input autocomplete="off" class="inp" id="pay_time" type="time" value="${p2(d.getHours())+':'+p2(d.getMinutes())}"></div>
     <div class="saveact"><button class="cancelbtn" data-act="cfgclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="paysave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
     <button class="btn ghost" data-act="paysaveall">${t('pay_all')} · ${money(due)}</button>
   </div>`;
@@ -3948,7 +3950,7 @@ function scQuotes(){
   return `<div class="backrow" data-nav="ventas">${chev} ${t('sales_quote')}</div>
   <div class="pad" style="padding-top:8px">
     <button class="btn" data-act="qtnew">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('qt_new')}</button>
-    <div class="isearch" style="margin:12px 0 4px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="qtSearch" placeholder="${t('qt_search')}" value="${exEsc(state.qtQ||'')}"></div>
+    <div class="isearch" style="margin:12px 0 4px">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="qtSearch" placeholder="${t('qt_search')}" value="${exEsc(state.qtQ||'')}"></div>
     <div class="section-h sh-rec"><h2>${svg('<path d="M4 6h16M4 12h16M4 18h10"/>')} ${t('qt_recent')} · ${list.length}</h2></div>
     <div class="scards">${rows}</div>
   </div>`;
@@ -3960,7 +3962,7 @@ function quoteHeadHTML(){
 function quoteFieldsHTML(){
   const m=state.quoteMode||{};const opt=t('optional');
   return `<div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>
-    <div class="fld"><span class="fl">${t('qt_due')}</span><input class="inp" id="quoteDue" type="date" value="${exEsc(m.due||'')}"></div>
+    <div class="fld"><span class="fl">${t('qt_due')}</span><input autocomplete="off" class="inp" id="quoteDue" type="date" value="${exEsc(m.due||'')}"></div>
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
 }
 function quoteActionsHTML(){return `<div class="saveact"><button class="cancelbtn" data-act="quotecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="quotesave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('qt_save')}</button></div>`;}
@@ -4141,7 +4143,7 @@ function renderEvForm(){
   const cb=(on,act,lbl)=>`<div class="repchk ev-cb ${on?'on':''}" data-act="${act}"><span class="bx">${on?'<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:3"><path d="M5 12l5 5L20 7"/></svg>':''}</span>${lbl}</div>`;
   document.getElementById('evBody').innerHTML=`<div class="exform">
     <div class="cfld"><textarea class="inp" id="ev_desc" rows="3" placeholder="${exEsc(t('ev_desc'))}">${exEsc(f.desc)}</textarea></div>
-    <div class="ex-dt2"><input class="inp" id="ev_date" type="date" value="${exEsc(f.date)}">${f.allDay?'<span></span>':`<input class="inp" id="ev_time" type="time" value="${exEsc(f.time)}">`}</div>
+    <div class="ex-dt2"><input autocomplete="off" class="inp" id="ev_date" type="date" value="${exEsc(f.date)}">${f.allDay?'<span></span>':`<input autocomplete="off" class="inp" id="ev_time" type="time" value="${exEsc(f.time)}">`}</div>
     ${cb(f.allDay,'evallday',t('ev_allday'))}
     ${f.allDay?'':`<div class="fld"><span class="fl">${t('ev_dur')}</span><select class="inp" id="ev_dur">${durs.map(v=>`<option value="${v}" ${+f.dur===v?'selected':''}>${dl(v)}</option>`).join('')}${durs.includes(+f.dur)?'':`<option value="${f.dur}" selected>${dl(+f.dur)}</option>`}</select></div>`}
     <div class="fld"><span class="fl">${t('ev_color')}</span><div class="ev-colors">${EV_COLORS.map((c,i)=>`<button class="ev-col ${+f.color===i?'on':''}" style="--c:${c}" data-act="evcolor:${i}"></button>`).join('')}</div></div>
@@ -4208,7 +4210,7 @@ function scServicios(){
       ${v.info?`<div class="svc-i">${exEsc(v.info)}</div>`:''}
     </div>`;}).join('');
   const head=`<div class="invhead">
-    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('svc_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('svc_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     <button class="round" data-act="svcnew" title="${t('svc_new')}">${svg('<path d="M12 5v14M5 12h14"/>')}</button>
   </div>`;
   return head+(list.length?`<div class="svclist">${rows}</div>`:`<div class="empty" style="margin-top:30px">${svcLive().length?t('svc_nomatch'):t('svc_empty')}</div>`);
@@ -4225,10 +4227,10 @@ function renderSvcForm(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>');
   const chips=(f.xprices||[]).map((x,i)=>`<div class="xp-chip"><div class="xp-n">${exEsc(xpName(x,i))}</div><div class="xp-p num">${xpMoney(x.p)}</div><div class="xp-a"><button type="button" class="cico del" data-act="svxpdel:${i}" title="${t('remove')}">${trash}</button><button type="button" class="cico ed" data-act="svxpedit:${i}" title="${t('xp_edit')}">${pen}</button></div></div>`).join('');
   document.getElementById('svcBody').innerHTML=`<div class="exform">
-    <div class="fld"><span class="fl">${t('svc_name')}</span><input class="inp" id="sv_name" value="${exEsc(f.name)}"></div>
+    <div class="fld"><span class="fl">${t('svc_name')}</span><input autocomplete="off" class="inp" id="sv_name" value="${exEsc(f.name)}"></div>
     <div class="ex-dt2">
-      <div class="fld"><span class="fl">${t('svc_cost_inv')} <span class="opt">${t('optional')}</span></span><input class="inp num" id="sv_cost" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.cost)}"></div>
-      <div class="fld"><span class="fl">${t('svc_price')}</span><input class="inp num" id="sv_price" type="number" inputmode="decimal" step="any" placeholder="$" value="${exEsc(f.price)}"></div>
+      <div class="fld"><span class="fl">${t('svc_cost_inv')} <span class="opt">${t('optional')}</span></span><input autocomplete="off" class="inp num" id="sv_cost" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.cost)}"></div>
+      <div class="fld"><span class="fl">${t('svc_price')}</span><input autocomplete="off" class="inp num" id="sv_price" type="number" inputmode="decimal" step="any" placeholder="$" value="${exEsc(f.price)}"></div>
     </div>
     <div class="fld xpsec"><div class="xp-h">${svg('<path d="M3 12V4a1 1 0 011-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>')}<span>${t('xp_title')} <span class="opt">${t('optional')}</span></span></div><div class="xp-list">${chips}<button type="button" class="xp-add" data-act="svxpadd" title="${t('xp_add')}">${svg('<path d="M12 5v14M5 12h14"/>')}</button></div></div>
     <div class="fld"><span class="fl">${t('svc_info')} <span class="opt">${t('optional')}</span></span><textarea class="inp" id="sv_info" rows="3">${exEsc(f.info)}</textarea></div>
@@ -4253,7 +4255,7 @@ function delSvc(){const f=state.svcForm;const v=f&&f.id&&svcById(f.id);if(!v)ret
 let SVCPICK_Q='';
 function openSvcPick(){
   SVCPICK_Q='';document.getElementById('svcpickH').textContent=t('svc_pick');
-  document.getElementById('svcpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="svcPickQ" placeholder="${t('svc_pick')}"></div></div><div id="svcPickList"></div>
+  document.getElementById('svcpickBody').innerHTML=`<div class="pp-search"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="svcPickQ" placeholder="${t('svc_pick')}"></div></div><div id="svcPickList"></div>
     <div style="padding:10px 16px 18px"><button class="btn" data-act="svcpickclose">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('svc_done')}</button></div>`;
   fillSvcPick();const q=document.getElementById('svcPickQ');if(q)q.addEventListener('input',e=>{SVCPICK_Q=e.target.value;fillSvcPick();});
   document.getElementById('svcpickdlg').classList.add('on');
@@ -4272,8 +4274,8 @@ function svcRowsHTML(){
     return `<div class="crow svcrow">
       <div class="crow-name"><span class="svc-tag">${svg(SVC_ICO)}</span>${exEsc(svcLineName(i.id))}</div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input class="cinp num" data-sqty="${id}" type="number" inputmode="numeric" value="${i.q}"></div>
-        <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input class="cinp num" data-sprice="${id}" type="number" inputmode="numeric" value="${price}"></div>
+        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-sqty="${id}" type="number" inputmode="numeric" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input autocomplete="off" class="cinp num" data-sprice="${id}" type="number" inputmode="numeric" value="${price}"></div>
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>
       </div>
       ${pn?`<div class="cpx">${svg(IC_TAG)}<span>${exEsc(pn)}</span></div>`:''}${adjCap('s:'+i.id)}
@@ -4309,7 +4311,7 @@ function renderPct(){
   document.getElementById('pctBody').innerHTML=`<div class="exform">
     <div class="pl-prod" style="padding:0">${exEsc(P0.name)}</div>
     <div class="segrow"><button class="seg ${P0.sign<0?'on':''}" data-act="pctsign:-1">${radio(P0.sign<0)} ${t('pct_disc')}</button><button class="seg ${P0.sign>0?'on':''}" data-act="pctsign:1">${radio(P0.sign>0)} ${t('pct_up')}</button></div>
-    <div class="ctotal ex-total"><span class="l">%</span><input class="inp num" id="pct_v" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(P0.pct)}"></div>
+    <div class="ctotal ex-total"><span class="l">%</span><input autocomplete="off" class="inp num" id="pct_v" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(P0.pct)}"></div>
     <div class="pct-q">${[5,10,15,20,25,50].map(n=>`<button class="fchip ${pct===n?'act':''}" data-act="pctq:${n}">${n}%</button>`).join('')}</div>
     <div class="pct-prev"><div><span>${t('pct_before')}</span><b class="num">${money(P0.base)}</b></div><div><span>${t('pct_after')}</span><b class="num" id="pct_nv">${money(nv)}</b></div></div>
     <div class="saveact"><button class="cancelbtn" data-act="pctclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="pctapply">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('pct_apply')}</button></div>
@@ -4385,7 +4387,7 @@ function scEmpleados(){
       ${last?`<div class="emp-last">${svg(EX_IC.cal)} ${ti('emp_last_pay',{d:exEsc(last.date),m:money(+last.amount||0)})}</div>`:''}
     </div>`;}).join('');
   const head=`<div class="invhead">
-    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input id="searchInput" placeholder="${t('emp_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('emp_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
     <button class="round" data-act="empnew" title="${t('emp_new')}">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
   </div>`;
   return head+(list.length?`<div class="emplist">${rows}</div>`:`<div class="empty" style="margin-top:30px">${empLive().length?t('emp_nomatch'):t('emp_empty')}</div>`);
@@ -4406,7 +4408,7 @@ function renderEmp(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   if(tab==='info'||!e){
     const v=e||{};
-    const fld=(k,key,type,extra)=>`<div class="fld"><span class="fl">${t(k)}</span><input class="inp ${type==='number'?'num':''}" id="em_${key}" ${type?`type="${type}"`:''} ${extra||''} value="${exEsc(v[key]==null?'':v[key])}"></div>`;
+    const fld=(k,key,type,extra)=>`<div class="fld"><span class="fl">${t(k)}</span><input autocomplete="off" class="inp ${type==='number'?'num':''}" id="em_${key}" ${type?`type="${type}"`:''} ${extra||''} value="${exEsc(v[key]==null?'':v[key])}"></div>`;
     const ph=v.phone;
     body=`<div class="exform">
       ${e&&ph?`<div class="prv-quick"><a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(ph)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a></div>`:''}
@@ -4422,8 +4424,8 @@ function renderEmp(){
   }else if(tab==='pay'){
     const l=empPays(e.id);const tot=l.reduce((a,p)=>a+(+p.amount||0),0);const f=state.empPayForm;
     const form=f?`<div class="empform">
-        <div class="ex-dt2"><input class="inp" id="ep_date" type="date" value="${exEsc(f.date)}"><input class="inp" id="ep_time" type="time" value="${exEsc(f.time)}"></div>
-        <div class="ctotal ex-total"><span class="l">${t('emp_pay_amt')} $</span><input class="inp num" id="ep_amt" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.amount)}"></div>
+        <div class="ex-dt2"><input autocomplete="off" class="inp" id="ep_date" type="date" value="${exEsc(f.date)}"><input autocomplete="off" class="inp" id="ep_time" type="time" value="${exEsc(f.time)}"></div>
+        <div class="ctotal ex-total"><span class="l">${t('emp_pay_amt')} $</span><input autocomplete="off" class="inp num" id="ep_amt" type="number" inputmode="decimal" step="any" placeholder="0" value="${exEsc(f.amount)}"></div>
         <div class="cfld"><select class="inp" id="ep_pay">${pmOptions(f.pay)}</select></div>
         <div class="cfld"><textarea class="inp" id="ep_desc" rows="2" placeholder="${exEsc(t('emp_pay_desc'))}">${exEsc(f.desc)}</textarea></div>
         <div class="saveact"><button class="cancelbtn" data-act="emppaycancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="emppaysave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
@@ -4441,7 +4443,7 @@ function renderEmp(){
     const [yy,mm]=mo.split('-').map(Number);const mlabel=new Date(yy,mm-1,1).toLocaleDateString(LANG==='en'?'en-US':'es-CO',{month:'long',year:'numeric'});const mlabelC=mlabel.charAt(0).toUpperCase()+mlabel.slice(1);
     const f=state.empAttForm;
     const form=f?`<div class="empform">
-        <input class="inp" id="ea_date" type="date" max="${todayISO()}" value="${exEsc(f.date)}">
+        <input autocomplete="off" class="inp" id="ea_date" type="date" max="${todayISO()}" value="${exEsc(f.date)}">
         <div class="att-seg">${ATT_TYPES.map(k=>`<button class="att-b ${f.type===k?'on':''}" style="--c:${ATT_COL[k]}" data-act="empatttype:${k}">${t(k)}</button>`).join('')}</div>
         <div class="cfld"><textarea class="inp" id="ea_desc" rows="2" placeholder="${exEsc(t('emp_pay_desc'))} ${t('optional')}">${exEsc(f.desc)}</textarea></div>
         <div class="saveact"><button class="cancelbtn" data-act="empattcancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="empattsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
@@ -4510,39 +4512,39 @@ function formHTML(){
   const bod=state.profile&&state.profile.kind==='bodega';
   const imgKeySrc=(!f.img&&f.imgKey)?(IMGCACHE['img:'+f.imgKey]||''):'';
   const img=(f.img||f.imgKey)?`<div class="imgdrop has"><button class="rm" data-act="rm-img">✕</button><img ${f.img?`src="${f.img}"`:(imgKeySrc?`src="${imgKeySrc}"`:'')} ${(!f.img&&f.imgKey)?`data-imgkey="${f.imgKey}"`:''} alt=""></div>`
-    :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input type="file" id="imgInput" accept="image/*"></label>`;
+    :`<label class="imgdrop">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<span class="ph">${t('f_upload')}</span><input autocomplete="off" type="file" id="imgInput" accept="image/*"></label>`;
   return `
   <div class="fld"><span class="fl">${t('f_key')} <span class="req">*</span></span>
-    <div class="keyrow"><input class="inp" id="f_key" value="${exEsc(f.key||'')}" placeholder="SKU-0000"><button class="genbtn" data-act="scan:key" title="${t('scan_title')}" style="flex:none;padding:0 11px">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
-  <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input class="inp" id="f_name" value="${exEsc(f.name||'')}" placeholder="${t('namePh')}"></div>
+    <div class="keyrow"><input autocomplete="off" class="inp" id="f_key" value="${exEsc(f.key||'')}" placeholder="SKU-0000"><button class="genbtn" data-act="scan:key" title="${t('scan_title')}" style="flex:none;padding:0 11px">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div>
+  <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input autocomplete="off" class="inp" id="f_name" value="${exEsc(f.name||'')}" placeholder="${t('namePh')}"></div>
   <div class="fld"><span class="fl">${t('f_category')}</span>
     <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${exEsc(f.cat||t('f_category_ph'))}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
-    <input type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
+    <input autocomplete="off" type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
   <div class="fld"><span class="fl">${t('f_unit')}</span>
     <div class="inp sellike" data-act="openunit"><span class="${f.unit?'':'ph'}">${f.unit?unitLabel(f.unit):t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
-    <input type="hidden" id="f_unit" value="${(f.unit||'').replace(/"/g,'&quot;')}"></div>
+    <input autocomplete="off" type="hidden" id="f_unit" value="${(f.unit||'').replace(/"/g,'&quot;')}"></div>
   <div class="two">
-    <div class="fld"><span class="fl">${t('f_purchase')}</span><input class="inp num" id="f_purchase" type="number" inputmode="numeric" value="${f.purchase??''}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_sale')}</span><input class="inp num" id="f_sale" type="number" inputmode="numeric" value="${f.sale??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_purchase')}</span><input autocomplete="off" class="inp num" id="f_purchase" type="number" inputmode="numeric" value="${f.purchase??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_sale')}</span><input autocomplete="off" class="inp num" id="f_sale" type="number" inputmode="numeric" value="${f.sale??''}" placeholder="0"></div>
   </div>
   ${xpSectionHTML(f)}
   <div class="two">
-    <div class="fld"><span class="fl">${t('f_qty')}</span><input class="inp num" id="f_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_qtyreserve')}</span><input class="inp num" id="f_reserve" type="number" inputmode="numeric" value="${f.reserve??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_qty')}</span><input autocomplete="off" class="inp num" id="f_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_qtyreserve')}</span><input autocomplete="off" class="inp num" id="f_reserve" type="number" inputmode="numeric" value="${f.reserve??''}" placeholder="0"></div>
   </div>
   ${bod?`<div class="two">
-    <div class="fld"><span class="fl">${t('f_stockmin')}</span><input class="inp num" id="f_min" type="number" inputmode="numeric" value="${f.min??''}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_stockmax')}</span><input class="inp num" id="f_max" type="number" inputmode="numeric" value="${f.max??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_stockmin')}</span><input autocomplete="off" class="inp num" id="f_min" type="number" inputmode="numeric" value="${f.min??''}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_stockmax')}</span><input autocomplete="off" class="inp num" id="f_max" type="number" inputmode="numeric" value="${f.max??''}" placeholder="0"></div>
   </div>
   <div class="two">
-    <div class="fld"><span class="fl">${t('f_location')}</span><input class="inp" id="f_loc" value="${f.loc||''}" placeholder="A-01"></div>
-    <div class="fld"><span class="fl">${t('f_lote')}</span><input class="inp" id="f_lot" value="${f.lot||''}" placeholder="L-2026"></div>
+    <div class="fld"><span class="fl">${t('f_location')}</span><input autocomplete="off" class="inp" id="f_loc" value="${f.loc||''}" placeholder="A-01"></div>
+    <div class="fld"><span class="fl">${t('f_lote')}</span><input autocomplete="off" class="inp" id="f_lot" value="${f.lot||''}" placeholder="L-2026"></div>
   </div>`:''}
   <div class="fld"><span class="fl">${t('f_image')} <span class="opt">${t('optional')}</span></span>${img}</div>
   <div>
     <div class="switchrow"><div class="sw-l"><div class="t">${t('f_expiry')} <span class="opt" style="font-weight:400;color:var(--faint)">${t('optional')}</span></div><div class="s">${t('f_expiry_sub')}</div></div>
-      <label class="switch"><input type="checkbox" id="expToggle" ${f.expiryOn?'checked':''}><span class="tk"></span></label></div>
-    <div class="expwrap ${f.expiryOn?'on':''}" id="expWrap"><input class="inp" id="f_expiry" type="date" value="${f.expiry||''}"></div>
+      <label class="switch"><input autocomplete="off" type="checkbox" id="expToggle" ${f.expiryOn?'checked':''}><span class="tk"></span></label></div>
+    <div class="expwrap ${f.expiryOn?'on':''}" id="expWrap"><input autocomplete="off" class="inp" id="f_expiry" type="date" value="${f.expiry||''}"></div>
   </div>
   ${f.editId?`<button class="delbtn" data-act="del-product">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('del')}</button>`:''}`;
 }
@@ -4581,7 +4583,7 @@ function openXp(i,target){
   document.getElementById('xpH').textContent=t(i>=0?'xp_edit':'xp_add');
   document.getElementById('xpBody').innerHTML=`<div class="xp-form">
     <div class="fld"><span class="fl">${t('xp_name')} <span class="opt">${t('optional')}</span></span><input class="inp" id="xp_name" maxlength="40" autocomplete="off" placeholder="${e(t('xp_name_ph'))}" value="${e(x?x.n:'')}"></div>
-    <div class="fld"><span class="fl">${t('xp_price')}</span><input class="inp num" id="xp_price" type="number" inputmode="decimal" step="any" placeholder="0" value="${x?x.p:''}"></div>
+    <div class="fld"><span class="fl">${t('xp_price')}</span><input autocomplete="off" class="inp num" id="xp_price" type="number" inputmode="decimal" step="any" placeholder="0" value="${x?x.p:''}"></div>
     <div class="saveact"><button class="cancelbtn" data-act="xpclose">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="xpsave">${svg('<path d="M5 12l5 5L20 7"/>')} ${t('save')}</button></div>
   </div>`;
   document.getElementById('xpdlg').classList.add('on');
@@ -5948,12 +5950,14 @@ const ROLE_ICON={bodega:IC.inventario,tienda:'<path d="M4 9l1.2-4h13.6L20 9"/><p
 function obGo(step){state.onbo.step=step;renderOnbo();}
 function renderOnbo(){
   const s=state.onbo.step,tmp=state.onbo.tmp,role=tmp.role;let h='';
-  const fld=(id,label,ph,val,type)=>`<div class="fld"><span class="fl">${label}</span><input class="inp" id="${id}" placeholder="${ph}" ${type?`type="${type}"`:''} value="${val||''}"></div>`;
+  const fld=(id,label,ph,val,type,ac)=>`<div class="fld"><span class="fl">${label}</span><input class="inp${type==='mask'?' pinmask':''}" id="${id}" placeholder="${ph}" ${type&&type!=='mask'?`type="${type}"`:''} autocomplete="${ac||'off'}" value="${val||''}"></div>`;
   if(s==='auth'){
     h=`<div style="margin:14px 0 8px"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Abanico</div><div class="osub" style="text-align:center;margin-top:2px">${t('au_gate_sub')}</div></div></div>
-    ${fld('au_email',t('au_email'),t('au_email_ph'),state.onbo.email||'','email')}
-    ${fld('au_pass',t('au_pass'),t('au_pass_ph'),'','password')}
-    <button class="btn obtn" data-act="au:signin">${t('au_do_signin')}</button>
+    <form id="auForm" method="post" action="#" autocomplete="on" novalidate style="display:contents">
+    ${fld('au_email',t('au_email'),t('au_email_ph'),state.onbo.email||'','email','username')}
+    ${fld('au_pass',t('au_pass'),t('au_pass_ph'),'','password','current-password')}
+    <button type="submit" class="btn obtn" data-act="au:signin">${t('au_do_signin')}</button>
+    </form>
     <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--muted)">${t('au_ask_admin')}</div>
     <div class="au-devby"><span>${t('au_devby')}</span><img src="complex-logo.png" alt="Complex_" loading="lazy"></div>`;
   }else if(s==='stores'){
@@ -5975,15 +5979,15 @@ function renderOnbo(){
     h=`<h2>${role==='bodega'?t('ob_bodega_dir_title'):t('ob_tienda_dir_title')}</h2>${cards}<button class="btn ghost obtn" data-act="ob:new" style="margin-top:6px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> ${t('ob_create_new')}</button>`;
   }else if(s==='create'){
     h=`<h2>${role==='bodega'?t('ob_bodega_create'):t('ob_tienda_create')}</h2>
-    <div class="fld"><span class="fl">${t('ob_logo')}</span><label class="logopick">${tmp.logo?`<img src="${tmp.logo}">`:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<input type="file" id="ob_logo" accept="image/*"></label></div>
+    <div class="fld"><span class="fl">${t('ob_logo')}</span><label class="logopick">${tmp.logo?`<img src="${tmp.logo}">`:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-3 4 4"/>')}<input autocomplete="off" type="file" id="ob_logo" accept="image/*"></label></div>
     ${fld('ob_name',role==='bodega'?t('ob_bodega_name'):t('ob_tienda_name'),role==='bodega'?t('ob_bodega_name_ph'):t('ob_tienda_name_ph'),tmp.name)}
-    ${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),tmp.pass,'password')}
+    ${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),tmp.pass,'mask')}
     <button class="btn obtn" data-act="ob:create2">${t('ob_continue')}</button>`;
   }else if(s==='created'){
     h=`<h2>${t('ob_id_title')}</h2><div class="idbox"><div class="idl">${role==='bodega'?t('ob_id_label'):t('ob_id_tienda_label')}</div><div class="idv">${tmp.id}</div></div><div class="osub">${role==='bodega'?t('ob_id_sub'):''}</div><button class="btn obtn" data-act="ob:finish">${t('ob_enter')}</button>`;
   }else if(s==='password'){
     const ent=getEntity(role,tmp.id);
-    h=`<h2>${ent?ent.name:''}</h2><div class="osub" style="margin-bottom:6px">${tmp.id}</div>${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),'','password')}<button class="btn obtn" data-act="ob:enter">${t('ob_enter_existing')}</button>`;
+    h=`<h2>${ent?ent.name:''}</h2><div class="osub" style="margin-bottom:6px">${tmp.id}</div>${fld('ob_pass',t('ob_pass'),t('ob_pass_ph'),'','mask')}<button class="btn obtn" data-act="ob:enter">${t('ob_enter_existing')}</button>`;
   }
   document.getElementById('onboBody').innerHTML=h;
   const lg=document.getElementById('ob_logo');
@@ -6708,6 +6712,14 @@ function navBackTo(scr){
   if(d>0&&prev&&prev.s===scr&&st&&st.s===state.screen&&!(st.L||[]).length){history.back();return true;}
   return false;
 }
+// Al entrar a la app se quitan los campos del login: así Chrome no confunde los buscadores con el usuario
+function initAuthCleanup(){
+  const o=document.getElementById('onbo');if(!o)return;
+  const clean=()=>{if(o.classList.contains('on'))return;const b=document.getElementById('onboBody');if(b&&b.querySelector('input'))b.innerHTML='';};
+  new MutationObserver(clean).observe(o,{attributes:true,attributeFilter:['class']});clean();
+}
+setTimeout(initAuthCleanup,0);
+document.addEventListener('submit',e=>e.preventDefault(),true);   // el login usa su botón; el formulario nunca recarga la página
 function initNav(){
   const mo=new MutationObserver(()=>navSync());
   document.querySelectorAll('.histdlg,.sheetdlg,.permdlg').forEach(d=>mo.observe(d,{attributes:true,attributeFilter:['class']}));
@@ -6799,7 +6811,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261001215126';
+const APP_VERSION='20261001220752';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

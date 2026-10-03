@@ -4776,7 +4776,8 @@ function fillFilterValues(field){
   const opt=(v,label,sel)=>`<div class="catopt ${sel?'sel':''}" data-fltval="${field}::${(''+v).replace(/"/g,'&quot;')}"><span class="ck">${sel?ck:''}</span><span>${exEsc(label)}</span></div>`;
   if(field==='unit'){
     document.getElementById('filterH').textContent=t('flt_unit');
-    const vals=[...new Set(state.products.map(p=>unitLabel(p.unit)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    const shop=(state.units||[]).map(u=>(''+u).trim()).filter(u=>u&&u!=='...').map(u=>unitLabel(canonUnit(u)));   // unidades creadas en la tienda (como Mi Negocio)
+    const vals=[...new Set([...shop,...state.products.map(p=>unitLabel(p.unit))].filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     document.getElementById('filterBody').innerHTML=back+(vals.length?vals.map(u=>opt(u,u,state.filterUnit===u)).join(''):`<div class="empty">${t('noResults')}</div>`);
   }else{
     document.getElementById('filterH').textContent=t('flt_info');
@@ -5473,7 +5474,7 @@ function itemSnap(id,q,price){const p=P(id);const o={id,q,price};if(p){o.name=p.
 function uidPart(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 let _DEVID=null;function deviceId(){if(_DEVID)return _DEVID;try{_DEVID=localStorage.getItem('abanico.devid');if(!_DEVID){_DEVID=Math.random().toString(36).slice(2,10);localStorage.setItem('abanico.devid',_DEVID);}}catch(_){_DEVID='x'+Math.random().toString(36).slice(2,8);}return _DEVID;}
 function syncKeys(){return ['products','clients','sales','mermas','purchases','porders','receipt',...MOD_DOCS.map(m=>m.key)];}
-function recKey(key,x){if(!x||typeof x!=='object')return null;if(key==='extracats')return (x.type||'')+'|'+(''+(x.name||'')).toUpperCase();return x.id!=null?''+x.id:null;}
+function recKey(key,x){if(key==='units')return (typeof x==='string'&&x.trim())?'u:'+x.trim().toUpperCase():null;if(!x||typeof x!=='object')return null;if(key==='extracats')return (x.type||'')+'|'+(''+(x.name||'')).toUpperCase();return x.id!=null?''+x.id:null;}
 const BASE={};const BASES_LOADED={};
 function baseOf(id,key){return BASE[id+'|'+key]||null;}
 function mkBase(key,data){if(Array.isArray(data)){const map=new Map();data.forEach(x=>{const k=recKey(key,x);if(k!=null)map.set(k,JSON.stringify(x));});return {arr:true,map,json:JSON.stringify(data)};}return {arr:false,obj:data||{},json:JSON.stringify(data||{})};}
@@ -5577,7 +5578,7 @@ let _rnT=null;function sbScheduleRender(){clearTimeout(_rnT);_rnT=setTimeout(()=
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true}];
+const MOD_DOCS=[{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'}];
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases',...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -6896,7 +6897,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003173339';
+const APP_VERSION='20261003175131';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

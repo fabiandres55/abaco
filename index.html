@@ -910,9 +910,8 @@
   .askmsg{font-size:16px;line-height:1.45;color:var(--ink);margin:0 4px 18px;white-space:pre-line;overflow-wrap:anywhere}
   .askin{width:100%;box-sizing:border-box;margin:-4px 0 16px}
   .askbtns{display:flex;justify-content:flex-end;gap:6px}
-  .askbtns button{background:none;border:none;color:var(--pri);font:700 14px var(--ui);letter-spacing:.05em;padding:10px 16px;border-radius:6px;cursor:pointer}
+  .askbtns button{background:none;border:none;color:var(--ink);font:700 14px var(--ui);letter-spacing:.05em;padding:10px 16px;border-radius:6px;cursor:pointer}
   .askbtns button:active{background:var(--sel)}
-  .askbtns [data-ask="yes"]{color:var(--ink)}
 </style>
 
 <div class="device" id="device">
@@ -6708,7 +6707,7 @@ function askEl(){
   d.innerHTML='<div class="askcard" role="alertdialog" aria-modal="true"><div class="askmsg"></div><input class="inp askin" autocomplete="off"><div class="askbtns"><button type="button" data-ask="no"></button><button type="button" data-ask="yes"></button></div></div>';
   (document.getElementById('device')||document.body).appendChild(d);
   d.addEventListener('click',e=>{const b=e.target.closest('[data-ask]');if(b)askAnswer(b.dataset.ask==='yes');else if(e.target===d)askAnswer(false);});
-  d.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();askAnswer(true);}else if(e.key==='Escape')askAnswer(false);});
+  d.addEventListener('keydown',e=>{if(e.key==='Enter'&&ASK_INPUT){e.preventDefault();askAnswer(true);}else if(e.key==='Escape')askAnswer(false);});
   return d;
 }
 askEl();   // existe desde el inicio para que el historial (gesto atrás) la cuente como ventana
@@ -6722,7 +6721,7 @@ function askOpen(msg,input,val){
   const d=askEl();ASK_INPUT=!!input;
   d.querySelector('.askmsg').textContent=msg;const inp=d.querySelector('.askin');inp.hidden=!input;inp.value=val||'';
   d.querySelector('[data-ask="no"]').textContent=t(input?'ask_cancel':'ask_no');d.querySelector('[data-ask="yes"]').textContent=t(input?'ask_ok':'ask_yes');
-  return new Promise(res=>{ASK_DONE=res;d.classList.add('on');setTimeout(()=>{try{if(input){inp.focus();inp.select();}else d.querySelector('[data-ask="yes"]').focus();}catch(_){}},60);});
+  return new Promise(res=>{ASK_DONE=res;d.classList.add('on');setTimeout(()=>{try{if(input){inp.focus();inp.select();}else if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}catch(_){}},60);});
 }
 function appConfirm(msg){return askOpen(msg,false);}          // → true / false
 function appPrompt(msg,val){return askOpen(msg,true,val);}    // → texto / null
@@ -6897,7 +6896,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003172749';
+const APP_VERSION='20261003173339';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

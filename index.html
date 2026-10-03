@@ -1977,13 +1977,15 @@ function openSalePay(){
   document.getElementById('paydlg').classList.add('on');
 }
 function saleRow(p,box){
-  const inCart=state.cart[p.id]||0;
-  const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
-  const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
-  const ctl=inCart>0?`<div class="stepper"><button data-dec="${p.id}">−</button><span class="q num">${inCart}</span><button data-inc="${p.id}">+</button></div>`:`<button class="add-btn" data-inc="${p.id}">${t('add')}</button>`;
-  return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span>${ctl}</div>`;
+  return pickRowHTML(p,state.cart[p.id]||0,'data-sradd','srdec',p.price,box);   // igual que "Seleccione el producto"
 }
 /* ---------------- Selector de producto por categoría (venta) ---------------- */
+// Fila de producto para elegir (selector por categoría y búsqueda de la venta): toda la fila agrega; ✓ cantidad y ✕ quitar
+function pickRowHTML(p,inCart,addAttr,rmAct,price,box){
+  const chk=svg('<path d="M5 12l5 5L20 7"/>'),rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
+  const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');   // el nombre de Mi Negocio ya trae "... ": no repetirlo
+  return `<div class="row saleprow" ${addAttr}="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${saleProdImg(p,box)}</div><div style="min-width:0"><div class="s" style="font-size:11px;color:var(--muted)">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">... ${exEsc(nm)}</div><div class="s">#${p.stock} · <b class="num">${money(price)}</b></div></div><div class="r">${inCart>0?`<span class="salechk">${chk}<span class="num">${inCart}</span></span><button class="salerm" data-act="${rmAct}:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;
+}
 function saleProdImg(p,box){const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);return cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);}
 function fillSaleProd(){
   try{saveCartDraft();}catch(_){}
@@ -2008,7 +2010,7 @@ function fillSaleProd(){
       const list=(q&&!catMatch)?matched:all;   // si el nombre de la categoría coincide, muestra todos sus productos
       const rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
       const pc=curPickCart();
-      html+=list.map(p=>{const inCart=pc[p.id]||0;return `<div class="row saleprow" data-saleadd="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${saleProdImg(p,box)}</div><div style="min-width:0"><div class="s" style="font-size:11px;color:var(--muted)">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">... ${exEsc(p.name)}</div><div class="s">#${p.stock} · <b class="num">${money(state.pickMode==='compra'?(p.cost||0):p.price)}</b></div></div><div class="r">${inCart>0?`<span class="salechk">${chk}<span class="num">${inCart}</span></span><button class="salerm" data-act="saledec:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;}).join('');
+      html+=list.map(p=>pickRowHTML(p,pc[p.id]||0,'data-saleadd','saledec',state.pickMode==='compra'?(p.cost||0):p.price,box)).join('');
     }
   });
   document.getElementById('saleprodBody').innerHTML=search+(html||`<div class="empty">${t('noResults')}</div>`);
@@ -2039,6 +2041,10 @@ function revealCat(b,c){
   const br=b.getBoundingClientRect(),stick=b.querySelector('.hb-stick');const topLim=br.top+(stick?stick.offsetHeight:0);
   const over=last.getBoundingClientRect().bottom-br.bottom;if(over<=0)return;
   b.scrollTop+=Math.max(0,Math.min(over+8,hd.getBoundingClientRect().top-topLim));
+}
+// Agregar desde la búsqueda de la venta: vuelve al pedido y lo muestra
+function saleSearchAdd(id){id=+id;const c=state.cart;if(c[id]&&!opts().incQty){toast(t('cfg_already'));return;}c[id]=(c[id]||0)+1;cartOrderSync();state.q='';render();
+  try{const inp=document.querySelector(`#body [data-cqty="${id}"]`);const row=inp&&inp.closest('.crow');if(row)showRow(row);}catch(_){}
 }
 function saleAdd(id){id=+id;const p=P(id);const c=curPickCart();if(c===state.cart&&c[id]&&!opts().incQty){toast(t('cfg_already'));return;}c[id]=(c[id]||0)+1;if(c===state.cart)cartOrderSync();if(p){state.spAdded=p.name+(p.key?' ('+p.key+')':'');state.spLastId=id;}const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;/* se mantiene abierto para seguir agregando */}
 function saleDec(id){id=+id;const c=curPickCart();delete c[id];if(state.pickMode==='compra'){if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}else if(state.cartPrice)delete state.cartPrice[id];updateCartBar();const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}
@@ -6356,7 +6362,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='scandlg')return closeScanner();
   if(e.target.id==='filterdlg')return closeFilter();
   if(e.target.id==='saleproddlg')return closeSaleProd();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-recvdet],[data-paydet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt]");
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-sradd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-recvdet],[data-paydet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt]");
   if(!el)return;
   if(el.hasAttribute("data-purdet"))return openPurchaseDet(el.dataset.purdet);
   if(el.hasAttribute("data-txbar")){const i=+el.dataset.txbar;state.txBar=(state.txBar===i)?null:i;state._keep=document.getElementById("screen").scrollTop;return render();}
@@ -6368,6 +6374,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-mermapick"))return mermaPick(el.dataset.mermapick);
   if(el.hasAttribute("data-fltval"))return pickFilterValue(el.dataset.fltval);
   if(el.hasAttribute("data-saleadd"))return saleAdd(el.dataset.saleadd);
+  if(el.hasAttribute("data-sradd"))return saleSearchAdd(el.dataset.sradd);
   if(el.hasAttribute("data-cdel")){const id=+el.dataset.cdel;delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];return render();}
   if(el.hasAttribute("data-cliac"))return pickSaleClient(el.dataset.cliac);
   if(el.hasAttribute("data-pick")){const[r,id]=el.dataset.pick.split(':');return obPick(r,id);}
@@ -6462,6 +6469,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="salepayclear"){state.salePay='';return render();}
     if(a==="setpay"){state.salePay='pm_'+el.dataset.act.split(":")[1];closePay();return render();}
     if(a==="savesale")return saveSale();
+    if(a==="srdec"){const id=+el.dataset.act.split(":")[1];delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];return render();}   // ✕ en la búsqueda: quita el producto y sigue buscando
     if(a==="salecancel")return saleCancel();
     if(a==="provnew")return openProvForm(null);
     if(a==="provedit")return openProvForm(el.dataset.act.slice(9));
@@ -6902,7 +6910,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003180040';
+const APP_VERSION='20261003180646';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

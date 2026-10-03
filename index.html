@@ -1124,6 +1124,11 @@ function canonUnit(u){if(u==null)return u;const s=(''+u).trim();if(!s)return s;i
 function isKnownUnit(u){return UNITS.includes(u)||UNITS_EXTRA.includes(u)||(state.units||[]).includes(u);}
 // entradas del selector: {canon, label} sin etiquetas duplicadas
 function unitCatalogEntries(){const out=[],seen=new Set();const add=(canon,label)=>{if(label&&!seen.has(label)){seen.add(label);out.push({canon,label});}};UNITS.forEach(k=>add(k,t(k)));UNITS_EXTRA.forEach(u=>add(u,u));(state.units||[]).forEach(u=>{const c=canonUnit(u);add(c,unitLabel(c));});return out;}
+// Productos importados de Mi Negocio: sin unidad, como allá (la importación les ponía "Pieza").
+// Se reconocen porque nunca se guardaron desde el formulario (que agrega min/max/loc/lot) ni vienen de una bodega.
+function fixImportedUnits(list){let ch=false;(list||state.products||[]).forEach(p=>{if(p&&p.unit==='u_piece'&&!('min' in p)&&!('loc' in p)&&!p.origin){p.unit='';ch=true;}});return ch;}
+// Igual, y si cambió algo queda pendiente de subir a la nube para que llegue a los demás equipos
+function fixImportedUnitsSync(id){if(!fixImportedUnits())return false;try{sbMarkDirty(id||currentDataId(),'products');setTimeout(()=>{try{flushDirty(true);}catch(_){}},800);}catch(_){}return true;}
 // migra unidades guardadas como etiqueta traducida → clave canónica
 function migrateUnits(){let ch=false;(state.products||[]).forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;ch=true;}});if(ch)persist();return ch;}
 
@@ -4930,7 +4935,7 @@ function importProducts(list,stay){
     if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase());
     if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(Array.isArray(it.xprices)&&it.xprices.length){const old=xPrices(ex);ex.xprices=it.xprices.map(x=>{const o=old.find(y=>+y.p===+x.p&&y.n);return {n:o?o.n:(x.n||''),p:+x.p};});ex.addSale=ex.xprices[0].p;}
     else if(it.addSale!=null&&+it.addSale>0)ex.addSale=+it.addSale;if(it.desc)ex.desc=it.desc;if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
-    else{const newId=nid();state.products.push({id:newId,key:key||('IMP-'+newId),name:it.name,cat:it.cat||'',unit:'u_piece',cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,...(Array.isArray(it.xprices)?{xprices:it.xprices.map(x=>({n:x.n||'',p:+x.p}))}:{}),desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
+    else{const newId=nid();state.products.push({id:newId,key:key||('IMP-'+newId),name:it.name,cat:it.cat||'',unit:'',cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,...(Array.isArray(it.xprices)?{xprices:it.xprices.map(x=>({n:x.n||'',p:+x.p}))}:{}),desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
   });
   persist();closeIO();
   if(!stay){state.invLimit=INV_PAGE;state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));}
@@ -5523,7 +5528,7 @@ function mergeDoc(id,key,local,remote,forceUnion){
 function setStateDoc(key,d,id){
   if(key==='receipt'){if(d&&typeof d==='object'&&!Array.isArray(d))state.receipt=d;return;}
   if(!Array.isArray(d))return;
-  if(key==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));}
+  if(key==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));fixImportedUnitsSync(id);}
   else if(key==='clients')state.clients=d;else if(key==='mermas')state.mermas=d;else if(key==='purchases')state.purchases=d;else if(key==='porders')state.porders=d;
   else if(key==='sales'){state.sales=d;try{idbKvPut('sales:'+id,d);}catch(_){}}
   else{const md=modDoc(key);if(md)state[md.st]=d;}
@@ -5589,7 +5594,7 @@ async function sbWouldWipeCloud(sb,id,key,data){
   if(!CORE_KEYS.has(key)||!Array.isArray(data)||data.length>0)return false;
   try{const r=await sb.from('store_docs').select('data').eq('store_id',id).eq('doc_key',key).maybeSingle();if(r.error)return true;const cur=r.data&&r.data.data;return Array.isArray(cur)&&cur.length>0;}catch(e){return true;}
 }
-function applyDocLocal(key,d,id){if(key==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));}else if(key==='clients')state.clients=d;else if(key==='purchases')state.purchases=d;else if(key==='sales'){state.sales=d;idbKvPut('sales:'+id,d);}else{const md=modDoc(key);if(md)state[md.st]=d;}}
+function applyDocLocal(key,d,id){if(key==='products'){state.products=d;ensureUniqueIds();state.products.forEach(x=>x.unit=canonUnit(x.unit));fixImportedUnitsSync(id);}else if(key==='clients')state.clients=d;else if(key==='purchases')state.purchases=d;else if(key==='sales'){state.sales=d;idbKvPut('sales:'+id,d);}else{const md=modDoc(key);if(md)state[md.st]=d;}}
 // En vez de pisar la nube con vacío, traer lo que hay en la nube
 async function sbRecoverFromCloud(id,key){if(id!==currentDataId())return;const d=await sbPullDoc(id,key);if(Array.isArray(d)&&d.length){SYNC_APPLYING=true;applyDocLocal(key,d,id);SYNC_APPLYING=false;persistLocal();try{render();}catch(_){}}}
 /* ---- Vaciar/Eliminar se respetan en TODOS los dispositivos: marca 'wipe' en la nube ----
@@ -5900,7 +5905,7 @@ async function sbPullAndApply(id,keys){
 }
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[],purchases:[],porders:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
-function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];MOD_DOCS.forEach(m=>{state[m.st]=d[m.st]||[];});state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.receipt=d.receipt||{};state.purchases=d.purchases||[];state.porders=d.porders||[];state.cart={};state.editSale=null;state.editStash=null;state.filterCat=null;let _uch=ensureUniqueIds();state.products.forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;_uch=true;}});if(_uch)saveDataOf(id,{...loadDataOf(id),products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
+function loadData(id){const d=loadDataOf(id);state.products=d.products||[];state.sales=d.sales||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];MOD_DOCS.forEach(m=>{state[m.st]=d[m.st]||[];});state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.receipt=d.receipt||{};state.purchases=d.purchases||[];state.porders=d.porders||[];state.cart={};state.editSale=null;state.editStash=null;state.filterCat=null;let _uch=ensureUniqueIds();state.products.forEach(p=>{const c=canonUnit(p.unit);if(c!==p.unit){p.unit=c;_uch=true;}});if(fixImportedUnitsSync(id))_uch=true;if(_uch)saveDataOf(id,{...loadDataOf(id),products:state.products,cats:state.cats,seq:state.seq,extraMoves:state.extraMoves,clients:state.clients,units:state.units,mermas:state.mermas});}
 /* solicitudes tienda->bodega */
 function loadReq(){return _get('requests',[]);}
 function saveReq(l){_set('requests',l);sbPushDoc('__shared__','requests',l);}
@@ -6897,7 +6902,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003175131';
+const APP_VERSION='20261003180040';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

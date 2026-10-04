@@ -1444,6 +1444,9 @@ function currentDrawer(){return state.profile&&state.profile.kind==='tienda'?DRA
 const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraMoves:[],week:[0,0,0,0,0,0],seq:1,cats:[],form:{},filterCat:null,filterUnit:null,filterInfo:null,saleCatOpen:{},saleProdQ:'',cartPrice:{},saleStatus:'pagado',saleClient:'',salePay:'',saleTag:'',saleNote:'',saleAuto:true,receipt:{},repSel:{},repCharts:true,repRange:null,txDate:null,txType:'ventas',txBar:null,txtType:'ventas',txtInclCobrar:false,txtInclPagos:true,txtPt:null,purchases:[],porders:[],pcart:{},pcost:{},pprice:{},pprovider:'',pstatus:'pagado',pnote:'',pordForm:null,phistLimit:31,profile:null,onbo:{step:'welcome',tmp:{}},catBodega:null,detTienda:null,bk:null,bkLoading:false,bkErr:'',bkStatus:'',bkImgUrls:{},invLimit:60,clients:[],cliEdit:null,rsvFilter:'all',units:[],mermas:[],mermaForm:null,catOpts:{layout:'list',name:true,key:true,sale:true,cost:false,qty:false,photo:true,info:false,instock:false,wholesale:false}};
 const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
+// texto para buscar: minúsculas y sin tildes (con memoria; se usa en cada tecla sobre miles de nombres)
+const FOLD_C=new Map();
+function fold(x){const k=''+(x==null?'':x);let r=FOLD_C.get(k);if(r!==undefined)return r;r=k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(FOLD_C.size>30000)FOLD_C.clear();FOLD_C.set(k,r);return r;}
 // id de producto siempre único (mayor que cualquiera existente)
 // id de producto nuevo: basado en la hora (+ un dígito al azar) para que dos equipos que crean productos a la vez (o uno sin internet) no saquen el mismo id; al sincronizar, el mismo id pisaba uno de los dos productos
 // código corto para productos importados sin código: IMP-1, IMP-2… (el id ya no sirve: ahora es largo)
@@ -1507,8 +1510,8 @@ function scInventario(){
   if(!state.products.length){
     return invHeader()+`<div class="emptybig">${svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>')}<div class="et">${t('emptyInv').replace('+','')}<span class="eplus">＋</span></div></div>`;
   }
-  const q=state.q.toLowerCase();
-  let items=state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(p.key||"").toLowerCase().includes(q));
+  const q=fold(state.q.toLowerCase());
+  let items=state.products.filter(p=>fold(p.name).includes(q)||fold((p.cat||"")).includes(q)||fold((p.key||"")).includes(q));
   if(state.filterCat==='__none__')items=items.filter(p=>!(p.cat&&(''+p.cat).trim()));
   else if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   if(state.filterUnit)items=items.filter(p=>prodUnitLbl(p)===state.filterUnit);
@@ -1676,8 +1679,8 @@ function openMermaAdd(){
 function closeMermaAdd(){document.getElementById('mermaadddlg').classList.remove('on');}
 let MERMA_Q='';
 function fillMermaPick(){
-  const box=svg(S_BOX2);const q=MERMA_Q.toLowerCase();
-  const list=state.products.filter(p=>p.name.toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)||(''+(p.cat||'')).toLowerCase().includes(q));
+  const box=svg(S_BOX2);const q=fold(MERMA_Q.toLowerCase());
+  const list=state.products.filter(p=>fold(p.name).includes(q)||fold((''+(p.key||''))).includes(q)||fold((''+(p.cat||''))).includes(q));
   const rows=list.length?`<div class="list">`+list.map(p=>{
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
@@ -2244,9 +2247,9 @@ async function shareContent(kind){
   }catch(e){toast(t('io_err'));}
 }
 function scNueva(){
-  const q=state.q.toLowerCase();
+  const q=fold(state.q.toLowerCase());
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
-  const list=q?state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)).map(p=>saleRow(p,box)).join(""):'';
+  const list=q?state.products.filter(p=>fold(p.name).includes(q)||fold((p.cat||"")).includes(q)||fold((''+(p.key||''))).includes(q)).map(p=>saleRow(p,box)).join(""):'';
   const hint=`<div class="salehelp" style="margin-top:26px">${t('sale_help_add')}</div><div class="salebtns"><button class="btn ghost" data-act="salehelpbtn">${t('sale_help_btn')}</button><button class="btn ghost" data-act="saleopts">${t('sale_opts_btn')}</button></div><div style="display:flex;justify-content:center;margin-top:14px"><span class="fchip" data-act="clipick">${svg(S_PER)} ${state.saleClient?exEsc(state.saleClient):t('cli_tpl')}</span></div>`;
   if(state.quoteMode)return '<div class="stickhead">'+quoteHeadHTML()+`<div class="pad sh-in">
     <div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('searchProd')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
@@ -2500,7 +2503,7 @@ function saleProdImg(p,box){const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgK
 function fillSaleProd(){
   try{saveCartDraft();}catch(_){}
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
-  const q=(state.saleProdQ||'').toLowerCase().trim();
+  const q=fold((state.saleProdQ||'').toLowerCase().trim());
   const added=`<div class="sp-added">${state.spAdded?`${t('sp_added')} <b>+ ${exEsc(state.spAdded)}</b>`:'&nbsp;'}</div>`;   /* la línea siempre ocupa su lugar: la lista no salta al agregar */
   const search=`<div class="hb-stick"><div class="sp-top"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="saleProdSearch" placeholder="${t('searchProd')}" value="${(state.saleProdQ||'').replace(/"/g,'&quot;')}"></div><span class="spgrid" data-act="spgrid">${massBox(spGrid()?'on':'')}${t('cx_grid')}</span></div>${state.pickMode==='merma'?'':added}</div>`;
   const groups={};state.products.forEach(p=>{const c=(p.cat&&(''+p.cat).trim())||t('cat_none');(groups[c]||(groups[c]=[])).push(p);});
@@ -2509,9 +2512,9 @@ function fillSaleProd(){
   const chev=svg('<path d="M6 9l6 6 6-6"/>');const chk=svg('<path d="M5 12l5 5L20 7"/>');
   let html='';
   cats.forEach(c=>{
-    const catMatch=q&&c.toLowerCase().includes(q);
+    const catMatch=q&&fold(c).includes(q);
     const all=groups[c];
-    const matched=q?all.filter(p=>p.name.toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)):all;
+    const matched=q?all.filter(p=>fold(p.name).includes(q)||fold((''+(p.key||''))).includes(q)):all;
     // al buscar, solo mostrar categorías cuyo nombre o productos coincidan (colapsadas)
     if(q&&!catMatch&&!matched.length)return;
     const open=!!state.saleCatOpen[c];   // NO se auto-expande al buscar
@@ -2561,9 +2564,9 @@ function saleAdd(id){id=+id;if(state.pickMode==='merma'){const d=document.getEle
 function saleDec(id){id=+id;const c=curPickCart();delete c[id];if(state.pickMode==='compra'){if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}else if(state.cartPrice)delete state.cartPrice[id];updateCartBar();const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}
 function updateClientAC(){
   const inp=document.getElementById('saleClient');const box=document.getElementById('cliAC');if(!inp||!box)return;
-  const q=(inp.value||'').trim().toLowerCase();
+  const q=fold((inp.value||'').trim().toLowerCase());
   if(!q){box.innerHTML='';box.classList.remove('on');return;}
-  const list=(state.clients||[]).filter(c=>(''+(c.name||'')).toLowerCase().includes(q)||(''+(c.alias||'')).toLowerCase().includes(q)).slice(0,6);
+  const list=(state.clients||[]).filter(c=>fold((''+(c.name||''))).includes(q)||fold((''+(c.alias||''))).includes(q)).slice(0,6);
   if(!list.length){box.innerHTML='';box.classList.remove('on');return;}
   box.innerHTML=list.map(c=>`<div class="cliac-item" data-cliac="${(''+(c.name||'')).replace(/"/g,'&quot;')}"><b>${exEsc(c.name||'')}</b>${c.alias?`<span>${exEsc(c.alias)}</span>`:''}</div>`).join('');
   box.classList.add('on');
@@ -2717,7 +2720,7 @@ function compraRow(p,box){
   return `<div class="pick"><div class="av" style="overflow:hidden;background:var(--sel);flex:none">${av}</div><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.cost||0)}</span>${ctl}</div>`;
 }
 function scCompras(){
-  const q=state.q.toLowerCase();
+  const q=fold(state.q.toLowerCase());
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
   const chips=`<div class="chips">
     <span class="fchip io" data-act="phist">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${t('cp_hist')}</span>
@@ -2728,7 +2731,7 @@ function scCompras(){
     <button class="round" data-act="compraprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
     <button class="round" data-act="scan:purchase">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
   </div>`;
-  const list=q?state.products.filter(p=>p.name.toLowerCase().includes(q)||(p.cat||"").toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)).map(p=>compraRow(p,box)).join(""):'';
+  const list=q?state.products.filter(p=>fold(p.name).includes(q)||fold((p.cat||"")).includes(q)||fold((''+(p.key||''))).includes(q)).map(p=>compraRow(p,box)).join(""):'';
   const hint=`<div class="salehelp" style="margin-top:26px">${t('cp_help')}</div><div style="display:flex;justify-content:center;margin-top:18px"><button class="btn ghost" style="width:auto;padding:11px 20px" data-act="provtpl">${t('cp_provider_tpl')}</button></div>`;
   const body=q?`<div class="list">${list||'<div class="empty">'+t('noResults')+'</div>'}</div>`:(pcartItems().length?compraCartHTML():hint);
   if(state.poMode)return '<div class="stickhead">'+poHeadHTML()+search+'</div>'+(q||pcartItems().length?body:`<div class="salehelp" style="margin-top:26px">${t('po_hint')}</div>`);
@@ -3587,9 +3590,9 @@ const IC_PIN='<path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z"/><circl
 const IC_PHONE='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>';
 const IC_MAIL='<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>';
 function scClientes(){
-  const q=state.q.toLowerCase();
+  const q=fold(state.q.toLowerCase());
   let list=state.clients.slice();
-  if(q)list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.alias||'').toLowerCase().includes(q));
+  if(q)list=list.filter(c=>fold((c.name||'')).includes(q)||fold((c.alias||'')).includes(q));
   list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
   const rows=shown.map(c=>{
@@ -3722,9 +3725,9 @@ function provPurch(p){const n=provName(p).toLowerCase();return (state.purchases|
 function telHref(x){return 'tel:'+(''+x).replace(/[^0-9+]/g,'');}
 function waHref(x){let d=(''+x).replace(/[^0-9]/g,'');if(d.length===10)d='57'+d;return 'https://wa.me/'+d;}
 function scProvList(){
-  const q=(state.q||'').toLowerCase().trim();
+  const q=fold((state.q||'').toLowerCase().trim());
   let list=provLive();
-  if(q)list=list.filter(p=>[p.contact,p.company,p.phone,p.phone2,p.email].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  if(q)list=list.filter(p=>[p.contact,p.company,p.phone,p.phone2,p.email].some(v=>fold((''+(v||''))).includes(q)));
   list.sort((a,b)=>provName(a).localeCompare(provName(b)));
   const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
   const rows=shown.map(p=>{
@@ -3809,8 +3812,8 @@ function openProvPick(target){
   document.getElementById('provpickdlg').classList.add('on');
 }
 function fillProvPick(){
-  const q=PROVPICK_Q.toLowerCase().trim();
-  let l=provLive();if(q)l=l.filter(p=>[p.contact,p.company,p.phone].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  const q=fold(PROVPICK_Q.toLowerCase().trim());
+  let l=provLive();if(q)l=l.filter(p=>[p.contact,p.company,p.phone].some(v=>fold((''+(v||''))).includes(q)));
   l.sort((a,b)=>provName(a).localeCompare(provName(b)));
   const box=document.getElementById('provPickList');if(!box)return;
   box.innerHTML=l.length?l.map(p=>`<div class="row" data-act="provpicked:${exEsc(p.id)}"><div class="av">${svg(PRV_ICO)}</div><div style="min-width:0"><div class="t">${exEsc(provName(p))}</div><div class="s">${p.company?exEsc(p.company):t('prv_nocompany')}</div></div></div>`).join(''):`<div class="empty" style="margin-top:24px">${provLive().length?t('prv_nomatch'):t('prv_empty')}</div>`;
@@ -3914,8 +3917,8 @@ function openCliPick(forHist){
   document.getElementById('provpickdlg').classList.add('on');
 }
 function fillCliPick(){
-  const box=document.getElementById('cliPickList');if(!box)return;const q=CLIPICK_Q.toLowerCase().trim();
-  let l=(state.clients||[]).slice();if(q)l=l.filter(c=>[c.name,c.alias,c.phone].some(v=>(''+(v||'')).toLowerCase().includes(q)));l.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const box=document.getElementById('cliPickList');if(!box)return;const q=fold(CLIPICK_Q.toLowerCase().trim());
+  let l=(state.clients||[]).slice();if(q)l=l.filter(c=>[c.name,c.alias,c.phone].some(v=>fold((''+(v||''))).includes(q)));l.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const shown=l.slice(0,150);const cnt={};if(CLIPICK_HIST)(state.sales||[]).forEach(s=>{const k=(''+(s.client||'')).trim().toUpperCase();if(k)cnt[k]=(cnt[k]||0)+1;});
   box.innerHTML=shown.length?shown.map(c=>`<div class="row" data-act="clipicked:${encodeURIComponent(c.name||'')}"><div class="av">${svg(CLI_ICO)}</div><div style="min-width:0"><div class="t">${exEsc(c.name)}</div><div class="s">${exEsc(c.alias||c.phone||'')||t('cli_noalias')}</div></div>${CLIPICK_HIST?`<span class="r num" style="margin-left:auto;color:var(--muted)">#${cnt[(''+(c.name||'')).trim().toUpperCase()]||0}</span>`:''}</div>`).join('')+(l.length>150?`<div class="osub" style="text-align:center;padding:10px">${ti('inv_more',{n:l.length-150})}</div>`:'')
     :`<div class="empty" style="margin-top:24px">${(state.clients||[]).length?t('cli_nomatch'):t('cli_empty')}</div>`;
@@ -4797,8 +4800,8 @@ function fmtQty(n){return (Math.round((+n||0)*1000)/1000).toLocaleString('en-US'
 function stockAdd(p,delta){if(!p)return;p.stock=Math.round(((+p.stock||0)+(+delta||0))*1000)/1000;}
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
-  const q=(state.q||'').toLowerCase().trim();
-  let list=svcLive();if(q)list=list.filter(v=>[v.name,v.info].some(x=>(''+(x||'')).toLowerCase().includes(q)));
+  const q=fold((state.q||'').toLowerCase().trim());
+  let list=svcLive();if(q)list=list.filter(v=>[v.name,v.info].some(x=>fold((''+(x||''))).includes(q)));
   list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const rows=list.map(v=>{const xs=xPrices(v);const prof=(+v.price||0)-(+v.cost||0);
     return `<div class="svccard" data-act="svcedit:${exEsc(v.id)}">
@@ -4858,8 +4861,8 @@ function openSvcPick(){
   document.getElementById('svcpickdlg').classList.add('on');
 }
 function fillSvcPick(){
-  const box=document.getElementById('svcPickList');if(!box)return;const q=SVCPICK_Q.toLowerCase().trim();
-  let l=svcLive();if(q)l=l.filter(v=>(''+v.name).toLowerCase().includes(q));l.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const box=document.getElementById('svcPickList');if(!box)return;const q=fold(SVCPICK_Q.toLowerCase().trim());
+  let l=svcLive();if(q)l=l.filter(v=>fold((''+v.name)).includes(q));l.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   box.innerHTML=l.length?l.map(v=>{const n=(state.scart||{})[v.id]||0;return `<div class="row" data-act="svcpickadd:${exEsc(v.id)}"><div class="av">${svg(SVC_ICO)}</div><div style="min-width:0"><div class="t">${exEsc(v.name)}</div><div class="s num">${money(+v.price||0)}</div></div><div class="r">${n?`<span class="svc-badge num">${n}</span>`:`<span class="add-btn">${t('add')}</span>`}</div></div>`;}).join('')
     :`<div class="empty" style="margin-top:24px">${svcLive().length?t('svc_nomatch'):t('svc_none_sale')}</div>`;
 }
@@ -4970,9 +4973,9 @@ function empById(id){return (state.employees||[]).find(e=>''+e.id===''+id);}
 function empPays(id){return (state.payroll||[]).filter(p=>p&&!p.del&&''+p.emp===''+id).sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')));}
 function empAtt(id){return (state.attendance||[]).filter(a=>a&&!a.del&&''+a.emp===''+id);}
 function scEmpleados(){
-  const q=(state.q||'').toLowerCase().trim();
+  const q=fold((state.q||'').toLowerCase().trim());
   let list=empLive();
-  if(q)list=list.filter(e=>[e.name,e.role,e.phone].some(v=>(''+(v||'')).toLowerCase().includes(q)));
+  if(q)list=list.filter(e=>[e.name,e.role,e.phone].some(v=>fold((''+(v||''))).includes(q)));
   list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const rows=list.map(e=>{const last=empPays(e.id)[0];
     return `<div class="empcard" data-act="empopen:${exEsc(e.id)}">
@@ -7702,7 +7705,7 @@ function spGridToggle(){try{localStorage.setItem('abanico.pickGrid',spGrid()?'0'
 const SP_PAGE=60;
 function spTilesHTML(q,box){
   const pc=state.pickMode==='merma'?{}:curPickCart();
-  const list=state.products.filter(p=>!q||(''+(p.name||'')).toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)||(''+(p.cat||'')).toLowerCase().includes(q)).sort(prodCmp);
+  const list=state.products.filter(p=>!q||fold((''+(p.name||''))).includes(q)||fold((''+(p.key||''))).includes(q)||fold((''+(p.cat||''))).includes(q)).sort(prodCmp);
   const lim=state.spLimit||SP_PAGE;
   const tiles=list.slice(0,lim).map(p=>{const n=pc[p.id]||0;const price=(state.pickMode==='compra'||state.pickMode==='merma')?(p.cost||0):p.price;const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');
     return `<div class="sptile ${n?'on':''}" data-saleadd="${p.id}">${n?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box)}</div><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(mnName(p))}</div><div class="f"><span class="num">#${p.stock}</span><b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${n}</span>`:''}</div>`;}).join('');
@@ -7953,7 +7956,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004003630';
+const APP_VERSION='20261004004007';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

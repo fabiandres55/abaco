@@ -5082,8 +5082,9 @@ function saveEmpAtt(){
 function delEmpAtt(id){const a=(state.attendance||[]).find(x=>''+x.id===''+id);if(!a)return;a.del=true;a.edited=Date.now();persist();renderEmp();}
 function empMonthShift(d){const [y,m]=(state.empMonth||todayISO().slice(0,7)).split('-').map(Number);const dt=new Date(y,m-1+d,1);state.empMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');renderEmp();}
 function clip(x){x=(''+(x==null?'':x)).trim();return /^sin informaci[oó]n$/i.test(x)?'':x;}
+const BK_SIGS={quotes:[(x)=>(x.folio??'')+'|'+(x.date||'')+'|'+BK_C(x.total)],payroll:[(x,U)=>(x.date||'')+'|'+BK_C(x.amount)+'|'+U(x.desc)]};
 function bkMergeById(stKey,list){
-  if(!list||!list.length)return 0;state[stKey]=state[stKey]||[];const by={};state[stKey].forEach(x=>{if(x)by[''+x.id]=x;});let n=0;
+  if(!list||!list.length)return 0;if(BK_SIGS[stKey]){const ids=new Set(list.map(x=>''+x.id));const keep=new Set(bkNew((state[stKey]||[]).filter(x=>x&&!ids.has(''+x.id)),list,BK_SIGS[stKey]).map(x=>''+x.id));list=list.filter(x=>keep.has(''+x.id)||(state[stKey]||[]).some(y=>y&&''+y.id===''+x.id));}state[stKey]=state[stKey]||[];const by={};state[stKey].forEach(x=>{if(x)by[''+x.id]=x;});let n=0;
   list.forEach(x=>{const ex=by[''+x.id];if(ex){if(!ex.edited&&!ex.del)Object.assign(ex,x);}else{state[stKey].push(x);n++;}});return n;
 }
 const SCREENS={inventario:scInventario,ventas:scVentas,nueva:scNueva,caja:scCaja,reportes:scReportes,tiendas:scTiendas,tiendadet:scTiendaDet,proveedores:scProvList,bodegalinks:scProveedores,empleados:scEmpleados,servicios:scServicios,calendario:scAgenda,quotes:scQuotes,vincular:scVincular,tutorial:scTutorial,catalogo:scCatalogo,ajustes:scAjustes,respaldo:scBackup,clientes:scClientes,recibo:scRecibo,repview:scRepView,compras:scCompras,phist:scPHist,porders:scPOrders};
@@ -5853,8 +5854,8 @@ function bkImportAll(){
   bkMergeById('services',state.bk.services);     // servicios
   bkMergeById('events',state.bk.events);         // agenda
   bkMergeById('quotes',state.bk.quotes);         // cotizaciones
-  {const ms=(state.bk.mermasMN||[]).map(m=>{const p=m.key&&state.products.find(x=>(''+(x.key||''))===m.key);return Object.assign({},m,{pid:p?p.id:null});});const have=new Set((state.mermas||[]).map(m=>''+m.id));state.mermas=(state.mermas||[]).concat(ms.filter(m=>!have.has(''+m.id)));}
-  {const have=new Set((state.porders||[]).map(o=>''+o.id));state.porders=(state.porders||[]).concat((state.bk.pordersMN||[]).filter(o=>!have.has(''+o.id)));}
+  {const ms=(state.bk.mermasMN||[]).map(m=>{const p=m.key&&state.products.find(x=>(''+(x.key||''))===m.key);return Object.assign({},m,{pid:p?p.id:null});});state.mermas=(state.mermas||[]).concat(bkNew(state.mermas,ms,[(x,U)=>(x.date||'')+'|'+U(x.name)+'|'+BK_C(x.qty)]));}
+  {state.porders=(state.porders||[]).concat(bkNew(state.porders,state.bk.pordersMN,[(x)=>(x.folio??'')+'|'+(x.issue||'')+'|'+BK_C(x.total)]));}
   // Datos del recibo desde la copia de Mi Negocio (solo si aún no se personalizó)
   const biz=state.bk.biz||{};const rcur=state.receipt||{};
   {const rc=Object.assign({},rcur);let ch=false;const fill=(k,v)=>{if(!rc[k]&&v){rc[k]=v;ch=true;}};
@@ -5870,22 +5871,25 @@ function bkImportAll(){
   state.bk.imported={p:state.products.length,c:state.clients.length,v:sv,cp:(state.purchases||[]).length};
   render();
 }
+// filtra lo que llega del archivo: fuera lo que ya existe por id o por alguna de sus "firmas" (contenido) entre los registros creados aquí
+function bkNew(existing,incoming,sigs){const U=x=>(''+(x==null?'':x)).trim().toUpperCase();const have=new Set((existing||[]).map(x=>''+(x&&x.id)));
+  const mine=(existing||[]).filter(x=>x&&!x.imported&&!x.del);const sets=sigs.map(f=>new Set(mine.map(x=>f(x,U))));
+  return (incoming||[]).filter(x=>!have.has(''+x.id)&&!sigs.some((f,i)=>sets[i].has(f(x,U))));}
+const BK_C=v=>Math.round((+v||0)*100);
 function bkMergeSales(){
   if(!state.bk||!state.bk.sales||!state.bk.sales.length)return 0;
-  const have=new Set(state.sales.map(s=>''+s.id));
-  const add=state.bk.sales.filter(s=>!have.has(''+s.id));
+  const add=bkNew(state.sales,state.bk.sales,[(x)=>(x.folio??'')+'|'+saleDate(x)+'|'+BK_C(saleTotal(x)),(x,U)=>saleDate(x)+'|'+(''+(x.time||'')).slice(0,5)+'|'+BK_C(saleTotal(x))+'|'+U(x.client)]);
   state.sales=state.sales.concat(add).sort((a,b)=>(saleDate(b)+' '+(b.time||'')).localeCompare(saleDate(a)+' '+(a.time||'')));
   return add.length;
 }
 function bkMergeExtras(){
-  if(!state.bk)return 0;const have=new Set((state.extraMoves||[]).map(m=>''+m.id));
-  const add=(state.bk.extras||[]).filter(m=>!have.has(''+m.id));state.extraMoves=(state.extraMoves||[]).concat(add);
+  if(!state.bk)return 0;
+  const add=bkNew(state.extraMoves,state.bk.extras,[(x,U)=>x.type+'|'+(x.date||'')+'|'+BK_C(exTotal(x))+'|'+U(x.desc||x.concept)]);state.extraMoves=(state.extraMoves||[]).concat(add);
   (state.bk.extraCats||[]).forEach(c=>ensureExCat(c.name,c.type));return add.length;
 }
 function bkMergePurchases(){
   if(!state.bk||!state.bk.purchases||!state.bk.purchases.length)return 0;
-  const have=new Set((state.purchases||[]).map(p=>''+p.id));
-  const add=state.bk.purchases.filter(p=>!have.has(''+p.id));
+  const add=bkNew(state.purchases,state.bk.purchases,[(x)=>(x.folio??'')+'|'+(x.date||'')+'|'+BK_C(x.total),(x,U)=>(x.date||'')+'|'+(''+(x.time||'')).slice(0,5)+'|'+BK_C(x.total)+'|'+U(x.provider)]);
   state.purchases=(state.purchases||[]).concat(add).sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||'')));
   return add.length;
 }
@@ -7929,7 +7933,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003235715';
+const APP_VERSION='20261004000303';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

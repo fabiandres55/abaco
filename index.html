@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#565b60">
 <script>(function(){try{var p=localStorage.getItem("abanico.theme")||"light";var d=p==="dark"||(p==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");if(d){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content","#16181b");}}catch(e){}})();</script>
 <meta name="mobile-web-app-capable" content="yes">
@@ -23,7 +23,8 @@
     --ui:"Roboto",system-ui,-apple-system,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;touch-action:manipulation;overscroll-behavior:none;max-width:100%;overflow-x:hidden}
+  html,body{height:100%;touch-action:pan-x pan-y;overscroll-behavior:none;max-width:100%;overflow:hidden}   /* sin zoom con dos dedos y la página nunca se desplaza: solo las listas */
+  body{position:fixed;inset:0}
   body{margin:0;font-family:var(--ui);color:var(--ink);background:linear-gradient(160deg,#3a3d42,#181a1d);
     display:flex;align-items:center;justify-content:center;-webkit-font-smoothing:antialiased}
   .num{font-variant-numeric:tabular-nums}
@@ -305,7 +306,7 @@
   .ns-total{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line2);font-size:13px;color:var(--muted)}
   .ns-total b{font-size:16px;color:var(--ink)}
 
-  .screen{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px);overscroll-behavior:contain}
   .pad{padding:12px 12px 90px}
 
   .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
@@ -7842,6 +7843,13 @@ window.addEventListener('pagehide',()=>{try{saveCartDraft();}catch(_){}});
 boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
+/* ---------------- Encabezado siempre a la vista ----------------
+   Con dos dedos no se acerca ni se desplaza la página (las listas siguen bajando con un dedo).
+   Si algo desplazara la página o el contenedor de la app (por ejemplo al enfocar un campo), vuelve a su lugar. */
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1&&e.cancelable)e.preventDefault();},{passive:false});
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>{if(e.cancelable)e.preventDefault();},{passive:false}));
+window.addEventListener('scroll',()=>{if(window.scrollX||window.scrollY)window.scrollTo(0,0);},{passive:true});
+(function(){const fix=el=>{if(el)el.addEventListener('scroll',()=>{if(el.scrollTop||el.scrollLeft){el.scrollTop=0;el.scrollLeft=0;}},{passive:true});};fix(document.getElementById('device'));fix(document.body);fix(document.documentElement);})();
 /* ---------------- Modo oscuro ---------------- */
 function themePref(){try{return localStorage.getItem('abanico.theme')||'light';}catch(_){return 'light';}}   /* claro por defecto, como siempre */
 function applyTheme(){
@@ -7854,7 +7862,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003215251';
+const APP_VERSION='20261003220142';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

@@ -1133,7 +1133,10 @@
   .sptile .n{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sptile .f{display:flex;justify-content:space-between;gap:6px;font-size:13px;color:var(--muted)}
   .sptile .f b{color:var(--ink)}
-  .sptile .badge{position:absolute;top:6px;right:6px;background:var(--green);color:#fff;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:700}
+  .sptile .badge{position:absolute;top:6px;right:6px;background:var(--green);color:#fff;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:2px}
+  .sptile .badge svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:3}
+  .sptile.on{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+  .sptile .sprm{position:absolute;top:6px;left:6px;margin:0;z-index:1;box-shadow:0 2px 6px rgba(0,0,0,.25)}
   /* Merma: producto + escáner */
   .me-prow{display:flex;align-items:center;gap:10px}
   .me-prow .sellike{flex:1;min-width:0}
@@ -7584,7 +7587,7 @@ function spTilesHTML(q,box){
   const list=state.products.filter(p=>!q||(''+(p.name||'')).toLowerCase().includes(q)||(''+(p.key||'')).toLowerCase().includes(q)||(''+(p.cat||'')).toLowerCase().includes(q)).sort(prodCmp);
   const lim=state.spLimit||SP_PAGE;
   const tiles=list.slice(0,lim).map(p=>{const n=pc[p.id]||0;const price=(state.pickMode==='compra'||state.pickMode==='merma')?(p.cost||0):p.price;const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');
-    return `<div class="sptile" data-saleadd="${p.id}"><div class="spimg">${saleProdImg(p,box)}</div><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(mnName(p))}</div><div class="f"><span class="num">#${p.stock}</span><b class="num">${money(price)}</b></div>${n?`<span class="badge num">${n}</span>`:''}</div>`;}).join('');
+    return `<div class="sptile ${n?'on':''}" data-saleadd="${p.id}">${n?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box)}</div><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(mnName(p))}</div><div class="f"><span class="num">#${p.stock}</span><b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${n}</span>`:''}</div>`;}).join('');
   return list.length?`<div class="sptiles">${tiles}</div>${list.length>lim?`<div class="loadmore" data-act="spmore">${ti('inv_more',{n:list.length-lim})}</div>`:''}`:'';
 }
 // Merma elige su producto con el mismo selector de la venta
@@ -7814,7 +7817,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003212757';
+const APP_VERSION='20261003213828';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

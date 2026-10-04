@@ -6108,7 +6108,7 @@ async function sbSyncWrite(sb,id,key){
         if(c&&c.data&&c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio: fusionar otra vez
         w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
     }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
-    setBase(id,key,merged);LIVE_TS[key]=ts;
+    setBase(id,key,merged);LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;   /* marca: lo que se leyó antes de esto puede estar viejo */
     const mj=JSON.stringify(merged);
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
       const now=sbDocData(key);let fin=merged;
@@ -6186,6 +6186,7 @@ async function applyWipe(id,w){
   toast(t('dz_remote_empty'));try{renderDrawer();render();}catch(_){}
 }
 // Sube todos los documentos pendientes del negocio actual (al volver el internet)
+let FLUSHING_KEY=null;   // clave que se está escribiendo en la nube ahora mismo
 async function flushDirty(silent){
   if(FLUSHING||!sbOnline())return;
   const id=currentDataId();if(!id)return;
@@ -6195,7 +6196,7 @@ async function flushDirty(silent){
   try{const sb=await sbInit();if(!sb){FLUSHING=false;return;}
     if(await sbCheckWipe(id,sb,true)){FLUSHING=false;return;}   // se vació en otro dispositivo: no revivir datos viejos
     for(const key of keys){const data=sbDocData(key);if(data===undefined){sbClearDirty(id,key);continue;}
-      try{const res=await sbSyncWrite(sb,id,key);
+      try{FLUSHING_KEY=key;let res;try{res=await sbSyncWrite(sb,id,key);}finally{FLUSHING_KEY=null;}
         if(res.recover){sbClearDirty(id,key);await sbRecoverFromCloud(id,key);continue;}
         sbClearDirty(id,key);if(!res.skip){sbBroadcast(key);done++;}
       }catch(e){/*sigue pendiente*/}
@@ -6435,15 +6436,19 @@ async function sbApplyChange(id,keys){
   }finally{APPLY_BUSY=false;}
 }
 const APPLY_Q=new Set();let APPLY_BUSY=false;
+// Cuenta las escrituras propias por documento: si una terminó mientras se leía la nube, lo leído puede ser anterior a ella
+const WRITE_SEQ={};
 async function sbPullAndApply(id,keys){
   if(id!==currentDataId())return;
-  const docs={};for(const k of keys){if(!syncKeys().includes(k))continue;docs[k]=await sbPullDoc(id,k);}
+  const docs={},seqAt={};for(const k of keys){if(!syncKeys().includes(k))continue;let d=null;for(let i=0;i<4;i++){const s0=WRITE_SEQ[k]||0;d=await sbPullDoc(id,k);if((WRITE_SEQ[k]||0)===s0){seqAt[k]=s0;break;}d=null;}if(d!=null)docs[k]=d;}   /* se descarta lo leído si en medio se escribió: se vuelve a leer */
   await loadBases(id);if(id!==currentDataId())return;
   const toPush=[];SYNC_APPLYING=true;
-  try{for(const k of Object.keys(docs)){if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}
+  const again=[];
+  try{for(const k of Object.keys(docs)){if(FLUSHING_KEY===k||(WRITE_SEQ[k]||0)!==seqAt[k]){again.push(k);continue;}if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}   /* escribió algo propio en medio: lo leído quedó viejo, se vuelve a leer */   /* si se está escribiendo esa misma clave, la escritura ya fusiona */
   catch(e){}finally{SYNC_APPLYING=false;}
   toPush.forEach(k=>sbPushDoc(id,k,sbDocData(k)));
   flushDirty(true);sbScheduleRender();
+  if(again.length)setTimeout(()=>sbApplyChange(id,again),800);
 }
 function loadDataOf(id){return _get('data.'+id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[],purchases:[],porders:[]});}
 function saveDataOf(id,d){_set('data.'+id,d);}
@@ -7870,7 +7875,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003224551';
+const APP_VERSION='20261003230228';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

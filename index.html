@@ -2486,7 +2486,7 @@ function saveSale(){
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();
   const sale={id,folio:fol,ts:Date.now(),dev:deviceId(),addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),total:tot,pay:state.salePay||'',client:canonCli(state.saleClient),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
   {const sv=svcLinesForSale();if(sv.length)sale.svcs=sv;}
-  if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0}];if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
+  if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0,id:'Y'+uidPart()}];if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
   if(state.saleFromQuote){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=fol;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
   state.sales.unshift(sale);
   if(state.profile&&state.profile.kind==='tienda'){items.forEach(i=>{const p=P(i.id);if(p&&p.origin){pushNotif(p.origin.bid,{kind:'sold',...nt('n_sold',{t:state.profile.name,n:i.q,p:p.name})});appendShared('bsales.'+p.origin.bid,{tid:state.profile.id,tname:state.profile.name,pid:p.origin.pid,name:p.name,qty:i.q,amount:i.q*linePrice(i.id),ts:Date.now()},600);}});}
@@ -2670,7 +2670,7 @@ async function delEx(){
   closeExForm();persist();render();toast(t('ex_deleted'));
 }
 function exAddPay(){readExForm();const el=document.getElementById('ex_payamt');const v=Math.round((+(el&&el.value)||0)*100)/100;if(!(v>0)){toast(t('ex_need_pay'));return;}
-  state.exForm.pays=state.exForm.pays||[];state.exForm.pays.push({f:todayISO(),p:v});renderExForm();}
+  state.exForm.pays=state.exForm.pays||[];state.exForm.pays.push({f:todayISO(),p:v,id:'Y'+uidPart()});renderExForm();}
 // --- categorías ---
 function exCatsFor(type){const m=new Map();(state.extraCats||[]).filter(c=>c&&c.type===type).forEach(c=>m.set((''+c.name).toUpperCase(),c.name));
   extrasLive().filter(x=>x.type===type&&x.cat).forEach(x=>{if(!m.has(x.cat.toUpperCase()))m.set(x.cat.toUpperCase(),x.cat);});return [...m.values()].sort((a,b)=>a.localeCompare(b));}
@@ -4225,7 +4225,7 @@ function addPay(kind,id,amount,date,time){
   amount=Math.round((+amount||0)*100)/100;if(!(amount>0)){toast(t('pay_need'));return false;}
   if(amount>due+0.005){toast(ti('pay_too_much',{d:money(due)}));return false;}
   if(!Array.isArray(r.pays)||!r.pays.length){r.pays=[];}
-  r.pays.push({f:date||todayISO(),h:time||'',p:amount});r.payEdited=new Date().toISOString();
+  r.pays.push({f:date||todayISO(),h:time||'',p:amount,id:'Y'+uidPart()});r.payEdited=new Date().toISOString();
   const paidNow=recDue(kind,r)<=0.5;recSetPaid(kind,r,paidNow);
   recSaveChange(kind);recRefresh(kind,id);toast(paidNow?t('pay_done_all'):ti('pay_done',{m:money(amount),d:money(recDue(kind,r))}));return true;
 }
@@ -6102,8 +6102,8 @@ function mergeList(b,l,r){const bs=(b||[]).map(x=>JSON.stringify(x)),ls=l.map(x=
 function mergeRec(b,l,r){const out={...r};const keys=new Set([...Object.keys(b||{}),...Object.keys(l||{}),...Object.keys(r||{})]);
   keys.forEach(f=>{const bv=JSON.stringify(b?b[f]:undefined),lv=JSON.stringify(l[f]),rv=JSON.stringify(r[f]);
     if(lv===bv)return;
+    if(f==='stock'&&typeof l[f]==='number'&&typeof r[f]==='number'&&b&&typeof b[f]==='number'){out[f]=Math.round((r[f]+(l[f]-b[f]))*1000)/1000;return;}   /* antes del "iguales = mismo cambio": vender 1 y 1 a la vez son DOS ventas */
     if(rv===bv||lv===rv){if(l[f]===undefined)delete out[f];else out[f]=l[f];return;}
-    if(f==='stock'&&typeof l[f]==='number'&&typeof r[f]==='number'&&b&&typeof b[f]==='number'){out[f]=Math.round((r[f]+(l[f]-b[f]))*1000)/1000;return;}
     if(f==='pays'&&Array.isArray(l[f])&&Array.isArray(r[f])){out[f]=mergeList(b&&Array.isArray(b[f])?b[f]:[],l[f],r[f]);return;}
     if(l[f]===undefined)delete out[f];else out[f]=l[f];   // choque real en el mismo campo: gana el cambio de este dispositivo
   });return out;}
@@ -6113,7 +6113,7 @@ function mergeArr(key,base,local,remote){
   (remote||[]).forEach(x=>{const k=recKey(key,x);if(k==null)return;if(!R.has(k))oR.push(k);R.set(k,x);});
   const out=[],seen=new Set();
   const take=k=>{if(seen.has(k))return;seen.add(k);const l=L.get(k),r=R.get(k),bj=base?base.get(k):undefined;
-    if(l&&r){const lj=JSON.stringify(l),rj=JSON.stringify(r);if(lj===rj){out.push(l);return;}
+    if(l&&r){const lj=JSON.stringify(l),rj=JSON.stringify(r);if(lj===rj){out.push(bj!==undefined&&bj!==lj?mergeRec(JSON.parse(bj),l,r):l);return;}
       if(bj===undefined){out.push(base?r:l);return;}
       const lc=lj!==bj,rc=rj!==bj;if(lc&&!rc){out.push(l);return;}if(!lc&&rc){out.push(r);return;}
       out.push(mergeRec(JSON.parse(bj),l,r));return;}
@@ -6122,6 +6122,8 @@ function mergeArr(key,base,local,remote){
   };
   oL.forEach(take);oR.forEach(take);
   if(key==='sales'||key==='purchases'){fixFolioClash(key,out,R);out.sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||''))||((+b.folio||0)-(+a.folio||0)));}
+  /* mismos registros que la nube y solo cambia el orden: se adopta el de la nube (si no, dos equipos se pasan el documento sin fin) */
+  if(out.length===R.size){let same=true;for(const x of out){const r=R.get(recKey(key,x));if(!r||(r!==x&&JSON.stringify(r)!==JSON.stringify(x))){same=false;break;}}if(same)return (remote||[]).slice();}
   return out;
 }
 // Dos dispositivos sacaron el mismo folio a la vez: el registro más nuevo lo renumera el dispositivo que lo creó
@@ -6156,18 +6158,23 @@ function sbApplyRemote(id,key,remote,notify){
   return JSON.stringify(merged)!==JSON.stringify(remote);
 }
 // Sube un documento: lee la nube, fusiona y escribe solo si nadie escribió en medio (compare-and-swap por updated_at)
+const LAST_W={};   // última escritura intentada por documento {ts,lj,merged}: si la nube tiene esa marca, la escritura sí llegó
 async function sbSyncWrite(sb,id,key){
   await loadBases(id);
-  for(let attempt=0;attempt<5;attempt++){
+  for(let attempt=0;attempt<6;attempt++){
     const local=sbDocData(key);if(local===undefined)return {ok:true};
     const lj=JSON.stringify(local);const b=baseOf(id,key);
     if(b&&b.json===lj)return {ok:true,skip:true};   // sin cambios locales respecto a la nube
     const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
     if(r&&r.error)throw r.error;
     const row=r&&r.data;const remote=row?row.data:null;const prevTs=row?row.updated_at:null;
+    {const lw=LAST_W[key];if(row&&lw&&new Date(row.updated_at).getTime()===new Date(lw.ts).getTime()){   /* nuestra escritura anterior sí quedó en la nube (se perdió la respuesta): terminarla aquí */
+      LAST_W[key]=null;setBase(id,key,lw.merged);const now=sbDocData(key);const tmpB=mkBase(key,JSON.parse(lw.lj));
+      const fin=Array.isArray(lw.merged)?mergeArr(key,tmpB.map,now,lw.merged):mergeRec(tmpB.obj||{},now,lw.merged);
+      SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}continue;}}
     const merged=row?mergeDoc(id,key,local,remote,!b):local;
     if(CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length)return {ok:false,recover:true};
-    const ts=new Date().toISOString();let w;
+    const ts=new Date().toISOString();let w;LAST_W[key]={ts,lj,merged};
     if(row){
       w=await sb.from('store_docs').update({data:merged,updated_at:ts}).eq('store_id',id).eq('doc_key',key).eq('updated_at',prevTs).select('doc_key');
       if(w&&w.error){w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
@@ -6176,7 +6183,7 @@ async function sbSyncWrite(sb,id,key){
         if(c&&c.data&&c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio: fusionar otra vez
         w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
     }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
-    setBase(id,key,merged);LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;   /* marca: lo que se leyó antes de esto puede estar viejo */
+    setBase(id,key,merged);LAST_W[key]=null;LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;   /* marca: lo que se leyó antes de esto puede estar viejo */
     const mj=JSON.stringify(merged);
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
       const now=sbDocData(key);let fin=merged;
@@ -7966,7 +7973,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004005002';
+const APP_VERSION='20261004011840';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

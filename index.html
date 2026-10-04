@@ -902,7 +902,7 @@
   .histbody>.section-h.sh-rec:first-child{position:sticky;top:-14px;z-index:3;background:var(--bg);margin:-14px -14px 6px;padding:14px 17px 9px}
   .histbody>.hb-stick:first-child{position:sticky;top:-14px;z-index:3;background:var(--bg);margin:-14px -14px 6px;padding:12px 28px 8px}
   .sheet-list>.pp-search:first-child{position:sticky;top:-4px;z-index:3;background:var(--card);margin-top:-4px;padding-top:16px}
-  .sp-added{margin:8px 2px 0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-added{margin:8px 2px 0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:18px;line-height:18px}
   .sp-added b{color:var(--ink);font-weight:600}
   /* Pregunta de la app (reemplaza confirm/prompt del navegador) */
   .askdlg{z-index:70}
@@ -1524,6 +1524,7 @@ function scInventario(){
   }).join("")||`<div class="empty">${t('noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
+  if((state.q||'').trim())return invHeader()+`<div class="pcards">${cards}</div>${more}`;   /* buscando: sin totales, más espacio para los resultados */
   return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount()}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>${more}`;
 }
 function scVentas(){
@@ -2477,7 +2478,7 @@ function fillSaleProd(){
   try{saveCartDraft();}catch(_){}
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
   const q=(state.saleProdQ||'').toLowerCase().trim();
-  const added=state.spAdded?`<div class="sp-added">${t('sp_added')} <b>+ ${exEsc(state.spAdded)}</b></div>`:'';
+  const added=`<div class="sp-added">${state.spAdded?`${t('sp_added')} <b>+ ${exEsc(state.spAdded)}</b>`:'&nbsp;'}</div>`;   /* la línea siempre ocupa su lugar: la lista no salta al agregar */
   const search=`<div class="hb-stick"><div class="sp-top"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="saleProdSearch" placeholder="${t('searchProd')}" value="${(state.saleProdQ||'').replace(/"/g,'&quot;')}"></div><span class="spgrid" data-act="spgrid">${massBox(spGrid()?'on':'')}${t('cx_grid')}</span></div>${state.pickMode==='merma'?'':added}</div>`;
   const groups={};state.products.forEach(p=>{const c=(p.cat&&(''+p.cat).trim())||t('cat_none');(groups[c]||(groups[c]=[])).push(p);});
   const uncat=t('cat_none');
@@ -4066,7 +4067,7 @@ async function restoreSnap(key){
   render();toast(ti('snap_done',{d:v.stamp}));
 }
 function bkDueBanner(){
-  try{if(!state.profile||state.profile.kind!=='tienda')return;if(state.screen!=='inventario'&&state.screen!=='ventas')return;
+  try{if(!state.profile||state.profile.kind!=='tienda')return;if(state.screen!=='inventario'&&state.screen!=='ventas')return;if(state.screen==='inventario'&&(state.q||'').trim())return;   /* buscando: más espacio para los resultados */
     const o=opts();const every=+o.bkRemind||0;if(!every)return;if(!(state.products||[]).length&&!(state.sales||[]).length)return;
     const ds=bkDaysSince();if(ds!=null&&ds<every)return;if(window.__bkDismiss===currentDataId())return;
     const b=document.getElementById('body');if(!b||b.querySelector('.bkdue'))return;
@@ -7869,7 +7870,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003223643';
+const APP_VERSION='20261003224551';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

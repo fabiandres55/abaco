@@ -2828,18 +2828,19 @@ function txDayData(date){
   const ventas=state.sales.filter(s=>saleDate(s)===date);
   const compras=(state.purchases||[]).filter(p=>p.date===date);
   const extras=extrasLive().filter(m=>m.date===date);
-  const ventasPag=ventas.filter(s=>!saleIsCredit(s)).reduce((a,s)=>a+saleTotal(s),0);
-  const ingPag=extras.filter(m=>m.type==='in').reduce((a,m)=>a+exPaid(m),0);
-  const comprasPag=compras.filter(p=>(p.status||'pagado')!=='porpagar').reduce((a,p)=>a+(+p.total||0),0);
-  const gastosPag=extras.filter(m=>m.type==='out').reduce((a,m)=>a+exPaid(m),0);
-  const salEmp=(state.payroll||[]).filter(p=>p&&!p.del&&(''+(p.date||'')).slice(0,10)===date).reduce((a,p)=>a+(+p.amount||0),0);
-  const totIng=ventasPag+ingPag, totEgr=comprasPag+gastosPag+salEmp;
-  return {ventas,compras,extras,ventasPag,pagosVentas:0,ingPag,pagosIng:0,totIng,comprasPag,pagosCompras:0,gastosPag,pagosGastos:0,salEmp,totEgr,balance:totIng-totEgr};
+  const T=txTotalData(date,date,true);   /* mismas cuentas que "Total de transacciones" (con todos los pagos del día) */
+  const payList=(arr,kind)=>{const o=[];(arr||[]).forEach(r=>{if(Array.isArray(r.pays))r.pays.forEach(p=>{if(p&&p.f===date&&(+p.p||0))o.push({kind,r,p});});});return o.sort((a,b)=>(''+(b.p.h||'')).localeCompare(''+(a.p.h||'')));};
+  const pv=payList(state.sales,'sale'),pc=payList(state.purchases,'purch'),pe=payList(extrasLive().filter(exPending),'ex');
+  const ventasPag=T.ventasPag.ing,pagosVentas=T.ventasCob.pagos,ingPag=T.ingExtraPag.ing,pagosIng=T.ingExtraCob.pagos;
+  const comprasPag=T.comprasPag.egr,pagosCompras=T.comprasPagar.pagos,gastosPag=T.gastoExtraPag.gas,pagosGastos=T.gastoExtraPagar.pagos,salEmp=T.salario;
+  const totIng=ventasPag+pagosVentas+ingPag+pagosIng,totEgr=comprasPag+pagosCompras+gastosPag+pagosGastos+salEmp;
+  return {ventas,compras,extras,pv,pc,pe,ventasPag,pagosVentas,ingPag,pagosIng,totIng,comprasPag,pagosCompras,gastosPag,pagosGastos,salEmp,totEgr,balance:totIng-totEgr};
 }
 function txItems(d,type){
   if(type==='ventas')return d.ventas.map(s=>({amount:saleTotal(s),profit:saleProfit(s),time:s.time||''}));
   if(type==='compras')return d.compras.map(p=>({amount:+p.total||0,profit:0,time:p.time||''}));
   if(type==='ingastos')return d.extras.map(m=>({amount:exTotal(m),profit:0,time:m.time||''}));
+  const pl={pventas:d.pv,pcompras:d.pc,pingastos:d.pe}[type];if(pl)return pl.map(x=>({amount:+x.p.p||0,profit:0,time:x.p.h||''}));   /* pagos del día */
   return [];
 }
 const TX_PROV='<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M13 10.5h4M13 14h4M6.4 16c.6-1.6 4-1.6 4.6 0"/>';
@@ -2862,10 +2863,19 @@ function txCCard(p){
     <div class="txvc-bot">${est}<span class="pay">${payLbl(p.pay)||t('sin_info')} ${svg(S_CASH)}</span></div>
   </div>`;
 }
+function txPCard(x){
+  const r=x.r,who=x.kind==='sale'?(r.client||t('sin_info')):x.kind==='purch'?(r.provider||t('sin_info')):(r.concept||r.cat||t('sin_info'));
+  const lbl=x.kind==='ex'?(r.type==='in'?'+ ':'− ')+exEsc(who):t('sale_folio')+': '+exEsc(r.folio||r.id);
+  return `<div class="txvcard">
+    <div class="txvc-top"><span class="fol">${lbl}</span><span class="hora">${x.p.h?svg(TX_CLOCK)+' '+exEsc(x.p.h):''}</span></div>
+    ${x.kind==='ex'?'':`<div class="txvc-cli">${svg(x.kind==='sale'?S_PER:TX_PROV)}<span>${exEsc(who)}</span></div>`}
+    <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(+x.p.p||0)}</div></div></div>
+  </div>`;
+}
 function txECard(m){
   return `<div class="txvcard">
-    <div class="txvc-top"><span class="fol">${m.type==='in'?'+ ':'− '}${m.concept||t('sin_info')}</span><span class="hora">${m.time||''}</span></div>
-    <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num" style="color:${m.type==='in'?'var(--green)':'var(--red)'}">${money(+m.amount||0)}</div></div></div>
+    <div class="txvc-top"><span class="fol">${m.type==='in'?'+ ':'− '}${exEsc(m.concept||t('sin_info'))}</span><span class="hora">${exEsc(m.time||'')}</span></div>
+    <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num" style="color:${m.type==='in'?'var(--green)':'var(--red)'}">${money(exTotal(m))}</div></div></div>
   </div>`;
 }
 function niceMax(v){if(!(v>0))return 100;const exp=Math.pow(10,Math.floor(Math.log10(v)));const f=v/exp;const steps=[1,1.5,2,2.5,3,4,5,6,8,10];let nf=10;for(const s of steps){if(f<=s+1e-9){nf=s;break;}}return nf*exp;}
@@ -2907,18 +2917,18 @@ function repTxDay(){
   </div>`;
   const sec=(title,cardsHtml)=>`<div class="txband2">${title}</div>`+(cardsHtml?`<div class="txscroll">${cardsHtml}</div>`:`<div class="txempty2">${t('sin_info')}</div>`);
   const lists=sec(t('tx_type_ventas'),d.ventas.map(txVCard).join(''))
-    +sec(t('tx_type_pventas'),'')
+    +sec(t('tx_type_pventas'),d.pv.map(txPCard).join(''))
     +sec(t('tx_type_compras'),d.compras.map(txCCard).join(''))
-    +sec(t('tx_type_pcompras'),'')
+    +sec(t('tx_type_pcompras'),d.pc.map(txPCard).join(''))
     +sec(t('tx_type_ingastos'),d.extras.map(txECard).join(''))
-    +sec(t('tx_type_pingastos'),'');
+    +sec(t('tx_type_pingastos'),d.pe.map(txPCard).join(''));
   return head+chart+summary+`<div style="height:6px"></div>`+lists;
 }
 /* ============ Total de Transacciones ============ */
-function txTotalData(from,to){
+function txTotalData(from,to,incl){
   const inRD=d=>!!d&&d>=from&&d<=to;
   const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
-  const inclPagos=state.txtInclPagos!==false;   // incluir pagos sin referencia de transacción
+  const inclPagos=incl!=null?!!incl:state.txtInclPagos!==false;   // incluir pagos sin referencia de transacción
   // Clasificación por cobrar: con "incluir pagos", crédito = status2 O tiene abonos; sin él, solo status2
   const isCredV=inclPagos?saleIsCredit:saleIsCreditStrict;
   const isCredP=inclPagos?purchaseIsCredit:purchaseIsCreditStrict;
@@ -7894,7 +7904,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003232157';
+const APP_VERSION='20261003232935';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

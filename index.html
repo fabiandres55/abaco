@@ -2843,7 +2843,7 @@ function txDayData(date){
   const extras=extrasLive().filter(m=>m.date===date);
   const T=txTotalData(date,date,true);   /* mismas cuentas que "Total de transacciones" (con todos los pagos del día) */
   const payList=(arr,kind)=>{const o=[];(arr||[]).forEach(r=>{if(Array.isArray(r.pays))r.pays.forEach(p=>{if(p&&p.f===date&&(+p.p||0))o.push({kind,r,p});});});return o.sort((a,b)=>(''+(b.p.h||'')).localeCompare(''+(a.p.h||'')));};
-  const pv=payList(state.sales,'sale'),pc=payList(state.purchases,'purch'),pe=payList(extrasLive().filter(exPending),'ex');
+  const pv=payList(state.sales,'sale'),pc=payList(state.purchases,'purch'),pe=payList(extrasLive(),'ex');
   const ventasPag=T.ventasPag.ing,pagosVentas=T.ventasCob.pagos,ingPag=T.ingExtraPag.ing,pagosIng=T.ingExtraCob.pagos;
   const comprasPag=T.comprasPag.egr,pagosCompras=T.comprasPagar.pagos,gastosPag=T.gastoExtraPag.gas,pagosGastos=T.gastoExtraPagar.pagos,salEmp=T.salario;
   const totIng=ventasPag+pagosVentas+ingPag+pagosIng,totEgr=comprasPag+pagosCompras+gastosPag+pagosGastos+salEmp;
@@ -2925,7 +2925,7 @@ function repTxDay(){
     <div class="txband">${t('tx_res_ing')}</div>
     <div class="txgrid">${kpi(t('tx_ventas_pag'),d.ventasPag)}${kpi(t('tx_type_pventas'),d.pagosVentas)}${kpi(t('tx_ing_pag'),d.ingPag)}${kpi(t('tx_pagos_ing'),d.pagosIng)}</div>
     <div class="txband">${t('tx_res_gas')}</div>
-    <div class="txgrid">${kpi(t('tx_compras_pag'),d.comprasPag)}${kpi(t('tx_pagos_compras'),d.pagosCompras)}${kpi(t('tx_gastos_pag'),d.gastosPag)}${kpi(t('tx_sal_emp'),d.salEmp)}</div>
+    <div class="txgrid">${kpi(t('tx_compras_pag'),d.comprasPag)}${kpi(t('tx_pagos_compras'),d.pagosCompras)}${kpi(t('tx_gastos_pag'),d.gastosPag+d.pagosGastos)}${kpi(t('tx_sal_emp'),d.salEmp)}</div>
     <div class="txbalance">${t('tx_balance')} ${money(d.balance)}</div>
   </div>`;
   const sec=(title,cardsHtml)=>`<div class="txband2">${title}</div>`+(cardsHtml?`<div class="txscroll">${cardsHtml}</div>`:`<div class="txempty2">${t('sin_info')}</div>`);
@@ -2966,12 +2966,14 @@ function txTotalData(from,to,incl){
   else{purR.forEach(p=>{if(purchaseIsCreditStrict(p)&&Array.isArray(p.pays))p.pays.forEach(x=>{if(inRD(x.f))abonosCompras+=+x.p||0;});});}
   const comprasPagar={n:cc.length,egr:sum(cc,p=>+p.total||0),deuda:ccDeuda,pagos:abonosCompras};
   const exR=extrasLive().filter(m=>inRD(m.date));
-  const exInP=exR.filter(m=>m.type==='in'&&exDue(m)<=0.5),exInD=exR.filter(m=>m.type==='in'&&exDue(m)>0.5);
-  const exOutP=exR.filter(m=>m.type==='out'&&exDue(m)<=0.5),exOutD=exR.filter(m=>m.type==='out'&&exDue(m)>0.5);
+  const exCred=m=>exPending(m)||(Array.isArray(m.pays)&&m.pays.length>0);   /* por cobrar/pagar o pagado por abonos (como las ventas a crédito) */
+  const exInP=exR.filter(m=>m.type==='in'&&!exCred(m)),exInD=exR.filter(m=>m.type==='in'&&exCred(m));
+  const exOutP=exR.filter(m=>m.type==='out'&&!exCred(m)),exOutD=exR.filter(m=>m.type==='out'&&exCred(m));
+  const exPagos=type=>{let a=0;(inclPagos?extrasLive().filter(m=>m.type===type):exR.filter(m=>m.type===type&&exPending(m))).forEach(m=>{if(Array.isArray(m.pays))m.pays.forEach(x=>{if(inRD(x.f))a+=+x.p||0;});});return a;};   /* abonos con fecha en el rango */
   const ingExtraPag={n:exInP.length,ing:sum(exInP,exTotal)};
-  const ingExtraCob={n:exInD.length,ing:sum(exInD,exTotal),pagos:sum(exInD,exPaid),deuda:sum(exInD,exDue)};
+  const ingExtraCob={n:exInD.length,ing:sum(exInD,exTotal),pagos:exPagos('in'),deuda:sum(exInD,exDue)};
   const gastoExtraPag={n:exOutP.length,gas:sum(exOutP,exTotal)};
-  const gastoExtraPagar={n:exOutD.length,gas:sum(exOutD,exTotal),pagos:sum(exOutD,exPaid),deuda:sum(exOutD,exDue)};
+  const gastoExtraPagar={n:exOutD.length,gas:sum(exOutD,exTotal),pagos:exPagos('out'),deuda:sum(exOutD,exDue)};
   const salario=sum((state.payroll||[]).filter(p=>p&&!p.del&&inRD((''+(p.date||'')).slice(0,10))),p=>+p.amount||0);
   // TOP = ventas pagadas (contado) + abonos recibidos + ingresos extras
   const ingresos=ventasPag.ing+abonosVentas+ingExtraPag.ing+ingExtraCob.pagos;
@@ -7923,7 +7925,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003234951';
+const APP_VERSION='20261003235415';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

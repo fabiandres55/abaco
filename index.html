@@ -7318,7 +7318,11 @@ const ICO_WRENCH='<path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005
 
 // Mi Negocio guarda la unidad al inicio del nombre: "... " = sin unidad, "METRO ... CINTA", "25X35CM HOJA". Así lo muestra y lo ordena.
 function mnTok(n){const m=/^(\S+) /.exec(n);return m?m[1]:'';}
-function isMnName(n){n=''+(n||'');if(/^\.\.\.( |$)/.test(n))return true;const tok=mnTok(n);return !!tok&&tok!=='...'&&(state.units||[]).some(u=>(''+u).toUpperCase()===tok.toUpperCase());}
+// Unidad de Mi Negocio: la de la lista de la tienda o, en MAYÚSCULAS, una unidad conocida (METRO, LITRO…) o una medida (25X35CM)
+const MN_MEASURE=/^\d+([.,]\d+)?X\d+([.,]\d+)?(CM|MM|M)?$/i;
+function isUnitTok(tok){if(!tok||tok==='...')return false;const up=tok.toUpperCase();if((state.units||[]).some(u=>(''+u).toUpperCase()===up))return true;if(tok!==up)return false;
+  if(MN_MEASURE.test(tok))return true;if((typeof UNITS_EXTRA!=='undefined'?UNITS_EXTRA:[]).some(u=>(''+u).toUpperCase()===up))return true;return UNITS.some(k=>[I18N.es[k],I18N.en[k]].some(l=>l&&(''+l).toUpperCase()===up));}
+function isMnName(n){n=''+(n||'');if(/^\.\.\.( |$)/.test(n))return true;return isUnitTok(mnTok(n));}
 function mnName(p){const n=''+((p&&p.name)||'');if(isMnName(n))return n;return ((p&&p.unit)?unitLabel(p.unit):'...')+' '+n;}
 function mnSplit(p){const n=''+((p&&p.name)||'');if(isMnName(n)){const tok=mnTok(n)||'...';return {unit:tok,name:n.slice(tok.length+1)};}return {unit:(p&&p.unit)?unitLabel(p.unit):'...',name:n};}
 function prodUnitLbl(p){if(p&&p.unit)return unitLabel(p.unit);const n=''+((p&&p.name)||'');if(isMnName(n)){const tok=mnTok(n);if(tok&&tok!=='...')return tok;}return '';}
@@ -7412,7 +7416,7 @@ function pfOpen(kind){
   if(kind==='key')h=`<div class="pf-t">${t('f_key')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" value="${exEsc(p.key||'')}"><button class="pf-scan" data-act="pfscan" aria-label="${t('scan_title')}">${svg(ICO_SCAN)}</button>${ok}</div>`;
   else if(kind==='name'&&isMnName(p.name)){
     /* nombre de Mi Negocio: se edita sin la unidad y la unidad se elige aparte (se guarda "UNIDAD nombre", como Mi Negocio) */
-    const sp=mnSplit(p);PF.mn=true;const us=['...',...(state.units||[]).filter(u=>u&&u!=='...')];if(!us.includes(sp.unit))us.push(sp.unit);
+    const sp=mnSplit(p);PF.mn=true;const us=['...',...new Set([...(state.units||[]).filter(u=>u&&u!=='...'),...state.products.map(q=>{const tk=isMnName(q.name)?mnTok(q.name):'';return tk&&tk!=='...'?tk:'';}).filter(Boolean)])];if(!us.includes(sp.unit))us.push(sp.unit);
     h=`<div class="pf-t">${t('f_name')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" value="${exEsc(sp.name)}">${ok}</div><select class="inp" id="pf_u" aria-label="${t('f_unit')}">${us.map(u=>`<option value="${exEsc(u)}" ${u===sp.unit?'selected':''}>${exEsc(u)}</option>`).join('')}</select>`;
   }
   else if(kind==='name'){
@@ -7810,7 +7814,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003212326';
+const APP_VERSION='20261003212757';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

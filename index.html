@@ -1565,10 +1565,22 @@ function histFiltered(){
   if(f.k==='pay')return all.filter(s=>U(payLbl(s.pay))===U(payLbl(f.v)));
   if(f.k==='tag')return all.filter(s=>U(s.tag)===U(f.v));
   if(f.k==='info'){const q=U(f.v);return all.filter(s=>(U(s.note)+' '+U(s.addr)).includes(q));}
-  if(f.k==='prod')return all.filter(s=>(s.items||[]).some(i=>+i.id===+f.v.id)||(Array.isArray(s.lines)&&s.lines.some(l=>U(l.name||l.n)===U(f.v.name))));
+  if(f.k==='prod'){const ix=histProdIdx(),nm=U(f.v.name),imp=ix&&ix[nm];return all.filter(s=>(s.items||[]).some(i=>+i.id===+f.v.id)||(Array.isArray(s.lines)&&s.lines.some(l=>U(l.name||l.n)===nm))||(!!imp&&!(s.items&&s.items.length)&&imp.has(''+s.id)));}
   return all;
 }
 function histFabEl(){const d=document.getElementById('histdlg');if(d&&!d.querySelector('.histfab'))d.insertAdjacentHTML('beforeend',`<button class="histfab" data-act="histsearch" aria-label="${t('hs_title')}">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}</button>`);}
+// nombre de producto (MAYÚSCULAS) -> ids de ventas importadas que lo llevan; se arma una vez por tienda (detalle del equipo + archivo crudo)
+const HIST_PIX={};
+function histProdIdx(){
+  const id=currentDataId();if(!id)return null;const c=HIST_PIX[id];if(c&&(c.busy||c.full||Date.now()-c.at<60000))return c.v||null;   /* sin archivo crudo: se reintenta al minuto */
+  const e=HIST_PIX[id]={v:c?c.v:null,busy:true,full:false,at:Date.now()};
+  (async()=>{const ix={};const add=(name,sid)=>{const k=(''+(name||'')).trim().toUpperCase();if(!k)return;(ix[k]=ix[k]||new Set()).add(''+sid);};
+    try{const db=await idbOpen();await new Promise(res=>{const st=db.transaction('sale','readonly').objectStore('sale');const rq=st.openCursor();rq.onsuccess=()=>{const cur=rq.result;if(!cur)return res();if(Array.isArray(cur.value))cur.value.forEach(l=>add(l.name,cur.key));cur.continue();};rq.onerror=()=>res();});}catch(_){}
+    let full=false;try{const raw=await srRawIndex();if(raw){full=true;Object.keys(raw).forEach(fol=>raw[fol].forEach(l=>add(l.nombre!=null?l.nombre:l.name,'V'+fol)));}}catch(_){}
+    e.v=ix;e.full=full;e.busy=false;e.at=Date.now();if(currentDataId()===id&&HIST_F&&HIST_F.k==='prod'&&document.getElementById('histdlg').classList.contains('on'))fillHist();
+  })();
+  return e.v||null;
+}
 function setHistF(f){HIST_F=f;HIST_LIMIT=60;fillHist();const b=document.getElementById('histBody');if(b)b.scrollTop=0;}
 async function histSearch(){
   const k=await appMenu('',[t('sales_recent'),t('hs_date'),t('hs_folio'),t('hs_qr'),t('hs_client'),t('sale_payform'),t('sale_label'),t('hs_info'),t('hs_csv')]);
@@ -7906,7 +7918,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003233248';
+const APP_VERSION='20261003233520';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

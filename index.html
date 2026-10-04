@@ -1723,7 +1723,7 @@ async function catExportSimplePDF(){
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-    const doc=new JS({unit:'pt',format:'a4'});
+    const doc=new JS({unit:'pt',format:'a4',compress:true});
     const fmt=n=>(+n||0).toLocaleString('en-US');
     await prepPdfLogo();pdfLogo(doc);
     const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock??0),fmt(p.cost),fmt(p.price),fmt(p.reserve??0)]);
@@ -1744,7 +1744,7 @@ async function catExportCustomPDF(){
       const miss=[...new Set(prods.filter(p=>p.imgKey&&!IMGCACHE['img:'+p.imgKey]&&!p.img).map(p=>p.imgKey))];
       if(miss.length){try{await sbFetchImages(miss);}catch(e){}}
     }
-    const doc=new JS({unit:'pt',format:'a4'});
+    const doc=new JS({unit:'pt',format:'a4',compress:true});
     const PW=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight();
     const M=40,CW=PW-M*2;const fmt=n=>(+n||0).toLocaleString('en-US');
     let y=M;
@@ -2091,7 +2091,7 @@ async function buildSaleReceiptBlob(sale){
   const lines=await srLinesFor(sale,await srRawIndex());
   if(!lines.length)return null;
   const cfg=receiptCfg();
-  const doc=new JS({unit:'pt',format:'a4'});
+  const doc=new JS({unit:'pt',format:'a4',compress:true});
   const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   let y=58;
   await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
@@ -3099,7 +3099,7 @@ async function repExportPDF(){
     if(selIds.includes('sales_recv')){await salesRecvExportPDF(JS);return;}
     if(selIds.includes('purch_pay')){await purchPayExportPDF(JS);return;}
     if(!selIds.includes('sale_day')&&selIds.some(id=>REP_CSV[id])){await repCsvPDF(JS,selIds.filter(id=>REP_CSV[id]));return;}
-    const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4'});const M=40;
+    const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
     await prepPdfLogo();pdfLogo(doc);
     let y=54;
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=22;
@@ -3120,7 +3120,7 @@ async function repExportPDF(){
 }
 async function txDayExportPDF(JS){
   const date=state.txDate||todayISO();const d=txDayData(date);const cfg=receiptCfg();
-  const doc=new JS({unit:'pt',format:'a4'});const M=40;let y=56;
+  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;let y=56;
   const fmt=n=>'$'+Math.round(+n||0).toLocaleString(LANG==='es'?'es-CO':'en-US');
   await prepPdfLogo();pdfLogo(doc,{box:64,top:40});
   doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
@@ -3143,7 +3143,7 @@ async function txDayExportPDF(JS){
 }
 async function txTotalExportPDF(JS){
   const r=repEnsureRange();const cfg=receiptCfg();const D=txTotalData(r.from,r.to);
-  const doc=new JS({unit:'pt',format:'a4'});const M=40;
+  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
   const round2=n=>Math.round((+n||0)*100)/100;
   const fmt=n=>'$'+round2(n).toLocaleString('en-US');
@@ -3275,7 +3275,7 @@ async function salesRecvExportPDF(JS){
   const cfg=receiptCfg();
   // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
   const rawIdx=await srRawIndex();
-  const doc=new JS({unit:'pt',format:'a4'});const M=40;
+  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   const fmtD=n=>'$'+fmtN(n);
@@ -3390,7 +3390,7 @@ async function pcLinesFor(p,rawIdx){
 async function purchPayExportPDF(JS){
   const {list,total,pagos,deuda}=purchPayData();
   const cfg=receiptCfg();
-  const doc=new JS({unit:'pt',format:'a4'});const M=40;
+  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=n=>(Math.round((+n||0)*100)/100).toLocaleString('en-US');   // preserva hasta 2 decimales (compras)
   const fmtD=n=>'$'+fmtN(n);
@@ -3691,7 +3691,7 @@ async function rsvExportPDF(){
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-    const doc=new JS({unit:'pt',format:'a4'});
+    const doc=new JS({unit:'pt',format:'a4',compress:true});
     const fmt=n=>(+n||0).toLocaleString('en-US');
     await prepPdfLogo();pdfLogo(doc);
     const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
@@ -3933,9 +3933,9 @@ function exportSalesFull(list){
 async function buildSaleTicketBlob(sale){
   const JS=await ensurePdfLibs();const lines=await srLinesFor(sale,await srRawIndex());if(!lines.length)return null;
   const cfg=receiptCfg();const W=226,M=12;const fmtN=n=>moneyFmt(n);
-  const probe=new JS({unit:'pt',format:[W,400]});probe.setFontSize(8);
+  const probe=new JS({unit:'pt',format:[W,400],compress:true});probe.setFontSize(8);
   let H=150+(cfg.msg?probe.splitTextToSize(''+cfg.msg,W-2*M).length*10:0);lines.forEach(l=>{H+=probe.splitTextToSize(''+l.name,W-2*M).length*10+14;});H+=90;
-  const doc=new JS({unit:'pt',format:[W,Math.max(260,H)]});let y=22;const c=W/2;
+  const doc=new JS({unit:'pt',format:[W,Math.max(260,H)],compress:true});let y=22;const c=W/2;
   doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text((cfg.name||'').toUpperCase(),c,y,{align:'center',maxWidth:W-2*M});y+=15;
   doc.setFont('helvetica','normal');doc.setFontSize(8);[cfg.owner,cfg.phone,cfg.email].filter(Boolean).forEach(l=>{doc.text(''+l,c,y,{align:'center'});y+=10;});
   y+=4;doc.setLineDashPattern([2,2],0);doc.line(M,y,W-M,y);y+=12;
@@ -4409,7 +4409,7 @@ function repExportCSV(){
   saveWithPicker(name,'text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }
 async function repCsvPDF(JS,ids){
-  const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4'});const M=40;
+  const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   await prepPdfLogo();pdfLogo(doc);
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);doc.text(((cfg.name||(state.profile&&state.profile.name))||'Abanico').toUpperCase(),M,70);
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(r.from+'  →  '+r.to,M,90);
@@ -4483,7 +4483,7 @@ function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.prov
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
 async function poPDF(){
   const o=poById(state.poOpen);if(!o)return;
-  try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4'});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
+  try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('po_title'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -4625,7 +4625,7 @@ function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLoca
 async function quotePDF(){
   const q=quoteById(state.qtOpen);if(!q)return;
   try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();
-    const doc=new JS({unit:'pt',format:'a4'});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
+    const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sales_quote'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -7588,7 +7588,7 @@ async function massQRPdf(ids){
     if(!await qrLib())throw 0;
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS)throw 0;
-    const doc=new JS({unit:'pt',format:'a4'});
+    const doc=new JS({unit:'pt',format:'a4',compress:true});
     const W=595.28,H=841.89,M=36,cols=3,rows=4,cw=(W-2*M)/cols,ch=(H-2*M)/rows,qs=Math.min(cw,ch)-62;
     list.forEach((p,i)=>{
       const k=i%(cols*rows);if(i&&!k)doc.addPage();
@@ -7944,7 +7944,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004001516';
+const APP_VERSION='20261004001925';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

@@ -1642,7 +1642,7 @@ function mermaAddHTML(){
     <div class="fld"><span class="fl">${t('me_product')}</span>
       <div class="me-prow"><div class="inp sellike" data-act="mermapick"><span class="${f.pid?'':'ph'}">${exEsc(f.name||t('me_product'))}</span>${chev}</div><button class="round" data-act="mermascan" aria-label="${t('scan_title')}">${svg(ICO_SCAN)}</button></div></div>
     <div class="two">
-      <div class="fld"><span class="fl">${t('me_qty')}</span><input autocomplete="off" class="inp num" id="me_qty" type="number" inputmode="numeric" value="${f.qty??''}" placeholder="0"></div>
+      <div class="fld"><span class="fl">${t('me_qty')}</span><input autocomplete="off" class="inp num" id="me_qty" type="number" inputmode="decimal" step="any" value="${f.qty??''}" placeholder="0"></div>
       <div class="fld"><span class="fl">${t('me_cost')}</span><input autocomplete="off" class="inp num" id="me_cost" type="number" inputmode="numeric" value="${f.cost??''}" placeholder="0"></div>
     </div>
     <div class="fld"><span class="fl">${t('me_note')}</span><input autocomplete="off" class="inp" id="me_note" value="${(f.note||'').replace(/"/g,'&quot;')}" placeholder="${t('me_lost')}"></div>
@@ -2107,7 +2107,7 @@ async function buildSaleReceiptBlob(sale){
   doc.autoTable({
     startY:y+8,margin:{left:M,right:M},
     head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-    body:lines.map(l=>[l.name,fmtN(l.qty),fmtN(l.price),fmtN(l.subtotal)]),
+    body:lines.map(l=>[l.name,fmtQty(l.qty),fmtN(l.price),fmtN(l.subtotal)]),
     theme:'grid',
     styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},
     headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
@@ -2397,7 +2397,7 @@ function saleCartHTML(){
     return `<div class="crow">
       <div class="crow-name">${p?exEsc(p.name):exEsc((state.editSale&&(state.editSale.names||{})[i.id])||'—')}</div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${t('me_qty')}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${t('me_qty')}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="number" inputmode="decimal" step="any" value="${i.q}"></div>
         <div class="cfield"><span class="cfl">${t('cx_sale_s')} $</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"></div>
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>
       </div>
@@ -2734,8 +2734,8 @@ function compraCartHTML(){
     return `<div class="crow">
       <div class="crow-name">${exEsc(p.name)} <b class="num" style="float:right">${money(sub)}</b></div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-pqty="${i.id}" type="number" inputmode="numeric" value="${i.q}"></div>
-        <div class="cfield"><span class="cfl">${t('cp_pcost')}</span><input autocomplete="off" class="cinp num" data-pcost="${i.id}" type="number" inputmode="numeric" value="${cost}"></div>
+        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-pqty="${i.id}" type="number" inputmode="decimal" step="any" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl">${t('cp_pcost')}</span><input autocomplete="off" class="cinp num" data-pcost="${i.id}" type="number" inputmode="decimal" step="any" value="${cost}"></div>
         ${state.poMode?`<div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>`:`<div class="cfield"><span class="cfl">${t('cp_psale')}</span><input autocomplete="off" class="cinp num" data-pprice="${i.id}" type="number" inputmode="numeric" value="${sale}"></div>`}
       </div>
       <div class="crow-ico"><button class="cico del" data-pcdel="${i.id}">${trash}</button></div>
@@ -3293,7 +3293,7 @@ async function salesRecvExportPDF(JS){
       [{content:t('sr_col_prod'),styles:{halign:'left',fontStyle:'bold'}},{content:t('sr_col_qty'),styles:{fontStyle:'bold'}},{content:t('sr_col_price'),styles:{fontStyle:'bold'}},{content:t('sr_col_sub'),styles:{fontStyle:'bold'}}]
     ];
     (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
-      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtN(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
+      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
     });
     body.push([{content:t('sr_total_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
     body.push([{content:t('sr_pagos_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
@@ -3408,7 +3408,7 @@ async function purchPayExportPDF(JS){
       [{content:t('sr_col_prod'),styles:{halign:'left',fontStyle:'bold'}},{content:t('sr_col_qty'),styles:{fontStyle:'bold'}},{content:t('sr_col_price'),styles:{fontStyle:'bold'}},{content:t('sr_col_sub'),styles:{fontStyle:'bold'}}]
     ];
     (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
-      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtN(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
+      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
     });
     body.push([{content:t('sr_total_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
     body.push([{content:t('sr_pagos_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
@@ -4478,7 +4478,7 @@ async function poPDF(){
     y+=14;doc.setTextColor(20);if(o.provider){doc.text(t('cp_provider')+': '+o.provider,M,y);y+=22;}
     doc.text(t('sale_folio')+': '+o.folio+'     '+t('po_issue')+': '+(o.issue||''),M,y);y+=19;if(o.due){doc.text(t('po_due')+': '+o.due,M,y);y+=19;}
     doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('cp_pcost').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-      body:(o.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtN(l.q),fmtN(l.cost),fmtN(l.subtotal!=null?l.subtotal:(+l.cost||0)*(+l.q||0))]),theme:'grid',
+      body:(o.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.cost),fmtN(l.subtotal!=null?l.subtotal:(+l.cost||0)*(+l.q||0))]),theme:'grid',
       styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
       columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
     let fy=doc.lastAutoTable.finalY+14;doc.setDrawColor(205);doc.rect(M,fy,330,26);doc.rect(M+330,fy,185,26);doc.setFontSize(11);doc.text(t('total').toUpperCase()+' $',M+322,fy+17,{align:'right'});doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(fmtN(o.total),M+422,fy+17,{align:'center'});
@@ -4623,7 +4623,7 @@ async function quotePDF(){
     if(q.due){doc.text(t('qt_due')+': '+q.due,M,y);y+=19;}
     doc.autoTable({startY:y+8,margin:{left:M,right:M},
       head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-      body:(q.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtN(l.q),fmtN(l.price),fmtN(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))]),
+      body:(q.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.price),fmtN(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))]),
       theme:'grid',styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
       columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
@@ -4772,6 +4772,10 @@ function svcLinesForSale(){return svcCartItems().map(i=>{const v=svcById(i.id);r
 const ALPHA_COLL=new Intl.Collator('es',{sensitivity:'base',numeric:true});
 function alphaLines(lines){return (lines||[]).slice().sort((a,b)=>ALPHA_COLL.compare(prodSortName({name:a&&a.name}),prodSortName({name:b&&b.name})));}
 // Mueve el inventario de un producto (puede quedar negativo, como en Mi Negocio); redondea a 3 decimales (metros, kilos)
+// cantidad escrita por el usuario: acepta coma o punto, hasta 3 decimales
+function qtyVal(x){const v=parseFloat((''+(x==null?'':x)).replace(',','.'));return isFinite(v)?Math.round(v*1000)/1000:0;}
+// cantidad para imprimir: sin redondear a entero (2,5 metros = "2.5")
+function fmtQty(n){return (Math.round((+n||0)*1000)/1000).toLocaleString('en-US',{maximumFractionDigits:3});}
 function stockAdd(p,delta){if(!p)return;p.stock=Math.round(((+p.stock||0)+(+delta||0))*1000)/1000;}
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
@@ -4849,7 +4853,7 @@ function svcRowsHTML(){
     return `<div class="crow svcrow">
       <div class="crow-name"><span class="svc-tag">${svg(SVC_ICO)}</span>${exEsc(svcLineName(i.id))}</div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-sqty="${id}" type="number" inputmode="numeric" value="${i.q}"></div>
+        <div class="cfield"><span class="cfl">${t('me_qty')}</span><input autocomplete="off" class="cinp num" data-sqty="${id}" type="number" inputmode="decimal" step="any" value="${i.q}"></div>
         <div class="cfield"><span class="cfl">${t('cx_sale')} $</span><input autocomplete="off" class="cinp num" data-sprice="${id}" type="number" inputmode="numeric" value="${price}"></div>
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} $</span><span class="csub num">${money(sub)}</span></div>
       </div>
@@ -7296,9 +7300,9 @@ document.getElementById("device").addEventListener("click",e=>{
 // edición de líneas de venta (cantidad/precio) al perder el foco
 document.getElementById("device").addEventListener("change",e=>{
   const el=e.target;
-  if(el.dataset&&el.dataset.cqty!=null){const id=+el.dataset.cqty;let v=Math.floor(+el.value||0);if(v<0)v=0;if(v===0){delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];}else state.cart[id]=v;return render();}
+  if(el.dataset&&el.dataset.cqty!=null){const id=+el.dataset.cqty;let v=qtyVal(el.value);if(v<0)v=0;if(v===0){delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];}else state.cart[id]=v;return render();}
   if(el.dataset&&el.dataset.cprice!=null){const id=+el.dataset.cprice;state.cartPrice=state.cartPrice||{};state.cartPrice[id]=Math.max(0,+el.value||0);if(state.cartAdj)delete state.cartAdj[id];return render();}
-  if(el.dataset&&el.dataset.sqty!=null){const id=el.dataset.sqty;let v=Math.floor(+el.value||0);if(v<0)v=0;state.scart=state.scart||{};if(v===0){delete state.scart[id];if(state.scPrice)delete state.scPrice[id];}else state.scart[id]=v;return render();}
+  if(el.dataset&&el.dataset.sqty!=null){const id=el.dataset.sqty;let v=qtyVal(el.value);if(v<0)v=0;state.scart=state.scart||{};if(v===0){delete state.scart[id];if(state.scPrice)delete state.scPrice[id];}else state.scart[id]=v;return render();}
   if(el.dataset&&el.dataset.sprice!=null){const id=el.dataset.sprice;state.scPrice=state.scPrice||{};state.scPrice[id]=Math.max(0,+el.value||0);if(state.cartAdj)delete state.cartAdj['s:'+id];return render();}
   if(el.id==='rvFrom'||el.id==='rvTo')state.repMore={};
   if(el.id==='cfgScanner'){setOpt('scanner',+el.value);return;}
@@ -7308,7 +7312,7 @@ document.getElementById("device").addEventListener("change",e=>{
   if(el.id==='txDate'){state.txDate=el.value;state.txBar=null;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.id==='txType'){state.txType=el.value;state.txBar=null;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.id==='txtType'){state.txtType=el.value;state.txtPt=null;state._keep=document.getElementById("screen").scrollTop;return render();}
-  if(el.dataset&&el.dataset.pqty!=null){const id=+el.dataset.pqty;let v=Math.floor(+el.value||0);if(v<0)v=0;if(v===0){delete state.pcart[id];if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}else state.pcart[id]=v;return render();}
+  if(el.dataset&&el.dataset.pqty!=null){const id=+el.dataset.pqty;let v=qtyVal(el.value);if(v<0)v=0;if(v===0){delete state.pcart[id];if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}else state.pcart[id]=v;return render();}
   if(el.dataset&&el.dataset.pcost!=null){const id=+el.dataset.pcost;state.pcost=state.pcost||{};state.pcost[id]=Math.max(0,+el.value||0);return render();}
   if(el.dataset&&el.dataset.pprice!=null){const id=+el.dataset.pprice;state.pprice=state.pprice||{};state.pprice[id]=Math.max(0,+el.value||0);return render();}
   if(el.id==='rc_logo'){const f=el.files&&el.files[0];if(f){const rd=new FileReader();rd.onload=async ev=>{const thumb=await dataUrlToThumb(ev.target.result,256);state.receipt=state.receipt||{};state.receipt.logo=thumb||ev.target.result;persist();{const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);}renderDrawer();render();toast(t('rc_logo_saved'));};rd.readAsDataURL(f);}return;}
@@ -7919,7 +7923,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003234224';
+const APP_VERSION='20261003234637';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

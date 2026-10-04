@@ -1932,6 +1932,7 @@ async function openSaleDet(id){
   if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q};});
   else{const L=await idbGetSale(s.id);if(L)lines=L;}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
+  lines=alphaLines(lines);
   const cli=(state.clients||[]).find(c=>(''+(c.name||'')).trim().toUpperCase()===(''+(s.client||'')).trim().toUpperCase());
   const si=t('sin_info');const esc=x=>exEsc(x).replace(/\n/g,'<br>');
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
@@ -1977,7 +1978,7 @@ function openItemsEdit(id){
   const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
   const lines=(s.items||[]).map(i=>{const p=P(i.id);return {kind:'p',id:i.id,name:p?p.name:(i.name||'—'),q:+i.q||0,price:i.price!=null?+i.price:(p?+p.price||0:0),orig:i};})
     .concat((s.svcs||[]).map(x=>({kind:'s',id:x.id,name:x.name||'—',q:+x.q||0,price:+x.price||0,orig:x})));
-  ITEMS_ED={id:s.id,lines};itemsEl();document.getElementById('itemsH').textContent=t('sd_items');fillItemsEdit();document.getElementById('itemsdlg').classList.add('on');
+  ITEMS_ED={id:s.id,lines:alphaLines(lines)};itemsEl();document.getElementById('itemsH').textContent=t('sd_items');fillItemsEdit();document.getElementById('itemsdlg').classList.add('on');
 }
 function itemsTotal(){return (ITEMS_ED?ITEMS_ED.lines:[]).reduce((a,l)=>a+(+l.q||0)*(+l.price||0),0);}
 function fillItemsEdit(){
@@ -2050,6 +2051,7 @@ async function saleLines(s){
   if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price,subtotal:price*i.q};});
   else{const L=await idbGetSale(s.id);if(L)lines=L.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
+  lines=alphaLines(lines);
   return lines;
 }
 async function ensurePdfLibs(){
@@ -4740,6 +4742,9 @@ function svcCartTotal(){return svcCartItems().reduce((a,i)=>a+svcLinePrice(i.id)
 function svcLineName(id){const v=svcById(id);return v?v.name:((state.scName||{})[id]||'—');}
 function saleHas(){return cartItems().length>0||svcCartItems().length>0;}
 function svcLinesForSale(){return svcCartItems().map(i=>{const v=svcById(i.id);return {id:i.id,name:svcLineName(i.id),q:i.q,price:svcLinePrice(i.id),cost:v?(+v.cost||0):0};});}
+// Productos y servicios de una venta en orden alfabético (sin contar los "... " ni la unidad que Mi Negocio pone al inicio)
+const ALPHA_COLL=new Intl.Collator('es',{sensitivity:'base',numeric:true});
+function alphaLines(lines){return (lines||[]).slice().sort((a,b)=>ALPHA_COLL.compare(prodSortName({name:a&&a.name}),prodSortName({name:b&&b.name})));}
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
   const q=(state.q||'').toLowerCase().trim();
@@ -7862,7 +7867,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003220142';
+const APP_VERSION='20261003221228';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

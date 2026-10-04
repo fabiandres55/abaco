@@ -3950,6 +3950,10 @@ const MN_SCHEMA="CREATE TABLE android_metadata (locale TEXT);CREATE TABLE unidad
 const PM_MN={pm_efectivo:'EFECTIVO',pm_nequi:'NEQUI',pm_daviplata:'DAVIPLATA',pm_transferencia:'TRANSFERENCIA'};
 function fbStatus(m){const e=document.getElementById('fbStatus');if(e)e.textContent=m;}
 async function fbReadLines(ids){const out={};if(!ids.length)return out;try{const db=await idbOpen();for(let i=0;i<ids.length;i+=400){const ch=ids.slice(i,i+400);await new Promise(res=>{const tx=db.transaction('sale','readonly');const st=tx.objectStore('sale');let n=ch.length;ch.forEach(id=>{const rq=st.get(''+id);const d=()=>{if(--n===0)res();};rq.onsuccess=()=>{if(rq.result)out[id]=rq.result;d();};rq.onerror=d;});});}}catch(_){}return out;}
+// completa con el archivo crudo (folio -> líneas) los registros que no tienen detalle en este equipo
+function fbRawFill(out,list,ids,raw){if(!raw)return;const set=new Set(ids.filter(id=>!out[id]).map(String));
+  list.forEach(x=>{if(!set.has(''+x.id))return;const fol=''+(x.folio!=null?x.folio:(''+x.id).replace(/^[VC]/,''));const rows=raw[fol];
+    if(rows&&rows.length)out[x.id]=rows.map(l=>({name:l.nombre!=null?l.nombre:(l.name||'—'),cost:+(l.p_compra!=null?l.p_compra:l.cost)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,qty:+(l.cantidad!=null?l.cantidad:l.qty)||0,subtotal:l.subtotal!=null?+l.subtotal:undefined,svc:+l.tipo===2}));});}
 async function buildFullMN(withImgs){
   await bkEnsureLibs();const SQL=await bkSqlInit();const db=new SQL.Database();db.run(MN_SCHEMA);db.run('PRAGMA user_version=22');
   const o=opts();const r2=v=>Math.round((+v||0)*100)/100;const pj=a=>JSON.stringify((a||[]).map(x=>({f:x.h?x.f+' '+x.h+':00':x.f,p:+x.p||0})));
@@ -3972,7 +3976,7 @@ async function buildFullMN(withImgs){
   fbStatus(t('fb_s_sales'));
   const sales=(state.sales||[]).slice().sort((a,b)=>(saleDate(a)+' '+(a.time||'')).localeCompare(saleDate(b)+' '+(b.time||'')));
   const used=new Set();sales.forEach(x=>{if((''+x.id).charAt(0)==='V'&&isFinite(+x.folio))used.add(+x.folio);});let nextF=Math.max(0,...used)+1;
-  const need=sales.filter(x=>!Array.isArray(x.items)&&!(x.lines&&x.lines.length)).map(x=>x.id);const idbL=await fbReadLines(need);
+  const need=sales.filter(x=>!Array.isArray(x.items)&&!(x.lines&&x.lines.length)).map(x=>x.id);const idbL=await fbReadLines(need);if(need.some(id=>!idbL[id]))fbRawFill(idbL,sales,need,await srRawIndex());
   const vRows=[],vpRows=[];
   sales.forEach(x=>{let f=((''+x.id).charAt(0)==='V'&&isFinite(+x.folio))?+x.folio:null;if(f==null||(used.has(f)&&(''+x.id).charAt(0)!=='V')){f=nextF++;}used.add(f);
     const cr=saleIsCreditStrict(x)||(Array.isArray(x.pays)&&x.pays.length&&salePaidSum(x)<saleTotal(x)-0.5);
@@ -3988,7 +3992,7 @@ async function buildFullMN(withImgs){
   // compras + detalle
   fbStatus(t('fb_s_purch'));
   const purch=(state.purchases||[]).slice();const usedC=new Set();purch.forEach(p=>{if((''+p.id).charAt(0)==='C'&&isFinite(+p.folio))usedC.add(+p.folio);});let nC=Math.max(0,...usedC)+1;
-  const needC=purch.filter(p=>!(p.items&&p.items.length)&&!(p.lines&&p.lines.length)).map(p=>p.id);const idbC=await fbReadLines(needC);
+  const needC=purch.filter(p=>!(p.items&&p.items.length)&&!(p.lines&&p.lines.length)).map(p=>p.id);const idbC=await fbReadLines(needC);if(needC.some(id=>!idbC[id]))fbRawFill(idbC,purch,needC,await pcRawIndex());
   const cRows=[],cpRows=[];
   purch.forEach(p=>{let f=((''+p.id).charAt(0)==='C'&&isFinite(+p.folio))?+p.folio:null;if(f==null){f=nC++;}
     const pv=p.provId&&provById(p.provId);cRows.push([f,p.date||'',r2(p.total),p.time||'',purchaseIsCreditStrict(p)?2:1,p.provider||'',pv?(prvF[pv.id]||0):0,Array.isArray(p.pays)&&p.pays.length?pj(p.pays):'',pmOf(p.pay),p.note||'']);
@@ -7925,7 +7929,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003235415';
+const APP_VERSION='20261003235715';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

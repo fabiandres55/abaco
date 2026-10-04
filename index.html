@@ -6166,7 +6166,7 @@ function sbApplyRemote(id,key,remote,notify){
 // Sube un documento: lee la nube, fusiona y escribe solo si nadie escribió en medio (compare-and-swap por updated_at)
 const LAST_W={};   // última escritura intentada por documento {ts,lj,merged}: si la nube tiene esa marca, la escritura sí llegó
 const WRITING={},WLOCK={};   // subidas en curso por documento / candado para que no corran dos a la vez
-function sbBusyKey(key){return (WRITING[key]||0)>0||!!LAST_W[key];}
+function sbBusyKey(key){const lw=LAST_W[key];return (WRITING[key]||0)>0||(!!lw&&Date.now()-new Date(lw.ts).getTime()<120000);}
 async function sbSyncWrite(sb,id,key){
   const prev=WLOCK[key]||Promise.resolve();let rel;const mine=new Promise(r=>rel=r);const chain=prev.then(()=>mine);WLOCK[key]=chain;
   try{await prev;}catch(_){}
@@ -6194,12 +6194,12 @@ async function sbSyncWriteOne(sb,id,key){
     const ts=new Date().toISOString();let w;LAST_W[key]={ts,lj,merged,mj};   /* se reconoce por el CONTENIDO (dos equipos pueden escribir en el mismo milisegundo) */
     if(row){
       w=await sb.from('store_docs').update({data:merged,updated_at:ts}).eq('store_id',id).eq('doc_key',key).eq('updated_at',prevTs).select('doc_key');
-      if(w&&w.error){w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
+      if(w&&w.error){w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error){LAST_W[key]=null;throw w.error;}}   /* error de la nube: no quedó */
       else if(!w||!Array.isArray(w.data)||!w.data.length){   // nadie escribió en medio pero no actualizó (permisos): escribir normal
         const c=await sb.from('store_docs').select('updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
         if(c&&c.data&&c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio: fusionar otra vez
-        w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
-    }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
+        w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error){LAST_W[key]=null;throw w.error;}}
+    }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error){LAST_W[key]=null;throw w.error;}}
     setBase(id,key,merged);LAST_W[key]=null;LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;   /* marca: lo que se leyó antes de esto puede estar viejo */
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
       const now=sbDocData(key);let fin=JSON.parse(mj);
@@ -7989,7 +7989,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004015957';
+const APP_VERSION='20261004020339';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

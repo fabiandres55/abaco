@@ -4228,7 +4228,7 @@ function repLines(){
   if(REPL.key===key&&REPL.data)return REPL.data;if(REPL.busy===key)return null;REPL.busy=key;
   (async()=>{
     const byName={};(state.products||[]).forEach(p=>{byName[(''+p.name).trim().toLowerCase()]=p;});
-    const out=[];const need=[];
+    const out=[];const need=[];const got=new Set();
     repSalesR().forEach(x=>{const d=saleDate(x);
       if(Array.isArray(x.items)&&x.items.length)x.items.forEach(i=>{const p=P(i.id);out.push({pid:i.id,name:p?p.name:(i.name||'—'),cat:p?(p.cat||''):'',q:+i.q||0,price:i.price!=null?+i.price:(p?+p.price||0:0),cost:i.cost!=null?+i.cost:(p?+p.cost||0:0),d});});
       else if(Array.isArray(x.lines)&&x.lines.length)x.lines.forEach(l=>{if(l.svc)return;const p=byName[(''+l.name).trim().toLowerCase()];out.push({pid:p?p.id:null,name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d});});
@@ -4237,8 +4237,10 @@ function repLines(){
     try{const db=await idbOpen();
       for(let i=0;i<need.length;i+=300){const ch=need.slice(i,i+300);
         await new Promise(res=>{const tx=db.transaction('sale','readonly');const st=tx.objectStore('sale');let n=ch.length;if(!n)return res();
-          ch.forEach(x=>{const rq=st.get(''+x.id);const done=()=>{if(--n===0)res();};rq.onsuccess=()=>{const L=rq.result;if(Array.isArray(L))L.forEach(l=>{const p=byName[(''+l.name).trim().toLowerCase()];out.push({pid:p?p.id:null,name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d:saleDate(x)});});done();};rq.onerror=done;});});
+          ch.forEach(x=>{const rq=st.get(''+x.id);const done=()=>{if(--n===0)res();};rq.onsuccess=()=>{const L=rq.result;if(Array.isArray(L)&&L.length){got.add(''+x.id);L.forEach(l=>{const p=byName[(''+l.name).trim().toLowerCase()];out.push({pid:p?p.id:null,name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d:saleDate(x)});});}done();};rq.onerror=done;});});
       }}catch(_){}
+    const miss=need.filter(x=>!got.has(''+x.id));   /* sin detalle en este equipo: del archivo crudo (mismos campos que al importar) */
+    if(miss.length){try{const raw=await srRawIndex();if(raw)miss.forEach(x=>{const fol=''+(x.folio!=null?x.folio:(''+(x.id||'')).replace(/^V/,''));(raw[fol]||[]).forEach(l=>{const nm=l.nombre!=null?l.nombre:(l.name||'—');const p=byName[(''+nm).trim().toLowerCase()];out.push({pid:p?p.id:null,name:nm,cat:p?(p.cat||''):'',q:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,cost:l.p_compra!=null?+l.p_compra:(p?+p.cost||0:0),d:saleDate(x)});});});}catch(_){}}
     REPL={key,busy:'',data:out};if(state.screen==='repview'){state._keep=document.getElementById('screen').scrollTop;render();}
   })();
   return null;
@@ -7904,7 +7906,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003232935';
+const APP_VERSION='20261003233248';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

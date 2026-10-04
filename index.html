@@ -1140,6 +1140,8 @@
   #scandlg{z-index:17}
   #catdlg{z-index:17}
   .askmsg{max-height:60vh;overflow-y:auto}
+  .flt-sec{display:flex;align-items:center;gap:8px;padding:18px 16px 8px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
+  .flt-sec svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
   .fhelp{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#5f6368;color:#fff;font:700 12px var(--ui);margin-left:6px;cursor:pointer;vertical-align:1px}
   .freq{font-size:12.5px;color:var(--muted);margin:-4px 0 -6px}
   .fimgacts{display:flex;justify-content:center;gap:18px;margin-top:6px}
@@ -1452,7 +1454,7 @@ function invHeader(){
     <button class="round" data-act="scan">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
   </div>
   <div class="chips">
-    <span class="fchip ${(state.filterUnit||state.filterInfo)?'act':''}" data-act="filter">${svg('<path d="M3 5h18M6 12h12M10 19h4"/>')} ${t('chip_filter')}</span>
+    <span class="fchip ${(state.filterUnit||state.filterInfo||state.filterCat)?'act':''}" data-act="filter">${svg('<path d="M3 5h18M6 12h12M10 19h4"/>')} ${t('chip_filter')}</span>
     <span class="fchip" data-act="reserva">${svg('<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 16.5v.5"/>')} ${t('chip_reserve')}</span>
     <span class="fchip" data-act="merma">${svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/>')} ${t('chip_merma')}</span>
     <span class="fchip" data-act="catalog">${svg('<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/>')} ${t('chip_catalog')}</span>
@@ -5254,7 +5256,12 @@ function openFilterMenu(){document.getElementById('filterH').textContent=t('flt_
 function fillFilterMenu(){
   document.getElementById('filterH').textContent=t('flt_title');
   const row=(act,label)=>`<div class="catopt" data-act="${act}"><span class="ck"></span><span>${label}</span></div>`;
-  document.getElementById('filterBody').innerHTML=row('fltall',t('flt_all'))+row('fltfield:info',t('flt_info'))+row('fltfield:unit',t('flt_unit'));
+  CATF_FOR=null;
+  const ck=svg('<path d="M5 12l5 5L20 7"/>');const fc=state.filterCat;
+  const catRow=(v,l)=>`<div class="catopt ${fc===v?'sel':''}" data-catpick="${(''+v).replace(/"/g,'&quot;')}"><span class="ck">${fc===v?ck:''}</span><span>${exEsc(l)}</span></div>`;
+  const cats=allCats();
+  document.getElementById('filterBody').innerHTML=row('fltall',t('flt_all'))+row('fltfield:info',t('flt_info'))+row('fltfield:unit',t('flt_unit'))
+    +`<div class="flt-sec">${svg(ICO_CAT)}<span>${t('f_category')}</span></div>`+catRow('__none__',t('cat_none'))+cats.map(c=>catRow(c,c)).join('');
   document.getElementById('filterBody').scrollTop=0;
 }
 function fillFilterValues(field){
@@ -6881,7 +6888,7 @@ document.getElementById("device").addEventListener("click",e=>{
   if(el.hasAttribute("data-tienda")){state.detTienda=el.dataset.tienda;return go('tiendadet');}
   if(el.hasAttribute("data-catalog")){state.catBodega=el.dataset.catalog;watchKey('data.'+el.dataset.catalog);dbFetch('data.'+el.dataset.catalog);return go('catalogo');}
   if(el.hasAttribute("data-addcat")){state._keep=document.getElementById("screen").scrollTop;const[bid,pid]=el.dataset.addcat.split(':');return addFromCatalog(bid,+pid);}
-  if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;if(CATF_FOR==='rsv'){CATF_FOR=null;state.rsvCat=v==='__all__'?null:v;closeCat();return fillReserva();}state.filterCat=v==='__all__'?null:v;state.invLimit=INV_PAGE;closeCat();return render();}
+  if(el.hasAttribute("data-catpick")){const v=el.dataset.catpick;if(CATF_FOR==='rsv'){CATF_FOR=null;state.rsvCat=v==='__all__'?null:v;closeCat();return fillReserva();}state.filterCat=v==='__all__'?null:v;state.invLimit=INV_PAGE;closeCat();closeFilter();return render();}
   if(el.hasAttribute("data-unitpick"))return pickUnit(el.dataset.unitpick);
   if(el.hasAttribute("data-catpickf"))return pickCat(el.dataset.catpickf);
   state._keep=document.getElementById("screen").scrollTop;
@@ -7793,7 +7800,7 @@ boot();
 // Textos fijos del HTML según el idioma del dispositivo
 try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003204855';
+const APP_VERSION='20261003210023';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

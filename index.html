@@ -1440,7 +1440,8 @@ const state={screen:'inventario',cart:{},q:'',base:0,products:[],sales:[],extraM
 const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
 // id de producto siempre único (mayor que cualquiera existente)
-function nid(){const m=state.products.reduce((a,p)=>Math.max(a,+p.id||0),0);state.seq=Math.max((state.seq||1),m+1);const id=state.seq;state.seq=id+1;return id;}
+// id de producto nuevo: basado en la hora (+ un dígito al azar) para que dos equipos que crean productos a la vez (o uno sin internet) no saquen el mismo id; al sincronizar, el mismo id pisaba uno de los dos productos
+function nid(){const m=state.products.reduce((a,p)=>Math.max(a,+p.id||0),0);const id=Math.max(m+1,(state.seq||1),Date.now()*10+Math.floor(Math.random()*10));state.seq=id+1;return id;}
 // repara ids duplicados/ausentes (conserva el primero, reasigna los demás)
 function ensureUniqueIds(){let changed=false,max=0;const seen=new Set();state.products.forEach(p=>{max=Math.max(max,+p.id||0);});state.products.forEach(p=>{let id=+p.id;if(!id||seen.has(id)){max+=1;p.id=max;changed=true;}else p.id=id;seen.add(p.id);});state.seq=Math.max((state.seq||1),max+1);return changed;}
 const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
@@ -7918,7 +7919,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003233520';
+const APP_VERSION='20261003233927';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

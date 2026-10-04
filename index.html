@@ -71,6 +71,9 @@
   .pc-img{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:var(--sel);flex:none;overflow:hidden;display:grid;place-items:center}
   .pc-img img{width:100%;height:100%;object-fit:cover}
   .pc-img svg{width:28px;height:28px;stroke:var(--faint);fill:none;stroke-width:1.6}
+  /* la celda del grid mide lo mismo que el contenedor: la foto se recorta por el centro (como Mi Negocio) y no muestra solo su parte de arriba */
+  .pc-img,.pd-img,.sptile .spimg,.row .av,.logopick,.dstoreav{grid-template:100%/100%}
+  .pc-img img,.pd-img img,.sptile .spimg img,.row .av img,.logopick img,.dstoreav img{min-width:0;min-height:0}
   .pc-id{flex:1;min-width:0}
   .pc-key{font-size:18px;font-weight:600;color:#3b4046;line-height:1.2;word-break:break-word}
   .pc-name{font-size:14.5px;color:var(--muted);margin-top:1px}
@@ -5656,12 +5659,12 @@ async function sbImgHeal(){
 setTimeout(sbImgHeal,25000);setInterval(sbImgHeal,15*60000);
 function bkBlobToThumb(blob,size){
   return new Promise(res=>{const img=new Image();const url=URL.createObjectURL(blob);
-    img.onload=()=>{try{const sc=Math.min(size/img.width,size/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',0.5);URL.revokeObjectURL(url);res(d);}catch(e){URL.revokeObjectURL(url);res(null);}};
+    img.onload=()=>{try{const sc=Math.min(1,size/Math.min(img.width,img.height),(size*3)/Math.max(img.width,img.height));const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);const d=cv.toDataURL('image/jpeg',0.5);URL.revokeObjectURL(url);res(d);}catch(e){URL.revokeObjectURL(url);res(null);}};
     img.onerror=()=>{URL.revokeObjectURL(url);res(null);};img.src=url;});
 }
 // miniatura desde un data URL (para no guardar base64 gigante en el documento)
 function dataUrlToThumb(url,size){
-  return new Promise(res=>{try{const img=new Image();img.onload=()=>{try{const sc=Math.min(size/img.width,size/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);res(cv.toDataURL('image/jpeg',0.6));}catch(e){res(null);}};img.onerror=()=>res(null);img.src=url;}catch(e){res(null);}});
+  return new Promise(res=>{try{const img=new Image();img.onload=()=>{try{const sc=Math.min(1,size/Math.min(img.width,img.height),(size*3)/Math.max(img.width,img.height));const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);res(cv.toDataURL('image/jpeg',0.6));}catch(e){res(null);}};img.onerror=()=>res(null);img.src=url;}catch(e){res(null);}});
 }
 // sube una sola miniatura a la nube
 async function sbUploadOne(key){try{const sb=await sbInit();const id=currentDataId();if(!sb||!id)return;const b=IMGCACHE['img:'+key];if(!b)return;await sb.from('store_docs').upsert([{store_id:id,doc_key:'img:'+key,data:{b},updated_at:new Date().toISOString()}],{onConflict:'store_id,doc_key'});}catch(e){}}
@@ -8044,7 +8047,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004074142';
+const APP_VERSION='20261004080955';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

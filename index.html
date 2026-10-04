@@ -2142,20 +2142,20 @@ async function buildSaleReceiptJPG(sale){
   const esc=x=>(''+(x||'')).replace(/</g,'&lt;').replace(/\n/g,'<br>');
   const rows=lines.map(l=>`<tr><td style="text-align:left;padding:5px 8px;border:1px solid #cfcfcf;font-size:12px">${esc(l.name)}</td><td style="padding:5px 8px;border:1px solid #cfcfcf;text-align:center">${l.qty}</td><td style="padding:5px 8px;border:1px solid #cfcfcf;text-align:center">${fmtN(l.price)}</td><td style="padding:5px 8px;border:1px solid #cfcfcf;text-align:center">${fmtN(l.subtotal!=null?l.subtotal:l.price*l.qty)}</td></tr>`).join('');
   const el=document.createElement('div');
-  el.style.cssText='position:fixed;left:-99999px;top:0;width:640px;background:#fff;color:#111;padding:30px;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box';
-  el.innerHTML=`${cfg.logo?`<img src="${cfg.logo}" style="float:right;max-width:72px;max-height:72px;margin-left:12px;object-fit:contain">`:''}<div style="font-size:12px;color:#777">${t('rc_receipt')}</div>
+  el.style.cssText='position:fixed;left:-99999px;top:0;width:640px;background:#fff;color:#111;color-scheme:light;padding:30px;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box';   /* papel: siempre claro, aunque la app esté en modo oscuro */
+  el.innerHTML=`${cfg.logo?`<img src="${cfg.logo}" style="float:right;max-width:72px;max-height:72px;margin-left:12px;object-fit:contain">`:''}<div style="font-size:12px;color:#555">${t('rc_receipt')}</div>
     <div style="font-size:24px;font-weight:800;margin:2px 0 8px">${esc((cfg.name||'').toUpperCase())}</div>
     <div style="font-size:14px;color:#333;line-height:1.5">${[cfg.owner,cfg.email,cfg.phone].filter(Boolean).map(esc).join('<br>')}</div>
     ${cfg.msg?`<div style="font-size:13px;color:#333;margin-top:10px">${esc(cfg.msg)}</div>`:''}
     ${sale.addr?`<div style="font-size:13px;color:#333;margin-top:10px">${esc(sale.addr)}</div>`:''}
     <div style="font-size:14px;color:#111;margin-top:14px">${sale.client?('<b>'+t('sale_client')+':</b> '+esc(sale.client)+'<br>'):''}<b>${t('sale_folio')}:</b> ${esc(sale.folio||sale.id)} &nbsp;&nbsp; <b>${t('sale_date')}:</b> ${esc(sale.date||todayISO())}<br><b>${t('rc_status')}:</b> ${recv?t('rc_pending'):t('sale_paid').toUpperCase()}</div>
-    <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:12px"><thead><tr>
-      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#666;font-weight:600">${t('rc_product').toUpperCase()}</th>
-      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#666;font-weight:600">${t('cx_qty').toUpperCase()}</th>
-      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#666;font-weight:600">${t('rc_price').toUpperCase()}</th>
-      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#666;font-weight:600">${t('sale_subtotal').toUpperCase()}</th>
+    <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:12px;color:#111"><thead><tr>
+      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#333;font-weight:700">${t('rc_product').toUpperCase()}</th>
+      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#333;font-weight:700">${t('cx_qty').toUpperCase()}</th>
+      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#333;font-weight:700">${t('rc_price').toUpperCase()}</th>
+      <th style="padding:6px 8px;border:1px solid #cfcfcf;color:#333;font-weight:700">${t('sale_subtotal').toUpperCase()}</th>
     </tr></thead><tbody>${rows}</tbody></table>
-    <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px">
+    <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;color:#111">
       <tr><td style="text-align:right;padding:7px 10px;border:1px solid #cfcfcf;width:60%">${t('total').toUpperCase()} $</td><td style="text-align:center;padding:7px 10px;border:1px solid #cfcfcf;font-weight:700">${fmtN(tot)}</td></tr>
       <tr><td style="text-align:right;padding:7px 10px;border:1px solid #cfcfcf">${t('sr_pagos_lbl').toUpperCase()} $</td><td style="text-align:center;padding:7px 10px;border:1px solid #cfcfcf;font-weight:700">${fmtN(paid)}</td></tr>
       <tr><td style="text-align:right;padding:7px 10px;border:1px solid #cfcfcf">${t('sr_total_pay')} $</td><td style="text-align:center;padding:7px 10px;border:1px solid #cfcfcf;font-weight:700">${fmtN(due)}</td></tr>
@@ -7867,7 +7867,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003221228';
+const APP_VERSION='20261003222216';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

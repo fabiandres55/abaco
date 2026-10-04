@@ -1924,14 +1924,16 @@ function exportSalesCSV(){
   const csv='﻿'+rows.map(r=>r.map(ioCsvCell).join(',')).join('\r\n');
   if(ioDownload('ventas.csv','text/csv;charset=utf-8',csv))toast(t('io_done_exp'));
 }
+let SD_TOK=0;
 async function openSaleDet(id){
-  const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
+  const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;const tok=++SD_TOK;
   document.getElementById('saleH').textContent=t('sd_title');saleHActs(`<button class="sd-hb" data-act="saledel:${exEsc(s.id)}" aria-label="${t('sd_delete')}">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>')}</button><button class="sd-hb" data-act="sharerec:${exEsc(s.id)}" aria-label="PDF">${svg('<path d="M6 3h9l3 3v15H6z"/>')}<span class="sd-pdf">PDF</span></button>`);
   document.getElementById('saledlg').classList.add('on','full');
   const body=document.getElementById('saleBody');if(!body.querySelector('.sd'))body.innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
   if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q};});
-  else{const L=await idbGetSale(s.id);if(L)lines=L;}
+  else{const L=await idbGetSale(s.id);if(L)lines=L;else lines=await srLinesFor({folio:s.folio,id:s.id},await srRawIndex());}   /* importada sin detalle en este equipo: del archivo crudo */
+  if(tok!==SD_TOK||!document.getElementById('saledlg').classList.contains('on'))return;
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
   lines=alphaLines(lines);
   const cli=(state.clients||[]).find(c=>(''+(c.name||'')).trim().toUpperCase()===(''+(s.client||'')).trim().toUpperCase());
@@ -2026,7 +2028,8 @@ async function openPurchaseDet(id){
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
   if(p.items&&p.items.length)lines=p.items.map(i=>{const pr=P(i.id);return {name:pr?pr.name:(i.name||'—'),qty:i.q,cost:i.cost,subtotal:(+i.cost||0)*i.q};});
-  else{const L=await idbGetSale(p.id);if(L)lines=L;}
+  else{const L=await idbGetSale(p.id);if(L)lines=L;else lines=await pcLinesFor({folio:p.folio,id:p.id},await pcRawIndex());}
+  if(!document.getElementById('saledlg').classList.contains('on'))return;
   const st=p.status==='porpagar'?t('cp_topay'):t('cp_paid');
   const meta=[p.date&&(t('sale_date')+': '+p.date+(p.time?' '+p.time:'')),p.provider&&(t('cp_provider')+': '+p.provider),p.pay&&(t('sale_pay')+': '+payLbl(p.pay)),(t('rc_status')+': '+st),p.note&&(t('cp_note')+': '+p.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
   const linesHtml=lines.length?lines.map(l=>{const c=l.cost!=null?l.cost:l.price;const sub=l.subtotal!=null?l.subtotal:(+c||0)*l.qty;return `<div class="row"><div class="av num">${l.qty}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(l.name)}</div><div class="s">${money(c||0)} c/u</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
@@ -3215,13 +3218,16 @@ function srByClient(){
   document.getElementById('saleBody').innerHTML=`<div style="padding:8px 14px 18px">${rows.map(o=>`<div class="srcli"><div class="srcli-n">${svg(S_PER)} ${exEsc(o.client)}</div>${sr3(o.total,o.pagos,o.deuda)}</div>`).join('')}</div>`;
 }
 // Índice memoizado del archivo crudo venta_producto (folio -> líneas)
-let _srRawIdx=undefined;
-async function srRawIndex(){
-  if(_srRawIdx!==undefined)return _srRawIdx;
-  _srRawIdx=null;
-  try{const vp=await getRawTable('venta_producto');if(Array.isArray(vp)){_srRawIdx={};vp.forEach(l=>{const k=''+(l.folio!=null?l.folio:'');if(k)(_srRawIdx[k]=_srRawIdx[k]||[]).push(l);});}}catch(_){}
-  return _srRawIdx;
+// Índice memoizado del crudo por tienda y tabla (folio -> líneas); si no se pudo leer se reintenta al minuto
+const RAW_IDX={};
+function rawFolioIndex(table){
+  const id=currentDataId();if(!id)return Promise.resolve(null);
+  const k=id+'|'+table,c=RAW_IDX[k];if(c&&(c.ok||Date.now()-c.at<60000))return c.p;
+  const e={at:Date.now(),ok:false};RAW_IDX[k]=e;
+  e.p=(async()=>{try{const vp=await getRawTable(table);if(Array.isArray(vp)){const o={};vp.forEach(l=>{const f=''+(l.folio!=null?l.folio:'');if(f)(o[f]=o[f]||[]).push(l);});e.ok=true;return o;}}catch(_){}return null;})();
+  return e.p;
 }
+async function srRawIndex(){return await rawFolioIndex('venta_producto');}
 // Líneas de una venta con respaldo al archivo crudo (venta_producto) si IndexedDB no las tiene
 async function srLinesFor(s,rawIdx){
   if(Array.isArray(s.lines)&&s.lines.length)return s.lines.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0)}));
@@ -3337,13 +3343,7 @@ async function openPayDet(id){
   </div>`;
 }
 // Índice memoizado del archivo crudo compra_producto (folio -> líneas)
-let _pcRawIdx=undefined;
-async function pcRawIndex(){
-  if(_pcRawIdx!==undefined)return _pcRawIdx;
-  _pcRawIdx=null;
-  try{const vp=await getRawTable('compra_producto');if(Array.isArray(vp)){_pcRawIdx={};vp.forEach(l=>{const k=''+(l.folio!=null?l.folio:'');if(k)(_pcRawIdx[k]=_pcRawIdx[k]||[]).push(l);});}}catch(_){}
-  return _pcRawIdx;
-}
+async function pcRawIndex(){return await rawFolioIndex('compra_producto');}
 async function pcLinesFor(p,rawIdx){
   // En compras el PRECIO mostrado es el de COMPRA (p_compra/cost)
   if(Array.isArray(p.lines)&&p.lines.length)return p.lines.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:(+c||0)*(+l.qty||0)};});
@@ -5831,7 +5831,7 @@ function bkImportAll(){
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
   if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
   if(state.bk.purchaseLines)bkSaveSaleLines(state.bk.purchaseLines); // detalle de compras -> IndexedDB (mismo store, ids 'C'+folio)
-  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length){idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()});sbPushRaw(_id,state.bk.rawTables,state.bk.fileName);} // archivo crudo del .mn: local + nube (no se pierde nada)
+  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length){idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()});Object.keys(RAW_IDX).forEach(k=>{if(k.indexOf(_id+'|')===0)delete RAW_IDX[k];});sbPushRaw(_id,state.bk.rawTables,state.bk.fileName);} // archivo crudo del .mn: local + nube (no se pierde nada)
   state.bk.imported={p:state.products.length,c:state.clients.length,v:sv,cp:(state.purchases||[]).length};
   render();
 }
@@ -6259,25 +6259,44 @@ function sbPushDoc(storeId,key,data){
 }
 async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
 /* ---- Archivo crudo del .mn en la nube: una fila por tabla (raw:<tabla>) + índice ---- */
-async function sbPushRaw(id,rawTables,fileName){
+function rawChunks(rows,max){const out=[];let cur=[],len=2;for(const r of rows){let n=2;try{n=JSON.stringify(r).length+1;}catch(_){}if(cur.length&&len+n>max){out.push(cur);cur=[];len=2;}cur.push(r);len+=n;}if(cur.length||!out.length)out.push(cur);return out;}
+async function sbPushRaw(id,rawTables,fileName,only,base){
   if(!id||!rawTables)return;
   try{
     const sb=await sbInit();if(!sb)return;
-    const index={file:fileName||'',ts:Date.now(),tables:{}};
-    for(const tn of Object.keys(rawTables)){
-      const rows=rawTables[tn];
+    const index=base||{file:fileName||'',ts:Date.now(),tables:{}};index.tables=index.tables||{};
+    const up=(key,data)=>sb.from('store_docs').upsert({store_id:id,doc_key:key,data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'}).then(r=>{if(r&&r.error)throw r.error;});
+    for(const tn of (only||Object.keys(rawTables))){
+      const rows=rawTables[tn]||[];
       try{
         let big=false;try{big=JSON.stringify(rows).length>4500000;}catch(_){big=true;}
-        if(big){index.tables[tn]={n:rows.length,skipped:'too_big'};continue;}
-        await sb.from('store_docs').upsert({store_id:id,doc_key:'raw:'+tn,data:rows,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
-        index.tables[tn]={n:rows.length};
-      }catch(e){index.tables[tn]={n:(rows&&rows.length)||0,skipped:'error'};}
+        if(!big){await up('raw:'+tn,rows);index.tables[tn]={n:rows.length};continue;}
+        const parts=rawChunks(rows,2000000);   /* partes de ~2 MB: raw:<tabla>@0, @1, … */
+        for(let i=0;i<parts.length;i++)await up('raw:'+tn+'@'+i,parts[i]);
+        index.tables[tn]={n:rows.length,parts:parts.length};
+      }catch(e){index.tables[tn]={n:rows.length,skipped:'error'};}
     }
-    await sb.from('store_docs').upsert({store_id:id,doc_key:'raw:__index__',data:index,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
+    await up('raw:__index__',index);
+  }catch(e){}
+}
+// El equipo que importó guarda el crudo completo; si en la nube faltó una tabla (grande o con error) y es el MISMO archivo, la vuelve a subir
+const RAW_HEALED={};
+async function sbRawHeal(id){
+  if(!id||RAW_HEALED[id]||!AUTH)return;RAW_HEALED[id]=1;
+  try{
+    const local=await idbKvGet('raw:'+id);if(!local||!local.tables)return;
+    const idx=await sbPullRawIndex(id);if(!idx||!idx.tables||idx.file!==local.file||Math.abs((+idx.ts||0)-(+local.ts||0))>600000)return;
+    const miss=Object.keys(local.tables).filter(tn=>{const e=idx.tables[tn];return !e||e.skipped;});
+    if(!miss.length)return;
+    await sbPushRaw(id,local.tables,local.file,miss,idx);
+    Object.keys(RAW_IDX).forEach(k=>{if(k.indexOf(id+'|')===0)delete RAW_IDX[k];});
   }catch(e){}
 }
 async function sbPullRawIndex(id){return await sbPullDoc(id||currentDataId(),'raw:__index__');}
-async function sbPullRaw(table,id){id=id||currentDataId();if(!id||!table)return null;return await sbPullDoc(id,'raw:'+table);}
+async function sbPullRaw(table,id){id=id||currentDataId();if(!id||!table)return null;
+  const idx=await sbPullRawIndex(id);const e=idx&&idx.tables&&idx.tables[table];
+  if(e&&e.parts){const parts=await Promise.all(Array.from({length:e.parts},(_,i)=>sbPullDoc(id,'raw:'+table+'@'+i)));if(parts.some(x=>!Array.isArray(x)))return null;return [].concat(...parts);}
+  return await sbPullDoc(id,'raw:'+table);}
 /* Devuelve una tabla cruda: primero del archivo local (IndexedDB), si no, de la nube */
 async function getRawTable(table){
   const id=currentDataId();if(!id)return null;
@@ -6652,7 +6671,7 @@ function enterProfile(role,ent){
   // migrar el logo que se subió al crear la tienda (perfil local) al doc 'receipt' para que se sincronice y aparezca en todos lados
   if(ent.logo&&(!state.receipt||!state.receipt.logo)){state.receipt=state.receipt||{};state.receipt.logo=ent.logo;persist();if(AUTH)sbPushDoc(ent.id,'receipt',state.receipt);}
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen=_dr==='sale'?'nueva':'inventario';state.q='';render();draftToast(_dr);
-  Promise.resolve(_m).then(()=>sbPullStore(ent.id)).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}});
+  Promise.resolve(_m).then(()=>sbPullStore(ent.id)).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(ent.id);});
 }
 function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent=getEntity(role,id);if(!ent)return;return enterProfile(role,ent);}
 function obAction(sub){
@@ -6724,7 +6743,7 @@ function enterFromBoot(p){
   document.getElementById('onbo').classList.remove('on');
   renderDrawer();state.screen=_dr==='sale'?'nueva':'inventario';render();draftToast(_dr);
   watchKey('notif.'+p.id);watchKey('data.'+p.id);watchKey('bsales.'+p.id);
-  Promise.resolve(_m).then(()=>{sbSyncBoot();return sbPullStore(p.id);}).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}});
+  Promise.resolve(_m).then(()=>{sbSyncBoot();return sbPullStore(p.id);}).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(p.id);});
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();});
 }
 function boot(){
@@ -7875,7 +7894,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003230228';
+const APP_VERSION='20261003232157';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

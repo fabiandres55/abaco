@@ -2040,7 +2040,14 @@ async function sdEdit(id){
 async function sdDelete(id){
   const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;
   if(!await appConfirm(ti('sd_del_q',{n:s.folio||s.id})))return;
-  (s.items||[]).forEach(i=>{const p=P(i.id);if(p)stockAdd(p,+i.q||0);});   // el inventario vuelve
+  if(Array.isArray(s.items))s.items.forEach(i=>{const p=P(i.id);if(p)stockAdd(p,+i.q||0);});   // el inventario vuelve
+  else{   /* importada: las líneas del detalle vuelven al producto con el mismo nombre */
+    let L=(Array.isArray(s.lines)&&s.lines.length)?s.lines:null;if(!L){try{L=await idbGetSale(s.id);}catch(_){}}
+    if(!L||!L.length){try{L=await srLinesFor({folio:s.folio,id:s.id},await srRawIndex());}catch(_){L=[];}}
+    const nk=x=>(''+(x||'')).trim().toUpperCase().replace(/\s+/g,' ');const by={};state.products.forEach(p=>{by[nk(p.name)]=p;});
+    if(!state.sales.includes(s))return;   /* ya se anuló mientras se buscaba el detalle (doble toque) */
+    (L||[]).forEach(l=>{if(l.svc)return;const p=by[nk(l.name||l.n)];if(p)stockAdd(p,+(l.qty!=null?l.qty:l.q)||0);});
+  }
   state.sales=state.sales.filter(x=>x!==s);persist();persistSales();closeSale();
   if(document.getElementById('histdlg').classList.contains('on'))fillHist();render();toast(ti('sd_deleted',{n:s.folio||s.id}));
 }
@@ -7958,7 +7965,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004004109';
+const APP_VERSION='20261004004413';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

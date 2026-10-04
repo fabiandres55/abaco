@@ -6148,6 +6148,7 @@ function setStateDoc(key,d,id){
 // Aplica un documento que llegó de la nube fusionándolo con lo local. Devuelve true si lo local tiene cambios que subir.
 function sbApplyRemote(id,key,remote,notify){
   if(remote==null||id!==currentDataId())return false;
+  if(sbBusyKey(key)){setTimeout(()=>sbApplyChange(id,[key]),900);return false;}   /* se está subiendo este documento: aplicar después */
   const local=sbDocData(key);
   if(Array.isArray(remote)&&wouldWipeLocal(key,remote)){sbMarkDirty(id,key);return false;}   // un vacío no borra lo local
   let merged;const b=baseOf(id,key);const pend=sbIsDirty(id,key)||!!SB_PENDING[id+'|'+key];
@@ -6159,7 +6160,16 @@ function sbApplyRemote(id,key,remote,notify){
 }
 // Sube un documento: lee la nube, fusiona y escribe solo si nadie escribió en medio (compare-and-swap por updated_at)
 const LAST_W={};   // última escritura intentada por documento {ts,lj,merged}: si la nube tiene esa marca, la escritura sí llegó
+const WRITING={},WLOCK={};   // subidas en curso por documento / candado para que no corran dos a la vez
+function sbBusyKey(key){return (WRITING[key]||0)>0||!!LAST_W[key];}
 async function sbSyncWrite(sb,id,key){
+  const prev=WLOCK[key]||Promise.resolve();let rel;const mine=new Promise(r=>rel=r);const chain=prev.then(()=>mine);WLOCK[key]=chain;
+  try{await prev;}catch(_){}
+  WRITING[key]=(WRITING[key]||0)+1;
+  try{return await sbSyncWriteOne(sb,id,key);}
+  finally{WRITING[key]--;rel();if(WLOCK[key]===chain)delete WLOCK[key];}
+}
+async function sbSyncWriteOne(sb,id,key){
   await loadBases(id);
   for(let attempt=0;attempt<6;attempt++){
     const local=sbDocData(key);if(local===undefined)return {ok:true};
@@ -6168,13 +6178,15 @@ async function sbSyncWrite(sb,id,key){
     const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
     if(r&&r.error)throw r.error;
     const row=r&&r.data;const remote=row?row.data:null;const prevTs=row?row.updated_at:null;
-    {const lw=LAST_W[key];if(row&&lw&&new Date(row.updated_at).getTime()===new Date(lw.ts).getTime()){   /* nuestra escritura anterior sí quedó en la nube (se perdió la respuesta): terminarla aquí */
+    {const lw=LAST_W[key];if(row&&lw&&JSON.stringify(remote)===lw.mj){   /* nuestra escritura anterior sí quedó en la nube (se perdió la respuesta): terminarla aquí */
       LAST_W[key]=null;setBase(id,key,lw.merged);const now=sbDocData(key);const tmpB=mkBase(key,JSON.parse(lw.lj));
       const fin=Array.isArray(lw.merged)?mergeArr(key,tmpB.map,now,lw.merged):mergeRec(tmpB.obj||{},now,lw.merged);
       SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}continue;}}
-    const merged=row?mergeDoc(id,key,local,remote,!b):local;
+    const loc=JSON.parse(lj);   /* copia de lo local al empezar: lo que cambie durante la subida se concilia al final */
+    const merged0=row?mergeDoc(id,key,loc,remote,!b):loc;
+    const mj=JSON.stringify(merged0);const merged=JSON.parse(mj);   /* copia fija: lo que se manda es lo que queda como base */
     if(CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length)return {ok:false,recover:true};
-    const ts=new Date().toISOString();let w;LAST_W[key]={ts,lj,merged};
+    const ts=new Date().toISOString();let w;LAST_W[key]={ts,lj,merged,mj};   /* se reconoce por el CONTENIDO (dos equipos pueden escribir en el mismo milisegundo) */
     if(row){
       w=await sb.from('store_docs').update({data:merged,updated_at:ts}).eq('store_id',id).eq('doc_key',key).eq('updated_at',prevTs).select('doc_key');
       if(w&&w.error){w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
@@ -6184,9 +6196,8 @@ async function sbSyncWrite(sb,id,key){
         w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
     }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error)throw w.error;}
     setBase(id,key,merged);LAST_W[key]=null;LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;   /* marca: lo que se leyó antes de esto puede estar viejo */
-    const mj=JSON.stringify(merged);
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
-      const now=sbDocData(key);let fin=merged;
+      const now=sbDocData(key);let fin=JSON.parse(mj);
       if(JSON.stringify(now)!==lj){const tmpB=mkBase(key,JSON.parse(lj));fin=Array.isArray(merged)?mergeArr(key,tmpB.map,now,merged):mergeRec(tmpB.obj||{},now,merged);}
       SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}
       if(JSON.stringify(fin)!==mj)sbPushDoc(id,key,sbDocData(key));
@@ -6542,7 +6553,7 @@ async function sbPullAndApply(id,keys){
   await loadBases(id);if(id!==currentDataId())return;
   const toPush=[];SYNC_APPLYING=true;
   const again=[];
-  try{for(const k of Object.keys(docs)){if(FLUSHING_KEY===k||(WRITE_SEQ[k]||0)!==seqAt[k]){again.push(k);continue;}if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}   /* escribió algo propio en medio: lo leído quedó viejo, se vuelve a leer */   /* si se está escribiendo esa misma clave, la escritura ya fusiona */
+  try{for(const k of Object.keys(docs)){if(FLUSHING_KEY===k||sbBusyKey(k)||(WRITE_SEQ[k]||0)!==seqAt[k]){again.push(k);continue;}if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}   /* escribió algo propio en medio: lo leído quedó viejo, se vuelve a leer */   /* si se está escribiendo esa misma clave, la escritura ya fusiona */
   catch(e){}finally{SYNC_APPLYING=false;}
   toPush.forEach(k=>sbPushDoc(id,k,sbDocData(k)));
   flushDirty(true);sbScheduleRender();
@@ -7973,7 +7984,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004011840';
+const APP_VERSION='20261004015040';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

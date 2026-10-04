@@ -2286,6 +2286,7 @@ function openProdInfo(id){
   const p=P(+id);if(!p)return;
   const e=x=>(''+(x==null?'':x)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const n=v=>Math.round(+v||0).toLocaleString(LANG==='es'?'es-CO':'en-US');
+  const nq=v=>(Math.round((+v||0)*1000)/1000).toLocaleString(LANG==='es'?'es-CO':'en-US',{maximumFractionDigits:3});   /* cantidades con decimales (38,5 m no es 39) */
   const src=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
   const img=(src||p.imgKey)?`<div class="pinfo-img"><img ${src?`src="${src}"`:''} ${p.imgKey?`data-imgkey="${e(p.imgKey)}"`:''} alt=""></div>`:'';
   const row=(ic,l,v)=>`<div class="pinfo-row"><div class="pinfo-l">${l}</div><div class="pinfo-v">${svg(ic)}<span>${v}</span></div></div>`;
@@ -2295,7 +2296,7 @@ function openProdInfo(id){
     ${row('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',t('f_key'),e(p.key||'—'))}
     ${row('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',t('rc_product'),e(p.name))}
     ${row('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',t('f_category'),e(p.cat||t('cx_uncat')))}
-    <div class="pinfo-grid"><div><span>${t('f_qty')}</span><b class="num">${n(p.stock)}</b></div><div><span>${t('rsv_label')}</span><b class="num">${n(p.reserve)}</b></div><div><span>${t('pi_buy')}</span><b class="num">${n(p.cost)}</b></div><div><span>${t('pi_sale')}</span><b class="num">${n(p.price)}</b></div></div>
+    <div class="pinfo-grid"><div><span>${t('f_qty')}</span><b class="num">${nq(p.stock)}</b></div><div><span>${t('rsv_label')}</span><b class="num">${nq(p.reserve)}</b></div><div><span>${t('pi_buy')}</span><b class="num">${n(p.cost)}</b></div><div><span>${t('pi_sale')}</span><b class="num">${n(p.price)}</b></div></div>
     ${extra}
     ${row('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',t('pi_info'),p.desc?e(p.desc):t('sin_info'))}
   </div>`;
@@ -7965,7 +7966,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004004413';
+const APP_VERSION='20261004004552';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

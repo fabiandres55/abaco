@@ -5574,7 +5574,12 @@ async function idbPut(key,val){try{const db=await idbOpen();return await new Pro
 async function idbKvPut(key,val){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(val,key);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);});}catch(e){return false;}}
 async function idbKvGet(key){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('kv','readonly');const rq=tx.objectStore('kv').get(key);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(undefined);});}catch(e){return undefined;}}
 function persistSales(){const id=currentDataId();if(id){idbKvPut('sales:'+id,state.sales);sbPushDoc(id,'sales',state.sales);}}
-async function loadSales(id){const v=await idbKvGet('sales:'+id);if(v&&v.length){state.sales=v;if(currentDataId()===id)render();}else if(state.sales.length){await idbKvPut('sales:'+id,state.sales);}}
+const SALES_LOADING={};   // promesa de la carga de ventas del equipo por tienda (la sincronización la espera)
+function loadSales(id){const p=(async()=>{const v=await idbKvGet('sales:'+id);if(currentDataId()!==id)return;
+    if(v&&v.length){const have=new Set(v.map(s=>''+(s&&s.id)));const extra=(state.sales||[]).filter(s=>s&&!have.has(''+s.id));state.sales=extra.length?extra.concat(v):v;render();}   /* no se pierde una venta hecha mientras cargaba */
+    else if(state.sales.length){await idbKvPut('sales:'+id,state.sales);}})();
+  SALES_LOADING[id]=p.catch(()=>{});return p;}
+function salesReady(id){return SALES_LOADING[id]||Promise.resolve();}
 async function idbGetSale(id){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('sale','readonly');const rq=tx.objectStore('sale').get(''+id);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
 async function bkSaveSaleLines(byId){
   const ids=Object.keys(byId||{});if(!ids.length)return;
@@ -6170,7 +6175,7 @@ async function sbSyncWrite(sb,id,key){
   finally{WRITING[key]--;rel();if(WLOCK[key]===chain)delete WLOCK[key];}
 }
 async function sbSyncWriteOne(sb,id,key){
-  await loadBases(id);
+  await loadBases(id);if(key==='sales')await salesReady(id);
   for(let attempt=0;attempt<6;attempt++){
     const local=sbDocData(key);if(local===undefined)return {ok:true};
     const lj=JSON.stringify(local);const b=baseOf(id,key);
@@ -6399,7 +6404,7 @@ async function sbPullStore(id){
   const[p,c,s,mm,rc,pu,po]=await Promise.all([sbPullDoc(id,'products'),sbPullDoc(id,'clients'),sbPullDoc(id,'sales'),sbPullDoc(id,'mermas'),sbPullDoc(id,'receipt'),sbPullDoc(id,'purchases'),sbPullDoc(id,'porders')]);
   const MD=await Promise.all(MOD_DOCS.map(m=>sbPullDoc(id,m.key)));
   if(p==null&&c==null&&s==null&&mm==null&&rc==null&&pu==null&&po==null&&MD.every(x=>x==null))return false;
-  await loadBases(id);if(id!==currentDataId())return false;
+  await loadBases(id);await salesReady(id);if(id!==currentDataId())return false;   /* ventas del equipo ya cargadas antes de mezclar */
   SYNC_APPLYING=true;const toPush=[];
   try{
     // Fusión por registro: lo local que aún no subió se conserva; lo nuevo de la nube se agrega
@@ -6550,7 +6555,7 @@ const WRITE_SEQ={};
 async function sbPullAndApply(id,keys){
   if(id!==currentDataId())return;
   const docs={},seqAt={};for(const k of keys){if(!syncKeys().includes(k))continue;let d=null;for(let i=0;i<4;i++){const s0=WRITE_SEQ[k]||0;d=await sbPullDoc(id,k);if((WRITE_SEQ[k]||0)===s0){seqAt[k]=s0;break;}d=null;}if(d!=null)docs[k]=d;}   /* se descarta lo leído si en medio se escribió: se vuelve a leer */
-  await loadBases(id);if(id!==currentDataId())return;
+  await loadBases(id);await salesReady(id);if(id!==currentDataId())return;
   const toPush=[];SYNC_APPLYING=true;
   const again=[];
   try{for(const k of Object.keys(docs)){if(FLUSHING_KEY===k||sbBusyKey(k)||(WRITE_SEQ[k]||0)!==seqAt[k]){again.push(k);continue;}if(docs[k]!=null&&sbApplyRemote(id,k,docs[k],true))toPush.push(k);}persistLocal();}   /* escribió algo propio en medio: lo leído quedó viejo, se vuelve a leer */   /* si se está escribiendo esa misma clave, la escritura ya fusiona */
@@ -7984,7 +7989,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004015040';
+const APP_VERSION='20261004015957';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

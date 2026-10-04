@@ -2014,7 +2014,7 @@ function fillItemsEdit(){
   document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${t('total')}</span><b class="num" id="ieTot">${money(itemsTotal()).replace('$','')}</b></div>`+
     (ITEMS_ED.lines.length?ITEMS_ED.lines.map((l,k)=>`<div class="ie-row"><div class="ie-n">${svg(l.kind==='s'?SVC_ICO:S_BOX2)} ${exEsc(l.name)}</div>
       <div class="ie-g"><span class="cfl">${t('cx_qty')}</span><span class="cfl">${t('cx_sale_s')} $</span><span class="cfl">${t('sale_subtotal')} $</span>
-      <input autocomplete="off" class="cinp num" id="ieq_${k}" type="number" inputmode="decimal" value="${l.q}"><input autocomplete="off" class="cinp num" id="iep_${k}" type="number" inputmode="decimal" value="${l.price}"><span class="ie-sub num" id="ies_${k}">${money((+l.q||0)*(+l.price||0)).replace('$','')}</span></div>
+      <input autocomplete="off" class="cinp num" id="ieq_${k}" type="number" inputmode="decimal" value="${l.q}"><input autocomplete="off" class="cinp num" id="iep_${k}" type="number" min="0" inputmode="decimal" value="${l.price}"><span class="ie-sub num" id="ies_${k}">${money((+l.q||0)*(+l.price||0)).replace('$','')}</span></div>
       <div class="ie-del"><button class="cico del" data-act="iedel:${k}" aria-label="${t('remove')||'Quitar'}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:30px">${t('ie_empty')}</div>`);
 }
 function closeItemsEdit(save){
@@ -2023,10 +2023,10 @@ function closeItemsEdit(save){
     const lines=ed.lines.filter(l=>(+l.q||0)>0);if(!lines.length){toast(t('ie_empty'));return;}
     const oldQ={},newQ={};(s.items||[]).forEach(i=>{oldQ[i.id]=(oldQ[i.id]||0)+(+i.q||0);});lines.filter(l=>l.kind==='p').forEach(l=>{newQ[l.id]=(newQ[l.id]||0)+(+l.q||0);});
     new Set([...Object.keys(oldQ),...Object.keys(newQ)]).forEach(id=>{const p=P(+id);if(p)stockAdd(p,(oldQ[id]||0)-(newQ[id]||0));});   // lo que se quita vuelve al inventario
-    const r2=v=>Math.round(v*100)/100;
-    s.items=lines.filter(l=>l.kind==='p').map(l=>({...l.orig,id:l.id,q:+l.q,price:r2(+l.price)}));
-    const sv=lines.filter(l=>l.kind==='s').map(l=>({...l.orig,q:+l.q,price:r2(+l.price)}));if(sv.length)s.svcs=sv;else delete s.svcs;
-    s.total=r2(lines.reduce((a,l)=>a+(+l.q)*(+l.price),0));s.edited=new Date().toISOString();persist();persistSales();
+    const r2=v=>Math.round(v*100)/100,pr=l=>r2(Math.max(0,+l.price||0));   /* precio nunca negativo */
+    s.items=lines.filter(l=>l.kind==='p').map(l=>({...l.orig,id:l.id,q:+l.q,price:pr(l)}));
+    const sv=lines.filter(l=>l.kind==='s').map(l=>({...l.orig,q:+l.q,price:pr(l)}));if(sv.length)s.svcs=sv;else delete s.svcs;
+    s.total=r2(lines.reduce((a,l)=>a+(+l.q)*pr(l),0));s.edited=new Date().toISOString();persist();persistSales();
   }
   ITEMS_ED=null;const d=document.getElementById('itemsdlg');if(d)d.classList.remove('on');
   if(save&&ed){if(document.getElementById('histdlg').classList.contains('on'))fillHist();openSaleDet(ed.id);toast(ti('sale_edit_saved',{n:(state.sales.find(x=>''+x.id===''+ed.id)||{}).folio||ed.id}));}
@@ -2100,7 +2100,7 @@ async function ensurePdfLibs(){
 async function buildSaleReceiptBlob(sale){
   if(opts().pdfFmt==='ticket')return buildSaleTicketBlob(sale);
   const JS=await ensurePdfLibs();
-  const lines=await srLinesFor(sale,await srRawIndex());
+  const lines=await srLinesFor(sale);
   if(!lines.length)return null;
   const cfg=receiptCfg();
   const doc=new JS({unit:'pt',format:'a4',compress:true});
@@ -2148,7 +2148,7 @@ async function genSaleReceiptPDF(sale){
 async function genReceiptById(id){const s=state.sales.find(x=>''+x.id===''+id);if(s)await genSaleReceiptPDF(s);}
 /* ---------------- Compartir recibo (PDF / JPG / Texto) ---------------- */
 async function saleReceiptText(sale){
-  const cfg=receiptCfg();const lines=await srLinesFor(sale,await srRawIndex());
+  const cfg=receiptCfg();const lines=await srLinesFor(sale);
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   const tot=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,tot-paid),recv=due>0.5;
   const L=[];
@@ -2171,7 +2171,7 @@ async function saleReceiptText(sale){
 async function buildSaleReceiptJPG(sale){
   if(!window.html2canvas)await sbScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   if(!window.html2canvas)return null;
-  const cfg=receiptCfg();const lines=await srLinesFor(sale,await srRawIndex());
+  const cfg=receiptCfg();const lines=await srLinesFor(sale);
   if(!lines.length)return null;
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
   const tot=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,tot-paid),recv=due>0.5;
@@ -3267,27 +3267,30 @@ function srByClient(){
 const RAW_IDX={};
 function rawFolioIndex(table){
   const id=currentDataId();if(!id)return Promise.resolve(null);
-  const k=id+'|'+table,c=RAW_IDX[k];if(c&&(c.ok||Date.now()-c.at<60000))return c.p;
-  const e={at:Date.now(),ok:false};RAW_IDX[k]=e;
-  e.p=(async()=>{try{const vp=await getRawTable(table);if(Array.isArray(vp)){const o={};vp.forEach(l=>{const f=''+(l.folio!=null?l.folio:'');if(f)(o[f]=o[f]||[]).push(l);});e.ok=true;return o;}}catch(_){}return null;})();
+  const k=id+'|'+table,c=RAW_IDX[k];
+  if(c&&c.ok&&Date.now()-c.chk>60000){c.chk=Date.now();sbPullRawIndex(id).then(ix=>{if(ix&&(+ix.ts||0)!==c.ts&&RAW_IDX[k]===c){delete RAW_IDX[k];delete HIST_PIX[id];REPL.key='';}}).catch(()=>{});}   /* otra importación: releer */
+  if(c&&(c.ok||Date.now()-c.at<60000))return c.p;
+  const e={at:Date.now(),chk:Date.now(),ok:false,ts:0};RAW_IDX[k]=e;
+  e.p=(async()=>{try{const vp=await getRawTable(table);if(Array.isArray(vp)){const o={};vp.forEach(l=>{const f=''+(l.folio!=null?l.folio:'');if(f)(o[f]=o[f]||[]).push(l);});try{const ix=await sbPullRawIndex(id);e.ts=ix?(+ix.ts||0):0;}catch(_){}e.ok=true;return o;}}catch(_){}return null;})();
   return e.p;
 }
 async function srRawIndex(){return await rawFolioIndex('venta_producto');}
 // Líneas de una venta con respaldo al archivo crudo (venta_producto) si IndexedDB no las tiene
 async function srLinesFor(s,rawIdx){
-  if(Array.isArray(s.lines)&&s.lines.length)return s.lines.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0)}));
+  if(Array.isArray(s.lines)&&s.lines.length)return alphaLines(s.lines.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0)})));
   let lines=await saleLines(s);
   if(lines&&lines.length)return lines;
+  if(rawIdx===undefined)rawIdx=await srRawIndex();   /* perezoso: solo si hace falta */
   const fol=s.folio!=null?s.folio:(''+(s.id||'')).replace(/^V/,'');
   const rows=rawIdx&&rawIdx[fol];
-  if(rows&&rows.length)return rows.map(l=>({name:l.nombre||l.name||'—',qty:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,subtotal:l.subtotal!=null?+l.subtotal:((+(l.p_venta||l.price)||0)*(+(l.cantidad||l.qty)||0))}));
+  if(rows&&rows.length)return alphaLines(rows.map(l=>({name:l.nombre||l.name||'—',qty:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,subtotal:l.subtotal!=null?+l.subtotal:((+(l.p_venta||l.price)||0)*(+(l.cantidad||l.qty)||0))})));
   return [];
 }
 async function salesRecvExportPDF(JS){
   const {list,total,pagos,deuda}=salesRecvData();
   const cfg=receiptCfg();
   // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
-  const rawIdx=await srRawIndex();
+  const rawIdx=undefined;   /* srLinesFor baja el crudo solo si alguna venta no trae sus líneas */
   const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
@@ -3944,7 +3947,7 @@ function exportSalesFull(list){
 }
 // Recibo en formato ticket (80 mm)
 async function buildSaleTicketBlob(sale){
-  const JS=await ensurePdfLibs();const lines=await srLinesFor(sale,await srRawIndex());if(!lines.length)return null;
+  const JS=await ensurePdfLibs();const lines=await srLinesFor(sale);if(!lines.length)return null;
   const cfg=receiptCfg();const W=226,M=12;const fmtN=n=>moneyFmt(n);
   const probe=new JS({unit:'pt',format:[W,400],compress:true});probe.setFontSize(8);
   let H=150+(cfg.msg?probe.splitTextToSize(''+cfg.msg,W-2*M).length*10:0);lines.forEach(l=>{H+=probe.splitTextToSize(''+l.name,W-2*M).length*10+14;});H+=90;
@@ -4264,7 +4267,7 @@ function repKpis(list){return `<div class="rkpis">${list.map(k=>`<div class="rkp
 let REPL={key:'',busy:'',data:null};
 function repLines(){
   const r=repEnsureRange();const key=currentDataId()+'|'+r.from+'|'+r.to+'|'+(state.sales||[]).length+'|'+(state.products||[]).length;
-  if(REPL.key===key&&REPL.data)return REPL.data;if(REPL.busy===key)return null;REPL.busy=key;
+  if(REPL.key===key&&REPL.data&&!(REPL.part&&Date.now()-REPL.part>60000))return REPL.data;if(REPL.busy===key)return null;REPL.busy=key;
   (async()=>{
     const byName={};(state.products||[]).forEach(p=>{byName[(''+p.name).trim().toLowerCase()]=p;});
     const out=[];const need=[];const got=new Set();
@@ -4279,8 +4282,8 @@ function repLines(){
           ch.forEach(x=>{const rq=st.get(''+x.id);const done=()=>{if(--n===0)res();};rq.onsuccess=()=>{const L=rq.result;if(Array.isArray(L)&&L.length){got.add(''+x.id);L.forEach(l=>{const p=byName[(''+l.name).trim().toLowerCase()];out.push({pid:p?p.id:null,name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d:saleDate(x)});});}done();};rq.onerror=done;});});
       }}catch(_){}
     const miss=need.filter(x=>!got.has(''+x.id));   /* sin detalle en este equipo: del archivo crudo (mismos campos que al importar) */
-    if(miss.length){try{const raw=await srRawIndex();if(raw)miss.forEach(x=>{const fol=''+(x.folio!=null?x.folio:(''+(x.id||'')).replace(/^V/,''));(raw[fol]||[]).forEach(l=>{const nm=l.nombre!=null?l.nombre:(l.name||'—');const p=byName[(''+nm).trim().toLowerCase()];out.push({pid:p?p.id:null,name:nm,cat:p?(p.cat||''):'',q:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,cost:l.p_compra!=null?+l.p_compra:(p?+p.cost||0:0),d:saleDate(x)});});});}catch(_){}}
-    REPL={key,busy:'',data:out};if(state.screen==='repview'){state._keep=document.getElementById('screen').scrollTop;render();}
+    let part=0;if(miss.length){part=Date.now();try{const raw=await srRawIndex();if(raw){part=0;miss.forEach(x=>{const fol=''+(x.folio!=null?x.folio:(''+(x.id||'')).replace(/^V/,''));(raw[fol]||[]).forEach(l=>{const nm=l.nombre!=null?l.nombre:(l.name||'—');const p=byName[(''+nm).trim().toLowerCase()];out.push({pid:p?p.id:null,name:nm,cat:p?(p.cat||''):'',q:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,cost:l.p_compra!=null?+l.p_compra:(p?+p.cost||0:0),d:saleDate(x)});});});}}catch(_){}}
+    REPL={key,busy:'',data:out,part};if(state.screen==='repview'){state._keep=document.getElementById('screen').scrollTop;render();}
   })();
   return null;
 }
@@ -5752,7 +5755,7 @@ async function bkHandleFile(file){
     // ventas + su detalle
     const payMap={};try{bkExec(db,'SELECT id_forma_pago,nombre FROM forma_pago').forEach(r=>payMap[r.id_forma_pago]=r.nombre);}catch(_){}
     const ventaRows=bkExec(db,'SELECT * FROM venta');   // SELECT * = resiliente + trae pagos (abonos)
-    const vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
+    let vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal,tipo FROM venta_producto');if(!vlines.length)vlines=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta,subtotal FROM venta_producto');
     const linesByFolio={};vlines.forEach(l=>{const k='V'+l.folio;(linesByFolio[k]=linesByFolio[k]||[]).push({name:l.nombre,qty:+l.cantidad||0,price:+l.p_venta||0,cost:+l.p_compra||0,subtotal:+l.subtotal||0});});
     const sales=ventaRows.map(v=>{const ls=linesByFolio['V'+v.folio]||[];const cost=ls.reduce((a,l)=>a+l.cost*l.qty,0);const n=ls.reduce((a,l)=>a+l.qty,0);const o={id:'V'+v.folio,folio:v.folio,date:v.fecha||'',time:v.hora||'',total:+v.total||0,cost,client:v.nombre_cliente||'',pay:payMap[v.id_forma_pago]||'',addr:v.direccion||'',tag:v.etiqueta||'',status:v.status,n,imported:true};const pays=parsePays(v.pagos);if(pays.length)o.pays=pays;
       // Ventas por cobrar (con deuda): incrustar el detalle en el doc para que viaje a todo dispositivo
@@ -5801,6 +5804,9 @@ async function bkHandleFile(file){
       const tnames=bkExec(db,"SELECT name FROM sqlite_master WHERE type='table'").map(r=>r.name).filter(n=>n&&!skip.has(n));
       tnames.forEach(tn=>{try{const rows=bkExec(db,'SELECT * FROM "'+tn+'"');if(rows&&rows.length)rawTables[tn]=rows;}catch(_){}});
     }catch(_){rawTables={};}
+    // Detalle de ventas y compras TAMBIÉN al crudo: viaja a la nube (por partes) y todos los equipos ven los productos de cada venta/compra importada
+    {if(vlines.length)rawTables.venta_producto=vlines;
+     let cr=bkExec(db,'SELECT folio,nombre,cantidad,p_compra,p_venta FROM compra_producto');if(!cr.length)cr=bkExec(db,'SELECT * FROM compra_producto');if(cr.length)rawTables.compra_producto=cr;}
     const imgSet={};let imgCount=0;zip.forEach((p,f)=>{if(/\.jpe?g$/i.test(p)&&!f.dir){const raw=p.replace(/\.jpe?g$/i,'');imgSet[raw]=p;let dk=raw;try{dk=decodeURIComponent(raw);}catch(_){}if(dk!==raw&&!imgSet[dk])imgSet[dk]=p;imgCount++;}});   // "1%2F2PLIEGO.jpg" = clave "1/2PLIEGO"
     const stats={
       productos:products.length,
@@ -5901,7 +5907,7 @@ function bkImportAll(){
   if(withImg.length)bkSaveImages(withImg);  // fotos en segundo plano
   if(state.bk.saleLines)bkSaveSaleLines(state.bk.saleLines); // detalle de ventas -> IndexedDB
   if(state.bk.purchaseLines)bkSaveSaleLines(state.bk.purchaseLines); // detalle de compras -> IndexedDB (mismo store, ids 'C'+folio)
-  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length){idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()});Object.keys(RAW_IDX).forEach(k=>{if(k.indexOf(_id+'|')===0)delete RAW_IDX[k];});sbPushRaw(_id,state.bk.rawTables,state.bk.fileName);} // archivo crudo del .mn: local + nube (no se pierde nada)
+  const _id=currentDataId();if(_id&&state.bk.rawTables&&Object.keys(state.bk.rawTables).length){idbKvPut('raw:'+_id,{tables:state.bk.rawTables,file:state.bk.fileName,ts:Date.now()});rawForget(_id);sbPushRaw(_id,state.bk.rawTables,state.bk.fileName);} // archivo crudo del .mn: local + nube (no se pierde nada)
   state.bk.imported={p:state.products.length,c:state.clients.length,v:sv,cp:(state.purchases||[]).length};
   render();
 }
@@ -6239,7 +6245,7 @@ async function sbWriteWipe(sb,id,kind){const at=new Date().toISOString();for(let
 function clearStoreLocal(id){
   try{saveDataOf(id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[],purchases:[],porders:[],receipt:{}});}catch(e){}
   try{idbKvPut('sales:'+id,[]);}catch(e){}
-  try{idbKvPut('raw:'+id,null);['venta_producto','compra_producto'].forEach(tb=>idbKvPut('rawc:'+id+':'+tb,null));}catch(e){}
+  try{idbKvPut('raw:'+id,null);['venta_producto','compra_producto'].forEach(tb=>idbKvPut('rawc:'+id+':'+tb,null));rawForget(id);}catch(e){}
   try{localStorage.setItem('abanico.imgup.'+id,'1');}catch(e){}   // no subir fotos en caché (de otras tiendas) a esta
   try{localStorage.removeItem(cartDraftKey(id));}catch(e){}
   Object.keys(SB_DIRTY).filter(k=>k.indexOf(id+'|')===0).forEach(k=>delete SB_DIRTY[k]);sbDirtySave();
@@ -6351,24 +6357,29 @@ function sbPushDoc(storeId,key,data){
 async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
 /* ---- Archivo crudo del .mn en la nube: una fila por tabla (raw:<tabla>) + índice ---- */
 function rawChunks(rows,max){const out=[];let cur=[],len=2;for(const r of rows){let n=2;try{n=JSON.stringify(r).length+1;}catch(_){}if(cur.length&&len+n>max){out.push(cur);cur=[];len=2;}cur.push(r);len+=n;}if(cur.length||!out.length)out.push(cur);return out;}
-async function sbPushRaw(id,rawTables,fileName,only,base){
-  if(!id||!rawTables)return;
+async function sbPushRaw(id,rawTables,fileName,only,base,opt){
+  if(!id||!rawTables)return false;opt=opt||{};
   try{
-    const sb=await sbInit();if(!sb)return;
+    const sb=await sbInit();if(!sb)return false;
     const index=base||{file:fileName||'',ts:Date.now(),tables:{}};index.tables=index.tables||{};
     const up=(key,data)=>sb.from('store_docs').upsert({store_id:id,doc_key:key,data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'}).then(r=>{if(r&&r.error)throw r.error;});
+    const dk=tn=>'raw:'+tn+(opt.pre||'');   /* pre: el detalle reconstruido va en claves propias y no choca con una importación real */
     for(const tn of (only||Object.keys(rawTables))){
       const rows=rawTables[tn]||[];
       try{
-        let big=false;try{big=JSON.stringify(rows).length>4500000;}catch(_){big=true;}
-        if(!big){await up('raw:'+tn,rows);index.tables[tn]={n:rows.length};continue;}
-        const parts=rawChunks(rows,2000000);   /* partes de ~2 MB: raw:<tabla>@0, @1, … */
-        for(let i=0;i<parts.length;i++)await up('raw:'+tn+'@'+i,parts[i]);
-        index.tables[tn]={n:rows.length,parts:parts.length};
+        let big=false;try{big=JSON.stringify(rows).length>1000000;}catch(_){big=true;}
+        if(!big){await up(dk(tn),rows);index.tables[tn]={n:rows.length};}
+        else{const parts=rawChunks(rows,1000000);   /* partes de ~1 MB: raw:<tabla>@0, @1, … */
+          for(let i=0;i<parts.length;i++)await up(dk(tn)+'@'+i,parts[i]);
+          index.tables[tn]={n:rows.length,parts:parts.length};}
+        if(opt.pre)index.tables[tn].key=dk(tn);
       }catch(e){index.tables[tn]={n:rows.length,skipped:'error'};}
     }
-    await up('raw:__index__',index);
-  }catch(e){}
+    if(opt.all&&(only||Object.keys(rawTables)).some(tn=>index.tables[tn]&&index.tables[tn].skipped))return false;   /* todo o nada: se reintenta entero */
+    if(opt.guard&&!(await opt.guard()))return false;
+    if(opt.expect!==undefined){const cur=await sbPullRawIndex(id);if(((cur&&cur.ts)||null)!==opt.expect)return false;}   /* llegó otra importación mientras se subía: no se pisa su índice */
+    await up('raw:__index__',index);return true;
+  }catch(e){return false;}
 }
 // El equipo que importó guarda el crudo completo; si en la nube faltó una tabla (grande o con error) y es el MISMO archivo, la vuelve a subir
 const RAW_HEALED={};
@@ -6383,11 +6394,54 @@ async function sbRawHeal(id){
     Object.keys(RAW_IDX).forEach(k=>{if(k.indexOf(id+'|')===0)delete RAW_IDX[k];});
   }catch(e){}
 }
+// El equipo que importó el .mn con versiones anteriores tiene el detalle de ventas/compras SOLO en IndexedDB ('sale').
+// Si la nube no tiene esas tablas del crudo, las sube (claves propias '~h') para que TODOS los equipos vean los productos.
+const DET_HEALED={};
+async function sbDetailHeal(id){
+  if(!id||DET_HEALED[id]||!AUTH||!sbOnline()||id!==currentDataId())return;
+  DET_HEALED[id]=1;let done=false;   /* done = no hace falta reintentar en esta sesión; si no, se reintenta al volver a abrir la tienda */
+  try{
+    const sb=await sbInit();if(!sb)return;
+    const r=await sb.from('store_docs').select('data').eq('store_id',id).eq('doc_key','raw:__index__').maybeSingle();
+    if(!r||r.error)return;   /* sin red o error */
+    if(await sbCheckWipe(id,sb,true)){done=true;return;}if(id!==currentDataId())return;
+    const idx=r.data?r.data.data:null,local=await idbKvGet('raw:'+id);const lts=local?+local.ts||0:0,its=idx?+idx.ts||0:0;
+    const same=!!(idx&&local&&idx.file===local.file&&Math.abs(its-lts)<=600000)||!!(idx&&idx.heal&&!local);   /* misma importación (o índice de una curación anterior sin crudo) */
+    const mine=!idx||!!(local&&(idx.heal||lts>its+600000));   /* sin índice, índice de una curación (el equipo que importó lo reemplaza) o importación local más nueva */
+    if(!same&&!mine){done=true;return;}   /* el índice es de otra importación: no se mezcla */
+    const need=['venta_producto','compra_producto'].filter(tn=>{const e=same&&idx.tables&&idx.tables[tn];return !e||e.skipped;});if(!need.length){done=true;return;}
+    await salesReady(id);if(id!==currentDataId())return;
+    const tables={};
+    for(const tn of need){
+      if(local&&local.tables&&Array.isArray(local.tables[tn])&&local.tables[tn].length){tables[tn]=local.tables[tn];continue;}   /* importado con esta versión: el crudo local ya lo trae */
+      const V=tn==='venta_producto',pf=V?'V':'C';
+      const list=((V?state.sales:state.purchases)||[]).filter(x=>x&&x.imported&&!x.del&&!(x.items&&x.items.length)&&(''+x.id).charAt(0)===pf);
+      const got=await fbReadLines(list.map(x=>x.id));const rows=[];let cand=0,pass=0;
+      list.forEach(x=>{const L=got[x.id];if(!Array.isArray(L)||!L.length)return;cand++;
+        const q=L.reduce((a,l)=>a+(+l.qty||0),0),c=L.reduce((a,l)=>a+(+l.cost||0)*(+l.qty||0),0);
+        if(Math.abs(q-(+x.n||0))>0.001)return;   /* el almacén 'sale' es del equipo, no de la tienda: mismo folio de otra tienda */
+        if(V&&x.cost!=null&&Math.abs(c-(+x.cost||0))>0.5)return;   /* el costo de la venta se calculó con estas mismas líneas al importar */
+        pass++;const f=isFinite(+x.folio)?+x.folio:x.folio;
+        L.forEach(l=>{const qq=+l.qty||0,cc=+l.cost||0,p=+l.price||0,o={folio:f,nombre:l.name||'—',cantidad:qq,p_compra:cc,p_venta:p};if(V)o.subtotal=l.subtotal!=null?+l.subtotal:p*qq;rows.push(o);});});
+      /* solo si casi todo cuadra (si no, esas líneas son de otra tienda o de otra importación) y, sin crudo local, si este equipo tiene el detalle de la mayoría */
+      if(!cand||pass<cand*0.95||(!local&&cand<list.length*0.5))continue;
+      if(rows.length)tables[tn]=rows;
+    }
+    if(!local&&need.includes('venta_producto')&&!tables.venta_producto){done=true;return;}   /* sin crudo local, si las ventas no cuadran este equipo no es el que importó: no subir nada */
+    const tns=Object.keys(tables);if(!tns.length){done=true;return;}if(id!==currentDataId())return;
+    const base=same?idx:{file:(local&&local.file)||'',ts:lts||Date.now(),tables:{}};if(!same&&!local)base.heal=1;   /* mismo file/ts: sbRawHeal sigue reconociendo la importación */
+    const ok=await sbPushRaw(id,tables,base.file,tns,base,{pre:'~h',all:true,expect:idx?(idx.ts||null):null,guard:async()=>id===currentDataId()&&!(await sbCheckWipe(id,sb,true))});
+    if(ok){rawForget(id);done=true;}
+  }catch(e){}finally{if(!done)delete DET_HEALED[id];}
+}
+// olvida los índices del crudo en memoria (detalle, búsqueda por producto y reportes) para releerlos
+function rawForget(id){Object.keys(RAW_IDX).forEach(k=>{if(k.indexOf(id+'|')===0)delete RAW_IDX[k];});delete HIST_PIX[id];REPL.key='';}
 async function sbPullRawIndex(id){return await sbPullDoc(id||currentDataId(),'raw:__index__');}
 async function sbPullRaw(table,id){id=id||currentDataId();if(!id||!table)return null;
-  const idx=await sbPullRawIndex(id);const e=idx&&idx.tables&&idx.tables[table];
-  if(e&&e.parts){const parts=await Promise.all(Array.from({length:e.parts},(_,i)=>sbPullDoc(id,'raw:'+table+'@'+i)));if(parts.some(x=>!Array.isArray(x)))return null;return [].concat(...parts);}
-  return await sbPullDoc(id,'raw:'+table);}
+  const idx=await sbPullRawIndex(id);const e=idx&&idx.tables&&idx.tables[table];const dk=(e&&e.key)||('raw:'+table);
+  if(idx&&idx.tables&&(!e||e.skipped))return null;   /* el índice vigente no la tiene: no mezclar con restos de otra importación */
+  if(e&&e.parts){const parts=await Promise.all(Array.from({length:e.parts},(_,i)=>sbPullDoc(id,dk+'@'+i)));if(parts.some(x=>!Array.isArray(x)))return null;const all=[].concat(...parts);return (e.n!=null&&all.length!==+e.n)?null:all;}
+  return await sbPullDoc(id,dk);}
 /* Devuelve una tabla cruda: primero del archivo local (IndexedDB), si no, de la nube */
 async function getRawTable(table){
   const id=currentDataId();if(!id)return null;
@@ -6766,7 +6820,7 @@ function enterProfile(role,ent){
   // migrar el logo que se subió al crear la tienda (perfil local) al doc 'receipt' para que se sincronice y aparezca en todos lados
   if(ent.logo&&(!state.receipt||!state.receipt.logo)){state.receipt=state.receipt||{};state.receipt.logo=ent.logo;persist();if(AUTH)sbPushDoc(ent.id,'receipt',state.receipt);}
   document.getElementById('onbo').classList.remove('on');renderDrawer();state.screen=_dr==='sale'?'nueva':'inventario';state.q='';render();draftToast(_dr);
-  Promise.resolve(_m).then(()=>sbPullStore(ent.id)).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(ent.id);});
+  Promise.resolve(_m).then(()=>sbPullStore(ent.id)).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(ent.id).then(()=>sbDetailHeal(ent.id));});
 }
 function obPick(role,id){state.onbo.tmp.role=role;state.onbo.tmp.id=id;const ent=getEntity(role,id);if(!ent)return;return enterProfile(role,ent);}
 function obAction(sub){
@@ -6838,7 +6892,7 @@ function enterFromBoot(p){
   document.getElementById('onbo').classList.remove('on');
   renderDrawer();state.screen=_dr==='sale'?'nueva':'inventario';render();draftToast(_dr);
   watchKey('notif.'+p.id);watchKey('data.'+p.id);watchKey('bsales.'+p.id);
-  Promise.resolve(_m).then(()=>{sbSyncBoot();return sbPullStore(p.id);}).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(p.id);});
+  Promise.resolve(_m).then(()=>{sbSyncBoot();return sbPullStore(p.id);}).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(p.id).then(()=>sbDetailHeal(p.id));});
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();});
 }
 function boot(){
@@ -7990,7 +8044,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004020714';
+const APP_VERSION='20261004074142';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

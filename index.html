@@ -2455,7 +2455,7 @@ function saveSaleEdit(){
   new Set([...Object.keys(oldQ),...Object.keys(newQ)]).forEach(k=>{const d=(newQ[k]||0)-(oldQ[k]||0);if(!d)return;const p=P(+k);if(!p)return;stockAdd(p,-d);});
   s.items=items.map(i=>itemSnap(i.id,i.q,linePrice(i.id)));
   s.total=cartTotal();{const sv=svcLinesForSale();if(sv.length)s.svcs=sv;else delete s.svcs;}
-  s.addr=(state.saleAddr||'').trim()||undefined;s.pay=state.salePay||'';s.client=(state.saleClient||'').trim();s.tag=(state.saleTag||'').trim();s.note=(state.saleNote||'').trim();s.status=state.saleStatus||'pagado';
+  s.addr=(state.saleAddr||'').trim()||undefined;s.pay=state.salePay||'';s.client=canonCli(state.saleClient);s.tag=(state.saleTag||'').trim();s.note=(state.saleNote||'').trim();s.status=state.saleStatus||'pagado';
   s.edited=new Date().toISOString();
   const id=s.id,fol=s.folio||s.id;
   saleEditEnd();persist();persistSales();
@@ -2471,7 +2471,7 @@ function saveSale(){
   const fol=nextSaleFolio();const id='S'+uidPart();
   items.forEach(i=>{const p=P(i.id);if(p)stockAdd(p,-i.q);});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();
-  const sale={id,folio:fol,ts:Date.now(),dev:deviceId(),addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),total:tot,pay:state.salePay||'',client:(state.saleClient||'').trim(),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
+  const sale={id,folio:fol,ts:Date.now(),dev:deviceId(),addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),total:tot,pay:state.salePay||'',client:canonCli(state.saleClient),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado'};
   {const sv=svcLinesForSale();if(sv.length)sale.svcs=sv;}
   if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0}];if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
   if(state.saleFromQuote){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=fol;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
@@ -4389,13 +4389,18 @@ function repIncExp(){
   return k+repCards('inc_exp',[[t('qt_count')],[t('total')],[t('ex_paid_amt')]],Object.entries(by).sort((a,b)=>(b[1].inc-a[1].inc)||(b[1].tot-a[1].tot)).map(([k2,o])=>({t:k2,c:[[null,o.n,'n'],[null,o.tot,'m',o.inc?'pos':''],[null,o.paid,'m']]})),{first:t('ex_cat')});
 }
 // 14–15) Clientes / Top clientes
-function repClientAgg(){const by={};repSalesR().forEach(x=>{const k=(''+(x.client||'')).trim()||t('rp_noclient');const o=by[k]||(by[k]={n:0,tot:0,due:0});o.n++;o.tot+=saleTotal(x);o.due+=saleDueAmt(x);});return Object.entries(by);}
+// nombre del cliente como está registrado (si lo escrito coincide sin importar mayúsculas/espacios)
+function canonCli(n){const v=(''+(n||'')).trim();if(!v)return v;const k=v.toUpperCase().replace(/\s+/g,' ');const c=(state.clients||[]).find(x=>(''+(x.name||'')).trim().toUpperCase().replace(/\s+/g,' ')===k);return c?(''+c.name).trim():v;}
+// agrupa por nombre sin distinguir mayúsculas/espacios; muestra la forma más usada
+function aggByName(list,nameOf,fold,empty){const by={},forms={};list.forEach(x=>{const raw=(''+(nameOf(x)||'')).trim();const k=raw?raw.toUpperCase().replace(/\s+/g,' '):'\u0000';const o=by[k]||(by[k]={n:0,tot:0,due:0});fold(o,x);const f=forms[k]||(forms[k]={});f[raw]=(f[raw]||0)+1;});
+  return Object.entries(by).map(([k,o])=>{if(k==='\u0000')return [empty,o];const f=forms[k];const name=Object.keys(f).sort((a,b)=>f[b]-f[a])[0];return [name,o];});}
+function repClientAgg(){return aggByName(repSalesR(),x=>x.client,(o,x)=>{o.n++;o.tot+=saleTotal(x);o.due+=saleDueAmt(x);},t('rp_noclient'));}
 function repClients(){const a=repClientAgg();if(!a.length)return repEmpty();const T=a.reduce((s,[,o])=>({n:s.n+o.n,tot:s.tot+o.tot,due:s.due+o.due}),{n:0,tot:0,due:0});
   return repCards('clients',[[t('m_ventas')],[t('total')],[t('ex_due')]],a.sort((x,y)=>y[1].tot-x[1].tot).map(([k,o])=>({t:k,c:[[null,o.n,'n'],[null,o.tot,'m'],[null,o.due,'m',o.due>0?'neg':'']]})),{total:[[null,T.n,'n'],[null,T.tot,'m'],[null,T.due,'m']],totalTop:true,first:t('sale_client')});}
 function repTopClients(){const a=repClientAgg().filter(([k])=>k!==t('rp_noclient')).sort((x,y)=>y[1].tot-x[1].tot).slice(0,15);if(!a.length)return repEmpty();const m=a[0][1].tot||1;
   return repCards('top_clients',[[t('m_ventas')],[t('total')]],a.map(([k,o],i)=>({t:(i+1)+'. '+k,csvT:k,c:[[null,o.n,'n'],[null,o.tot,'m']],bar:o.tot*100/m})),{first:t('sale_client')});}
 // 16–17) Proveedor / Top proveedores
-function repProvAgg(){const by={};repPurchR().forEach(p=>{const k=(''+(p.provider||'')).trim()||t('rp_noprov');const o=by[k]||(by[k]={n:0,tot:0,due:0});o.n++;o.tot+=+p.total||0;o.due+=purchDueAmt(p);});return Object.entries(by);}
+function repProvAgg(){return aggByName(repPurchR(),p=>p.provider,(o,p)=>{o.n++;o.tot+=+p.total||0;o.due+=purchDueAmt(p);},t('rp_noprov'));}
 function repProvider(){const a=repProvAgg();if(!a.length)return repEmpty();const T=a.reduce((s,[,o])=>({n:s.n+o.n,tot:s.tot+o.tot,due:s.due+o.due}),{n:0,tot:0,due:0});
   return repCards('provider',[[t('m_compras')],[t('total')],[t('ex_due')]],a.sort((x,y)=>y[1].tot-x[1].tot).map(([k,o])=>({t:k,c:[[null,o.n,'n'],[null,o.tot,'m'],[null,o.due,'m',o.due>0?'neg':'']]})),{total:[[null,T.n,'n'],[null,T.tot,'m'],[null,T.due,'m']],totalTop:true,first:t('cp_provider')});}
 function repTopProviders(){const a=repProvAgg().filter(([k])=>k!==t('rp_noprov')).sort((x,y)=>y[1].tot-x[1].tot).slice(0,15);if(!a.length)return repEmpty();const m=a[0][1].tot||1;
@@ -4582,7 +4587,7 @@ function saveQuote(){
     .concat(sv.map(i=>{const v=svcById(i.id);const price=svcLinePrice(i.id);return {svc:!!v,sid:v?v.id:undefined,name:svcLineName(i.id),cost:v?(+v.cost||0):0,price,q:i.q,subtotal:price*i.q};}));
   const total=cartTotal();state.quotes=state.quotes||[];
   let q=m.id?quoteById(m.id):null;
-  const data={lines,total,client:(state.saleClient||'').trim(),note:(state.saleNote||'').trim(),due:m.due||''};
+  const data={lines,total,client:canonCli(state.saleClient),note:(state.saleNote||'').trim(),due:m.due||''};
   if(q){Object.assign(q,data);q.edited=Date.now();}
   else{const folio=(state.quotes||[]).reduce((a,x)=>Math.max(a,+x.folio||0),0)+1;q={id:'Q'+Date.now().toString(36)+Math.floor(Math.random()*1e3),folio,date:todayISO(),...data};state.quotes.push(q);}
   const id=q.id,fol=q.folio;quoteEnd();persist();go('quotes');openQuote(id);toast(ti('qt_saved',{n:fol}));
@@ -7944,7 +7949,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004002109';
+const APP_VERSION='20261004003040';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

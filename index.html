@@ -1465,7 +1465,7 @@ const purchaseIsCredit=p=>{const st=p&&p.status;if(st==='porpagar'||st===2||st==
 const purchasePaidSum=p=>Array.isArray(p&&p.pays)?p.pays.reduce((a,x)=>a+(+x.p||0),0):0;
 const isToday=s=>saleDate(s)===todayISO();
 const todaySales=()=>state.sales.filter(isToday).reduce((t,s)=>t+saleTotal(s),0);
-const cartItems=()=>Object.entries(state.cart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q}));
+const cartItems=()=>Object.entries(state.cart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q})).filter(i=>P(i.id));   /* un producto borrado (aquí o en otro equipo) no entra a la venta como línea fantasma */
 // Orden de llegada al pedido (state.cartAt = {id: turno}): un producto nuevo recibe el turno siguiente; al quitarlo se olvida
 function cartOrderSync(){
   const at=state.cartAt||(state.cartAt={});const inCart=new Set();let mx=0;
@@ -1479,7 +1479,7 @@ function cartOrderFrom(ids){state.cartAt={};let n=0;(ids||[]).forEach(id=>{if(st
 function cartItemsRecent(){cartOrderSync();const at=state.cartAt;return cartItems().sort((a,b)=>(at[a.id]||0)-(at[b.id]||0));}
 const linePrice=id=>(state.cartPrice&&state.cartPrice[id]!=null)?(+state.cartPrice[id]||0):(P(id)?.price||0);
 const cartTotal=()=>cartItems().reduce((t,i)=>t+linePrice(i.id)*i.q,0)+svcCartTotal();
-const pcartItems=()=>Object.entries(state.pcart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q}));
+const pcartItems=()=>Object.entries(state.pcart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q})).filter(i=>P(i.id));
 const pLineCost=id=>(state.pcost&&state.pcost[id]!=null)?(+state.pcost[id]||0):(P(id)?.cost||0);
 const pLineSale=id=>(state.pprice&&state.pprice[id]!=null)?(+state.pprice[id]||0):(P(id)?.price||0);
 const pcartTotal=()=>pcartItems().reduce((t,i)=>t+pLineCost(i.id)*i.q,0);
@@ -7944,7 +7944,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004001925';
+const APP_VERSION='20261004002109';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

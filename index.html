@@ -1406,7 +1406,12 @@ const UNITS_EXTRA=["Unidad","Centímetro","Mililitro","CM^3","METRO","50 G","25X
 // forma canónica de una unidad: clave (u_meter…) para las de por defecto, literal para las personalizadas.
 // Así "Metro"/"Meter" (misma unidad en es/en) se guardan igual → clave u_meter.
 // Forma de pago: se guarda la clave canónica (pm_*) y se traduce al mostrar; también traduce las etiquetas viejas guardadas en es/en
-function payLbl(v){if(!v)return v;const x=''+v;if(x.indexOf('pm_')===0&&I18N.es[x]!=null)return t(x);for(const k in I18N.es){if(k.indexOf('pm_')===0&&(I18N.es[k]===x||I18N.en[k]===x))return t(k);}return x;}
+// etiqueta de la forma de pago; con índice y memoria (antes recorría todo el diccionario en cada llamada: lento con miles de ventas)
+let PAYLBL_REV=null;const PAYLBL_C=new Map();
+function payLbl(v){if(!v)return v;const x=''+v;const ck=LANG+'|'+x;const c=PAYLBL_C.get(ck);if(c!==undefined)return c;let r=x;
+  if(x.indexOf('pm_')===0&&I18N.es[x]!=null)r=t(x);
+  else{if(!PAYLBL_REV){PAYLBL_REV={};for(const k in I18N.es){if(k.indexOf('pm_')!==0)continue;if(PAYLBL_REV[I18N.es[k]]==null)PAYLBL_REV[I18N.es[k]]=k;if(I18N.en[k]!=null&&PAYLBL_REV[I18N.en[k]]==null)PAYLBL_REV[I18N.en[k]]=k;}}const k=PAYLBL_REV[x];if(k)r=t(k);}
+  PAYLBL_C.set(ck,r);return r;}
 // Precios de venta adicionales: [{n:nombre (vacío = automático "Precio 2…"), p:precio}]. Compatible con el viejo addSale (un solo precio).
 function xPrices(p){if(!p)return [];if(Array.isArray(p.xprices))return p.xprices.filter(x=>x&&+x.p>0);return (+p.addSale>0)?[{n:'',p:+p.addSale}]:[];}
 function xpName(x,i){const n=(''+((x&&x.n)||'')).trim();return n||ti('xp_default',{n:i+2});}
@@ -7939,7 +7944,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004001151';
+const APP_VERSION='20261004001516';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

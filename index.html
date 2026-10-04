@@ -6189,7 +6189,7 @@ async function sbWriteWipe(sb,id,kind){const at=new Date().toISOString();for(let
 function clearStoreLocal(id){
   try{saveDataOf(id,{products:[],sales:[],cats:[],seq:1,extraMoves:[],clients:[],units:[],mermas:[],purchases:[],porders:[],receipt:{}});}catch(e){}
   try{idbKvPut('sales:'+id,[]);}catch(e){}
-  try{idbKvPut('raw:'+id,null);}catch(e){}
+  try{idbKvPut('raw:'+id,null);['venta_producto','compra_producto'].forEach(tb=>idbKvPut('rawc:'+id+':'+tb,null));}catch(e){}
   try{localStorage.setItem('abanico.imgup.'+id,'1');}catch(e){}   // no subir fotos en caché (de otras tiendas) a esta
   try{localStorage.removeItem(cartDraftKey(id));}catch(e){}
   Object.keys(SB_DIRTY).filter(k=>k.indexOf(id+'|')===0).forEach(k=>delete SB_DIRTY[k]);sbDirtySave();
@@ -6342,7 +6342,11 @@ async function sbPullRaw(table,id){id=id||currentDataId();if(!id||!table)return 
 async function getRawTable(table){
   const id=currentDataId();if(!id)return null;
   try{const local=await idbKvGet('raw:'+id);if(local&&local.tables&&local.tables[table])return local.tables[table];}catch(_){}
-  return await sbPullRaw(table,id);
+  const ck='rawc:'+id+':'+table;const idx=await sbPullRawIndex(id);   /* sin internet: idx = null → se usa lo guardado */
+  try{const c=await idbKvGet(ck);if(c&&Array.isArray(c.rows)&&(!idx||c.ts===idx.ts))return c.rows;}catch(_){}
+  const rows=await sbPullRaw(table,id);
+  if(Array.isArray(rows)&&idx){try{await idbKvPut(ck,{ts:idx.ts,rows});}catch(_){}}
+  return rows;
 }
 async function sbPullStore(id){
   if(!id)return false;
@@ -7935,7 +7939,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004000629';
+const APP_VERSION='20261004001151';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

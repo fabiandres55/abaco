@@ -1917,7 +1917,7 @@ function saveMerma(){
   const qty=+f.qty||0;
   if(!f.pid||qty<=0){toast(t('me_need'));return;}
   const p=P(f.pid);
-  const m={id:state.seq++,pid:f.pid,name:f.name||(p?p.name:''),key:p?p.key:'',qty,cost:+f.cost||0,note:(f.note||'').trim(),date:f.date||todayISO(),time:f.time||''};
+  const m={id:'ME'+uidPart(),pid:f.pid,name:f.name||(p?p.name:''),key:p?p.key:'',qty,cost:+f.cost||0,note:(f.note||'').trim(),date:f.date||todayISO(),time:f.time||''};
   state.mermas=[m,...(state.mermas||[])];
   if(p)stockAdd(p,-qty);   // la merma descuenta del inventario
   closeMermaAdd();persist();fillMerma();if(state.screen==='inventario')render();toast(t('me_saved'));
@@ -7919,7 +7919,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003233927';
+const APP_VERSION='20261003234224';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

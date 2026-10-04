@@ -1441,6 +1441,8 @@ const LOW=5;const INV_PAGE=60;
 const P=id=>state.products.find(p=>p.id===id);
 // id de producto siempre único (mayor que cualquiera existente)
 // id de producto nuevo: basado en la hora (+ un dígito al azar) para que dos equipos que crean productos a la vez (o uno sin internet) no saquen el mismo id; al sincronizar, el mismo id pisaba uno de los dos productos
+// código corto para productos importados sin código: IMP-1, IMP-2… (el id ya no sirve: ahora es largo)
+function nextImpKey(){let m=0;state.products.forEach(p=>{const r=/^IMP-(\d{1,9})$/.exec(p.key||'');if(r)m=Math.max(m,+r[1]);});return 'IMP-'+(m+1);}
 function nid(){const m=state.products.reduce((a,p)=>Math.max(a,+p.id||0),0);const id=Math.max(m+1,(state.seq||1),Date.now()*10+Math.floor(Math.random()*10));state.seq=id+1;return id;}
 // repara ids duplicados/ausentes (conserva el primero, reasigna los demás)
 function ensureUniqueIds(){let changed=false,max=0;const seen=new Set();state.products.forEach(p=>{max=Math.max(max,+p.id||0);});state.products.forEach(p=>{let id=+p.id;if(!id||seen.has(id)){max+=1;p.id=max;changed=true;}else p.id=id;seen.add(p.id);});state.seq=Math.max((state.seq||1),max+1);return changed;}
@@ -5511,7 +5513,7 @@ function importProducts(list,stay){
       if(ex&&!isMnName(ex.name))it={...it,name:it.mnPlain.name,unit:mu==='...'?'':mu};}   /* producto hecho en Abanico: conserva su forma */
     if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(Array.isArray(it.xprices)&&it.xprices.length){const old=xPrices(ex);ex.xprices=it.xprices.map(x=>{const o=old.find(y=>+y.p===+x.p&&y.n);return {n:o?o.n:(x.n||''),p:+x.p};});ex.addSale=ex.xprices[0].p;}
     else if(it.addSale!=null&&+it.addSale>0)ex.addSale=+it.addSale;if(it.desc)ex.desc=it.desc;if(it.unit){ex.unit=ioUnit(it.unit);markEdited(ex);}if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
-    else{const newId=nid();state.products.push({id:newId,key:key||('IMP-'+newId),name:it.name,cat:it.cat||'',unit:ioUnit(it.unit),...(it.unit?{min:0}:{}),cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,...(Array.isArray(it.xprices)?{xprices:it.xprices.map(x=>({n:x.n||'',p:+x.p}))}:{}),desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
+    else{const newId=nid();state.products.push({id:newId,key:key||nextImpKey(),name:it.name,cat:it.cat||'',unit:ioUnit(it.unit),...(it.unit?{min:0}:{}),cost:it.cost||0,price:it.price||0,addSale:+it.addSale||0,...(Array.isArray(it.xprices)?{xprices:it.xprices.map(x=>({n:x.n||'',p:+x.p}))}:{}),desc:it.desc||'',stock:isFinite(it.stock)?it.stock:0,reserve:it.reserve||0,img:null,imgKey:it.imgKey||null,expiry:null});added++;}
   });
   persist();closeIO();
   if(!stay){state.invLimit=INV_PAGE;state.screen='inventario';render();toast(ti('io_done_imp',{a:added,u:updated}));}
@@ -7933,7 +7935,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004000303';
+const APP_VERSION='20261004000629';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

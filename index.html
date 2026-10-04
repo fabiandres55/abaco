@@ -3587,7 +3587,7 @@ function scClientes(){
     const acts=[
       c.address?`<a class="cli-act" href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" rel="noopener">${svg(IC_PIN)}</a>`:'',
       c.phone?`<a class="cli-act" href="tel:${(''+c.phone).replace(/[^0-9+]/g,'')}">${svg(IC_PHONE)}</a>`:'',
-      c.email?`<a class="cli-act" href="mailto:${c.email}">${svg(IC_MAIL)}</a>`:''
+      c.email?`<a class="cli-act" href="mailto:${exEsc(c.email)}">${svg(IC_MAIL)}</a>`:''
     ].join('');
     return `<div class="clicard"><div class="cli-main" data-cliedit="${c.id}"><div class="cli-ic">${svg(CLI_ICO)}</div><div class="cli-tx"><div class="cli-n">${exEsc(c.name||'—')}</div><div class="cli-a">${c.alias?exEsc(c.alias):t('cli_noalias')}</div></div></div><div class="cli-actions">${acts}</div></div>`;
   }).join('');
@@ -5914,7 +5914,7 @@ function scBackup(){
   const stat=(l,v)=>`<div class="kpi"><div class="k-l">${l}</div><div class="k-v num">${v}</div></div>`;
   const preview=b.products.slice(0,40).map(p=>{
     const key=(p.key||'').trim();const hasImg=key&&b.imgSet[key];
-    return `<div class="row"><div class="av" style="overflow:hidden;background:var(--sel)">${hasImg?`<img data-bkimg="${key}" style="width:100%;height:100%;object-fit:cover">`:svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>')}</div><div><div class="t">${p.nombre||'—'}</div><div class="s">${b.catMap[p.categoria]||'—'} · ${(+p.cantidad||0)} ${t('inStock')}</div></div><div class="r"><div class="amt num">${money(+p.p_venta||0)}</div></div></div>`;
+    return `<div class="row"><div class="av" style="overflow:hidden;background:var(--sel)">${hasImg?`<img data-bkimg="${exEsc(key)}" style="width:100%;height:100%;object-fit:cover">`:svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>')}</div><div><div class="t">${exEsc(p.nombre||'—')}</div><div class="s">${exEsc(b.catMap[p.categoria]||'—')} · ${(+p.cantidad||0)} ${t('inStock')}</div></div><div class="r"><div class="amt num">${money(+p.p_venta||0)}</div></div></div>`;
   }).join('');
   const dates=(s.fmin&&s.fmax)?`${s.fmin} → ${s.fmax}`:'—';
   return `<div class="bkbiz">
@@ -7923,7 +7923,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261003234637';
+const APP_VERSION='20261003234951';
 function _updBusy(){try{return !!state.bkLoading||document.getElementById('device').classList.contains('form-open')||saleHas()||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

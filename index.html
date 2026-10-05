@@ -1944,7 +1944,7 @@ function saveMerma(){
   const p=P(f.pid);
   const m={id:'ME'+uidPart(),pid:f.pid,name:f.name||(p?p.name:''),key:p?p.key:'',qty,cost:+f.cost||0,note:(f.note||'').trim(),date:f.date||todayISO(),time:f.time||''};
   state.mermas=[m,...(state.mermas||[])];
-  if(p)stockAdd(p,-qty);   // la merma descuenta del inventario
+  if(p){const o=invSnap(p);stockAdd(p,-qty);invLogAdd(2,p,o);}   // la merma descuenta del inventario
   closeMermaAdd();persist();fillMerma();if(state.screen==='inventario')render();toast(t('me_saved'));
 }
 function persistMermas(){persist();}
@@ -2792,7 +2792,7 @@ function provTpl(){if(provLive().length)return openProvPick('p');if(!state.pprov
 function saveCompra(){
   const items=pcartItems();if(!items.length){toast(t('io_empty'));return;}
   const fol=nextPurchFolio();const id='K'+uidPart();
-  items.forEach(i=>{const p=P(i.id);if(p){stockAdd(p,i.q);const c=pLineCost(i.id);if(c>0)p.cost=c;const s=pLineSale(i.id);if(s>0)p.price=s;}});
+  items.forEach(i=>{const p=P(i.id);if(p){const o=invSnap(p);stockAdd(p,i.q);const c=pLineCost(i.id);if(c>0)p.cost=c;const s=pLineSale(i.id);if(s>0)p.price=s;invLogAdd(2,p,o);}});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=pcartTotal();
   const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>{const p=P(i.id);return {id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id),name:p?p.name:undefined};}),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo){oo.recvPurchase=fol;oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
   state.purchases.unshift(purchase);
@@ -4072,7 +4072,8 @@ async function buildFullMN(withImgs){
   ins('INSERT INTO compra_pedido(folio,fecha,total,hora,status,nombre_proveedor,id_proveedor,pagos,id_forma_pago,info_adicional) VALUES (?,?,?,?,?,?,?,?,?,?)',cRows);
   ins('INSERT INTO compra_producto(folio,nombre,p_compra,p_venta,cantidad) VALUES (?,?,?,?,?)',cpRows);
   // historial de inventario de Mi Negocio (tabla compra): se devuelve tal cual vino
-  if(rawCompra&&rawCompra.length)ins('INSERT INTO compra(fecha,tipo,key,nombre,cantidad,p_compra,p_venta,reserva,cantidad_old,p_compra_old,p_venta_old,reserva_old) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',rawCompra.map(r=>[r.fecha||'',+r.tipo||0,r.key||'',r.nombre||'',+r.cantidad||0,+r.p_compra||0,+r.p_venta||0,+r.reserva||0,+r.cantidad_old||0,+r.p_compra_old||0,+r.p_venta_old||0,+r.reserva_old||0]));
+  const compraRows=(()=>{const sig=r=>[r.fecha,+r.tipo,r.key,+r.cantidad,+r.cantidad_old].join('|');const base=rawCompra||[];const seen=new Set(base.map(sig));const mine=(state.invLog||[]).filter(x=>x&&!seen.has(sig(x))).slice().sort((a,b)=>(''+a.fecha).localeCompare(''+b.fecha));return base.concat(mine);})();   /* + historial de Abanico */
+  if(compraRows.length)ins('INSERT INTO compra(fecha,tipo,key,nombre,cantidad,p_compra,p_venta,reserva,cantidad_old,p_compra_old,p_venta_old,reserva_old) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',compraRows.map(r=>[r.fecha||'',+r.tipo||0,r.key||'',r.nombre||'',+r.cantidad||0,+r.p_compra||0,+r.p_venta||0,+r.reserva||0,+r.cantidad_old||0,+r.p_compra_old||0,+r.p_venta_old||0,+r.reserva_old||0]));
   // ingresos-gastos extras + categorías
   const usedE=new Set();let nE=extrasLive().reduce((a,m)=>Math.max(a,+m.folio||0),0)+1;
   ins('INSERT INTO cuenta_nominal(folio,fecha,hora,tipo,categoria,total,descripcion,status,pagos,id_forma_pago) VALUES (?,?,?,?,?,?,?,?,?,?)',extrasLive().map(m=>{let f=+m.folio||0;if(!f||usedE.has(f))f=nE++;usedE.add(f);return [f,m.date||'',hms(m.time)||'00:00:00',m.type==='in'?1:2,m.cat||t('cat_none'),r2(exTotal(m)),m.desc||'Sin información',exPending(m)?2:1,pj(m.pays),pmOf(m.pay)];}));
@@ -4430,8 +4431,9 @@ document.addEventListener('change',e=>{const el=e.target;if(!el||el.id!=='rpDay'
 
 // Historial de inventario de Mi Negocio (tabla compra del .mn: 1 = agregado, 2 = actualizado, 3 = eliminado) de un día
 let REPHIST={};
-function repInvHist(day){const id=currentDataId();const k=id+'|'+day;if(REPHIST[k])return REPHIST[k].data;if(REPHIST.busy===k)return null;REPHIST.busy=k;
+function repInvHist(day){const id=currentDataId();const k=id+'|'+day+'|'+(state.invLog||[]).length;if(REPHIST[k])return REPHIST[k].data;if(REPHIST.busy===k)return null;REPHIST.busy=k;
   (async()=>{let rows=[];try{rows=(await getRawTable('compra'))||[];}catch(_){rows=[];}const d=day.replace(/-/g,'/');
+    const sig=r=>[r.fecha,+r.tipo,r.key,+r.cantidad,+r.cantidad_old].join('|');const seen=new Set(rows.map(sig));rows=rows.concat((state.invLog||[]).filter(x=>x&&!seen.has(sig(x))));
     const out=rows.filter(r=>(''+(r.fecha||'')).slice(0,10)===d).map(r=>{const f=''+(r.fecha||'');return Object.assign({},r,{tipo:+r.tipo||2,fecha:f.slice(0,10).replace(/\//g,'-')+' '+f.slice(11,13)+':'+f.slice(14,16)});}).sort((a,b)=>b.fecha.localeCompare(a.fecha));
     REPHIST={[k]:{data:out}};if(state.screen==='repview'){state._keep=document.getElementById('screen').scrollTop;render();}})();
   return null;}
@@ -5111,6 +5113,14 @@ function alphaLines(lines){return (lines||[]).slice().sort((a,b)=>ALPHA_COLL.com
 function qtyVal(x){const v=parseFloat((''+(x==null?'':x)).replace(',','.'));return isFinite(v)?Math.round(v*1000)/1000:0;}
 // cantidad para imprimir: sin redondear a entero (2,5 metros = "2.5")
 function fmtQty(n){return (Math.round((+n||0)*1000)/1000).toLocaleString('en-US',{maximumFractionDigits:3});}
+// Historial de inventario (como la tabla compra de Mi Negocio): se guardan ~2 meses
+function invSnap(p){return p?{q:+p.stock||0,c:+p.cost||0,v:+p.price||0,r:+p.reserve||0}:null;}
+function invLogAdd(tipo,p,old){try{if(!p)return;const now=invSnap(p);old=old||now;
+  if(tipo===2&&Math.abs(now.q-old.q)<1e-9&&Math.abs(now.c-old.c)<1e-9&&Math.abs(now.v-old.v)<1e-9&&Math.abs(now.r-old.r)<1e-9)return;   /* sin cambios de cantidad, precios ni reserva */
+  const d=new Date(),z=n=>String(n).padStart(2,'0');const f=d.getFullYear()+'/'+z(d.getMonth()+1)+'/'+z(d.getDate())+'/'+z(d.getHours())+'/'+z(d.getMinutes());
+  const e={id:'IL'+uidPart(),fecha:f,tipo,key:''+(p.key||''),nombre:mnName(p),cantidad:now.q,p_compra:now.c,p_venta:now.v,reserva:now.r,cantidad_old:tipo===1?0:old.q,p_compra_old:tipo===1?0:old.c,p_venta_old:tipo===1?0:old.v,reserva_old:tipo===1?0:old.r,dev:deviceId()};
+  const lim=new Date(Date.now()-62*864e5);const lf=lim.getFullYear()+'/'+z(lim.getMonth()+1)+'/'+z(lim.getDate());
+  state.invLog=[e,...(state.invLog||[]).filter(x=>x&&(''+x.fecha).slice(0,10)>=lf)];}catch(_){}}
 function stockAdd(p,delta){if(!p)return;p.stock=Math.round(((+p.stock||0)+(+delta||0))*1000)/1000;}
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
@@ -5545,10 +5555,10 @@ async function saveProduct(){
     if(thumb){IMGCACHE['img:'+ik]=thumb;try{await idbPut('img:'+ik,thumb);}catch(e){}imgKey=ik;img=null;sbUploadOne(ik);}
   }
   const data={key,name:f.name.trim(),cat,unit,cost:+f.purchase||0,price:+f.sale||0,addSale:(xpClean(f.xprices)[0]||{}).p||0,xprices:xpClean(f.xprices),stock:+f.qty||0,reserve:+f.reserve||0,img,imgKey,exps:[...new Set(f.exps||[])].filter(Boolean).sort(),expiry:[...new Set(f.exps||[])].filter(Boolean).sort()[0]||null,desc:(f.desc||'').trim(),min:+f.min||0,max:+f.max||0,loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
-  if(f.editId){const p=P(f.editId);if(p)Object.assign(p,data);closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
-  else{state.products.push({id:nid(),...data});closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
+  if(f.editId){const p=P(f.editId);if(p){const o=invSnap(p);Object.assign(p,data);invLogAdd(2,p,o);}closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
+  else{const np={id:nid(),...data};state.products.push(np);invLogAdd(1,np);closeForm();state.screen='inventario';persist();render();toast(t('saved'));}
 }
-async function delProduct(){if(!await appConfirm(t('pd_del_q')))return;const id=state.form.editId;state.products=state.products.filter(p=>p.id!==id);closeForm();state.screen='inventario';persist();render();toast(t('deleted'));}
+async function delProduct(){if(!await appConfirm(t('pd_del_q')))return;const id=state.form.editId;{const dp=P(id);if(dp)invLogAdd(3,dp);}state.products=state.products.filter(p=>p.id!==id);closeForm();state.screen='inventario';persist();render();toast(t('deleted'));}
 /* ---------------- selector de unidad ---------------- */
 function openUnit(){
   readForm();
@@ -6639,7 +6649,7 @@ let _rnT=null;function sbScheduleRender(){clearTimeout(_rnT);_rnT=setTimeout(()=
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'}];
+const MOD_DOCS=[{key:'invlog',st:'invLog'},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'}];
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases',...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -8466,7 +8476,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004234805';
+const APP_VERSION='20261004235612';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _updBusy(){try{return !!state.bkLoading||IMG_SAVING>0||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}

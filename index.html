@@ -1601,7 +1601,8 @@ function histProdIdx(){
   const id=currentDataId();if(!id)return null;const c=HIST_PIX[id];if(c&&(c.busy||c.full||Date.now()-c.at<60000))return c.v||null;   /* sin archivo crudo: se reintenta al minuto */
   const e=HIST_PIX[id]={v:c?c.v:null,busy:true,full:false,at:Date.now()};
   (async()=>{const ix={};const add=(name,sid)=>{const k=(''+(name||'')).trim().toUpperCase();if(!k)return;(ix[k]=ix[k]||new Set()).add(''+sid);};
-    try{const db=await idbOpen();await new Promise(res=>{const st=db.transaction('sale','readonly').objectStore('sale');const rq=st.openCursor();rq.onsuccess=()=>{const cur=rq.result;if(!cur)return res();if(Array.isArray(cur.value))cur.value.forEach(l=>add(l.name,cur.key));cur.continue();};rq.onerror=()=>res();});}catch(_){}
+    const SBY={};(state.sales||[]).forEach(x=>{if(x)SBY[''+x.id]=x;});
+    try{const db=await idbOpen();await new Promise(res=>{const st=db.transaction('sale','readonly').objectStore('sale');const rq=st.openCursor();rq.onsuccess=()=>{const cur=rq.result;if(!cur)return res();if(Array.isArray(cur.value)){const rec=SBY[''+cur.key];if(rec&&linesFit(rec,cur.value))cur.value.forEach(l=>add(l.name,cur.key));}cur.continue();};rq.onerror=()=>res();});}catch(_){}
     let full=false;try{const raw=await srRawIndex();if(raw){full=true;Object.keys(raw).forEach(fol=>raw[fol].forEach(l=>add(l.nombre!=null?l.nombre:l.name,'V'+fol)));}}catch(_){}
     e.v=ix;e.full=full;e.busy=false;e.at=Date.now();if(currentDataId()===id&&HIST_F&&HIST_F.k==='prod'&&document.getElementById('histdlg').classList.contains('on'))fillHist();
   })();
@@ -1970,7 +1971,7 @@ async function openSaleDet(id){
   const body=document.getElementById('saleBody');if(!body.querySelector('.sd'))body.innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
   if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q};});
-  else{const L=await idbGetSale(s.id);if(L)lines=L;else lines=await srLinesFor({folio:s.folio,id:s.id},await srRawIndex());}   /* importada sin detalle en este equipo: del archivo crudo */
+  else{const L=await idbGetSaleFor(s);if(L)lines=L;else lines=await srLinesFor({folio:s.folio,id:s.id,n:s.n,cost:s.cost},await srRawIndex());}   /* importada sin detalle en este equipo: del archivo crudo */
   if(tok!==SD_TOK||!document.getElementById('saledlg').classList.contains('on'))return;
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
   lines=alphaLines(lines);
@@ -2055,8 +2056,8 @@ async function sdDelete(id){
   if(!await appConfirm(ti('sd_del_q',{n:s.folio||s.id})))return;
   if(Array.isArray(s.items))s.items.forEach(i=>{const p=P(i.id);if(p)stockAdd(p,+i.q||0);});   // el inventario vuelve
   else{   /* importada: las líneas del detalle vuelven al producto con el mismo nombre */
-    let L=(Array.isArray(s.lines)&&s.lines.length)?s.lines:null;if(!L){try{L=await idbGetSale(s.id);}catch(_){}}
-    if(!L||!L.length){try{L=await srLinesFor({folio:s.folio,id:s.id},await srRawIndex());}catch(_){L=[];}}
+    let L=(Array.isArray(s.lines)&&s.lines.length)?s.lines:null;if(!L){try{L=await idbGetSaleFor(s);}catch(_){}}
+    if(!L||!L.length){try{L=await srLinesFor({folio:s.folio,id:s.id,n:s.n,cost:s.cost},await srRawIndex());}catch(_){L=[];}}
     const nk=x=>(''+(x||'')).trim().toUpperCase().replace(/\s+/g,' ');const by={};state.products.forEach(p=>{by[nk(p.name)]=p;});
     if(!state.sales.includes(s))return;   /* ya se anuló mientras se buscaba el detalle (doble toque) */
     (L||[]).forEach(l=>{if(l.svc)return;const p=by[nk(l.name||l.n)];if(p)stockAdd(p,+(l.qty!=null?l.qty:l.q)||0);});
@@ -2073,7 +2074,7 @@ async function openPurchaseDet(id){
   document.getElementById('saleBody').innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
   if(p.items&&p.items.length)lines=p.items.map(i=>{const pr=P(i.id);return {name:pr?pr.name:(i.name||'—'),qty:i.q,cost:i.cost,subtotal:(+i.cost||0)*i.q};});
-  else{const L=await idbGetSale(p.id);if(L)lines=L;else lines=await pcLinesFor({folio:p.folio,id:p.id},await pcRawIndex());}
+  else{const L=await idbGetSaleFor(p);if(L)lines=L;else lines=await pcLinesFor({folio:p.folio,id:p.id,n:p.n},await pcRawIndex());}
   if(!document.getElementById('saledlg').classList.contains('on'))return;
   const st=p.status==='porpagar'?t('cp_topay'):t('cp_paid');
   const meta=[p.date&&(t('sale_date')+': '+p.date+(p.time?' '+p.time:'')),p.provider&&(t('cp_provider')+': '+p.provider),p.pay&&(t('sale_pay')+': '+payLbl(p.pay)),(t('rc_status')+': '+st),p.note&&(t('cp_note')+': '+p.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
@@ -2098,7 +2099,7 @@ function scRecibo(){
 async function saleLines(s){
   let lines=[];
   if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price,subtotal:price*i.q};});
-  else{const L=await idbGetSale(s.id);if(L)lines=L.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));}
+  else{const L=await idbGetSaleFor(s);if(L)lines=L.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
   lines=alphaLines(lines);
   return lines;
@@ -3409,7 +3410,7 @@ async function pcRawIndex(){return await rawFolioIndex('compra_producto');}
 async function pcLinesFor(p,rawIdx){
   // En compras el PRECIO mostrado es el de COMPRA (p_compra/cost)
   if(Array.isArray(p.lines)&&p.lines.length)return alphaLines(p.lines.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:(+c||0)*(+l.qty||0)};}));   /* en orden alfabético, como las ventas */
-  let lines=[];const L=await idbGetSale(p.id);
+  let lines=[];const L=await idbGetSaleFor(p);
   if(L&&L.length)lines=L.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:((+c||0)*(+l.qty||0))};});
   if(lines.length)return alphaLines(lines);
   const fol=p.folio!=null?p.folio:(''+(p.id||'')).replace(/^C/,'');
@@ -4343,7 +4344,7 @@ function repLinesFor(r){
     try{const db=await idbOpen();
       for(let i=0;i<need.length;i+=300){const ch=need.slice(i,i+300);
         await new Promise(res=>{const tx=db.transaction('sale','readonly');const st=tx.objectStore('sale');let n=ch.length;if(!n)return res();
-          ch.forEach(x=>{const rq=st.get(''+x.id);const done=()=>{if(--n===0)res();};rq.onsuccess=()=>{const L=rq.result;if(Array.isArray(L)&&L.length){got.add(''+x.id);L.forEach(l=>{const p=l.svc?null:byName[(''+l.name).trim().toLowerCase()];out.push({sid:x.id,svc:!!l.svc,pid:p?p.id:null,key:p?(p.key||''):'',name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,sub:l.subtotal!=null?+l.subtotal:null,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d:saleDate(x)});});}done();};rq.onerror=done;});});
+          ch.forEach(x=>{const rq=st.get(''+x.id);const done=()=>{if(--n===0)res();};rq.onsuccess=()=>{const L=rq.result;if(Array.isArray(L)&&L.length&&linesFit(x,L)){got.add(''+x.id);L.forEach(l=>{const p=l.svc?null:byName[(''+l.name).trim().toLowerCase()];out.push({sid:x.id,svc:!!l.svc,pid:p?p.id:null,key:p?(p.key||''):'',name:l.name,cat:p?(p.cat||''):'',q:+l.qty||0,price:+l.price||0,sub:l.subtotal!=null?+l.subtotal:null,cost:l.cost!=null?+l.cost:(p?+p.cost||0:0),d:saleDate(x)});});}done();};rq.onerror=done;});});
       }}catch(_){}
     const miss=need.filter(x=>!got.has(''+x.id));   /* sin detalle en este equipo: del archivo crudo (mismos campos que al importar) */
     let part=0;if(miss.length){part=Date.now();try{const raw=await srRawIndex();if(raw){part=0;miss.forEach(x=>{const fol=''+(x.folio!=null?x.folio:(''+(x.id||'')).replace(/^V/,''));(raw[fol]||[]).forEach(l=>{const nm=l.nombre!=null?l.nombre:(l.name||'—');const sv=+l.tipo===2;const p=sv?null:byName[(''+nm).trim().toLowerCase()];out.push({sid:x.id,svc:sv,pid:p?p.id:null,key:p?(p.key||''):'',name:nm,cat:p?(p.cat||''):'',q:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,sub:l.subtotal!=null?+l.subtotal:null,cost:l.p_compra!=null?+l.p_compra:(p?+p.cost||0:0),d:saleDate(x)});});});}}catch(_){}}
@@ -5860,9 +5861,10 @@ function importProducts(list,stay){
   list.forEach(it=>{
     const key=(it.key||'').trim();let ex=null;
     if(key)ex=state.products.find(p=>(p.key||'')===key);
-    if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase());
+    const keyOk=p=>!key||!(''+(p.key||'')).trim();   /* por nombre solo si a uno le falta la clave: dos claves distintas son dos productos */
+    if(!ex&&it.name)ex=state.products.find(p=>p.name.toLowerCase()===(it.name||'').toLowerCase()&&keyOk(p));
     if(it.mnPlain){const mu=it.mnPlain.unit;if(mu&&mu!=='...'&&!(state.units||[]).includes(mu))state.units=[...(state.units||[]),mu];
-      if(!ex&&it.mnPlain.name)ex=state.products.find(p=>!isMnName(p.name)&&p.name.toLowerCase()===it.mnPlain.name.toLowerCase());
+      if(!ex&&it.mnPlain.name)ex=state.products.find(p=>!isMnName(p.name)&&p.name.toLowerCase()===it.mnPlain.name.toLowerCase()&&keyOk(p));
       if(ex&&!isMnName(ex.name))it={...it,name:it.mnPlain.name,unit:mu==='...'?'':mu};}   /* producto hecho en Abanico: conserva su forma */
     if(ex){if(it.name)ex.name=it.name;if(it.cat)ex.cat=it.cat;if(isFinite(it.stock))ex.stock=it.stock;if(it.cost)ex.cost=it.cost;if(it.price)ex.price=it.price;if(isFinite(it.reserve))ex.reserve=it.reserve;if(Array.isArray(it.xprices)&&it.xprices.length){const old=xPrices(ex);ex.xprices=it.xprices.map(x=>{const o=old.find(y=>+y.p===+x.p&&y.n);return {n:o?o.n:(x.n||''),p:+x.p};});ex.addSale=ex.xprices[0].p;}
     else if(it.addSale!=null&&+it.addSale>0)ex.addSale=+it.addSale;if(it.desc)ex.desc=it.desc;if(it.unit){ex.unit=ioUnit(it.unit);markEdited(ex);}if(key)ex.key=key;if(it.imgKey)ex.imgKey=it.imgKey;updated++;}
@@ -5906,6 +5908,12 @@ function loadSales(id){const p=(async()=>{const v=await idbKvGet('sales:'+id);if
     else if(state.sales.length){await idbKvPut('sales:'+id,state.sales);}})();
   SALES_LOADING[id]=p.catch(()=>{});return p;}
 function salesReady(id){return SALES_LOADING[id]||Promise.resolve();}
+// ¿Este detalle del equipo es de este registro? (el almacén 'sale' es del equipo, no de la tienda: otro negocio puede tener el mismo folio)
+function linesFit(rec,L){if(!Array.isArray(L)||!L.length)return false;if(!rec)return true;
+  if(rec.n!=null&&isFinite(+rec.n)){const q=L.reduce((a,l)=>a+(+l.qty||0),0);if(Math.abs(q-(+rec.n||0))>0.001)return false;}
+  if((''+(rec.id||'')).charAt(0)==='V'&&rec.cost!=null&&L.some(l=>l&&l.cost!=null)){const c=L.reduce((a,l)=>a+(+l.cost||0)*(+l.qty||0),0);if(Math.abs(c-(+rec.cost||0))>0.5)return false;}
+  return true;}
+async function idbGetSaleFor(rec){const L=await idbGetSale(rec&&rec.id);return linesFit(rec,L)?L:null;}
 async function idbGetSale(id){try{const db=await idbOpen();return await new Promise(res=>{const tx=db.transaction('sale','readonly');const rq=tx.objectStore('sale').get(''+id);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
 async function bkSaveSaleLines(byId){
   const ids=Object.keys(byId||{});if(!ids.length)return;
@@ -8484,7 +8492,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261005002314';
+const APP_VERSION='20261005003104';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _updBusy(){try{return !!state.bkLoading||IMG_SAVING>0||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}

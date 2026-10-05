@@ -1752,7 +1752,7 @@ async function catExportSimplePDF(){
   }catch(e){toast(t('io_err'));}
 }
 async function catExportCustomPDF(){
-  const o=state.catOpts;const prods=state.products.slice();
+  const o=state.catOpts;const prods=state.products.slice().sort(prodCmp);   /* en orden alfabético */
   if(!prods.length){toast(t('io_empty'));return;}
   try{
     toast(t('cx_generating'));
@@ -3408,13 +3408,13 @@ async function openPayDet(id){
 async function pcRawIndex(){return await rawFolioIndex('compra_producto');}
 async function pcLinesFor(p,rawIdx){
   // En compras el PRECIO mostrado es el de COMPRA (p_compra/cost)
-  if(Array.isArray(p.lines)&&p.lines.length)return p.lines.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:(+c||0)*(+l.qty||0)};});
+  if(Array.isArray(p.lines)&&p.lines.length)return alphaLines(p.lines.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:(+c||0)*(+l.qty||0)};}));   /* en orden alfabético, como las ventas */
   let lines=[];const L=await idbGetSale(p.id);
   if(L&&L.length)lines=L.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:((+c||0)*(+l.qty||0))};});
-  if(lines.length)return lines;
+  if(lines.length)return alphaLines(lines);
   const fol=p.folio!=null?p.folio:(''+(p.id||'')).replace(/^C/,'');
   const rows=rawIdx&&rawIdx[fol];
-  if(rows&&rows.length)return rows.map(l=>{const c=+(l.p_compra!=null?l.p_compra:(l.cost!=null?l.cost:l.p_venta))||0;const q=+(l.cantidad!=null?l.cantidad:l.qty)||0;return {name:l.nombre||l.name||'—',qty:q,price:c,subtotal:l.subtotal!=null?+l.subtotal:c*q};});
+  if(rows&&rows.length)return alphaLines(rows.map(l=>{const c=+(l.p_compra!=null?l.p_compra:(l.cost!=null?l.cost:l.p_venta))||0;const q=+(l.cantidad!=null?l.cantidad:l.qty)||0;return {name:l.nombre||l.name||'—',qty:q,price:c,subtotal:l.subtotal!=null?+l.subtotal:c*q};}));
   return [];
 }
 async function purchPayExportPDF(JS){
@@ -4781,7 +4781,7 @@ function openPO(id){
   document.getElementById('quoteH').textContent=t('po_title')+' #'+(o.folio||'');
   const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   const meta=[o.issue&&(t('po_issue')+': '+o.issue),o.due&&(t('po_due')+': '+o.due),o.provider&&(t('cp_provider')+': '+o.provider),o.note&&(t('cp_note')+': '+o.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
-  const lines=(o.lines||[]).map(l=>`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines(o.lines||[]).map(l=>`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}
     ${ph?`<div class="qt-tel" style="margin:8px 0"><a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a></div>`:''}
     <div style="margin:8px 0"><span class="qt-st ${rc?'sold':'open'}">${rc?ti('po_received',{n:o.recvPurchase}):t('po_pending')}</span></div>
@@ -4808,7 +4808,7 @@ function poDup(){const o=poById(state.poOpen);if(!o)return;const folio=(state.po
 async function poDel2(){const o=poById(state.poOpen);if(!o)return;if(!await appConfirm(t('po_del_confirm')))return;o.del=true;o.edited=Date.now();persist();closePO();render();toast(t('po_deleted'));}
 function poText(o){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLocaleString('es-CO');
   return [(cfg.name||'').toUpperCase(),t('po_title')+' #'+o.folio+' · '+(o.issue||''),o.due?t('po_due')+': '+o.due:'',o.provider?t('cp_provider')+': '+o.provider:'','',
-    ...(o.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')),'',o.note||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
+    ...alphaLines(o.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')),'',o.note||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
 async function poPDF(){
@@ -4821,7 +4821,7 @@ async function poPDF(){
     y+=14;doc.setTextColor(20);if(o.provider){doc.text(t('cp_provider')+': '+o.provider,M,y);y+=22;}
     doc.text(t('sale_folio')+': '+o.folio+'     '+t('po_issue')+': '+(o.issue||''),M,y);y+=19;if(o.due){doc.text(t('po_due')+': '+o.due,M,y);y+=19;}
     doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('cp_pcost').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-      body:(o.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.cost),fmtN(l.subtotal!=null?l.subtotal:(+l.cost||0)*(+l.q||0))]),theme:'grid',
+      body:alphaLines(o.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.cost),fmtN(l.subtotal!=null?l.subtotal:(+l.cost||0)*(+l.q||0))]),theme:'grid',
       styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
       columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
     let fy=doc.lastAutoTable.finalY+14;doc.setDrawColor(205);doc.rect(M,fy,330,26);doc.rect(M+330,fy,185,26);doc.setFontSize(11);doc.text(t('total').toUpperCase()+' $',M+322,fy+17,{align:'right'});doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(fmtN(o.total),M+422,fy+17,{align:'center'});
@@ -4922,7 +4922,7 @@ function openQuote(id){
   document.getElementById('quoteH').textContent=t('sales_quote')+' #'+q.folio;
   const cl=cliByName(q.client);const cinfo=cl&&(cl.address||cl.phone)?`<div class="qt-cli">${cl.address?`<div class="qt-addr">${svg(IC_PIN)}<span>${exEsc(cl.address)}</span></div>`:''}${cl.phone?`<div class="qt-tel"><a class="prv-q" href="${telHref(cl.phone)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(cl.phone)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a></div>`:''}</div>`:'';
   const meta=[q.date&&(t('qt_emit')+': '+q.date),q.due&&(t('qt_exp')+': '+q.due),q.client&&(t('sale_client')+': '+q.client),q.note&&(t('sale_note')+': '+q.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
-  const lines=(q.lines||[]).map(l=>`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines(q.lines||[]).map(l=>`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
   const st=quoteStatus(q);
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}${cinfo}<div style="margin:8px 0">${quoteStLbl(q)}</div>
     <div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(q.total||0)}</div></div></div>
@@ -4951,7 +4951,7 @@ function quoteDup(){const q=quoteById(state.qtOpen);if(!q)return;const folio=quo
 async function quoteDel(){const q=quoteById(state.qtOpen);if(!q)return;if(!await appConfirm(t('qt_del_confirm')))return;q.del=true;q.edited=Date.now();persist();closeQuote();render();toast(t('qt_deleted'));}
 function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLocaleString('es-CO');
   return [(cfg.name||'').toUpperCase(),t('sales_quote')+' #'+q.folio+' · '+(q.date||''),q.due?t('qt_due')+': '+q.due:'',q.client?t('sale_client')+': '+q.client:'','',
-    ...(q.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')+' — $'+f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))),'',t('total').toUpperCase()+': $'+f(q.total),q.note?'\n'+q.note:'',cfg.msg?'\n'+cfg.msg:''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
+    ...alphaLines(q.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')+' — $'+f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))),'',t('total').toUpperCase()+': $'+f(q.total),q.note?'\n'+q.note:'',cfg.msg?'\n'+cfg.msg:''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 async function quotePDF(){
   const q=quoteById(state.qtOpen);if(!q)return;
   try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();
@@ -4966,7 +4966,7 @@ async function quotePDF(){
     if(q.due){doc.text(t('qt_due')+': '+q.due,M,y);y+=19;}
     doc.autoTable({startY:y+8,margin:{left:M,right:M},
       head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-      body:(q.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.price),fmtN(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))]),
+      body:alphaLines(q.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.price),fmtN(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))]),
       theme:'grid',styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},
       headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
       columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
@@ -8476,7 +8476,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004235612';
+const APP_VERSION='20261005000644';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _updBusy(){try{return !!state.bkLoading||IMG_SAVING>0||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}

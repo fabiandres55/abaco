@@ -6456,7 +6456,8 @@ function sbInit(){
 }
 /* ---------------- Autenticación (cuenta por negocio) ---------------- */
 let AUTH=null; // {id, email} de la sesión activa
-async function authGetSession(){const sb=await sbInit();if(!sb)return null;try{const {data}=await sb.auth.getSession();const s=data&&data.session;if(s&&s.user){AUTH={id:s.user.id,email:s.user.email||''};}return s||null;}catch(e){return null;}}
+let AUTH_NETERR=false;   /* la sesión no se pudo comprobar por la red (no porque no exista) */
+async function authGetSession(){AUTH_NETERR=false;const sb=await sbInit();if(!sb){AUTH_NETERR=true;return null;}try{const {data,error}=await sb.auth.getSession();const s=data&&data.session;if(s&&s.user){AUTH={id:s.user.id,email:s.user.email||''};}if(!s&&error)AUTH_NETERR=true;return s||null;}catch(e){AUTH_NETERR=true;return null;}}
 async function authSignUp(email,pw){const sb=await sbInit();if(!sb)return {error:{message:'no-connection'}};try{const r=await sb.auth.signUp({email,password:pw});if(r.data&&r.data.user&&r.data.session){AUTH={id:r.data.user.id,email:r.data.user.email||email};}return r;}catch(e){return {error:{message:'exception'}};}}
 async function authSignIn(email,pw){const sb=await sbInit();if(!sb)return {error:{message:'no-connection'}};try{const r=await sb.auth.signInWithPassword({email,password:pw});if(r.data&&r.data.user){AUTH={id:r.data.user.id,email:r.data.user.email||email};}return r;}catch(e){return {error:{message:'exception'}};}}
 async function authSignOut(){const sb=await sbInit();if(sb){try{await sb.auth.signOut();}catch(e){}}AUTH=null;}
@@ -7042,7 +7043,7 @@ function boot(){
   const authed=(()=>{try{return localStorage.getItem('abanico.authed')==='1';}catch(_){return false;}})();
   authGetSession().then(async session=>{
     if(!session){
-      if(authed&&p&&p.id&&!navigator.onLine){enterFromBoot(p);return;} // offline con sesión previa
+      if(authed&&p&&p.id&&(!navigator.onLine||AUTH_NETERR)){enterFromBoot(p);return;} // sin internet (o internet que no responde) con sesión previa en este equipo
       renderOnbo();return;
     }
     try{localStorage.setItem('abanico.authed','1');}catch(_){}
@@ -8179,7 +8180,9 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261004201449';
+const APP_VERSION='20261004205649';
+// Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _updBusy(){try{return !!state.bkLoading||IMG_SAVING>0||document.getElementById('device').classList.contains('form-open')||saleHas()||pcartItems().length>0||!!state.poMode||!!state.quoteMode||!!state.editSale||!!document.querySelector('.histdlg.on,.sheetdlg.on,#onbo.on');}catch(e){return false;}}
 async function checkAppUpdate(){
   if(APP_VERSION==='__BUILD__')return;   // en local no hay version.txt

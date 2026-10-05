@@ -19,9 +19,13 @@ self.addEventListener('fetch',e=>{
   const url=new URL(req.url);
   // La app: primero la red (así llegan las actualizaciones); sin red o si tarda más de 6 s, la que está guardada
   if(req.mode==='navigate'||(url.origin===location.origin&&/\/(index\.html)?$/.test(url.pathname))){
+    const net=fetch(req,{cache:'no-cache'});
+    e.waitUntil(net.then(r=>{if(r&&r.ok){const cp=r.clone();return caches.open(CACHE).then(c=>c.put('./index.html',cp));}}).catch(()=>{}));   // aunque tarde más de 6 s, la descarga sigue y queda guardada para la próxima vez
     e.respondWith((async()=>{const c=await caches.open(CACHE);
-      try{const r=await Promise.race([fetch(req,{cache:'no-cache'}),wait(6000)]);if(r&&r.ok)c.put('./index.html',r.clone());return r;}
-      catch(_){const m=(await c.match('./index.html'))||(await c.match('./'));if(m)return m;return new Response('<meta name="viewport" content="width=device-width"><p style="font-family:sans-serif;padding:24px">Abanico necesita internet la primera vez que se abre.</p>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8'}});}})());
+      try{const r=await Promise.race([net,wait(6000)]);if(r&&(r.ok||r.type==='opaqueredirect'))return r;}catch(_){}   // solo una respuesta buena: una página de error del servidor (404/500…) no reemplaza la app guardada
+      const m=(await c.match('./index.html'))||(await c.match('./'));if(m)return m;
+      try{const r=await net;if(r)return r;}catch(_){}   // nada guardado aún (primera vez): lo que responda la red
+      return new Response('<meta name="viewport" content="width=device-width"><p style="font-family:sans-serif;padding:24px">Abanico necesita internet la primera vez que se abre.</p>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8'}});})());
     return;
   }
   if(url.origin===location.origin){

@@ -6800,6 +6800,7 @@ async function sbSyncWriteOne(sb,id,key){
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
       const now=sbDocData(key);let fin=JSON.parse(mj);
       if(JSON.stringify(now)!==lj){const tmpB=mkBase(key,JSON.parse(lj));fin=Array.isArray(merged)?mergeArr(key,tmpB.map,now,merged):mergeRec(tmpB.obj||{},now,merged);}
+      if(key==='sales'&&Array.isArray(fin))onRemoteSales(fin);   /* ventas de otro equipo que llegaron dentro de nuestra subida (vendieron a la vez): también avisan */
       SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}
       if(JSON.stringify(fin)!==mj)sbPushDoc(id,key,sbDocData(key));
       sbScheduleRender();
@@ -8665,7 +8666,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261005134158';
+const APP_VERSION='20261005213640';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

@@ -840,6 +840,58 @@
   .abc>div{border-radius:10px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:2px;font-size:11.5px}
   .abc b{font-size:22px}.abc-A{background:#e8f5e9;color:#2e7d32}.abc-B{background:#fff8e1;color:#a66d00}.abc-C{background:#fdecea;color:#c62828}
   .abcbadge{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:800;margin-right:6px}
+  /* Gráficos de reportes como Mi Negocio (2026-10-06) */
+  .txchart,.lchart{--chart-grid:#b9b9b9}
+  html[data-theme="dark"] .txchart,html[data-theme="dark"] .lchart{--chart-grid:#3f444a}
+  .txc-line{left:58px;right:58px;border-top:1px solid var(--chart-grid)}
+  .txc-yl{font-size:10.5px}
+  .txc-yl.l{width:54px;text-align:right}
+  .txc-yl.r{width:54px;text-align:left}
+  .txc-bars{left:62px;right:62px}
+  .txc-bar{background:#01579b;border-radius:0;max-width:34px}
+  .txc-g{background:#3e7c75;border-radius:0}
+  .txc-bar.sel,.txc-bar.sel .txc-g{background:#000}
+  html[data-theme="dark"] .txc-bar.sel,html[data-theme="dark"] .txc-bar.sel .txc-g{background:#e6e8eb}
+  .txc-tip{top:0;bottom:auto;margin:0;transform:translateX(-50%);background:rgba(0,0,0,.4);border-radius:0;box-shadow:none;font-weight:700;font-size:12.5px;padding:5px 12px}
+  .txc-tip b{font-size:12.5px}
+  .txc-tip .g{color:#fff}
+  .pfchcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px 6px;margin-bottom:12px}
+  .pfsel{display:flex;justify-content:flex-end;margin:0 0 4px}
+  .pfsel .txsel{max-width:200px;margin:0}
+  .lc-plot{left:62px;right:62px}
+  .lc-l{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .lc-dot,.lc-dot.ing,.lc-dot.gan{width:11px;height:11px;background:#fff;border:2.5px solid #01579b}
+  .lc-dot.gan{border-color:#3e7c75}
+  .lc-vx{position:absolute;top:0;bottom:0;width:1px;background:#01579b;transform:translateX(-50%);pointer-events:none}
+  .lc-hy{position:absolute;left:0;right:0;height:1px;background:#01579b;transform:translateY(-50%);pointer-events:none}
+  .lc-tip{top:-8px;background:rgba(0,0,0,.4);border-radius:0;box-shadow:none;font-weight:700;font-size:12.5px;line-height:1.3;padding:5px 12px;pointer-events:none}
+  .lc-tip.l{transform:translateX(-12%)}
+  .lc-tip.r{transform:translateX(-88%)}
+  .abcwrap{position:relative}
+  .abcstick{position:sticky;top:0;z-index:5;background:var(--bg);padding-top:2px}
+  .abcch{position:relative;height:190px;background:var(--card);margin:0 0 6px;--abc-fill:#cacaca;--abc-grid:#999999;--abc-vl:#cecece;user-select:none;-webkit-user-select:none}
+  html[data-theme="dark"] .abcch{--abc-fill:#4b4f55;--abc-grid:#6f747b;--abc-vl:#555a60}
+  .abcch .ac-plot{position:absolute;left:38px;right:38px;top:18px;bottom:8px;touch-action:pan-y;border-left:1px solid var(--abc-grid);border-right:1px solid var(--abc-grid)}
+  .abcch svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .abcch .ac-g{stroke:var(--abc-grid);stroke-width:1;vector-effect:non-scaling-stroke}
+  .abcch .ac-v{stroke:var(--abc-vl);stroke-width:1;vector-effect:non-scaling-stroke}
+  .abcch .ac-l{fill:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .abcch .ac-yl{position:absolute;font-size:11px;color:var(--muted);transform:translateY(-50%);line-height:1;width:36px}
+  .abcch .ac-yl.l{left:-40px;text-align:right}
+  .abcch .ac-yl.r{right:-40px;text-align:left}
+  .abcch .ac-end{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #e7b2fa;transform:translate(-50%,-50%);pointer-events:none}
+  .abcch .ac-vx,.abcch .ac-hy{position:absolute;display:none;background:#f0b97a;pointer-events:none}
+  .abcch .ac-vx{top:0;bottom:0;width:1px;transform:translateX(-50%)}
+  .abcch .ac-hy{left:0;right:0;height:1px;transform:translateY(-50%)}
+  .abcch .ac-tip{position:absolute;top:0;display:none;width:30%;min-width:118px;background:rgba(0,0,0,.4);color:#fff;font-weight:700;font-size:12.5px;line-height:1.3;text-align:center;padding:6px 8px;pointer-events:none;z-index:6;overflow-wrap:anywhere}
+  .abct-h,.abct-r{display:grid;grid-template-columns:minmax(0,1fr) 62px 86px;gap:6px;align-items:center;padding:8px 10px}
+  .abct-h{background:var(--card);font-size:12px;color:var(--muted)}
+  .abct-h span:not(:first-child),.abct-r span:not(:first-child){text-align:center}
+  .abct-r{font-size:12.5px;color:#333;border-bottom:3px solid #c6c6c6;content-visibility:auto;contain-intrinsic-size:auto 46px}
+  .abct-r.abcA{background:#c6fafa}
+  .abct-r.abcB{background:#bef99c}
+  .abct-r.abcC{background:#e7b2fa}
+  html[data-theme="dark"] .abct-r{color:#20232a;border-bottom-color:#2a2e33}
   /* configuración + copia completa */
   .coin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
   .coin{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:12px 4px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;color:var(--ink)}
@@ -1182,6 +1234,7 @@
   html[data-theme="dark"] .origchip{background:var(--sel);color:var(--muted)}
   html[data-theme="dark"] .rsvpill{background:rgba(217,160,58,.16);color:#e2b065}
   html[data-theme="dark"] .repchk .bx,html[data-theme="dark"] .ttx-chk .bx{background:var(--card)}
+  html[data-theme="dark"] .ttx-chk.on{background:rgba(55,138,221,.22)}
   html[data-theme="dark"] .pc-key{color:var(--ink)}
   html[data-theme="dark"] .seg.on{color:var(--ink);border-color:var(--muted)}
   html[data-theme="dark"] .shlink{color:var(--ink)}
@@ -2944,8 +2997,8 @@ function txChart(items,type){
   const mx=niceMax(Math.max(...arr.map(b=>b.total),0));
   const H=190,PT=8,PB=22,plot=H-PT-PB;
   let grid='';
-  for(let k=0;k<=4;k++){const frac=k/4;const yTop=PT+frac*plot;const val=mx*(1-frac);
-    grid+=`<div class="txc-line" style="top:${yTop}px"></div><div class="txc-yl l" style="top:${yTop}px">${fmtK(val)}</div><div class="txc-yl r" style="top:${yTop}px">${fmtK(val)}</div>`;}
+  for(let k=0;k<=5;k++){const frac=k/5;const yTop=PT+frac*plot;const val=mx*(1-frac);
+    grid+=`<div class="txc-line" style="top:${yTop}px"></div><div class="txc-yl l" style="top:${yTop}px">${chartN(val)}</div><div class="txc-yl r" style="top:${yTop}px">${chartN(val)}</div>`;}
   const pad=n=>String(n).padStart(2,'0');
   const bars=arr.map((b,idx)=>{const a=b.total;const h=mx>0?Math.max(1.5,a/mx*100):0;const g=(type==='ventas'&&a>0)?Math.max(0,Math.min(100,b.profit/a*100)):0;const sel=state.txBar===idx;
     const tip=sel?`<div class="txc-tip">${pad(b.hour)}:00 - ${pad(b.hour)}:59<br><b class="num">${money(b.total)}</b>${type==='ventas'?`<br><span class="g num">${money(b.profit)}</span>`:''}</div>`:'';
@@ -2959,7 +3012,7 @@ function repTxDay(){
   const opts=TX_TYPES.map(([k,lk])=>`<option value="${k}" ${type===k?'selected':''}>${t(lk)}</option>`).join('');
   const head=`<div class="txhead"><label class="txdate">${cal}<input autocomplete="off" type="date" id="txDate" value="${date}"></label><select id="txType" class="txsel">${opts}</select></div>`;
   const items=txItems(d,type);
-  const chart=txChart(items,type);
+  const chart=state.repCharts!==false?txChart(items,type):'';
   const kpi=(l,v)=>`<div class="txkpi"><div class="txk-l">${l}</div><div class="txk-v num">${money(v)}</div></div>`;
   const summary=`<div class="txcard">
     <div class="txband">${t('tx_res_ing')}</div>
@@ -3033,32 +3086,37 @@ function txTotalDays(from,to,type){
   const add=(date,ing,gan)=>{const i=idx[date];if(i==null)return;days[i].ing+=ing;days[i].gan+=gan||0;};
   if(type==='ventas'){
     if(inclC){state.sales.forEach(s=>add(saleDate(s),saleTotal(s),saleProfit(s)));}
-    else{state.sales.forEach(s=>{if(!saleIsCredit(s))add(saleDate(s),saleTotal(s),saleProfit(s));if(Array.isArray(s.pays))s.pays.forEach(p=>add(p.f,+p.p||0,0));});}
+    else{state.sales.forEach(s=>{if(!saleIsCreditStrict(s))add(saleDate(s),saleTotal(s),saleProfit(s));});}   /* como Mi Negocio: ventas que no son por cobrar, sin abonos */
   }
   else if(type==='compras'){
     if(inclC){(state.purchases||[]).forEach(pu=>add(pu.date,+pu.total||0,0));}
-    else{(state.purchases||[]).forEach(pu=>{if(!purchaseIsCredit(pu))add(pu.date,+pu.total||0,0);if(Array.isArray(pu.pays))pu.pays.forEach(p=>add(p.f,+p.p||0,0));});}
+    else{(state.purchases||[]).forEach(pu=>{if(!purchaseIsCreditStrict(pu))add(pu.date,+pu.total||0,0);});}   /* como Mi Negocio: compras que no son por pagar, sin abonos */
   }
   else if(type==='ing'){extrasLive().forEach(m=>{if(m.type==='in')add(m.date,exTotal(m),0);});}
   else if(type==='gas'){extrasLive().forEach(m=>{if(m.type==='out')add(m.date,exTotal(m),0);});}
   return days;
 }
 function txLineChart(days,type){
+  days=days.filter(d=>(+d.ing||0)!==0||(+d.gan||0)!==0);   /* como Mi Negocio: solo los días con movimientos */
   if(!days.length)return `<div class="txempty">${t('tx_chart_empty')}</div>`;
-  const maxV=niceMax(Math.max(...days.map(d=>d.ing),0));
-  const n=days.length;const X=i=>n===1?50:(i/(n-1))*100;const Y=v=>maxV>0?(1-v/maxV)*100:100;
-  const H=175,PT=8,PB=8,plot=H-PT-PB;
-  let grid='';for(let k=0;k<=4;k++){const frac=k/4;const yTop=PT+frac*plot;const val=maxV*(1-frac);grid+=`<div class="txc-line" style="top:${yTop}px"></div><div class="txc-yl l" style="top:${yTop}px">${fmtK(val)}</div><div class="txc-yl r" style="top:${yTop}px">${fmtK(val)}</div>`;}
-  const poly=key=>days.map((d,i)=>X(i).toFixed(2)+','+Y(d[key]).toFixed(2)).join(' ');
-  const area=key=>`M 0,100 L ${days.map((d,i)=>X(i).toFixed(2)+','+Y(d[key]).toFixed(2)).join(' L ')} L 100,100 Z`;
-  let ganSvg='';
-  if(type==='ventas')ganSvg=`<path d="${area('gan')}" fill="rgba(46,139,87,.22)"/><polyline points="${poly('gan')}" fill="none" stroke="#2e8b57" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
-  const svg=`<svg class="lc-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${area('ing')}" fill="rgba(42,111,176,.16)"/>${ganSvg}<polyline points="${poly('ing')}" fill="none" stroke="#2a6fb0" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>`;
-  const dots=days.map((d,i)=>{const l=X(i);let h=`<span class="lc-dot ing" style="left:${l}%;top:${Y(d.ing)}%"></span>`;if(type==='ventas')h+=`<span class="lc-dot gan" style="left:${l}%;top:${Y(d.gan)}%"></span>`;return h;}).join('');
-  const cols=days.map((d,i)=>`<div class="lc-col" data-txtpt="${i}" style="left:${X(i)}%;width:${Math.max(6,100/n)}%"></div>`).join('');
+  /* como Mi Negocio: curvas suaves (ingresos azul, ganancia verde) con puntos huecos y área de color; tocar un día muestra la cruz y fecha, ingresos y ganancia */
+  const maxV=niceMax(Math.max(...days.map(d=>Math.max(+d.ing||0,type==='ventas'?(+d.gan||0):0)),0));
+  const n=days.length;const X=i=>n===1?500:(i/(n-1))*1000;const Y=v=>maxV>0?(1-v/maxV)*1000:1000;
+  const H=190,PT=10,PB=10,plot=H-PT-PB;
+  let grid='';for(let k=0;k<=5;k++){const frac=k/5;const yTop=PT+frac*plot;const val=maxV*(1-frac);grid+=`<div class="txc-line lc-gl" style="top:${yTop}px"></div><div class="txc-yl l" style="top:${yTop}px">${chartN(val)}</div><div class="txc-yl r" style="top:${yTop}px">${chartN(val)}</div>`;}
+  const cub=key=>{const p=days.map((d,i)=>[X(i),Y(+d[key]||0)]);let s='M'+p[0][0].toFixed(1)+','+p[0][1].toFixed(1);const I=0.2;
+    for(let j=1;j<p.length;j++){const pp=p[Math.max(j-2,0)],pr=p[j-1],cu=p[j],nx=p[Math.min(j+1,p.length-1)];
+      s+=' C'+(pr[0]+(cu[0]-pp[0])*I).toFixed(1)+','+(pr[1]+(cu[1]-pp[1])*I).toFixed(1)+' '+(cu[0]-(nx[0]-pr[0])*I).toFixed(1)+','+(cu[1]-(nx[1]-pr[1])*I).toFixed(1)+' '+cu[0].toFixed(1)+','+cu[1].toFixed(1);}
+    return s;};
+  const area=key=>cub(key)+' L'+X(n-1).toFixed(1)+',1000 L'+X(0).toFixed(1)+',1000 Z';
+  const ven=type==='ventas';
+  const svg=`<svg class="lc-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><path d="${area('ing')}" fill="rgba(1,87,155,.33)"/>${ven?`<path d="${area('gan')}" fill="rgba(62,124,117,.33)"/>`:''}<path class="lc-l" d="${cub('ing')}" stroke="#01579b"/>${ven?`<path class="lc-l" d="${cub('gan')}" stroke="#3e7c75"/>`:''}</svg>`;
+  const dots=days.map((d,i)=>{const l=X(i)/10;let h=`<span class="lc-dot ing" style="left:${l}%;top:${Y(+d.ing||0)/10}%"></span>`;if(ven)h+=`<span class="lc-dot gan" style="left:${l}%;top:${Y(+d.gan||0)/10}%"></span>`;return h;}).join('');
+  const cols=days.map((d,i)=>`<div class="lc-col" data-txtpt="${i}" style="left:${X(i)/10}%;width:${Math.max(6,100/n)}%"></div>`).join('');
   let tip='';const sel=state.txtPt;
-  if(sel!=null&&days[sel]){const d=days[sel];const l=X(sel);const side=l>60?'r':'';tip=`<div class="lc-guide" style="left:${l}%"></div><div class="lc-tip ${side}" style="left:${l}%">${d.date}<br><b class="num">${money(d.ing)}</b>${type==='ventas'?`<br><span class="g num">${money(d.gan)}</span>`:''}</div>`;}
-  return `<div class="lchart" style="height:${H}px">${grid}<div class="lc-plot">${svg}${dots}${cols}${tip}</div></div>`;
+  if(sel!=null&&days[sel]){const d=days[sel];const l=X(sel)/10;const side=l<22?'l':(l>78?'r':'');
+    tip=`<div class="lc-vx" style="left:${l}%"></div><div class="lc-hy" style="top:${Y(+d.ing||0)/10}%"></div><div class="lc-tip ${side}" style="left:${l}%">${d.date}<br><b class="num">${money(d.ing)}</b>${ven?`<br><b class="num">${money(d.gan)}</b>`:''}</div>`;}
+  return `<div class="lchart" style="height:${H}px">${grid}<div class="lc-plot" style="top:${PT}px;bottom:${PB}px">${svg}${dots}${cols}${tip}</div></div>`;
 }
 function repTxTotal(){
   const r=repEnsureRange();const type=state.txtType||'ventas';
@@ -3068,7 +3126,7 @@ function repTxTotal(){
   const opts=TT.map(([k,lk])=>`<option value="${k}" ${type===k?'selected':''}>${t(lk)}</option>`).join('');
   const dd=`<div style="display:flex;justify-content:center;margin:6px 0 2px"><select id="txtType" class="txsel" style="max-width:220px;margin:0">${opts}</select></div>`;
   const days=txTotalDays(r.from,r.to,type);
-  const chart=txLineChart(days,type);
+  const chart=state.repCharts!==false?txLineChart(days,type):'';
   const D=txTotalData(r.from,r.to);
   const big=`<div class="ttx-big"><div class="c"><div class="l">${t('ttx_ingresos')}</div><div class="v num">${money(D.ingresos)}</div></div><div class="c"><div class="l">${t('ttx_egresos')}</div><div class="v num">${money(D.egresos)}</div></div><div class="c"><div class="l">${t('ttx_balance')}</div><div class="v num">${money(D.balance)}</div></div></div>`;
   const top=`<div class="txcard" style="padding:12px 12px 14px">${checks}${dd}${chart}${big}</div>`;
@@ -4581,7 +4639,9 @@ function repPayFormsData(){
 function repPayForms(){
   const l=repPayFormsData();if(!l.length)return repEmpty();
   const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,balance:o=>o.b});
-  return repSortBar('pay_forms')+repCards('pay_forms',[[t('mr_sales')],[t('mr_purchases')],[t('mr_inc_extra')],[t('mr_exp_extra')],[t('mr_balance')]],rows.map(o=>({t:o.name,c:[[null,o.v,'m'],[null,o.c,'m'],[null,o.i,'m'],[null,o.g,'m'],[null,o.b,'m',o.b<0?'neg':'']]})),{first:t('mr_name')});
+  const pfT=state.pfType||'v',pfO=[['v','mr_sales'],['c','mr_purchases'],['i','mr_inc_extra'],['g','mr_exp_extra']].map(([k,lk])=>'<option value="'+k+'"'+(pfT===k?' selected':'')+'>'+t(lk)+'</option>').join('');
+  const pfTop=state.repCharts!==false?'<div class="pfchcard"><div class="pfsel"><select id="pfType" class="txsel">'+pfO+'</select></div>'+pfChartHTML(l)+'</div>':'';
+  return repSortBar('pay_forms')+pfTop+repCards('pay_forms',[[t('mr_sales')],[t('mr_purchases')],[t('mr_inc_extra')],[t('mr_exp_extra')],[t('mr_balance')]],rows.map(o=>({t:o.name,c:[[null,o.v,'m'],[null,o.c,'m'],[null,o.i,'m'],[null,o.g,'m'],[null,o.b,'m',o.b<0?'neg':'']]})),{first:t('mr_name')});
 }
 // 2) Merma
 function repMermaData(){const l=(state.mermas||[]).filter(m=>m&&!m.del&&inR(m.date));const by={};l.forEach(m=>{const k=m.pid!=null?'p'+m.pid:(''+m.name).trim().toUpperCase();const pr=m.pid!=null?P(m.pid):null;const o=by[k]||(by[k]={name:pr?pr.name:m.name,key:(pr&&pr.key)||m.key||'',q:0,tot:0,n:0});o.q+=+m.qty||0;o.tot+=(+m.qty||0)*(+m.cost||0);o.n++;});return Object.values(by);}
@@ -4680,9 +4740,53 @@ function repABCData(){const L=repLinesFor({from:'0000-01-01',to:'9999-12-31'});i
   const a=repAggBy(L.filter(l=>!l.svc),lineProdKey,l=>l.name).sort((x,y)=>Math.round(y.tot*100)-Math.round(x.tot*100)||BIN_COLL.compare(''+(x.key||''),''+(y.key||''))||BIN_COLL.compare(x.name,y.name));   /* empates: por clave, como Mi Negocio (agrupa por clave) */const tot=a.reduce((s,o)=>s+o.tot,0)||1;let acc=0;
   a.forEach(o=>{const pv=o.tot*100/tot;o.pv=Math.round(pv*100)/100;acc+=pv;o.acc=Math.min(100,Math.round(acc*100)/100);o.cls=(o.acc<=60||o===a[0])?'A':(o.acc<=80?'B':'C');});
   return a;}
+// Gráficos de reportes como Mi Negocio (2026-10-06): números completos en los ejes, recuadro gris al tocar
+function chartN(v){return Math.round(+v||0).toLocaleString('en-US');}   /* ejes como Mi Negocio: 2,500,000 */
+var ABC_PTS=[];
+// Análisis ABC (como Mi Negocio): % acumulado por producto; la línea toma el color de su clase (A aqua, B verde, C lila) y el área de abajo es gris.
+// Tocar o arrastrar sobre el gráfico muestra la clase, el producto y su % acumulado.
+function abcChartHTML(a){
+  const n=a.length,X=i=>n>1?i/(n-1)*1000:500,Y=v=>(110-v)/118*1000;
+  ABC_PTS=a.map(o=>({n:o.name,c:o.cls,a:o.acc}));
+  const P=a.map((o,i)=>X(i).toFixed(1)+','+Y(o.acc).toFixed(1));
+  let ia=0,ib=-1;a.forEach((o,i)=>{if(o.cls==='A')ia=i;if(o.cls==='B')ib=i;});if(ib<ia)ib=ia;
+  const seg=(i0,i1,c)=>i1>i0?'<path class="ac-l" d="M'+P.slice(i0,i1+1).join(' L')+'" style="stroke:'+c+'"/>':'';
+  const fd='M'+X(0).toFixed(1)+',1000 L'+P.join(' L')+' L'+X(n-1).toFixed(1)+',1000 Z',fill='<path d="'+fd+'" style="fill:var(--abc-fill)"/>';
+  let vl='';for(let k=1;k<20;k++)vl+='<line class="ac-v" x1="'+k*50+'" x2="'+k*50+'" y1="0" y2="1000"/>';
+  let gl='',yl='';[0,20,40,60,80,100].forEach(v=>{const y=Y(v).toFixed(1),tp=(Y(v)/10).toFixed(2);gl+='<line class="ac-g" x1="0" x2="1000" y1="'+y+'" y2="'+y+'"/>';yl+='<div class="ac-yl l" style="top:'+tp+'%">'+v+'</div><div class="ac-yl r" style="top:'+tp+'%">'+v+'</div>';});
+  const last=a[n-1];
+  return '<div class="abcch"><div class="ac-plot" onpointerdown="abcPtr(event)" onpointermove="abcPtr(event,1)">'+yl+'<svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><defs><clipPath id="acClip"><path d="'+fd+'"/></clipPath></defs>'+fill+'<g clip-path="url(#acClip)">'+vl+'</g>'+gl+seg(0,ia,'#c5f9f9')+seg(ia,ib,'#bef99c')+seg(ib,n-1,'#e7b2fa')+'</svg><span class="ac-end" style="left:'+(X(n-1)/10).toFixed(2)+'%;top:'+(Y(last.acc)/10).toFixed(2)+'%"></span><div class="ac-vx"></div><div class="ac-hy"></div></div><div class="ac-tip"></div></div>';
+}
+function abcPtr(ev,move){try{
+  if(move&&ev.pointerType==='mouse'&&!ev.buttons)return;
+  const plot=ev.currentTarget,box=plot.parentNode,r=plot.getBoundingClientRect(),n=ABC_PTS.length;if(!r.width||!n)return;
+  const f=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width)),i=Math.round(f*(n-1)),p=ABC_PTS[i];
+  const xp=n>1?i/(n-1):0.5,yp=(110-p.a)/118;
+  const vx=plot.querySelector('.ac-vx'),hy=plot.querySelector('.ac-hy'),tip=box.querySelector('.ac-tip');
+  vx.style.display=hy.style.display='block';vx.style.left=(xp*100)+'%';hy.style.top=(yp*100)+'%';
+  tip.textContent='';[p.c,p.n,(Math.round(p.a*100)/100)+'%'].forEach(s=>{const d=document.createElement('div');d.textContent=s;tip.appendChild(d);});
+  tip.style.display='block';const px=plot.offsetLeft+xp*plot.clientWidth,tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(box.clientWidth-tw,px-tw/2))+'px';
+}catch(_){}}
+// Formas de pago (como Mi Negocio): una barra por forma de pago, en orden alfabético, para lo elegido arriba (Ventas, Compras, Ingresos o Gastos extra).
+// Tocar una barra la pone negra y muestra su nombre y su total.
+function pfChartHTML(l){
+  const k=state.pfType||'v';const arr=l.slice().sort((x,y)=>BIN_COLL.compare(''+x.name,''+y.name));const vals=arr.map(o=>Math.max(0,+o[k]||0));
+  if(!vals.some(v=>v>0))return '<div class="txempty">'+t('tx_chart_empty')+'</div>';
+  const mx=niceMax(Math.max(...vals,0)),H=190,PT=8,PB=8,plot=H-PT-PB;let grid='';
+  for(let q=0;q<=5;q++){const frac=q/5,yTop=PT+frac*plot,val=mx*(1-frac);grid+='<div class="txc-line" style="top:'+yTop+'px"></div><div class="txc-yl l" style="top:'+yTop+'px">'+chartN(val)+'</div><div class="txc-yl r" style="top:'+yTop+'px">'+chartN(val)+'</div>';}
+  const bars=arr.map((o,i)=>{const v=vals[i],h=mx>0?(v>0?Math.max(1.5,v/mx*100):0):0,sel=state.pfBar===i;
+    const tip=sel?'<div class="txc-tip">'+exEsc(o.name)+'<br><b class="num">'+money(v)+'</b></div>':'';
+    return '<div class="txc-b" data-pfbar="'+i+'">'+tip+'<div class="txc-bar '+(sel?'sel':'')+'" style="height:'+h+'%"></div></div>';}).join('');
+  return '<div class="txchart pfchart" style="height:'+H+'px">'+grid+'<div class="txc-bars" style="bottom:'+PB+'px">'+bars+'</div></div>';
+}
 function repABC(){const a=repABCData();if(!a)return repLoading();if(!a.length)return repEmpty();
   const head=`<div class="rsortbar"><button class="rsort" data-act="mrep:abcinfo">${svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>')} ${t('mr_abc_what')}</button></div>`;
-  return head+repCards('abc',[[t('mr_class')],[t('mr_pval')],[t('mr_pacc')]],a.map(o=>({t:o.name,cls:'abcrow-'+o.cls,badge:`<span class="abcbadge abc-${o.cls}">${o.cls}</span>`,c:[[null,o.cls,''],[null,o.pv,'n'],[null,o.acc,'n']]})),{first:t('mr_prod_name')});}
+  const pc=v=>''+(Math.round((+v||0)*100)/100);   /* como Mi Negocio: 0.17 · 35.22 · 37.2 */
+  REP_CSV.abc={name:t('rep_abc'),head:[t('mr_prod_name'),t('mr_class'),t('mr_pval'),t('mr_pacc')],rows:a.map(o=>[o.name,o.cls,o.pv,o.acc])};
+  const chart=state.repCharts!==false?abcChartHTML(a):'';
+  const th=`<div class="abct-h"><span>${t('mr_prod_name')}</span><span>${t('mr_pval')}</span><span>${t('mr_pacc')}</span></div>`;
+  const rows=a.map(o=>`<div class="abct-r abc${o.cls}"><span>${exEsc(o.name)}</span><span class="num">${pc(o.pv)}</span><span class="num">${pc(o.acc)}</span></div>`).join('');
+  return head+`<div class="abcwrap"><div class="abcstick">${chart}${th}</div><div class="abct">${rows}</div></div>`;}   /* gráfico y encabezado quedan fijos arriba; la lista baja debajo (como Mi Negocio) */
 // 12) Registro de compras
 // Registro de compras (como Mi Negocio): por fecha; "Por compra" = las compras del día con sus productos; "Por producto" = el historial de inventario de Mi Negocio de ese día
 function repPurchLog(){
@@ -7693,10 +7797,11 @@ document.getElementById("device").addEventListener("click",e=>{
   if(e.target.id==='pfdlg')return closePF();
   if(e.target.id==='qrdlg')return closeQR();
   if(e.target.id==='saleproddlg')return closeSaleProd();
-  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-sradd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-recvdet],[data-paydet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt]");
+  const el=e.target.closest("[data-nav],[data-inc],[data-dec],[data-stock],[data-act],[data-drawer],[data-di],[data-fab],[data-edit],[data-catpick],[data-catpickf],[data-unitpick],[data-mermapick],[data-fltval],[data-saleadd],[data-sradd],[data-cdel],[data-cliac],[data-pick],[data-catalog],[data-addcat],[data-tienda],[data-cliedit],[data-saledet],[data-recvdet],[data-paydet],[data-reptile],[data-pinc],[data-pdec],[data-pcdel],[data-purdet],[data-txbar],[data-txtpt],[data-pfbar]");
   if(!el)return;
   if(el.hasAttribute("data-purdet"))return openPurchaseDet(el.dataset.purdet);
   if(el.hasAttribute("data-txbar")){const i=+el.dataset.txbar;state.txBar=(state.txBar===i)?null:i;state._keep=document.getElementById("screen").scrollTop;return render();}
+  if(el.hasAttribute("data-pfbar")){const i=+el.dataset.pfbar;state.pfBar=(state.pfBar===i)?null:i;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.hasAttribute("data-txtpt")){const i=+el.dataset.txtpt;state.txtPt=(state.txtPt===i)?null:i;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.hasAttribute("data-reptile"))return repToggle(el.dataset.reptile);
   if(el.hasAttribute("data-pinc"))return pAdd(el.dataset.pinc);
@@ -8053,6 +8158,7 @@ document.getElementById("device").addEventListener("change",e=>{
   if(el.id==='rvTo'){repEnsureRange();state.repRange.to=el.value;if(state.repRange.to<state.repRange.from)state.repRange.from=el.value;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.id==='txDate'){state.txDate=el.value;state.txBar=null;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.id==='txType'){state.txType=el.value;state.txBar=null;state._keep=document.getElementById("screen").scrollTop;return render();}
+  if(el.id==='pfType'){state.pfType=el.value;state.pfBar=null;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.id==='txtType'){state.txtType=el.value;state.txtPt=null;state._keep=document.getElementById("screen").scrollTop;return render();}
   if(el.dataset&&el.dataset.pqty!=null){const id=+el.dataset.pqty;let v=qtyVal(el.value);if(v<0)v=0;if(v===0){delete state.pcart[id];if(state.pcost)delete state.pcost[id];if(state.pprice)delete state.pprice[id];}else state.pcart[id]=v;return render();}
   if(el.dataset&&el.dataset.pcost!=null){const id=+el.dataset.pcost;state.pcost=state.pcost||{};state.pcost[id]=Math.max(0,+el.value||0);return render();}
@@ -8666,7 +8772,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261005213640';
+const APP_VERSION='20261006014849';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

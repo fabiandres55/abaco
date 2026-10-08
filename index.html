@@ -1514,6 +1514,20 @@ const P=id=>state.products.find(p=>p.id===id);
 const FOLD_C=new Map();
 // ¿el texto contiene todas las palabras buscadas? (una sola palabra = igual que antes)
 function qHas(h,q){if(!q)return true;if(q.indexOf(' ')<0)return h.includes(q);const ws=q.split(/\s+/);for(const w of ws){if(w&&!h.includes(w))return false;}return true;}
+// ¿el producto coincide con lo buscado? (q ya en minúsculas y sin tildes, con fold). Cada palabra puede estar en el nombre, la clave
+// o la categoría ("foami 6973"), y la clave también se compara sin espacios, guiones ni puntos ("su094" o "su 094" → SU-094).
+const PHIT_C=new WeakMap();
+function prodHay(p){const key=p.key==null?'':''+p.key,k=(p.name||'')+'\u0001'+key+'\u0001'+(p.cat||'');let o=PHIT_C.get(p);if(o&&o.k===k)return o;
+  const kf=fold(key),nf=fold(p.name||'');o={k,h:nf+'\u0001'+kf+'\u0001'+fold(p.cat||''),hn:nf+'\u0001'+kf,kc:kf.replace(/[^0-9a-z]/g,''),nc:nf.replace(/[^0-9a-z]/g,'')};PHIT_C.set(p,o);return o;}
+function prodHit(p,q,noCat){if(!q)return true;if(!p)return false;const o=prodHay(p),h=noCat?o.hn:o.h;if(qHas(h,q))return true;
+  const cm=x=>!!x&&((!!o.kc&&o.kc.includes(x))||(/\d/.test(x)&&o.nc.includes(x)));   /* sin guiones ni espacios: la clave siempre; el nombre solo si hay números (códigos como SU-094) */
+  const qc=q.replace(/[^0-9a-z]/g,'');if(cm(qc))return true;
+  const ws=q.split(/\s+/).filter(Boolean);if(ws.length<2)return false;
+  for(const w of ws){if(h.includes(w))continue;if(cm(w.replace(/[^0-9a-z]/g,'')))continue;return false;}return true;}
+// la clave igual a lo escrito va primero, luego las que empiezan así; lo demás conserva su orden
+function prodKeyFirst(list,q){const qc=(''+(q||'')).replace(/[^0-9a-z]/g,'');if(!qc)return list;const r=new Map();let any=false;
+  list.forEach(p=>{const kc=prodHay(p).kc;const k=!kc?2:(kc===qc?0:(kc.startsWith(qc)?1:2));r.set(p,k);if(k<2)any=true;});
+  return any?list.slice().sort((a,b)=>r.get(a)-r.get(b)):list;}
 function fold(x){const k=''+(x==null?'':x);let r=FOLD_C.get(k);if(r!==undefined)return r;r=k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(FOLD_C.size>30000)FOLD_C.clear();FOLD_C.set(k,r);return r;}
 // id de producto siempre único (mayor que cualquiera existente)
 // id de producto nuevo: basado en la hora (+ un dígito al azar) para que dos equipos que crean productos a la vez (o uno sin internet) no saquen el mismo id; al sincronizar, el mismo id pisaba uno de los dos productos
@@ -1579,12 +1593,12 @@ function scInventario(){
     return invHeader()+`<div class="emptybig">${svg('<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/>')}<div class="et">${t('emptyInv').replace('+','')}<span class="eplus">＋</span></div></div>`;
   }
   const q=fold(state.q.toLowerCase());
-  let items=state.products.filter(p=>qHas(fold(p.name),q)||qHas(fold((p.cat||"")),q)||qHas(fold((p.key||"")),q));
+  let items=state.products.filter(p=>prodHit(p,q));
   if(state.filterCat==='__none__')items=items.filter(p=>!(p.cat&&(''+p.cat).trim()));
   else if(state.filterCat)items=items.filter(p=>p.cat===state.filterCat);
   if(state.filterUnit)items=items.filter(p=>prodUnitLbl(p)===state.filterUnit);
   if(state.filterInfo){const fi=state.filterInfo.toLowerCase();items=items.filter(p=>(''+(p.desc||p.info||'')).toLowerCase().includes(fi));}
-  items.sort(invCmp);expPruneAllSoon();
+  items.sort(invCmp);if(q)items=prodKeyFirst(items,q);expPruneAllSoon();
   const total=items.length;const limit=state.invLimit||INV_PAGE;const shown=items.slice(0,limit);
   const warnTri=c=>`<svg viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.8H2.5z" fill="${c}"/><rect x="11" y="9.2" width="2" height="5.6" rx="1" fill="#fff"/><circle cx="12" cy="17.2" r="1.15" fill="#fff"/></svg>`;
   const bod=state.profile&&state.profile.kind==='bodega';
@@ -1749,7 +1763,7 @@ function closeMermaAdd(){document.getElementById('mermaadddlg').classList.remove
 let MERMA_Q='';
 function fillMermaPick(){
   const box=svg(S_BOX2);const q=fold(MERMA_Q.toLowerCase());
-  const list=state.products.filter(p=>qHas(fold(p.name),q)||qHas(fold((''+(p.key||''))),q)||qHas(fold((''+(p.cat||''))),q));
+  const list=prodKeyFirst(state.products.filter(p=>prodHit(p,q)),q);
   const rows=list.length?`<div class="list">`+list.map(p=>{
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
@@ -2329,7 +2343,7 @@ async function shareContent(kind){
 function scNueva(){
   const q=fold(state.q.toLowerCase());
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
-  const _hits=q?state.products.filter(p=>qHas(fold(p.name),q)||qHas(fold((p.cat||"")),q)||qHas(fold((''+(p.key||''))),q)):[];const _lim=state.invLimit||INV_PAGE;   /* por tandas, como Inventario: miles de filas con foto congelaban el teclado */
+  const _hits=q?prodKeyFirst(state.products.filter(p=>prodHit(p,q)),q):[];const _lim=state.invLimit||INV_PAGE;   /* por tandas, como Inventario: miles de filas con foto congelaban el teclado */
   const list=_hits.slice(0,_lim).map(p=>saleRow(p,box)).join("")+(_hits.length>_lim?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:_hits.length-_lim})}</div>`:'');
   const hint=`<div class="salehelp" style="margin-top:26px">${t('sale_help_add')}</div><div class="salebtns"><button class="btn ghost" data-act="salehelpbtn">${t('sale_help_btn')}</button><button class="btn ghost" data-act="saleopts">${t('sale_opts_btn')}</button></div><div style="display:flex;justify-content:center;margin-top:14px"><span class="fchip" data-act="clipick">${svg(S_PER)} ${state.saleClient?exEsc(state.saleClient):t('cli_tpl')}</span></div>`;
   if(state.quoteMode)return '<div class="stickhead">'+quoteHeadHTML()+`<div class="pad sh-in">
@@ -2596,7 +2610,7 @@ function fillSaleProd(){
   cats.forEach(c=>{
     const catMatch=q&&qHas(fold(c),q);
     const all=groups[c];
-    const matched=q?all.filter(p=>qHas(fold(p.name),q)||qHas(fold((''+(p.key||''))),q)):all;
+    const matched=q?prodKeyFirst(all.filter(p=>prodHit(p,q,true)),q):all;
     // al buscar, solo mostrar categorías cuyo nombre o productos coincidan (colapsadas)
     if(q&&!catMatch&&!matched.length)return;
     const open=!!state.saleCatOpen[c];   // NO se auto-expande al buscar
@@ -2813,7 +2827,7 @@ function scCompras(){
     <button class="round" data-act="compraprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
     <button class="round" data-act="scan:purchase">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button>
   </div>`;
-  const _hits=q?state.products.filter(p=>qHas(fold(p.name),q)||qHas(fold((p.cat||"")),q)||qHas(fold((''+(p.key||''))),q)):[];const _lim=state.invLimit||INV_PAGE;   /* por tandas, como Inventario */
+  const _hits=q?prodKeyFirst(state.products.filter(p=>prodHit(p,q)),q):[];const _lim=state.invLimit||INV_PAGE;   /* por tandas, como Inventario */
   const list=_hits.slice(0,_lim).map(p=>compraRow(p,box)).join("")+(_hits.length>_lim?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:_hits.length-_lim})}</div>`:'');
   const hint=`<div class="salehelp" style="margin-top:26px">${t('cp_help')}</div><div style="display:flex;justify-content:center;margin-top:18px"><button class="btn ghost" style="width:auto;padding:11px 20px" data-act="provtpl">${t('cp_provider_tpl')}</button></div>`;
   const body=q?`<div class="list">${list||'<div class="empty">'+t('noResults')+'</div>'}</div>`:(pcartItems().length?compraCartHTML():hint);
@@ -4502,8 +4516,8 @@ async function mrepAct(act){
 }
 // buscador de producto / cliente / proveedor (Productos a Detalle, Reporte Clientes, Reporte Proveedor)
 function repPickerHTML(id,ph){const q=(state.repQ&&typeof state.repQ==='object'&&state.repQ[id])||'';return `<div class="rpick"><input autocomplete="off" id="rpSearch_${id}" data-rp="${id}" class="inp rpsearch" placeholder="${exEsc(ph)}" value="${exEsc(q)}"><div id="rpSugg_${id}" class="rpsugg"></div></div>`;}
-function repPickList(id,q){q=qtNorm(q||'');if(!q)return [];
-  if(id==='prod_detail')return (state.products||[]).filter(p=>p&&!p.del&&(qtNorm(p.name).includes(q)||qtNorm(p.key||'').includes(q))).sort(prodCmp).slice(0,30).map(p=>({v:'p'+p.id,t:mnName(p),s:p.key||''}));
+function repPickList(id,q){const q0=q;q=qtNorm(q||'');if(!q)return [];
+  if(id==='prod_detail'){const f=fold((''+(q0||'')).replace(/^\.{3}\s*/,'').toLowerCase()).trim();return prodKeyFirst((state.products||[]).filter(p=>p&&!p.del&&prodHit(p,f,true)).sort(prodCmp),f).slice(0,30).map(p=>({v:'p'+p.id,t:mnName(p),s:p.key||''}));}
   if(id==='clients')return (state.clients||[]).filter(c=>c&&!c.del&&(qtNorm(c.name).includes(q)||qtNorm(c.alias||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.name||'',b.name||'')).slice(0,30).map(c=>({v:c.id,t:(c.name||'')+(c.alias?' ('+c.alias+')':''),s:c.phone||''}));
   if(id==='provider')return (state.providers||[]).filter(v=>v&&!v.del&&(qtNorm(v.contact||'').includes(q)||qtNorm(v.company||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.contact||a.company||'',b.contact||b.company||'')).slice(0,30).map(v=>({v:v.id,t:(v.contact||v.company||'')+(v.contact&&v.company?' ('+v.company+')':''),s:v.phone||''}));
   return [];}
@@ -8521,7 +8535,7 @@ function spGridToggle(){try{localStorage.setItem('abanico.pickGrid',spGrid()?'0'
 const SP_PAGE=60;
 function spTilesHTML(q,box){
   const pc=state.pickMode==='merma'?{}:curPickCart();
-  const list=state.products.filter(p=>!q||qHas(fold((''+(p.name||''))),q)||qHas(fold((''+(p.key||''))),q)||qHas(fold((''+(p.cat||''))),q)).sort(prodCmp);
+  const list=prodKeyFirst(state.products.filter(p=>!q||prodHit(p,q)).sort(prodCmp),q);
   const lim=state.spLimit||SP_PAGE;
   const tiles=list.slice(0,lim).map(p=>{const n=pc[p.id]||0;const price=(state.pickMode==='compra'||state.pickMode==='merma')?(p.cost||0):p.price;const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');
     return `<div class="sptile ${n?'on':''}" data-saleadd="${p.id}">${n?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box)}</div><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(mnName(p))}</div><div class="f"><span class="num">#${p.stock}</span><b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${n}</span>`:''}</div>`;}).join('');
@@ -8772,7 +8786,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261006014849';
+const APP_VERSION='20261008103717';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

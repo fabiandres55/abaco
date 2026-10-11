@@ -3096,7 +3096,7 @@ const CAT_NF=new Intl.NumberFormat('en-US',{maximumFractionDigits:2});
 function catR2(n){let v=+n||0;if(Math.abs(v)<16777216)v=Math.fround(v);const x=v*100,f=Math.floor(x);return (x-f===0.5?(f%2?f+1:f):Math.round(x))/100;}
 function catNum(n){return CAT_NF.format(catR2(n)||0);}
 function catMoney(n){return moneySym()+catNum(n);}
-function catBizName(){return (''+(receiptCfg().name||'')).trim().toUpperCase();}   /* el negocio del recibo (si no hay, el de la tienda), como los demás PDF */
+function catBizName(){return (''+((state.profile&&state.profile.name)||'Abanico')).trim().toUpperCase();}   /* mods155: SIEMPRE la tienda que emite el catálogo (no el nombre del recibo) */
 // mods153: "Precio Mayoreo / precio menor registrado" = el menor entre el precio de venta y los adicionales; SIEMPRE hay uno
 // (MN: IMPRESIONES, sin adicionales, muestra su precio de venta). Antes (mods142c) solo los adicionales y sin ellos no salía.
 function catWholesale(p){const l=[+(p&&p.price)||0].concat(xPrices(p).map(x=>+x.p).filter(v=>v>0));return Math.min.apply(null,l);}
@@ -12506,7 +12506,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261011150732';
+const APP_VERSION='20261011154518';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

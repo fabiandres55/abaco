@@ -267,6 +267,45 @@ function colApply(c,dark){const r=document.documentElement,v=c?colVariants(c,dar
   .saleacc{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line2);cursor:pointer;font-weight:600;font-size:14px;color:var(--ink);background:var(--card)}
   .saleacc .chev{display:inline-flex;transition:transform .15s}.saleacc .chev.op{transform:rotate(180deg)}
   .saleacc .chev svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2}
+  /* mods150: cuántos productos muestra cada categoría al buscar ("2 de 770 · ver todos"); filas aún por dibujar (reservan su alto);
+     "Ver más" de las sugerencias; franja del filtro del Inventario; aviso de carga de productos. Solo variables de color: claro y oscuro */
+  .saleacc .nm{flex:1;min-width:0}
+  .saleacc .spcnt{flex:0 0 auto;margin-left:8px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+  .saleacc .spcnt.part{color:var(--amber)}
+  #saleprodBody .sp-p{display:block;height:var(--sp-rh,76px);box-sizing:border-box;border-bottom:1px solid var(--line2);background:var(--card)}
+  .rps.rpsmore{align-items:center;color:var(--ink);font-weight:600;font-size:13px}
+  .invflt{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}
+  .invflt .if-l{flex:1;min-width:0;display:flex;align-items:center;gap:6px;font-weight:600}
+  .invflt .if-l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .invflt .if-l svg{width:16px;height:16px;flex:0 0 16px;stroke:var(--muted);fill:none;stroke-width:2}
+  .invflt .if-n{color:var(--muted);white-space:nowrap}
+  .invflt .if-x{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;padding:0}
+  .invflt .if-x svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2}
+  :root{--pl-bg:#fff6df;--pl-line:#efc56f;--pl-ink:#6f4b00;--pl-err-bg:#fdecea;--pl-err-line:#efa69b;--pl-err-ink:#9b2c1f}
+  html[data-theme="dark"]{--pl-bg:#3a3115;--pl-line:#6b5a22;--pl-ink:#f3d58a;--pl-err-bg:#3d211d;--pl-err-line:#7a3a30;--pl-err-ink:#f4b4a8}
+  .prodlbar{display:flex;align-items:center;gap:8px;background:var(--pl-bg);border:1px solid var(--pl-line);color:var(--pl-ink);border-radius:10px;padding:7px 10px;margin:0 0 8px;font-size:12.5px;font-weight:600;line-height:1.3}
+  .stickhead>.prodlbar{margin:0 12px 8px}
+  #body>.prodlbar{margin:8px 12px}
+  .hb-stick>.prodlbar{margin:6px 0 2px}
+  .prodlbar.error{background:var(--pl-err-bg);border-color:var(--pl-err-line);color:var(--pl-err-ink)}
+  .prodlbar.info{background:var(--card);border-color:var(--line);color:var(--muted);font-weight:500}
+  .prodlbar svg,.prodlbig svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+  .prodlbar span{flex:1;min-width:0}
+  .prodlbar button,.prodlbig button{flex:none;border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:6px 12px;min-height:34px;font:inherit;font-weight:700;cursor:pointer}
+  .prodlbig{text-align:center;color:var(--muted);padding:40px 22px;font-size:14px;line-height:1.5}
+  .prodlbig svg{width:24px;height:24px;display:block;margin:0 auto 10px}
+  .prodlbig button{margin:14px 6px 0;display:inline-block;color:var(--ink)}
+  .emptybig.prodl{padding-top:72px}
+  .emptybig.prodl .prodlbig{padding:0}
+  .emptybig.prodl svg{width:30px;height:30px;stroke:currentColor;stroke-width:2;margin:0 auto 12px}
+  .prodlspin{animation:prodlspin 1s linear infinite}
+  @keyframes prodlspin{to{transform:rotate(360deg)}}
+  .prodlbar.mini{position:absolute;z-index:7;right:12px;bottom:-12px;margin:0!important;padding:3px 10px;gap:6px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--card);border-color:var(--line);color:var(--muted);box-shadow:0 1px 4px rgba(0,0,0,.14);pointer-events:none}
+  .prodlbar.mini span{flex:none}
+  .prodlbar.mini svg{width:13px;height:13px}
+  .hb-stick>.prodlbar.mini{bottom:2px}
+  #body>.prodlbar.mini{position:sticky;top:6px;margin:6px 12px -32px auto!important;width:max-content}
+  .rpsugg>.prodlbar{margin:6px 8px;position:static}
   .saleprow{cursor:pointer}
   .cliac{position:absolute;left:0;right:0;top:100%;margin-top:3px;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px -6px rgba(0,0,0,.3);z-index:6;max-height:210px;overflow-y:auto;display:none}
   .cliac.on{display:block}
@@ -2349,6 +2388,9 @@ const I18N={
 };
 /* mods142b: textos de Inventario (pantalla Reserva, encabezado de categoría, flecha de los chips) */
 Object.assign(I18N.es,{rsv_title:"Productos en Reserva",rsv_count1:"{n} producto",rsv_cat:"Categoría: {c}",chips_more:"Más opciones"});
+/* mods150: cuántos productos muestra la categoría al buscar; franja del filtro del Inventario */
+Object.assign(I18N.es,{sp_cnt_part:"{n} de {t} · ver todos",inv_flt_n:"{n} de {t} productos"});
+Object.assign(I18N.en,{sp_cnt_part:"{n} of {t} · see all",inv_flt_n:"{n} of {t} products"});
 Object.assign(I18N.en,{rsv_title:"Products in reserve",rsv_count1:"{n} product",rsv_cat:"Category: {c}",chips_more:"More options"});
 const L=(()=>{const q=new URLSearchParams(location.search).get("lang");if(q)return q.slice(0,2).toLowerCase();
   try{const sv=localStorage.getItem("abanico.lang");if(sv==="es"||sv==="en")return sv;}catch(_){}   // elegido a mano en Ajustes
@@ -2423,17 +2465,18 @@ function prodHit(p,q,noCat){if(!q)return true;if(!p)return false;const o=prodHay
   const ws=q.split(/\s+/).filter(Boolean);if(ws.length<2)return false;
   for(const w of ws){if(h.includes(w))continue;if(cm(w.replace(/[^0-9a-z]/g,'')))continue;return false;}return true;}
 // mods141: primero el nombre (palabras completas, luego contenidas), después la clave igual o que empieza así; lo demás conserva su orden
-function prodKeyFirst(list,q){const qf=fold(''+(q||'')).trim();if(!qf||!list||list.length<2)return list;
+function prodRankFn(q){const qf=fold(''+(q||'')).trim();if(!qf)return ()=>0;   /* mods150 (de mods149): 0 nombre completo, 1 nombre contiene, 2 clave igual, 3 clave empieza, 4 resto */
   const ws=qf.split(/\s+/).filter(Boolean),qc=qf.replace(/[^0-9a-z]/g,'');
   const res=ws.map(w=>{const e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return new RegExp(/^\d+$/.test(w)?'(^|[^0-9])'+e+'([^0-9]|$)':'(^|[^0-9a-z])'+e);});
+  return p=>{const o=prodHay(p),nf=o.nf!=null?o.nf:fold(p.name||'');
+    if(res.every(re=>re.test(nf)))return 0;
+    if(ws.every(w=>nf.includes(w))||(qc.length>1&&/\d/.test(qc)&&o.nc.includes(qc)))return 1;
+    if(qc&&o.kc===qc)return 2;
+    if(qc&&o.kc&&o.kc.startsWith(qc))return 3;
+    return 4;};}
+function prodKeyFirst(list,q){if(!list||list.length<2||!fold(''+(q||'')).trim())return list;const rk=prodRankFn(q);
   const r=new Map();let mix=false,first=-1;
-  list.forEach(p=>{const o=prodHay(p),nf=o.nf!=null?o.nf:fold(p.name||'');let k;
-    if(res.every(re=>re.test(nf)))k=0;
-    else if(ws.every(w=>nf.includes(w))||(qc.length>1&&/\d/.test(qc)&&o.nc.includes(qc)))k=1;
-    else if(qc&&o.kc===qc)k=2;
-    else if(qc&&o.kc&&o.kc.startsWith(qc))k=3;
-    else k=4;
-    r.set(p,k);if(first<0)first=k;else if(k!==first)mix=true;});
+  list.forEach(p=>{const k=rk(p);r.set(p,k);if(first<0)first=k;else if(k!==first)mix=true;});
   return mix?list.slice().sort((a,b)=>r.get(a)-r.get(b)):list;}
 function fold(x){const k=''+(x==null?'':x);let r=FOLD_C.get(k);if(r!==undefined)return r;r=k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(FOLD_C.size>30000)FOLD_C.clear();FOLD_C.set(k,r);return r;}
 // id de producto siempre único (mayor que cualquiera existente)
@@ -2555,8 +2598,8 @@ function scInventario(){
   }).join("")||`<div class="empty">${t((q||state.filterUnit||state.filterInfo)?'noResults':'noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
-  if((state.q||'').trim())return invHeader()+`<div class="pcards">${cards}</div>${more}`;   /* buscando: sin totales, más espacio para los resultados */
-  return invHeader()+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length.toLocaleString(numLoc())}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount().toLocaleString(numLoc())}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>${more}`;
+  if((state.q||'').trim())return invHeader()+invFltBar(total)/* mods150 */+`<div class="pcards">${cards}</div>${more}`;   /* buscando: sin totales, más espacio para los resultados */
+  return invHeader()+invFltBar(total)/* mods150 */+`<div class="kpis"><div class="kpi"><div class="k-l">${t('kpi_products')}</div><div class="k-v num">${state.products.length.toLocaleString(numLoc())}</div></div><div class="kpi"><div class="k-l">${t('kpi_low')}</div><div class="k-v num" style="color:${lowCount()?'var(--red)':'var(--ink)'}">${lowCount().toLocaleString(numLoc())}</div></div><div class="kpi"><div class="k-l">${t('kpi_value')}</div><div class="k-v num">${money(val)}</div></div></div><div class="pcards">${cards}</div>${more}`;
 }
 function scVentas(){
   const chips=`<div class="chips">
@@ -3663,6 +3706,85 @@ function openSalePay(){return openPick('pay');}   // lista de la tienda, como Mi
 function saleRow(p,box){
   return pickRowHTML(p,state.cart[p.id]||0,'data-sradd','srdec',p.price,box);   // igual que "Seleccione el producto"
 }
+/* ==== mods150 (1/2): los productos SIEMPRE completos en pantalla (un cliente: "abrí DETAL para vender y solo había 2 productos") ====
+   "Seleccione el producto" (Ventas, Compras, Merma, Copiar):
+   - Al buscar, el orden de las categorías es: primero las que tienen lo escrito en su NOMBRE (igual > empieza > una palabra empieza >
+     contiene), luego las demás según su mejor producto (nombre completo > nombre contiene > clave igual > clave empieza > resto; regla
+     de mods141/mods149, que queda incluida aquí) y, a igualdad, alfabético.
+   - Todas las categorías con coincidencias van DESPLEGADAS (sin el tope de ~150 filas de mods144: "detal" dejaba DETAL (770) plegada y
+     abiertas otras con 1 producto). Si el nombre de la categoría coincide, muestra TODOS sus productos.
+   - Al buscar, cada categoría dice cuántos muestra: "2 de 770 · ver todos" o "770". Abrir una plegada, o tocar una que muestra solo
+     algunos, lista TODOS sus productos (primero los que coinciden); otro toque la pliega.
+   - Filas por tandas: de una vez lo que se ve (mín. 60 filas y hasta la posición a la que se vuelve al agregar); el resto queda reservado
+     con su alto y se completa solo enseguida (~14 ms por tanda), sin tocar nada: miles de filas no traban el teclado (por eso existía
+     el tope). pickRowHTML se envuelve y solo difiere las filas del selector (data-saleadd) mientras se arma; ante una falla, todo de una.
+   "Ver más (n)": la siguiente tanda se carga sola al acercarse al final (Ventas y Compras al buscar, cuadrícula del selector,
+   sugerencias de Productos a Detalle) y al tocarlo la lista ya no vuelve arriba ni se cierra el teclado.
+   Inventario con filtro (categoría, unidad, información): una franja dice cuál y "n de N productos", con ✕ para quitarlo. */
+const SP_SYNC=60;   // filas mínimas de una vez; el resto, por tandas (la fórmula de spRendBegin asegura que lo visible va de una)
+const SP_REND={on:false,n:0,max:SP_SYNC,pend:[],gen:0,rh:0,old:{},full:false};
+const SP_ROW=pickRowHTML;   // la fila de siempre (la que esté declarada; otro paquete puede cambiar su cuerpo)
+pickRowHTML=function(p,inCart,addAttr){const R=SP_REND;
+  if(R.on&&addAttr==='data-saleadd'&&++R.n>R.max){R.pend.push(Array.prototype.slice.call(arguments));return '<i class="sp-p" data-g="'+R.gen+'" data-k="'+(R.pend.length-1)+'"></i>';}
+  return SP_ROW.apply(this,arguments);};
+function spRendBegin(){const R=SP_REND,b=document.getElementById('saleprodBody');
+  if(R.pend.length){R.old[R.gen]=R.pend;const ks=Object.keys(R.old);if(ks.length>3)delete R.old[ks[0]];}   // por si quedó en pantalla alguna de la vuelta anterior
+  R.gen++;R.on=true;R.n=0;R.pend=[];let vis=1800;
+  if(b){const r=b.querySelector('.saleprow');if(r&&r.offsetHeight>20)R.rh=r.offsetHeight;vis=b.scrollTop+2*(b.clientHeight||900);if(R.rh)b.style.setProperty('--sp-rh',R.rh+'px');}
+  R.max=R.full?Infinity:Math.max(SP_SYNC,Math.ceil(vis/(R.rh||60))+20);
+  const g=R.gen;Promise.resolve().then(()=>{if(R.gen!==g)return;R.on=false;if(R.pend.length)setTimeout(()=>spRendStep(g),0);});}
+function spRendStep(g){const R=SP_REND,b=document.getElementById('saleprodBody'),d=document.getElementById('saleproddlg');
+  if(R.gen!==g||!b||!d||!d.classList.contains('on'))return;   // otra vuelta o ventana cerrada (al abrir se arma de nuevo)
+  const ph=b.getElementsByClassName('sp-p');if(!ph.length)return;
+  if(!R.rh){const r=b.querySelector('.saleprow');if(r&&r.offsetHeight>20){R.rh=r.offsetHeight;b.style.setProperty('--sp-rh',R.rh+'px');}}
+  const t0=performance.now();
+  try{while(ph.length&&performance.now()-t0<14){const first=ph[0],run=[];let html='',el=first;
+      while(el&&el.classList&&el.classList.contains('sp-p')&&run.length<120){const a=(+el.dataset.g===R.gen?R.pend:(R.old[el.dataset.g]||[]))[+el.dataset.k];
+        if(!a)throw new Error('sp-p');html+=SP_ROW.apply(null,a);run.push(el);el=el.nextElementSibling;}
+      first.insertAdjacentHTML('beforebegin',html);run.forEach(x=>x.remove());}}
+  catch(e){return spRendAll();}
+  try{bkApplyInvImages();}catch(_){}
+  if(ph.length)setTimeout(()=>spRendStep(g),0);}
+function spRendAll(){const R=SP_REND,b=document.getElementById('saleprodBody');if(R.full||!b)return;const y=b.scrollTop;R.full=true;try{fillSaleProd();}finally{R.full=false;}b.scrollTop=y;}   // nunca quedan filas sin dibujar
+// al buscar: 1.º categorías cuyo NOMBRE coincide, 2.º las demás por su mejor producto (prodRankFn), 3.º alfabético (el orden que traían)
+function spCatFirst(cats,q,groups){const rk=prodRankFn(q),ord=new Map(cats.map((c,i)=>[c,i])),key={};
+  cats.forEach(c=>{const f=fold(c);const cr=!qHas(f,q)?9:(f===q?0:(f.startsWith(q)?1:((' '+f).includes(' '+q)?2:3)));
+    let b=9;for(const p of ((groups&&groups[c])||[])){if(prodHit(p,q,true)){const r=rk(p);if(r<b)b=r;if(!b)break;}}
+    key[c]=cr*10+b;});
+  cats.sort((a,b)=>key[a]-key[b]||ord.get(a)-ord.get(b));}
+function spQAllOn(q,c){return !!(q&&state.spQAll&&state.spQAll.q===q&&state.spQAll.m[c]);}
+function spQAllList(q,c,matched,all){if(!spQAllOn(q,c)||matched.length>=all.length)return matched;const s=new Set(matched);return matched.concat(all.filter(p=>!s.has(p)));}
+function spCatCnt(q,c,cm,matched,all){if(!q)return '';const N=all.length,n=(cm||spQAllOn(q,c))?N:matched.length,f=x=>x.toLocaleString(numLoc());
+  return `<span class="spcnt num${n<N?' part':''}">${n<N?ti('sp_cnt_part',{n:f(n),t:f(N)}):f(N)}</span>`;}
+// un grupo del selector igual que una categoría: sin tope de filas y con su contador. Para el grupo "* Reserva / Sin Existencias" de Compras (paquete 146a, pcRsvGroupHTML):
+// const g=spGroupView(q,'__rsv__',false,hit,rsvBase()); el título lleva g.head y las filas salen de g.list (sin "(rowsSoFar+hit.length<=150)")
+function spGroupView(q,c,cm,matched,all){return {list:(q&&!cm)?spQAllList(q,c,matched,all):all,head:spCatCnt(q,c,cm,matched,all),open:true};}
+// "Ver más (n)": sin volver arriba ni cerrar el teclado; y solo al acercarse al final
+function spMoreLoad(){const b=document.getElementById('saleprodBody');const y=b?b.scrollTop:0,foc=!!document.activeElement&&document.activeElement.id==='saleProdSearch';
+  state.spLimit=(state.spLimit||SP_PAGE)+SP_PAGE*2;fillSaleProd();if(b)b.scrollTop=y;
+  if(foc){const s2=document.getElementById('saleProdSearch');if(s2)try{s2.focus({preventScroll:true});}catch(_){}}}
+function invMoreLoad(){const sc=document.getElementById('screen'),sd=document.querySelector('#body .sdrop');const y=sd?sd.scrollTop:0,ys=sc?sc.scrollTop:0;
+  state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE*2;const live=document.getElementById('searchInput');
+  if(state.screen!=='inventario'&&live&&(live.value||'')===(state.q||''))searchRefresh();else render();   // con búsqueda: solo los resultados (la cajita y el teclado quedan)
+  if(sc&&sc.scrollTop!==ys)sc.scrollTop=ys;const sd2=document.querySelector('#body .sdrop');if(sd2&&y)sd2.scrollTop=y;}
+let SP_AUTO_T=0;
+document.addEventListener('scroll',e=>{const el=e.target;if(SP_AUTO_T||!el||el.nodeType!==1||el.scrollHeight-el.scrollTop-el.clientHeight>600)return;
+  let go=null;
+  if(el.id==='saleprodBody'){if(el.querySelector('.loadmore[data-act="spmore"]'))go=spMoreLoad;}
+  else if(el.classList.contains('rpsugg')){const id=(el.id||'').replace(/^rpSugg_/,'');if(REP_SUG.more[id]>0)go=()=>repSugMore(id);}
+  else if(el.classList.contains('sdrop')){if(el.querySelector('.loadmore[data-act="invmore"]'))go=invMoreLoad;}
+  else if(el.id==='screen'&&state.screen!=='inventario'){const m=document.querySelector('#body .loadmore[data-act="invmore"]');if(m&&!m.closest('.sdrop'))go=invMoreLoad;}   // el Inventario ya tiene el suyo
+  if(!go)return;SP_AUTO_T=1;requestAnimationFrame(()=>{SP_AUTO_T=0;});go();},true);
+// Sugerencias de Productos a Detalle: antes 30 y sin aviso ("pincel": 30 de 50); ahora dicen cuántas faltan y siguen solas
+const REP_SUG={q:{},lim:{},more:{}};
+function repSugCut(id,q,arr){if(REP_SUG.q[id]!==q){REP_SUG.q[id]=q;REP_SUG.lim[id]=30;}const lim=REP_SUG.lim[id]||30;REP_SUG.more[id]=Math.max(0,arr.length-lim);return arr.length>lim?arr.slice(0,lim):arr;}
+function repSugMoreHTML(id){const n=REP_SUG.more[id]||0;return n?`<div class="rps rpsmore" data-act="mrep:more:${id}">${ti('inv_more',{n:n.toLocaleString(numLoc())})}</div>`:'';}
+function repSugMore(id){const box=document.getElementById('rpSugg_'+id),inp=document.getElementById('rpSearch_'+id);if(id!=='prod_detail'||!box||!inp||!(REP_SUG.more[id]>0))return;
+  const y=box.scrollTop;REP_SUG.lim[id]=(REP_SUG.lim[id]||30)+60;box.innerHTML=g5SuggHTML(inp.value);box.scrollTop=y;setTimeout(()=>{try{bkApplyInvImages();}catch(_){}},30);}
+// Inventario con filtro: cuál y cuántos de cuántos (antes nada lo decía y la tarjeta PRODUCTOS seguía con el total)
+function invFltBar(n){const c=state.filterCat,u=state.filterUnit,i=state.filterInfo;if(!c&&!u&&!i)return '';
+  const lb=[c?(c==='__none__'?t('cat_none'):c):'',u||'',i?'"'+i+'"':''].filter(Boolean).join(' · '),f=x=>(+x||0).toLocaleString(numLoc());
+  return `<div class="invflt"><span class="if-l">${svg(ICO_CAT)}<span>${exEsc(lb)}</span></span><span class="if-n num">${ti('inv_flt_n',{n:f(n),t:f(state.products.length)})}</span><button class="if-x" data-act="fltall" aria-label="${exEsc(t('flt_all'))}">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>`;}
 /* ---------------- Selector de producto por categoría (venta) ---------------- */
 // Fila de producto para elegir (selector por categoría y búsqueda de la venta): toda la fila agrega; ✓ cantidad y ✕ quitar
 function pickRowHTML(p,inCart,addAttr,rmAct,price,box){
@@ -3682,6 +3804,7 @@ function fillSaleProd(){
   const cats=Object.keys(groups).sort((a,b)=>a===uncat?-1:b===uncat?1:prodColl().compare(a,b));
   const chev=svg('<path d="M6 9l6 6 6-6"/>');const chk=svg('<path d="M5 12l5 5L20 7"/>');
   let html='';
+  if(q)spCatFirst(cats,q,groups);else state.spQAll=null;spRendBegin();   // mods150: al buscar, primero las categorías cuyo nombre coincide, luego por su mejor producto; filas por tandas
   if(!q)state.spQOpen=null;const _qo=(state.spQOpen&&state.spQOpen.q===q)?state.spQOpen.m:{};let _rows=0;   // mods142b: plegadas/desplegadas a mano en esta búsqueda
   cats.forEach(c=>{
     const catMatch=q&&qHas(fold(c),q);
@@ -3690,10 +3813,10 @@ function fillSaleProd(){
     // al buscar, solo mostrar categorías cuyo nombre o productos coincidan (colapsadas)
     if(q&&!catMatch&&!matched.length)return;
     let open=!!state.saleCatOpen[c];
-    if(q){const n=((q&&!catMatch)?matched:all).length;open=(c in _qo)?!!_qo[c]:(_rows+n<=150);/* mods144: la primera también respeta el tope */if(open)_rows+=n;}   // mods142b: como MN, al buscar se despliegan las categorías con coincidencias (hasta ~150 filas)
-    html+=`<div class="saleacc" data-act="salecat:${(''+c).replace(/"/g,'&quot;')}"><span class="chev ${open?'op':''}">${chev}</span><span class="nm">${exEsc(c)}</span></div>`;
+    if(q){const n=((q&&!catMatch)?matched:all).length;open=(c in _qo)?!!_qo[c]:true;/* mods150: sin tope (con 150 filas DETAL quedaba plegada): todas las que coinciden, por tandas */if(open)_rows+=n;}   // mods142b: como MN, al buscar se despliegan las categorías con coincidencias (hasta ~150 filas)
+    html+=`<div class="saleacc" data-act="salecat:${(''+c).replace(/"/g,'&quot;')}"><span class="chev ${open?'op':''}">${chev}</span><span class="nm">${exEsc(c)}</span>${spCatCnt(q,c,catMatch,matched,all)}</div>`;
     if(open){
-      const list=(q&&!catMatch)?matched:all;   // si el nombre de la categoría coincide, muestra todos sus productos
+      const list=(q&&!catMatch)?spQAllList(q,c,matched,all):all;/* mods150: abierta a mano = todos sus productos */   // si el nombre de la categoría coincide, muestra todos sus productos
       const rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
       const pc=curPickCart();
       html+=list.map(p=>pickRowHTML(p,pc[p.id]||0,'data-saleadd','saledec',(state.pickMode==='compra')?(p.cost||0):p.price,box)).join('');
@@ -3722,9 +3845,11 @@ function closeSaleProd(){const _d=document.getElementById('saleproddlg');_d.clas
 }
 // mods142b: durante una búsqueda, tocar la categoría la pliega o despliega solo para esa búsqueda
 function spCatToggleQ(c){const q=fold((state.saleProdQ||'').toLowerCase().trim());if(!q)return false;const b=document.getElementById('saleprodBody');
-  const hd=[...b.querySelectorAll('.saleacc')].find(e=>e.dataset.act==='salecat:'+c);const was=!!(hd&&hd.querySelector('.chev.op'));
-  if(!state.spQOpen||state.spQOpen.q!==q)state.spQOpen={q,m:{}};state.spQOpen.m[c]=!was;const p=b.scrollTop;fillSaleProd();b.scrollTop=p;
-  if(!was)try{revealCat(b,c);}catch(_){}return true;}
+  const hd=[...b.querySelectorAll('.saleacc')].find(e=>e.dataset.act==='salecat:'+c);const was=!!(hd&&hd.querySelector('.chev.op')),part=!!(hd&&hd.querySelector('.spcnt.part'));
+  if(!state.spQOpen||state.spQOpen.q!==q)state.spQOpen={q,m:{}};if(!state.spQAll||state.spQAll.q!==q)state.spQAll={q,m:{}};
+  const all=!was||part;if(all){state.spQOpen.m[c]=true;state.spQAll.m[c]=true;}else state.spQOpen.m[c]=false;   /* mods150: plegada o con solo algunos → todos */
+  const p=b.scrollTop;fillSaleProd();b.scrollTop=p;
+  if(all)try{revealCat(b,c);}catch(_){}return true;}
 function saleCatToggle(c){if(spCatToggleQ(c))return;state.saleCatOpen[c]=!state.saleCatOpen[c];const b=document.getElementById('saleprodBody');const p=b.scrollTop;fillSaleProd();b.scrollTop=p;
   if(state.saleCatOpen[c])try{revealCat(b,c);}catch(_){}}   // como Mi Negocio: baja lo justo para ver los productos de la categoría
 // Baja la lista lo necesario para mostrar la categoría abierta sin esconder su título bajo la búsqueda fija
@@ -4290,7 +4415,7 @@ onScan=function(code){
 window.addEventListener('input',e=>{const el=e.target;if(!el||!el.classList||!el.classList.contains('rpsearch')||el.dataset.rp!=='prod_detail')return;
   const box=document.getElementById('rpSugg_prod_detail');if(!box)return;box.innerHTML=g5SuggHTML(el.value);setTimeout(()=>{try{bkApplyInvImages();}catch(_){}},30);});
 function g5SuggHTML(q){return repPickList('prod_detail',q).map(x=>{const p=P(+(''+x.v).slice(1));if(!p)return '';
-  return '<div class="rps g5sug" data-act="mrep:pick:prod_detail:'+exEsc(x.v)+'"><div class="g5sug-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5sug-t"><div class="g5sug-k">'+svgF(MN_IC.key)+'<span>'+exEsc(p.key||'')+'</span></div><div class="g5sug-n">'+G5_BOXQ+'<span>'+exEsc(x.t)+'</span></div></div>'+g5StockIcon(p)+'</div>';}).join('');}
+  return '<div class="rps g5sug" data-act="mrep:pick:prod_detail:'+exEsc(x.v)+'"><div class="g5sug-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5sug-t"><div class="g5sug-k">'+svgF(MN_IC.key)+'<span>'+exEsc(p.key||'')+'</span></div><div class="g5sug-n">'+G5_BOXQ+'<span>'+exEsc(x.t)+'</span></div></div>'+g5StockIcon(p)+'</div>';}).join('')+repSugMoreHTML('prod_detail');}   /* mods150 */
 /* estado de la existencia como la tarjeta de Inventario: ✓ verde, ⚠ amarillo en reserva, ⚠ rojo sin existencia */
 function g5StockIcon(p){const s=+p.stock||0,r=+p.reserve||0;const k=s<=0?'bad':(s<=r?'warn':'ok');return '<span class="g5stk '+k+'">'+svgF(k==='ok'?MN_IC.done:MN_IC.warn)+'</span>';}
 /* categorías de los productos (las del selector de Mi Negocio) */
@@ -5993,6 +6118,7 @@ async function mrepAct(act){
   if(cmd==='tab'){state.repTab=state.repTab||{};state.repTab[id]=p.slice(3).join(':');state._keep=document.getElementById('screen').scrollTop;return render();}
   if(cmd==='pick'){state.repPick=state.repPick||{};state.repPick[id]=p.slice(3).join(':');if(state.repQ&&typeof state.repQ==='object')delete state.repQ[id];state._keep=0;return render();}
   if(cmd==='clear'){if(state.repPick)delete state.repPick[id];if(state.repQ&&typeof state.repQ==='object')delete state.repQ[id];state._keep=0;return render();}
+  if(cmd==='more')return repSugMore(id);   /* mods150 */
   if(cmd==='abcinfo')return appAlert(t('mr_abc_info'));
 }
 // buscador de producto / cliente / proveedor (Productos a Detalle, Reporte Clientes, Reporte Proveedor)
@@ -6000,7 +6126,7 @@ function repPickerHTML(id,ph){const q=(state.repQ&&typeof state.repQ==='object'&
   const ic=svgF(id==='clients'?MN_IC.person:id==='provider'?MN_IC.contacts:MN_IC.search);
   return `<div class="rpick"><div class="rpbox">${ic}<input autocomplete="off" id="rpSearch_${id}" data-rp="${id}" class="inp rpsearch" placeholder="${exEsc(ph)}" value="${exEsc(q)}">${id==='prod_detail'&&q?`<button class="rpclr" data-act="mrep:clear:prod_detail" aria-label="${t('remove')}">${svgF(MN_IC.close)}</button>`:''}</div><div id="rpSugg_${id}" class="rpsugg"></div></div>`;}
 function repPickList(id,q){const q0=q;q=qtNorm(q||'');if(!q)return [];
-  if(id==='prod_detail'){const f=fold((''+(q0||'')).replace(/^\.{3}\s*/,'').toLowerCase()).trim();return prodKeyFirst((state.products||[]).filter(p=>p&&!p.del&&prodHit(p,f,true)).sort(prodCmp),f).slice(0,30).map(p=>({v:'p'+p.id,t:mnName(p),s:p.key||''}));}
+  if(id==='prod_detail'){const f=fold((''+(q0||'')).replace(/^\.{3}\s*/,'').toLowerCase()).trim();return repSugCut(id,f,prodKeyFirst((state.products||[]).filter(p=>p&&!p.del&&prodHit(p,f,true)).sort(prodCmp),f)).map(/* mods150: sin el tope mudo de 30 */p=>({v:'p'+p.id,t:mnName(p),s:p.key||''}));}
   if(id==='clients')return (state.clients||[]).filter(c=>c&&!c.del&&(qtNorm(c.name).includes(q)||qtNorm(c.alias||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.name||'',b.name||'')).slice(0,30).map(c=>({v:c.id,t:(c.name||'')+(c.alias?' ('+c.alias+')':''),s:c.phone||''}));
   if(id==='provider')return (state.providers||[]).filter(v=>v&&!v.del&&(qtNorm(v.contact||'').includes(q)||qtNorm(v.company||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.contact||a.company||'',b.contact||b.company||'')).slice(0,30).map(v=>({v:v.id,t:(v.contact||v.company||'')+(v.contact&&v.company?' ('+v.company+')':''),s:v.phone||''}));
   return [];}
@@ -8792,7 +8918,7 @@ async function sbSyncWriteOne(sb,id,key){
       wtokClear(id,key,ot);}}   /* sin la copia de lo subido: se sigue como antes */
     const loc=JSON.parse(lj);   /* copia de lo local al empezar: lo que cambie durante la subida se concilia al final */
     const ow=restoreOw(id).has(key);   /* primera subida tras restaurar: lo de la nube se reemplaza */
-    const merged0=(row&&!ow)?mergeDoc(id,key,loc,remote,!b):loc;
+    PL_WM++;let merged0;try{merged0=(row&&!ow)?mergeDoc(id,key,loc,remote,!b):loc;}finally{PL_WM--;}   /* mods150: fusión de subida (candado de la nube) */
     const mj=JSON.stringify(merged0);const merged=JSON.parse(mj);   /* copia fija: lo que se manda es lo que queda como base */
     if(!ow&&CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length&&!sbIntentHas(id,key))return {ok:false,recover:true};   /* vacía sin que el usuario la vaciara (borrado local, daño): se trae la nube */
     const ts=sbNewTs();let w;LAST_W[key]={ts:ts.slice(0,23)+'Z',lj,merged,mj};   /* la subida se reconoce por su hora (con microsegundos al azar) */
@@ -8952,6 +9078,7 @@ function sbPushDoc(storeId,key,data){
         if(!res.skip)sbBroadcast(p.key);
         return;
       }
+      if(syncKeys().includes(p.key)){sbMarkDirty(p.storeId,p.key);if(SB_PENDING[k]===p)delete SB_PENDING[k];return;}   /* mods150: otra tienda activa: pendiente y se FUSIONA al volver (nunca sin fusionar) */
       if(await sbWouldWipeCloud(sb,p.storeId,p.key,p.data)){delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);await sbRecoverFromCloud(p.storeId,p.key);return;}
       const up=await sb.from('store_docs').upsert({store_id:p.storeId,doc_key:p.key,data:p.data,updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});
       if(up&&up.error)throw up.error;   // Supabase devuelve {error} sin lanzar: no tomarlo como subido
@@ -9062,36 +9189,44 @@ async function getRawTable(table){
 const SB_PULLING={};   /* bajada completa en curso por tienda: no corren dos a la vez (se pisaban las bases) */
 async function sbPullStore(id){
   if(!id)return false;
-  const _w=wipeSeen(id)+':'+(RESTORE_EPOCH[id]||0),_c=SB_PULLING[id];if(_c&&_c.w===_w)return _c.p;   /* tras vaciar/restaurar se baja de nuevo */
+  const _w=wipeSeen(id)+':'+(RESTORE_EPOCH[id]||0),_c=SB_PULLING[id];if(_c&&_c.w===_w&&Date.now()-(_c.t||0)<120000)return _c.p;   /* tras vaciar/restaurar se baja de nuevo; mods150: una bajada colgada (>2 min) no frena las siguientes */
   const _p=(async()=>{
-  await sbCheckWipe(id,null,true);if(id!==currentDataId())return false;   // vaciada/eliminada en otro dispositivo
-  const[p,c,s,mm,rc,pu,po]=await Promise.all([sbPullDoc(id,'products'),sbPullDoc(id,'clients'),sbPullDoc(id,'sales'),sbPullDoc(id,'mermas'),sbPullDoc(id,'receipt'),sbPullDoc(id,'purchases'),sbPullDoc(id,'porders')]);
-  const MD=await Promise.all(MOD_DOCS.map(m=>sbPullDoc(id,m.key)));
-  if(p==null&&c==null&&s==null&&mm==null&&rc==null&&pu==null&&po==null&&MD.every(x=>x==null))return false;
+  const _wc=sbCheckWipe(id,null,true);   // vaciada/eliminada en otro dispositivo
+  /* mods150: 1) productos PRIMERO y solos, con su hora: se aplican apenas llegan (o no se bajan si la copia local ya trae esa versión;
+     esa hora se pide a la vez que la revisión de vaciado y nada se baja antes de que termine) */
+  const _pp=plPullProducts(id,_wc);PL_PH[id]=_pp;const _px=()=>{if(PL_PH[id]===_pp)delete PL_PH[id];};_pp.then(_px,_px);
+  const pr=await plTmo(_pp,20000,{st:'slow'});   /* una lectura colgada no frena lo demás (los productos los sigue pidiendo el aviso de carga) */
+  try{await _wc;}catch(_){}if(id!==currentDataId())return false;
+  /* 2) lo demás a la vez y con su hora (la revisión de cada 20 s ya no vuelve a bajar todo); lo leído antes de una subida propia se descarta */
+  const KS=['clients','sales','mermas','receipt','purchases','porders',...MOD_DOCS.map(m=>m.key)],S0={};KS.forEach(k=>S0[k]=WRITE_SEQ[k]||0);
+  const RS=await Promise.all(KS.map(k=>sbPullDocTs(id,k)));const got={};KS.forEach((k,i)=>{const x=RS[i];if(x&&x.d!=null)got[k]=x;});
+  const pGot=!!pr&&(pr.st==='ok'||pr.st==='same'||pr.st==='later');
+  if(!pGot&&!Object.keys(got).length)return false;
   await loadBases(id);await salesReady(id);if(id!==currentDataId())return false;   /* ventas del equipo ya cargadas antes de mezclar */
-  SYNC_APPLYING=true;const toPush=[];
+  SYNC_APPLYING=true;const toPush=[],again=[];
   try{
     // Fusión por registro: lo local que aún no subió se conserva; lo nuevo de la nube se agrega
-    const docs={products:p,clients:c,mermas:mm,purchases:pu,porders:po,receipt:rc};MOD_DOCS.forEach((m,i)=>docs[m.key]=MD[i]);
-    Object.keys(docs).forEach(k=>{const d=docs[k];if(d==null)return;if(k==='receipt'&&(typeof d!=='object'||Array.isArray(d)))return;if(k!=='receipt'&&!Array.isArray(d))return;if(sbApplyRemote(id,k,d))toPush.push(k);});
-    if(p!=null||c!=null||mm!=null||rc!=null||pu!=null||po!=null||MD.some(x=>x!=null))persistLocal();
-    if(Array.isArray(s)){if(sbApplyRemote(id,'sales',s))toPush.push('sales');}
+    const fresh=k=>{if((WRITE_SEQ[k]||0)!==S0[k]||FLUSHING_KEY===k||sbBusyKey(k)){again.push(k);return false;}return true;};
+    KS.forEach(k=>{if(k==='sales')return;const x=got[k];if(!x)return;const d=x.d;if(k==='receipt'&&(typeof d!=='object'||Array.isArray(d)))return;if(k!=='receipt'&&!Array.isArray(d))return;if(fresh(k)&&sbApplyRemote(id,k,d,false,x.ts))toPush.push(k);});
+    if(Object.keys(got).some(k=>k!=='sales'))persistLocal();
+    if(got.sales&&Array.isArray(got.sales.d)&&fresh('sales')&&sbApplyRemote(id,'sales',got.sales.d,false,got.sales.ts))toPush.push('sales');
   }finally{SYNC_APPLYING=false;}
   toPush.forEach(k=>sbPushDoc(id,k,sbDocData(k)));
-  if(Array.isArray(p))migrateInlineImages(); // saca fotos base64 gigantes traídas de la nube
+  if(again.length)setTimeout(()=>sbApplyChange(id,again),800);
   flushDirty(true);   // sube cualquier cambio local pendiente que se conservó
   return true;
   })();
-  SB_PULLING[id]={p:_p,w:_w};const _done=()=>{if(SB_PULLING[id]&&SB_PULLING[id].p===_p)delete SB_PULLING[id];};_p.then(_done,_done);
+  SB_PULLING[id]={p:_p,w:_w,t:Date.now()};const _done=()=>{if(SB_PULLING[id]&&SB_PULLING[id].p===_p)delete SB_PULLING[id];};_p.then(_done,_done);
   return _p;
 }
 function _mergeBy(list,extra,idKey){const m={};(list||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]=x;});(extra||[]).forEach(x=>{if(x&&x[idKey]!=null)m[x[idKey]]={...m[x[idKey]],...x};});return Object.values(m);}
 async function sbSyncBoot(){
   const sb=await sbInit();if(!sb)return;
-  SYNC_APPLYING=true;
-  for(const role of ['bodega','tienda']){const rk=role+'s';const remote=await sbPullDoc('__shared__',rk);const merged=_mergeBy(_get(rk,[]),remote,'id');_setLocal(rk,merged);}
-  const mreq=_mergeBy(_get('requests',[]),await sbPullDoc('__shared__','requests'),'reqId');_setLocal('requests',mreq);
-  SYNC_APPLYING=false;
+  const _sh=await Promise.all(['bodegas','tiendas','requests'].map(k=>sbPullDoc('__shared__',k)));   /* mods150: primero se lee (a la vez)… */
+  const _pa=SYNC_APPLYING;SYNC_APPLYING=true;
+  try{['bodegas','tiendas'].forEach((rk,i)=>{const merged=_mergeBy(_get(rk,[]),_sh[i],'id');_setLocal(rk,merged);});
+    const mreq=_mergeBy(_get('requests',[]),_sh[2],'reqId');_setLocal('requests',mreq);}
+  finally{SYNC_APPLYING=_pa;}   /* …y solo se marca mientras se guarda (un cambio del usuario durante las lecturas sí sube) */
   if(state.profile){const pid=state.profile.id;const had=await sbPullStore(pid);if(!had){await salesReady(pid);if(currentDataId()===pid&&(state.products.length||state.clients.length||state.sales.length)){persist();persistSales();}}}   /* primero que terminen de leerse las ventas del equipo */
   if(document.getElementById('onbo').classList.contains('on'))renderOnbo();else render();
 }
@@ -9810,7 +9945,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="massall"||a==="massopen"||a==="masscat"||a==="massp")return massAct(a,act2);if(a==="massok")return massOk();if(a==="massclose"){closeMass();MASS=null;return;}
     if(a==="mpup"){MASSP.up=act2==="1";return fillMassPrice();}if(a==="mppct"){MASSP.pct=act2==="1";return fillMassPrice();}if(a==="mpok")return massPriceApply();if(a==="mpclose")return closeMassPrice();
     if(a==="rsvcatpick")return openCatFilter("rsv");if(a==="mermascan"){mermaReadForm();return openScanner("merma");}if(a==="spgrid")return spGridToggle();
-    if(a==="spmore"){state.spLimit=(state.spLimit||SP_PAGE)+SP_PAGE;const b=document.getElementById("saleprodBody");const y=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=y;return;}
+    if(a==="spmore")return spMoreLoad();/* mods150 */
     if(a==="checkout")return checkout();
     if(a==="clearq"){state.q="";state.invLimit=INV_PAGE;render();const si=document.getElementById('searchInput');if(si)si.focus();return;}
     if(a==="clrinput"){const box=el.closest('.isearch,.search');const inp=box&&box.querySelector('input');if(inp){inp.value='';box.classList.remove('has-text');inp.dispatchEvent(new Event('input',{bubbles:true}));const again=box.isConnected?inp:document.getElementById(inp.id);if(again)again.focus();}return;}
@@ -10108,7 +10243,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="cli"){const sub=el.dataset.act.split(":")[1];if(sub==='new')return openCliForm(null);if(sub==='save')return saveClient();if(sub==='del')return delClient();return;}
     if(a==="io"){const sub=el.dataset.act.split(":")[1];if(sub==='export')return openExportFmt();if(sub==='expcsv')return ioExportCSV();if(sub==='expzip')return ioExportZIP();if(sub==='expmn')return ioExportMN();if(sub==='csv')return doExportCSV();if(sub==='json')return doExportJSON();if(sub==='import')return openImportFmt();if(sub==='impcsv')return ioCsvHelp();if(sub==='impmn')return ioImportMN();return openIO();}
     if(a==="bk"){const sub=el.dataset.act.split(":")[1];if(sub==='pick')return bkPick();if(sub==='reset')return bkReset();if(sub==='seeinv')return go('inventario');if(sub==='seecli')return go('clientes');if(sub==='seeven')return go('ventas');if(sub==='seecompras')return go('phist');return;}
-    if(a==="invmore"){state.invLimit=(state.invLimit||INV_PAGE)+INV_PAGE*2;return render();}
+    if(a==="invmore")return invMoreLoad();/* mods150 */
     if(a==="reqaccess")return requestAccess();
     if(a==="approve")return setReqStatus(el.dataset.act.split(":")[1],'approved');
     if(a==="deny")return setReqStatus(el.dataset.act.split(":")[1],'denied');
@@ -10932,7 +11067,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261010100411';
+const APP_VERSION='20261010201244';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -10971,4 +11106,328 @@ refreshInstallBtn();
 setInterval(()=>{const id=currentDataId();if(id){if(!SB_CHAN||SB_CHAN_ID!==id)sbSubscribe(id);sbLiveSync();}},20000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){sbSubscribe(currentDataId());sbLiveSync();}});
 window.addEventListener('focus',()=>{sbSubscribe(currentDataId());sbLiveSync();});
+
+/* ==== mods150 (2/2): al abrir la app TODOS los productos (auditoría B: cambios/productos_2026-10-10/auditB; reemplaza al borrador mods151) ====
+   A) Copia local que no cabe (localStorage ~5 M caracteres): saveDataOf ya no se traga el error. Marca de versión (__sv) y hora de la
+      versión de productos que trae la copia (__lts) PRIMERO en el objeto; si no cupo, la copia completa va a IndexedDB ('ldata:<id>') y
+      quedan las marcas 'abanico.lsfull.<id>' / sin 'abanico.sv.<id>'. Antes: la copia vieja (24) + la base nueva (2,750) hacían que la
+      fusión tomara 2,726 productos como BORRADOS y los quitara de la nube para todos.
+   B) Al abrir: si la copia de IndexedDB es más nueva, se usa; si la copia local puede ser más vieja que la base (marcas, o la base tiene
+      productos que aquí faltan sin cambios pendientes y sin que el usuario los borrara, o sin base hay menos que la última cantidad
+      confirmada), la base pasa a ser LA COPIA CON LA QUE ABRIÓ: lo que falta aquí no cuenta como borrado (lo borrado a propósito, sí).
+   C) Último candado (mergeDoc, al bajar y al subir): si la fusión quita de la nube productos que este equipo NO borró (diario de borrados:
+      Eliminar producto, Detalle, borrado masivo, restaurar copia automática), vuelven (3 o más, o el 5 %). El recibo no pierde campos que
+      aquí faltan; unidades, formas de pago, etiquetas y categorías extra no quedan vacías sin pedirlo. Se anota ('abanico.plguard') y avisa.
+   D) sbPullStore: productos PRIMERO y solos, con su hora (pasa a LIVE_TS: la revisión de cada 20 s ya no vuelve a bajar todo); si la hora
+      en la nube es la misma que trae la copia local, no se bajan (~100 bytes en vez de 830 KB). Lo leído antes de una subida propia se
+      descarta (WRITE_SEQ): una venta hecha al abrir ya no se deshace en el equipo.
+   E) Estado visible: mientras los productos no estén confirmados contra la nube, aviso con cuántos hay / faltan, sin internet ("n
+      guardados el dd/mm") o error con Reintentar, en Ventas, Inventario, Compras y el selector. Sin productos: "Cargando los productos de
+      la tienda…" (nunca "Sin resultados" ni "No tienes productos…"); con menos de la mitad de los esperados el selector espera (botón para
+      ver los que hay). El selector abierto se rehace solo cuando llegan productos (conserva búsqueda, desplazamiento y teclado).
+   F) Reintentos 2, 4, 8, 15, 30 s, al volver internet o a la app y con el botón; tiempo límite en cada lectura; una bajada o revisión
+      colgada ya no frena las siguientes. La copia automática del día y la recarga por versión nueva esperan a los productos confirmados.
+      Un cambio guardado mientras se aplica lo de la nube (SYNC_APPLYING: sbSyncBoot lee lo compartido varios segundos) ya no se pierde:
+      sube al terminar (antes solo lo rescataba la bajada completa que ahora se evita cuando no hay versión nueva).
+   G) Candado de la NUBE (verificación de mods150, hallazgo 2): si llega una lista de productos con muchos MENOS (3 o más y más de 20 o
+      del 10 %) que este equipo tiene sin cambios, y no hay registro de borrado (historial de inventario tipo 3 —Eliminar, Detalle, borrado
+      masivo, restaurar copia automática— o el diario de este equipo) ni marca de vaciar/eliminar/restaurar (sbCheckWipe), NO se sigue:
+      antes de aplicarla (o de subir una fusión que la siga) se verifica en la nube (hasta ~20 s, por si el registro de borrado llega
+      después); si nada la explica, los productos se conservan, quedan para subir (misma fusión, copia fija, una subida por documento) y se
+      avisa. Caso real: un equipo con la versión vieja y el almacenamiento lleno subía 24 de 2,750 y todos los demás lo seguían.
+   H) La búsqueda de Ventas/Inventario/Compras ya no quita el aviso de carga (searchRefresh rehacía la cajita sin él); también sale en las
+      sugerencias de Productos a Detalle. "n de m" descuenta lo que este equipo borró después de la última confirmación.
+   I) Importar CSV / .mn espera a que los productos estén completos (antes, mientras se cargaban, cada fila entraba como nueva: 2,750 →
+      5,488). La copia automática del día se hace también sin internet si la copia local está completa; solo se omite si se sabe incompleta.
+   J) Al volver a la app o al volver internet, si la revisión tarda, "Actualizando productos…" mientras se baja; al abrir, una marca pequeña
+      que no mueve la pantalla desde el primer instante (antes ~1,2 s sin aviso).
+      Una sola bajada de la lista por arranque: si mientras tanto sube algo propio (esa subida ya lee y fusiona la nube), después solo se
+      mira la hora; el selector no la pide otra vez por llegar tarde prodlOk (antes 2-3 bajadas de ~800 KB en algunos arranques).
+   Nube: los mismos documentos; los equipos con versión vieja siguen igual. */
+Object.assign(I18N.es,{pl_loading:"Actualizando productos con la nube… ({n} en este equipo)",pl_outdated:"Hay cambios en los productos de la nube. Descargando la lista completa… ({n} en este equipo)",pl_missing:"Faltan productos en este equipo ({n} de {m}). Descargando de la nube…",pl_offline:"Sin internet · {n} productos guardados el {d}",pl_offline_nd:"Sin internet · {n} productos guardados en este equipo",pl_offline_nm:"Sin internet: este equipo tiene {n} de {m} productos. Conéctate para bajar los demás.",pl_error:"No se pudieron descargar los productos de la nube ({n} en este equipo).",pl_retry:"Reintentar",pl_big_loading:"Cargando los productos de la tienda…",pl_big_missing:"Cargando los productos de la tienda… ({n} de {m})",pl_big_restore:"Restaurando la tienda desde otro equipo… Los productos aparecen apenas termine.",pl_big_offline:"Sin internet: los productos de esta tienda aún no están en este equipo. Conéctate a internet para descargarlos.",pl_big_error:"No se pudieron descargar los productos de la tienda.",pl_show_n:"Ver los {n} que ya están",pl_full:"La memoria del navegador está llena: la copia de la tienda se guarda aparte en este equipo.",pl_guard:"Se evitó quitar {n} productos de la nube: este equipo tenía una copia incompleta.",
+  pl_rguard:"Otro equipo subió una lista de productos incompleta ({n} menos, sin borrarlos). Se conservaron los de este equipo y se vuelven a subir.",pl_rguard_bar:"Se conservaron {n} productos que otro equipo quitó sin borrarlos (lista incompleta). Se vuelven a subir a la nube.",
+  pl_mini:"Actualizando…",pl_imp_wait:"Los productos de la tienda todavía se están descargando ({n} en este equipo). Espera a que termine para importar: así no se duplican productos.",
+  pl_imp_off:"Este equipo no tiene todos los productos de la tienda ({n} aquí). Conéctate a internet para descargarlos antes de importar: así no se duplican productos."});
+Object.assign(I18N.en,{pl_loading:"Updating products from the cloud… ({n} on this device)",pl_outdated:"Products changed in the cloud. Downloading the full list… ({n} on this device)",pl_missing:"Products missing on this device ({n} of {m}). Downloading from the cloud…",pl_offline:"No internet · {n} products saved on {d}",pl_offline_nd:"No internet · {n} products saved on this device",pl_offline_nm:"No internet: this device has {n} of {m} products. Connect to download the rest.",pl_error:"Could not download the products from the cloud ({n} on this device).",pl_retry:"Retry",pl_big_loading:"Loading the store's products…",pl_big_missing:"Loading the store's products… ({n} of {m})",pl_big_restore:"Restoring the store from another device… Products appear as soon as it finishes.",pl_big_offline:"No internet: this store's products are not on this device yet. Connect to the internet to download them.",pl_big_error:"Could not download the store's products.",pl_show_n:"Show the {n} already here",pl_full:"The browser storage is full: the store copy is kept separately on this device.",pl_guard:"Kept {n} products in the cloud: this device had an incomplete copy.",
+  pl_rguard:"Another device uploaded an incomplete product list ({n} fewer, not deleted). This device's products were kept and are being uploaded again.",pl_rguard_bar:"Kept {n} products that another device dropped without deleting them (incomplete list). Uploading them to the cloud again.",
+  pl_mini:"Updating…",pl_imp_wait:"The store's products are still downloading ({n} on this device). Wait until it finishes to import, so no products are duplicated.",
+  pl_imp_off:"This device doesn't have all the store's products ({n} here). Connect to the internet to download them before importing, so no products are duplicated."});
+const PL_TMO={};   // valor de "se acabó el tiempo"
+function plTmo(p,ms,dflt){return Promise.race([Promise.resolve(p).catch(()=>dflt),new Promise(r=>setTimeout(()=>r(dflt),ms))]);}   /* una respuesta perdida no frena a nadie */
+const plSleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---- A) copia local: marca de versión + copia completa en IndexedDB si no cabe ---- */
+let PL_SVN=0,PL_WARN=false,PL_LTS_ID=null;const PL_MIR={},PL_IDS={},PL_LTS0={},PL_CHK={},PL_MQ={};
+function plIdsOf(list){const s=new Set();(list||[]).forEach(p=>{if(p&&p.id!=null)s.add(''+p.id);});return s;}
+saveDataOf=function(id,d){
+  const o={__sv:0,__lts:undefined,...d};o.__sv=Date.now()*1000+(PL_SVN=(PL_SVN+1)%1000);   /* marcas PRIMERO: se leen sin abrir todo */
+  const lts=(PL_LTS_ID===id&&LIVE_TS.products)?LIVE_TS.products:(PL_LTS0[id]||undefined);if(lts&&Array.isArray(o.products)&&o.products.length)o.__lts=lts;else delete o.__lts;   /* hora de la versión de la nube que trae la copia (una copia vacía no la lleva) */
+  CACHE['data.'+id]=o;PL_IDS[id]=plIdsOf(o.products);let ok=false;
+  try{localStorage.setItem('abanico.data.'+id,JSON.stringify(o));ok=true;}catch(_){}
+  if(DBH){try{DBH.doc(_docPath('data.'+id)).set({v:o}).catch(()=>{});}catch(_){}}
+  if(ok){try{localStorage.setItem('abanico.sv.'+id,''+o.__sv);localStorage.removeItem('abanico.lsfull.'+id);}catch(_){}
+    if(PL_MIR[id]&&!PL_CHK[id]){delete PL_MIR[id];try{idbKvPut('ldata:'+id,null);}catch(_){}}return;}
+  try{localStorage.removeItem('abanico.sv.'+id);}catch(_){}try{localStorage.setItem('abanico.lsfull.'+id,''+o.__sv);}catch(_){}   /* no cupo: la copia local quedó vieja (al abrir se sabe) */
+  if(PL_CHK[id]){PL_MQ[id]=o;return;}   /* aún se mira si la de IndexedDB es más nueva: no pisarla con lo que se abrió */
+  PL_MIR[id]=1;try{idbKvPut('ldata:'+id,o);}catch(_){}   /* la copia completa va a IndexedDB (cabe mucho más) */
+  if(!PL_WARN){PL_WARN=true;setTimeout(()=>{try{toast(t('pl_full'));}catch(_){}},60);}
+};
+/* ---- C) diario de borrados de productos (este equipo): lo que el usuario quitó a propósito ---- */
+function plDelGet(id){try{return JSON.parse(localStorage.getItem('abanico.pdel.'+id)||'{}')||{};}catch(_){return {};}}
+let PL_DELV=0;   /* cambia con cada anotación (cálculo de "n de m" en caché) */
+function plDelAdd(id,ids){if(!id||!ids.length)return;PL_DELV++;const o=plDelGet(id),now=Date.now(),lim=now-60*864e5;ids.forEach(k=>o[k]=now);
+  let ks=Object.keys(o).filter(k=>o[k]>=lim);if(ks.length>20000)ks=ks.sort((a,b)=>o[b]-o[a]).slice(0,20000);const out={};ks.forEach(k=>out[k]=o[k]);
+  try{localStorage.setItem('abanico.pdel.'+id,JSON.stringify(out));}catch(_){}}
+function plDelDiff(id,before){const now=plIdsOf(state.products);const gone=[];(before||new Set()).forEach(k=>{if(!now.has(k))gone.push(k);});plDelAdd(id,gone);return gone.length;}
+function plLog(id,key,what,n){try{const l=JSON.parse(localStorage.getItem('abanico.plguard')||'[]');l.unshift({t:new Date().toISOString(),id,key,what,n});localStorage.setItem('abanico.plguard',JSON.stringify(l.slice(0,30)));}catch(_){}try{console.warn('mods150 candado',id,key,what,n);}catch(_){}}
+let PL_GWARN=0;function plWarn(n){if(Date.now()-PL_GWARN<60000)return;PL_GWARN=Date.now();setTimeout(()=>{try{toast(ti('pl_guard',{n:(+n||0).toLocaleString(numLoc())}));}catch(_){}},80);}
+function plGuard(id,key,local,remote,out){
+  if(key==='receipt'){if(out&&typeof out==='object'&&!Array.isArray(out)&&remote&&typeof remote==='object'&&!Array.isArray(remote)&&local&&typeof local==='object'){
+      let fix=0;const o={...out};Object.keys(remote).forEach(f=>{if(!(f in o)&&local[f]===undefined&&remote[f]!==undefined){o[f]=remote[f];fix++;}});   /* un campo que aquí FALTA no es un borrado */
+      if(fix){plLog(id,key,'campos',fix);return o;}}return out;}
+  if(!Array.isArray(out)||!Array.isArray(remote))return out;
+  if(!remote.length&&key!=='products')return out;
+  if(!CORE_KEYS.has(key)){if(!out.length&&!sbIntentHas(id,key)){plLog(id,key,'vacía',remote.length);return remote.slice();}return out;}   /* unidades, formas de pago, etiquetas, categorías extra */
+  if(key!=='products')return out;
+  out=plRGuard(id,local,remote,out);   /* G) lo que la NUBE quitó sin registro de borrado */
+  if(!remote.length)return out;
+  const have=new Set();out.forEach(x=>{const k=recKey(key,x);if(k!=null)have.add(k);});const del=plDelGet(id);const add=[];
+  remote.forEach(x=>{const k=recKey(key,x);if(k==null||have.has(k)||del[k])return;add.push(x);});   /* quitado de la nube sin que este equipo lo borrara */
+  if(!add.length||(add.length<3&&add.length<remote.length*0.05))return out;
+  plLog(id,key,'sin borrar',add.length);plWarn(add.length);return out.concat(add);}
+{const _md=mergeDoc;mergeDoc=function(id,key,local,remote,forceUnion){const out=_md.apply(this,arguments);if(forceUnion)return out;try{return plGuard(id,key,local,remote,out);}catch(e){if(e&&e.plv)throw e;return out;}};}   /* plv: subida detenida hasta verificar (G) */
+{const _ie=sbIntentEmpty;sbIntentEmpty=function(key){try{const id=currentDataId();if(key==='products'&&id&&PL_IDS[id])plDelDiff(id,PL_IDS[id]);}catch(_){}return _ie.apply(this,arguments);};}   /* Eliminar, Detalle y borrado masivo la llaman tras quitar y antes de guardar */
+{const _rs=restoreSnap;restoreSnap=async function(){const id=currentDataId(),bl=(state.products||[]).slice(),before=plIdsOf(bl);const r=await _rs.apply(this,arguments);
+  try{if(id&&id===currentDataId()){const now=plIdsOf(state.products),gone=bl.filter(p=>p&&p.id!=null&&!now.has(''+p.id));
+    if(gone.length){plDelDiff(id,before);gone.forEach(p=>{try{invLogAdd(3,p);}catch(_){}});persist();}}}catch(_){}return r;};}   /* restaurar una copia automática también es a propósito: diario + registro tipo 3 (los otros equipos lo siguen, G) */
+/* ---- E) estado de los productos: loading (aún sin confirmar) · offline · error · ok (confirmados en esta sesión) ---- */
+const PRODL={id:null,st:'ok',tok:0,t0:0,fails:0,m:null,mt:0,stale:false,outdated:false,wake:null,rst:0,unblock:false,none:0,gnote:null};const PRODL_LD={},PL_PH={};let PRODL_PK=null,PL_VKEY='';
+function prodlStart(id){PRODL.id=id;PRODL.tok++;PRODL.nofirst=false;PRODL.t0=Date.now();PRODL.fails=0;PRODL.stale=false;PRODL.outdated=false;PRODL.rst=0;PRODL.unblock=false;PRODL.none=0;
+  let ps=null;try{ps=JSON.parse(localStorage.getItem('abanico.psync.'+id)||'null');}catch(_){}PRODL.m=ps&&ps.n!=null?+ps.n:null;PRODL.mt=ps&&ps.t||0;   /* última cantidad confirmada contra la nube */
+  PRODL.st=sbOnline()?'loading':'offline';const tok=PRODL.tok;setTimeout(()=>{if(PRODL.tok===tok)prodlUI();},1300);prodlWatch(id,tok);}
+function prodlSet(id,st){if(PRODL.id!==id||PRODL.st===st||PRODL.st==='ok')return;PRODL.st=st;prodlUI();}
+function prodlOk(id,n){if(PRODL.id!==id)return;const was=PRODL.st;PRODL.st='ok';PRODL.fails=0;PRODL.m=n;PRODL.mt=Date.now();PRODL.stale=false;PRODL.outdated=false;
+  try{localStorage.setItem('abanico.psync.'+id,JSON.stringify({n,t:PRODL.mt}));}catch(_){}if(PRODL.wake)PRODL.wake();if(was!=='ok'){prodlUI();if(Date.now()-INST_T0>30000)setTimeout(()=>{try{autoSnapCheck();}catch(_){}},1500);}}   /* la copia del día que se omitió mientras se cargaban */
+function prodlRetry(){if(PRODL.id!==currentDataId())return;PRODL.fails=0;if(PRODL.st!=='ok'){PRODL.st=sbOnline()?'loading':'offline';prodlUI();}if(PRODL.wake)PRODL.wake();}
+function prodlShowAll(){PRODL.unblock=true;prodlPickRefresh();}
+function prodlFail(id){if(sbHoldApply()||sbBusyKey('products')||wtokGet(id,'products'))return 2000;   /* ocupado (pregunta abierta, subida en curso): no es error */
+  PRODL.fails++;if(PRODL.fails>=2)prodlSet(id,'error');return [2000,4000,8000,15000][PRODL.fails-1]||30000;}
+function prodlSleep(ms){return new Promise(r=>{let done=false;const f=()=>{if(done)return;done=true;clearTimeout(tm);window.removeEventListener('online',f);if(PRODL.wake===f)PRODL.wake=null;r();};const tm=setTimeout(f,ms);window.addEventListener('online',f);PRODL.wake=f;});}
+async function prodlWatch(id,tok){const alive=()=>PRODL.id===id&&PRODL.tok===tok&&currentDataId()===id&&PRODL.st!=='ok';let wait=0,first=true;
+  while(alive()){
+    if(wait){await prodlSleep(wait);wait=0;if(!alive())return;}
+    if(!sbOnline()){prodlSet(id,'offline');wait=15000;continue;}
+    if(PRODL.st==='offline'){PRODL.st='loading';prodlUI();}
+    if(first){first=false;for(let k=0;k<40&&!PL_PH[id]&&!PRODL.nofirst&&alive();k++)await plSleep(250);if(!alive())return;}   /* al abrir: la bajada de la tienda trae los productos primero (no bajar 2 veces) */
+    if(PL_PH[id]){const r=await plTmo(PL_PH[id],15000,{st:'slow'});if(!alive())return;if(r&&(r.st==='ok'||r.st==='same')){await plSleep(80);continue;}   /* (prodlOk llega en un setTimeout: no bajar otra vez) si en 15 s no llegaron (lectura colgada), se piden aparte */
+      if(r&&r.st==='slow'&&PL_RVP[id]){await plTmo(PL_RVP[id],45000,null);if(!alive())return;continue;}}   /* se está verificando un quite de la nube (G): no bajar otra vez */
+    let sb=null;try{sb=await plTmo(sbInit(),15000,null);}catch(_){}if(!alive())return;
+    if(!sb){wait=prodlFail(id);continue;}
+    const p=plPullProducts(id);PL_PH[id]=p;const r=await plTmo(p,45000,{st:'fail'});if(PL_PH[id]===p)delete PL_PH[id];if(!alive())return;
+    if(r.st==='ok'||r.st==='same'){await plSleep(80);continue;}
+    if(r.st==='none'){   /* no hay fila de productos: tienda vacía solo con sesión, sin productos aquí, dos veces y sin restauración en curso */
+      if(AUTH&&!(PRODL.rst&&Date.now()-PRODL.rst<600000)&&!(state.products||[]).length){   /* restaurando en otro equipo: se espera hasta 10 min */if(PRODL.none&&Date.now()-PRODL.none>3500){prodlOk(id,0);return;}PRODL.none=PRODL.none||Date.now();}
+      else if(!AUTH){wait=prodlFail(id);continue;}   /* sin sesión la nube no muestra nada: no es una tienda vacía */
+      wait=4000;continue;}
+    if(r.st==='later'){for(let i=0;i<60&&(sbBusyKey('products')||FLUSHING_KEY==='products')&&alive();i++)await plSleep(500);if(!alive())return;wait=300;continue;}   /* una subida propia en curso: esperarla (ella fusiona) en vez de bajar otra vez */
+    wait=prodlFail(id);
+  }}
+/* ---- D) productos: ¿misma versión que la copia? si no, bajarlos solos, aplicarlos apenas llegan y sin pisar una subida propia ---- */
+async function plHead(id){try{const sb=await plTmo(sbInit(),15000,null);if(!sb)return undefined;
+  const r=await plTmo(sb.from('store_docs').select('doc_key,updated_at').eq('store_id',id).eq('doc_key','products').maybeSingle(),12000,PL_TMO);
+  if(r===PL_TMO||!r||r.error)return undefined;return r.data?(r.data.updated_at||undefined):null;}catch(_){return undefined;}}   /* hora · null = sin fila · undefined = no se pudo */
+async function plPullProducts(id,pre){   /* pre: la revisión de vaciado en curso (la hora se pide a la vez) */
+  {const ld=PRODL_LD[id];if(ld)await plTmo(ld,9000,null);}if(id!==currentDataId())return {st:'later'};   /* copia de IndexedDB / copia vieja ya resueltas */
+  const lts=PL_LTS0[id],hp=(lts&&!PRODL.stale)?plHead(id):null;
+  let wiped=false;if(pre){try{wiped=!!(await pre);}catch(_){}if(id!==currentDataId())return {st:'later'};}
+  if(hp&&!wiped&&PL_LTS0[id]===lts&&!PRODL.stale){const h=await plTmo(hp,5000,undefined);if(id!==currentDataId())return {st:'later'};   /* máx. 5 s más (son ~100 bytes; la lista son ~800 KB): si no responde, se bajan */
+    if(h&&tsSame(h,lts)){await loadBases(id);if(id!==currentDataId())return {st:'later'};
+      const b=baseOf(id,'products');if(b&&!PRODL.stale){LIVE_TS.products=h;PL_LTS_ID=id;   /* la copia ya trae esa versión: nada que bajar */
+        if(b.json!==JSON.stringify(state.products||[])&&!SB_PENDING[id+'|products'])sbPushDoc(id,'products',state.products);   /* cambios de aquí aún sin subir: la subida los fusiona (como hacía la bajada completa) */
+        prodlOk(id,(state.products||[]).length);return {st:'same'};}}
+    else if(h){PRODL.outdated=true;prodlUI();}}   /* la nube cambió: el aviso sale de una */
+  if(sbBusyKey('products')||FLUSHING_KEY==='products'){for(let i=0;i<60&&(sbBusyKey('products')||FLUSHING_KEY==='products');i++)await plSleep(500);if(id!==currentDataId())return {st:'later'};if(await plSynced(id))return {st:'same'};}   /* una subida propia en curso ya lee y fusiona la nube: esperarla y mirar solo la hora */
+  let x=null,s0=0;for(let i=0;i<4;i++){s0=WRITE_SEQ.products||0;x=await sbPullDocTs(id,'products');if((WRITE_SEQ.products||0)===s0)break;x=null;
+    if(await plSynced(id))return {st:'same'};}   /* subió algo propio en medio: esa subida ya fusionó con la nube; si nadie escribió después (solo la hora), no se baja otra vez */   /* si en medio subió algo propio, lo leído quedó viejo: otra vez */
+  if(id!==currentDataId())return {st:'later'};
+  if(!x)return {st:'fail'};if(x.d==null)return {st:'none'};if(!Array.isArray(x.d))return {st:'fail'};
+  await loadBases(id);if(id!==currentDataId())return {st:'later'};
+  if((WRITE_SEQ.products||0)!==s0||FLUSHING_KEY==='products'||sbBusyKey('products')){plAfterWrite(id);return {st:'later'};}   /* se está subiendo: la subida ya fusiona (después solo se mira la hora) */
+  const b0=baseOf(id,'products'),prev=SYNC_APPLYING;SYNC_APPLYING=true;let ch=false;try{ch=sbApplyRemote(id,'products',x.d,false,x.ts);persistLocal();}finally{SYNC_APPLYING=prev;}
+  if(ch)sbPushDoc(id,'products',sbDocData('products'));
+  try{migrateInlineImages();}catch(_){}sbScheduleRender();
+  return {st:baseOf(id,'products')!==b0?'ok':'later'};}   /* 'later': no se aplicó (subida propia sin confirmar, vacío que no borra): se reintenta */
+/* I9) tras una subida propia: si la nube sigue en esa versión (solo la hora, ~100 bytes), ya está todo; si no, se baja */
+async function plSynced(id){if(id!==currentDataId()||!LIVE_TS.products||PL_LTS_ID!==id)return false;const h=await plHead(id);if(id!==currentDataId()||!h||!LIVE_TS.products||!tsSame(h,LIVE_TS.products))return false;prodlOk(id,(state.products||[]).length);return true;}
+async function plAfterWrite(id){await plSleep(800);for(let i=0;i<60&&(sbBusyKey('products')||FLUSHING_KEY==='products');i++)await plSleep(500);if(id!==currentDataId())return;if(await plSynced(id))return;sbApplyChange(id,['products']);}
+/* ---- B) al abrir: ¿la copia local quedó vieja? ---- */
+function plRawLts(raw){const m=/^\{"__sv":\d+,"__lts":"([^"]+)"/.exec(raw||'');return m?m[1]:null;}
+function prodlMirApply(id,d){if(id!==currentDataId())return;state.products=d.products||[];state.cats=d.cats||[];state.seq=d.seq||1;state.extraMoves=d.extraMoves||[];MOD_DOCS.forEach(x=>{state[x.st]=d[x.st]||[];});state.clients=d.clients||[];state.units=d.units||[];state.mermas=d.mermas||[];state.receipt=d.receipt||{};state.purchases=d.purchases||[];state.porders=d.porders||[];
+  try{ensureUniqueIds();}catch(_){}CACHE['data.'+id]=d;PL_LTS0[id]=d.__lts||null;PL_IDS[id]=plIdsOf(state.products);try{if(!document.getElementById('device').classList.contains('form-open'))render();}catch(_){}}
+function prodlStale(id,raw,bb,del){let bd={};try{bd=JSON.parse(raw||'{}')||{};}catch(_){}
+  if(Array.isArray(bb)&&del){const pv=Array.isArray(bd.products)?bd.products:[],have=plIdsOf(pv);const ex=bb.filter(x=>x&&x.id!=null&&del[''+x.id]&&!have.has(''+x.id));if(ex.length)bd.products=pv.concat(ex);}   /* lo que el usuario borró aquí (diario) sigue contando como borrado */
+  const F={products:'products',clients:'clients',mermas:'mermas',purchases:'purchases',porders:'porders',receipt:'receipt'};MOD_DOCS.forEach(m=>{F[m.key]=m.st;});
+  Object.keys(F).forEach(k=>{const v=bd[F[k]];BASE[id+'|'+k]=mkBase(k,v==null?(k==='receipt'?{}:[]):v);   /* base = la copia con la que abrió: lo que falta aquí NO es un borrado */
+    try{const ot=wtokRead(id,k);if(ot&&wtokOrphan(ot))wtokClear(id,k,ot);}catch(_){}});   /* la subida sin terminar de la sesión anterior se fusiona otra vez contra esta base */
+  PRODL.stale=true;plLog(id,'*','copia vieja',(state.products||[]).length);}
+async function prodlLocalCheck(id,raw){try{
+  const mm=/^\{"__sv":(\d+)/.exec(raw||'');const lsv=mm?+mm[1]:null;let ksv=null,full=null;try{ksv=localStorage.getItem('abanico.sv.'+id);full=localStorage.getItem('abanico.lsfull.'+id);}catch(_){}
+  const mir=await plTmo(idbKvGet('ldata:'+id),4000,null);if(id!==currentDataId())return;
+  if(mir&&mir.__sv&&(lsv==null||mir.__sv>lsv)){PL_MIR[id]=1;delete PL_MQ[id];prodlMirApply(id,mir);return;}   /* la copia completa estaba en IndexedDB */
+  if(mir){try{idbKvPut('ldata:'+id,null);}catch(_){}}
+  let stale=full!=null||(lsv!=null&&ksv!==String(lsv)),bb;const del=plDelGet(id);
+  const getB=async()=>{if(bb===undefined)bb=await plTmo(idbKvGet('base:'+id+'|products'),4000,null);return bb;};
+  if(!stale&&!sbIsDirty(id,'products')&&!SB_PENDING[id+'|products']){const b=await getB();if(id!==currentDataId())return;
+    if(Array.isArray(b)&&b.length){const have=plIdsOf(state.products);for(const x of b)if(x&&x.id!=null&&!have.has(''+x.id)&&!del[''+x.id]){stale=true;break;}}   /* la base tiene productos que aquí faltan sin que se borraran */
+    else if(PRODL.m!=null){const rec=Object.values(del).filter(t=>t>=PRODL.mt).length;if((state.products||[]).length+rec<PRODL.m)stale=true;}}   /* sin base: menos que la última cantidad confirmada */
+  if(stale){const b=await getB();if(id!==currentDataId())return;prodlStale(id,raw,b,del);}
+}finally{delete PL_CHK[id];const q=PL_MQ[id];delete PL_MQ[id];if(q&&id===currentDataId())saveDataOf(id,q);}}
+/* ---- E) avisos en pantalla ---- */
+let PL_MEC={k:'',v:null};
+function plMeff(id){const m=PRODL.m;if(m==null)return null;const k=id+'|'+m+'|'+PRODL.mt+'|'+PL_DELV;if(PL_MEC.k===k)return PL_MEC.v;
+  let rec=0;try{const d=plDelGet(id);for(const x in d)if(d[x]>=PRODL.mt)rec++;}catch(_){}const v=Math.max(0,m-rec);PL_MEC={k,v};return v;}   /* lo que este equipo borró después de la última confirmación no "falta" */
+let PL_RS=null,PL_RSQ=0;   /* J) revisión al volver a la app / al volver internet */
+function prodlView(){const id=currentDataId();if(!id||PRODL.id!==id)return null;const n=(state.products||[]).length;
+  if(PRODL.st==='ok'){if(PL_RS&&PL_RS.id===id&&n)return Date.now()-PL_RS.t0>700?{st:'loading',n,m:null,rst:false,out:false,chk:1}:{st:'loading',n,m:null,rst:false,out:false,chk:1,mini:1};   /* revisión al volver: marca pequeña; si tarda, la franja */
+    if(PRODL.gnote&&Date.now()-PRODL.gnote.t<30000)return {st:'note',n:PRODL.gnote.n,m:null};return null;}   /* G) se conservaron productos */
+  const m=plMeff(id),miss=m!=null&&n<m;
+  if(PRODL.st==='loading'&&n&&!miss&&!PRODL.stale&&!PRODL.outdated&&Date.now()-PRODL.t0<1200)return {st:'loading',n,m:null,rst:false,out:false,mini:1};   /* copia completa y buena red: marca pequeña que no mueve la pantalla */
+  return {st:PRODL.st,n,m:miss?m:null,rst:!!PRODL.rst,out:PRODL.outdated||PRODL.stale};}
+function prodlKeyStr(v){return v?[v.st,v.n,v.m||'',v.rst?1:0,v.out?1:0,v.mini?1:0,v.chk?1:0,PRODL.unblock?1:0].join('|'):'ok';}
+/* ¿la copia local está completa? ok (confirmada) · good (sin red, completa) · loading · outdated (la nube cambió) · incomplete */
+function plKnown(){const id=currentDataId();if(!id||PRODL.id!==id||PRODL.st==='ok')return 'ok';const n=(state.products||[]).length,m=plMeff(id);
+  if(PRODL.stale||PL_CHK[id]||(m!=null&&n<m))return 'incomplete';if(PRODL.outdated)return 'outdated';return PRODL.st==='loading'?'loading':'good';}
+const PRODL_IC={loading:'<svg class="prodlspin" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></svg>',offline:'<svg viewBox="0 0 24 24"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5v.5"/><path d="M3 3l18 18"/></svg>',error:'<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17v.5"/><path d="M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'};
+function plN(x){return (+x||0).toLocaleString(numLoc());}
+function plDate(t){try{return new Date(t).toLocaleString(numLoc(),{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(_){return '';}}
+function prodlBarHTML(v){let k,cls=v.st;
+  if(v.mini)return `<div class="prodlbar mini" role="status">${PRODL_IC.loading}<span>${t('pl_mini')}</span></div>`;
+  if(v.st==='note')return `<div class="prodlbar note" role="status">${PRODL_IC.error}<span>${ti('pl_rguard_bar',{n:plN(v.n)})}</span></div>`;
+  if(!v.n)k=v.st==='loading'?(v.rst?'pl_big_restore':'pl_big_loading'):(v.st==='offline'?'pl_big_offline':'pl_big_error');   /* sin productos aquí: el mismo texto que el aviso grande */
+  else if(v.st==='loading')k=v.m?'pl_missing':(v.out?'pl_outdated':'pl_loading');
+  else if(v.st==='offline'){k=v.m?'pl_offline_nm':(PRODL.mt?'pl_offline':'pl_offline_nd');if(!v.m&&v.n)cls='info';}
+  else k='pl_error';
+  return `<div class="prodlbar ${cls}" role="status">${PRODL_IC[v.st]||''}<span>${ti(k,{n:plN(v.n),m:plN(v.m||0),d:plDate(PRODL.mt)})}</span>${v.st!=='loading'&&cls!=='info'?`<button type="button" data-act="plretry">${t('pl_retry')}</button>`:''}</div>`;}
+function prodlBigHTML(v,blk){const k=blk?'pl_big_missing':(v.st==='loading'?(v.rst?'pl_big_restore':'pl_big_loading'):(v.st==='offline'?'pl_big_offline':'pl_big_error'));
+  return `<div class="prodlbig" role="status">${PRODL_IC[v.st]||''}<div>${ti(k,{n:plN(v.n),m:plN(v.m||0)})}</div>${v.st!=='loading'?`<button type="button" data-act="plretry">${t('pl_retry')}</button>`:''}${blk?`<button type="button" data-act="plshowall">${ti('pl_show_n',{n:plN(v.n)})}</button>`:''}</div>`;}
+let PL_VN=-1;
+function prodlDecorate(){const b=document.getElementById('body');if(!b)return;b.querySelectorAll('.prodlbar').forEach(e=>e.remove());const scr=state.screen;PL_VN=b.querySelector('.emptybig')?0:(state.products||[]).length;
+  const v=(scr==='inventario'||scr==='nueva'||scr==='compras')?prodlView():null;PL_VKEY=scr+'#'+prodlKeyStr(v);if(!v)return;
+  const eb=b.querySelector('.emptybig');if(!v.n&&eb&&v.st!=='note'){eb.classList.add('prodl');eb.innerHTML=prodlBigHTML(v);return;}   /* nunca "No tienes productos…" mientras se cargan */
+  const h=prodlBarHTML(v);const sh=b.querySelector(':scope>.stickhead');if(sh)sh.insertAdjacentHTML('beforeend',h);else b.insertAdjacentHTML('afterbegin',h);}   /* fija arriba (dentro de la parte fija) */
+function prodlPickDecorate(){const b=document.getElementById('saleprodBody');if(!b)return;const v=prodlView();PRODL_PK={ref:state.products,n:(state.products||[]).length,k:prodlKeyStr(v)};if(!v)return;
+  const hs=b.querySelector('.hb-stick');const blk=v.st==='loading'&&!PRODL.unblock&&v.n>0&&v.m&&v.n<v.m*0.5;   /* menos de la mitad de los esperados: espera (con botón para ver los que hay) */
+  if((!v.n&&v.st!=='note')||blk){[...b.children].forEach(e=>{if(e!==hs)e.remove();});b.insertAdjacentHTML('beforeend',prodlBigHTML(v,blk));return;}   /* nunca "Sin resultados" mientras se cargan */
+  const h=prodlBarHTML(v),top=hs&&hs.querySelector('.sp-top');if(top)top.insertAdjacentHTML('afterend',h);else if(hs)hs.insertAdjacentHTML('beforeend',h);else b.insertAdjacentHTML('afterbegin',h);}   /* bajo la búsqueda, fijo */
+function prodlPickRefresh(){const d=document.getElementById('saleproddlg');if(!d||!d.classList.contains('on'))return;const b=document.getElementById('saleprodBody');const y=b?b.scrollTop:0;
+  const ae=document.activeElement,foc=!!ae&&ae.id==='saleProdSearch',pos=foc?ae.selectionStart:null;
+  fillSaleProd();if(b)b.scrollTop=y;if(foc){const s2=document.getElementById('saleProdSearch');if(s2){try{s2.focus({preventScroll:true});s2.setSelectionRange(pos,pos);}catch(_){}}}}
+function prodlUI(){setTimeout(()=>{try{const scr=state.screen;const v=(scr==='inventario'||scr==='nueva'||scr==='compras')?prodlView():null;const k=scr+'#'+prodlKeyStr(v);
+  if(k===PL_VKEY||!state.profile||document.getElementById('device').classList.contains('form-open')||document.getElementById('onbo').classList.contains('on'))return;
+  if(PL_VKEY.split('#')[0]===scr&&PL_VN>0&&(!v||v.n>0))prodlDecorate();else render();}catch(_){}},0);}   /* solo cambia la franja (había y hay productos): sin rehacer la pantalla */
+/* el selector abierto se rehace si cambiaron los productos (llegaron de la nube, se restauró) o el aviso */
+setInterval(()=>{try{const d=document.getElementById('saleproddlg');if(!d||!d.classList.contains('on')||!PRODL_PK)return;
+  const v=prodlView(),k=prodlKeyStr(v);if(state.products!==PRODL_PK.ref||(state.products||[]).length!==PRODL_PK.n)return prodlPickRefresh();if(k===PRODL_PK.k)return;
+  const b=document.getElementById('saleprodBody');const big=b&&b.querySelector('.prodlbig');const blk=v&&v.st==='loading'&&!PRODL.unblock&&v.n>0&&v.m&&v.n<v.m*0.5;
+  if(b&&!big&&!blk&&(!v||v.n>0)){b.querySelectorAll('.prodlbar').forEach(e=>e.remove());prodlPickDecorate();}else prodlPickRefresh();}catch(_){}},600);   /* solo la franja: sin rehacer las filas */
+/* H) sugerencias de Productos a Detalle mostradas con el aviso: se rehacen cuando llegan los productos o cambia el aviso */
+let PL_G5K='';setInterval(()=>{try{const box=document.getElementById('rpSugg_prod_detail'),inp=document.getElementById('rpSearch_prod_detail');
+  if(!box||!inp||!box.querySelector('.prodlbar')){PL_G5K='';return;}const k=inp.value+'#'+prodlKeyStr(prodlView())+'#'+(state.products||[]).length;
+  if(!PL_G5K){PL_G5K=k;return;}if(k===PL_G5K)return;PL_G5K=k;const y=box.scrollTop;box.innerHTML=g5SuggHTML(inp.value);box.scrollTop=y;setTimeout(()=>{try{bkApplyInvImages();}catch(_){}},30);}catch(_){}},700);
+/* ---- envolturas (no se reescriben las funciones) ---- */
+{const _ld=loadData;loadData=function(id){let raw=null;const mem=('data.'+id) in CACHE;if(!mem){try{raw=localStorage.getItem('abanico.data.'+id);}catch(_){raw=null;}}
+  PL_LTS_ID=null;if(!mem)PL_CHK[id]=true;const r=_ld.apply(this,arguments);
+  try{const c=CACHE['data.'+id];PL_LTS0[id]=mem?((c&&c.__lts)||null):plRawLts(raw);PL_IDS[id]=plIdsOf(state.products);
+    prodlStart(id);PRODL_LD[id]=mem?Promise.resolve():prodlLocalCheck(id,raw).catch(()=>{});}catch(_){delete PL_CHK[id];}return r;};}   /* en memoria = lo más nuevo de esta sesión */
+{const _lb=loadBases;loadBases=async function(id){const p=PRODL_LD[id];if(p){try{await plTmo(p,9000,null);}catch(_){}}return _lb.apply(this,arguments);};}   /* antes de fusionar: copia de IndexedDB / copia vieja resuelta */
+{const _sb=setBase;setBase=function(id,key,data,noSave){const r=_sb.apply(this,arguments);
+  if(!noSave&&key==='products'&&Array.isArray(data)&&id===currentDataId()){PL_LTS_ID=id;setTimeout(()=>{try{plCheck(id,data);}catch(_){}prodlOk(id,(state.products||[]).length);},0);}return r;};}   /* fusionado con la nube = confirmado */
+/* comprobación: lo de la nube está aquí salvo lo que este equipo borró (si no, se une otra vez) */
+function plCheck(id,remote){if(id!==currentDataId())return;const have=plIdsOf(state.products),del=plDelGet(id);const miss=remote.filter(x=>x&&x.id!=null&&!have.has(''+x.id)&&!del[''+x.id]);
+  if(!miss.length||(miss.length<3&&miss.length<remote.length*0.05))return;
+  plLog(id,'products','faltaban',miss.length);state.products=state.products.concat(miss);try{ensureUniqueIds();}catch(_){}persist();plWarn(miss.length);sbScheduleRender();}
+{const _aw=applyWipe;applyWipe=async function(id,w){const r=await _aw.apply(this,arguments);try{if(id===currentDataId()&&state.profile){try{localStorage.removeItem('abanico.psync.'+id);}catch(_){}PL_LTS0[id]=null;PL_LTS_ID=null;prodlStart(id);if(w&&w.kind==='restore')PRODL.rst=Date.now();if(w&&w.kind==='empty')PRODL.none=Date.now()-4000;PRODL.nofirst=true;prodlUI();}}catch(_){}return r;};}   /* vaciada en otro equipo: sin fila de productos = vacía de verdad (no esperar dos lecturas) */
+{const _ts=takeSnap;takeSnap=async function(tag){if(!tag){const k=plKnown();if(k==='incomplete'||k==='outdated'||k==='loading')return false;}return _ts.apply(this,arguments);};}   /* la copia del día: con los productos confirmados, o sin internet con la copia local completa; nunca con una copia que se sabe incompleta (I) */
+{const _ub=_updBusy;_updBusy=function(){if(PRODL.id&&PRODL.id===currentDataId()&&PRODL.st==='loading'&&Date.now()-PRODL.t0<180000)return true;return _ub.apply(this,arguments);};}   /* no recargar a mitad de la bajada */
+{const _fs=fillSaleProd;fillSaleProd=function(){const r=_fs.apply(this,arguments);try{prodlPickDecorate();}catch(_){}return r;};}
+{const _rn=render;render=function(){const r=_rn.apply(this,arguments);try{prodlDecorate();}catch(_){}return r;};}
+/* ---- F) tiempo límite en cada lectura; nada queda trabado ---- */
+{const _pd=sbPullDoc;sbPullDoc=function(){return plTmo(_pd.apply(this,arguments),60000,null);};}
+{const _pt=sbPullDocTs;sbPullDocTs=async function(storeId,key){const x=await plTmo(_pt.apply(this,arguments),60000,null);   /* null = no se pudo (se reintenta) */
+  if(key!=='products'||!x||!Array.isArray(x.d)||!storeId||storeId!==currentDataId())return x;
+  try{const w0=wipeSeen(storeId)+':'+(RESTORE_EPOCH[storeId]||0);await loadBases(storeId);if(storeId!==currentDataId())return x;const nd=plRNeed(storeId,sbDocData('products'),x.d);   /* G) muchos productos menos: se verifica ANTES de entregarla */
+    if(nd){await plTmo(plRVerify(storeId,nd.U,nd.bn),40000,false);if(storeId!==currentDataId()||wipeSeen(storeId)+':'+(RESTORE_EPOCH[storeId]||0)!==w0)return null;}}catch(_){}   /* vaciada/restaurada mientras: lo leído ya no vale */
+  return x;};}
+{const _cw=sbCheckWipe;sbCheckWipe=function(id){const c=id&&WIPE_CHK[id];if(c&&!c.done&&Date.now()-c.t>30000)delete WIPE_CHK[id];return plTmo(_cw.apply(this,arguments),35000,false);};}
+/* un cambio guardado mientras se aplica lo de la nube (p. ej. sbSyncBoot leyendo lo compartido, varios segundos) antes se perdía en
+   silencio (sbPushDoc no hacía nada) y solo lo rescataba la fusión de la bajada siguiente; ahora espera y sube al terminar */
+let PL_PQT=0;const PL_PQ=new Map();
+{const _ps=sbPushDoc;sbPushDoc=function(storeId,key){
+  if(SYNC_APPLYING&&storeId&&storeId===currentDataId()&&BK_RESTORING!==storeId&&syncKeys().includes(key)){PL_PQ.set(key,storeId);
+    if(!PL_PQT)PL_PQT=setInterval(()=>{if(SYNC_APPLYING)return;clearInterval(PL_PQT);PL_PQT=0;const l=[...PL_PQ.entries()];PL_PQ.clear();
+      l.forEach(([k,sid])=>{if(sid===currentDataId())_ps(sid,k,sbDocData(k));else sbMarkDirty(sid,k);});},300);return;}   /* otra tienda activa: queda pendiente para la suya (se fusiona al volver) */   /* si no cambió nada, la subida no sube (base = local) */
+  return _ps.apply(this,arguments);};}
+{const _ls=sbLiveSync;let t0=0;sbLiveSync=async function(){if(LIVE_BUSY&&t0&&Date.now()-t0>60000)LIVE_BUSY=false;if(!LIVE_BUSY)t0=Date.now();   /* una revisión colgada no frena las siguientes */
+  const rs=PL_RSQ&&Date.now()-PL_RSQ<3000,id=currentDataId();PL_RSQ=0;   /* J) al volver a la app / internet: si tarda, "Actualizando productos…" mientras revisa y baja */
+  if(!rs||!id||LIVE_BUSY||SYNC_APPLYING||PRODL.id!==id||PRODL.st!=='ok')return _ls.apply(this,arguments);
+  const me=PL_RS={id,t0:Date.now()};prodlUI();setTimeout(()=>{if(PL_RS===me)prodlUI();},750);
+  try{return await _ls.apply(this,arguments);}finally{if(PL_RS===me){PL_RS=null;prodlUI();}}};}
+window.addEventListener('online',()=>{if(PRODL.wake)PRODL.wake();});
+document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act="plretry"],[data-act="plshowall"]');if(!el)return;e.stopPropagation();e.preventDefault();
+  if(el.dataset.act==='plretry')prodlRetry();else prodlShowAll();},true);   /* botones del aviso (antes que el despachador general) */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&PRODL.st!=='ok'&&PRODL.wake)PRODL.wake();});
+window.addEventListener('visibilitychange',()=>{if(!document.hidden)PL_RSQ=Date.now();},true);   /* J) en captura: antes del sbLiveSync que la app lanza al volver */
+window.addEventListener('online',()=>{if(PRODL.st==='ok'&&currentDataId()){PL_RSQ=Date.now();try{sbLiveSync();}catch(_){}}});   /* J) al volver internet también se revisa */
+/* ---- G) candado de la NUBE: una lista de productos con muchos MENOS que llega sin registro de borrado no se sigue ----
+   D = productos que están en la base (última versión vista de la nube) y aquí, y que la lista que llega ya no trae. Si son "muchos"
+   (plMass) y no los explica un registro tipo 3 del historial (clave o nombre; el de aquí o el de la nube) ni el diario de borrados de este
+   equipo ni una marca de vaciar/restaurar/eliminar, se verifica en la nube unos segundos (el registro de otro equipo puede subir después de
+   su lista): explicados (la mitad o más, o 1,000+: el historial guarda 1,500) = se sigue; si no, los no explicados se conservan y suben. */
+let PL_WM=0;const PL_RV={},PL_RVP={};   /* PL_WM: fusión de una subida (sbSyncWriteOne) · PL_RV: decisiones por tienda (f = seguir, k = conservar) · PL_RVP: verificación en curso */
+function plRvGet(id){const v=PL_RV[id];if(v&&Date.now()-v.t>20*60000){delete PL_RV[id];return null;}return v||null;}
+function plMass(n,bn){return n>=3&&(n>20||n>bn*0.1);}
+function plRDrop(id,local,remote){const b=baseOf(id,'products');if(!b||!b.arr||!Array.isArray(local)||!Array.isArray(remote)||BK_RESTORING===id)return null;
+  const R=new Set();for(const x of remote)if(x&&x.id!=null)R.add(''+x.id);const D=[];
+  for(const x of local){if(!x||x.id==null)continue;const k=''+x.id;if(!R.has(k)&&b.map.has(k))D.push(x);}return {D,bn:b.map.size};}
+function plExpl(id,items,logs){const K=new Set(),N=new Set();
+  for(const L of logs){if(!Array.isArray(L))continue;for(const e of L){if(!e||+e.tipo!==3)continue;const k=(''+(e.key==null?'':e.key)).trim().toUpperCase();if(k)K.add(k);const n=fold(''+(e.nombre||'')).trim();if(n)N.add(n);}}
+  const del=plDelGet(id),ex=new Set();
+  for(const p of items){const k0=''+p.id;if(del[k0]){ex.add(k0);continue;}const k=(''+(p.key==null?'':p.key)).trim().toUpperCase();if(k&&K.has(k)){ex.add(k0);continue;}
+    if(!N.size)continue;let n='';try{n=fold(mnName(p)).trim();}catch(_){}if((n&&N.has(n))||N.has(fold(''+(p.name||'')).trim()))ex.add(k0);}
+  return ex;}
+function plExplAll(ex,n){return ex.size>=n*0.5||ex.size>=1000;}
+function plRvSet(id,items,keep){const v=plRvGet(id)||{f:new Set(),k:new Set(),t:0};v.t=Date.now();for(const x of items){const k=''+x.id;if(keep.has(k)){v.k.add(k);v.f.delete(k);}else{v.f.add(k);v.k.delete(k);}}PL_RV[id]=v;}
+function plRNeed(id,local,remote){const r=plRDrop(id,local,remote);if(!r||!r.D.length)return null;const v=plRvGet(id);const U=v?r.D.filter(x=>!v.f.has(''+x.id)&&!v.k.has(''+x.id)):r.D;
+  if(!plMass(U.length,r.bn))return null;if(plExplAll(plExpl(id,U,[state.invLog]),U.length)){plRvSet(id,U,new Set());return null;}   /* ya explicado con lo de aquí: se sigue */
+  return {U,bn:r.bn};}
+function plRVerify(id,U,bn){if(PL_RVP[id])return PL_RVP[id];
+  const p=(async()=>{let ex=null;
+    for(const w of [0,2500,6000,12000]){if(w)await plSleep(w);if(id!==currentDataId())return false;
+      let wiped=false;try{wiped=!!(await sbCheckWipe(id,null,true));}catch(_){}if(wiped||id!==currentDataId())return false;   /* vaciada / restaurada / eliminada en otro equipo: lo aplica applyWipe */
+      const x=await sbPullDocTs(id,'invlog');if(id!==currentDataId())return false;if(!x)continue;
+      ex=plExpl(id,U,[state.invLog,Array.isArray(x.d)?x.d:null]);if(plExplAll(ex,U.length)||!plMass(U.length-ex.size,bn))break;}
+    if(!ex)return false;   /* no se pudo leer la nube: no se decide (se intenta con la próxima bajada) */
+    const keep=new Set();if(!plExplAll(ex,U.length)){const k=U.filter(x=>!ex.has(''+x.id));if(plMass(k.length,bn))k.forEach(x=>keep.add(''+x.id));}
+    plRvSet(id,U,keep);if(keep.size){plLog(id,'products','nube sin borrar',keep.size);plRWarn(keep.size);}
+    return true;})();
+  PL_RVP[id]=p;const f=()=>{if(PL_RVP[id]===p)delete PL_RVP[id];};p.then(f,f);return p;}
+function plRWarn(n){PRODL.gnote={n,t:Date.now()};setTimeout(()=>{try{toast(ti('pl_rguard',{n:plN(n)}));}catch(_){}},120);prodlUI();setTimeout(prodlUI,30500);}
+/* en la fusión (mergeDoc → plGuard): lo que se decidió conservar vuelve; una SUBIDA que seguiría un quite sin verificar se detiene (queda pendiente) */
+function plRGuard(id,local,remote,out){const v=plRvGet(id);
+  if(v&&v.k.size&&Array.isArray(local)){const R=new Set(),H=new Set();remote.forEach(x=>{if(x&&x.id!=null)R.add(''+x.id);});out.forEach(x=>{if(x&&x.id!=null)H.add(''+x.id);});
+    const back=local.filter(x=>x&&x.id!=null&&v.k.has(''+x.id)&&!R.has(''+x.id)&&!H.has(''+x.id));if(back.length)out=out.concat(back);}
+  if(PL_WM){const nd=plRNeed(id,local,remote);if(nd){plRVerify(id,nd.U,nd.bn).then(ok=>{if(ok)setTimeout(()=>{try{flushDirty(true);}catch(_){}},300);});const e=new Error('pl-verify');e.plv=true;throw e;}}
+  return out;}
+{const _ar=sbApplyRemote;sbApplyRemote=function(id,key,remote,notify,rts){
+  if(key==='products'&&id&&id===currentDataId()&&Array.isArray(remote)&&!sbBusyKey(key)){let nd=null;try{nd=plRNeed(id,sbDocData('products'),remote);}catch(_){}
+    if(nd){plRVerify(id,nd.U,nd.bn).then(ok=>{if(ok&&id===currentDataId())sbApplyChange(id,['products']);});return false;}}   /* se verifica antes de seguirla; después se baja otra vez */
+  return _ar.apply(this,arguments);};}
+/* ---- H) la búsqueda (Ventas, Inventario, Compras) rehace la cajita sin render: el aviso vuelve a ponerse, sin perder el teclado ---- */
+{const _sr=searchRefresh;searchRefresh=function(){const r=_sr.apply(this,arguments);
+  try{const ae=document.activeElement,pos=ae&&ae.id==='searchInput'?ae.selectionStart:null;prodlDecorate();if(pos!=null&&document.activeElement!==ae&&document.body.contains(ae)){ae.focus({preventScroll:true});try{ae.setSelectionRange(pos,pos);}catch(_){}}}catch(_){}return r;};}
+{const _g5=g5SuggHTML;g5SuggHTML=function(q){const h=_g5.apply(this,arguments);try{if((''+(q||'')).trim()){const v=prodlView();if(v&&!v.mini&&v.st!=='note')return prodlBarHTML(v)+h;}}catch(_){}return h;};}   /* sugerencias de Productos a Detalle */
+/* ---- I) importar (CSV/JSON, .mn completo o solo inventario) solo con los productos completos: si no, cada fila entra como nueva ---- */
+function plImpGuard(inp){const k=plKnown();if(k==='ok'||k==='good')return false;try{const el=document.getElementById(inp);if(el)el.value='';}catch(_){}
+  appAlert(ti(PRODL.st==='loading'?'pl_imp_wait':'pl_imp_off',{n:plN((state.products||[]).length)}));return true;}
+{const _hi=handleImportFile;handleImportFile=function(file){if(plImpGuard('ioFile'))return;return _hi.apply(this,arguments);};}
+{const _bh=bkHandleFile;bkHandleFile=async function(file){if(plImpGuard('bkFile'))return;return _bh.apply(this,arguments);};}
 </script>

@@ -7497,8 +7497,7 @@ const MN_PDF={
     for(const [title,rows] of sections){
       if(y+100>H-50){doc.addPage();y=40;}
       doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(20);doc.text(title,30,y);y+=12;
-      // Sumar centavos de las filas impresas evita un total que difiera por redondeos ocultos.
-      const total=rows.reduce((sum,o)=>sum+(o.tot<0?-1:1)*Math.round(Math.abs(o.tot||0)*100),0)/100;
+      const total=repTxProdTotal(rows);
       doc.autoTable({startY:y,margin:{left:30,right:30,top:40,bottom:50},theme:'grid',
         head:[[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')]],
         body:rows.length?rows.map(o=>[o.name,mnNum(o.q),mnNum(o.tot)]):[[{content:t('sin_info'),colSpan:3}]],
@@ -7635,6 +7634,8 @@ function repMerma(){const a=repMermaData();const tot=a.reduce((s,o)=>s+o.tot,0);
 // Transacciones por producto: pestañas Productos en ventas / Productos en compras (cantidad y total), filtradas por la categoría elegida
 // 3) Transacciones por producto
 // Transacciones por producto: pestañas Productos en ventas / Productos en compras (cantidad y total)
+// Pantalla y PDF suman los mismos subtotales por producto, redondeados a centavos como mnNum.
+function repTxProdTotal(rows){return rows.reduce((sum,o)=>sum+(o.tot<0?-1:1)*Math.round(Math.abs(o.tot||0)*100),0)/100;}
 function repTxProdData(){const tab=(state.repTab&&state.repTab.tx_prod)||'sales';const cat=g4fTxCat();const f=L=>cat==null?L:L.filter(l=>(l.cat||'')===cat);
   if(tab==='purch'){const L0=repPLinesFor(repEnsureRange());if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>l.name)};}
   const L0=repLines();if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>l.name)};}
@@ -7644,7 +7645,8 @@ function repTxProd(){
   const head=REP_SINGLE?repDateHead({cls:'tp-h',inner:crow}):'<div class="mnhead tp-h tp-m">'+crow+'</div>';
   const D=repTxProdData();if(!D)return head+repLoading();
   const fc=L=>cat==null?L:L.filter(l=>(l.cat||'')===cat);
-  const Ls=repLines(),Lp=repPLinesFor(repEnsureRange());const ts=Ls?fc(Ls).reduce((s,l)=>s+lineSub(l),0):0,tp=Lp?fc(Lp).reduce((s,l)=>s+l.cost*l.q,0):0;
+  const sum=L=>L?repTxProdTotal(repAggBy(fc(L),lineProdKey,l=>l.name)):0;
+  const ts=D.tab==='sales'?repTxProdTotal(D.a):sum(repLines()),tp=D.tab==='purch'?repTxProdTotal(D.a):sum(repPLinesFor(repEnsureRange()));
   const tabs='<div class="rtabs mn tp-t"><button class="'+(D.tab==='sales'?'on':'')+'" data-act="mrep:tab:tx_prod:sales">'+t('mr_prod_sales')+'<b class="num">'+rmoney(ts)+'</b></button><button class="'+(D.tab==='purch'?'on':'')+'" data-act="mrep:tab:tx_prod:purch">'+t('mr_prod_purch')+'<b class="num">'+rmoney(tp)+'</b></button></div>';
   if(!D.a.length)return head+tabs+mnEmpty(t('sin_info'),true);
   const rows=repSorted('tx_prod',D.a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
@@ -12572,7 +12574,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261015183839';
+const APP_VERSION='20261015185226';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

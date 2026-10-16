@@ -8507,9 +8507,9 @@ async function rcExtraBlob(sale,lines){
   let y=124;for(const s of [cfg.owner,cfg.email,cfg.phone].filter(Boolean)){T(mnCut(s,320,13),40,y,13);y+=23;}
   let l=240,r=238;
   if(cfg.msg)for(const s of catLines(cfg.msg,270,10)){l+=11;TV(s,40,l,10);}
-  if(sale.client){r+=11;TV(t('sale_client'),317,r,10);for(const s of catLines(sale.client,246,10)){r+=11;TV(s,317,r,10);}
-    const c=saleCliParts(sale);if(c)for(const x of [c.phone,c.address,c.email].filter(Boolean))for(const s of catLines(x,246,10)){r+=11;TV(s,317,r,10);}}
-  const qr=o.exQR?await mnSaleQR(sale,true):null;let base=Math.max(l,r-1),qTop=base+8;   /* mods181 */   /* mods162: "Agregar QR" */
+  if(sale.client){r+=11;TV(t('sale_client'),317,r,10);for(const s of catLines(sale.client,238,10)){r+=11;TV(s,317,r,10);}
+    const c=saleCliParts(sale);if(c)for(const x of [c.phone,c.address,c.email].filter(Boolean))for(const s of catLines(x,238,10)){r+=11;TV(s,317,r,10);}}
+  const qr=o.exQR?await mnSaleQR(sale,true):null;let base=Math.max(l,r),qTop=base+8;   /* mods182: como la referencia de Fabio (Venta 9489) */   /* mods162: "Agregar QR" */
   if(qr){const [p,qy]=F.at(qTop);if(qy+90>812){qTop+=812-qy+1;base=qTop-8;}const [p2,qy2]=F.at(qTop);F.go(p2);try{doc.addImage(qr,'PNG',30,qy2,90,90);}catch(_){}}
   const lx=qr?130:40;
   const y2=base+32;l=r=y2-11;
@@ -8518,8 +8518,8 @@ async function rcExtraBlob(sale,lines){
   if(o.pdfStatus)left.push(t('rc_status')+':  '+(pending?t('rc_pending'):t('sale_paid').toUpperCase()));
   if(sale.pay)left.push(mnNativePayment()+': '+payLbl(sale.pay));
   for(const s of left){l+=11;TV(s,lx,l,10);}
-  const info=saleReceiptInfo(sale);if(info)for(const s of catLines(info,246,10)){r+=11;TV(s,317,r,10);}
-  let v=Math.max(l,r-1)+32;if(qr)v=Math.max(v,qTop+90+35);
+  const info=saleReceiptInfo(sale);if(info)for(const s of catLines(info,238,10)){r+=11;TV(s,317,r,10);}
+  let v=Math.max(l,r)+32;if(qr)v=Math.max(v,qTop+90+35);
   {const [p,yy]=F.at(v);F.go(p);y=yy;}if(y+24+30>802){doc.addPage();y=30;}   // la tabla sigue al bloque (en su hoja)
   const bar=(x,yy,w)=>{doc.setFillColor(0,0,0);doc.rect(x,yy,w,2,'F');};
   const head=yy=>{bar(40,yy,515);const hb=yy+18;let s=t('rx_qty');T(s,mnCX(s,40,98,15),hb,15);T(t('rx_desc'),138,hb,15);s=t('rx_price');T(s,mnRX(s,446,15),hb,15);s=t('rx_sub');T(s,mnRX(s,549,15),hb,15);bar(40,yy+22,515);return yy+24;};
@@ -13717,7 +13717,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016170225';
+const APP_VERSION='20261016174617';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

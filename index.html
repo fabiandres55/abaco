@@ -3277,7 +3277,7 @@ async function catExportSimplePDF(){
     await catYield();
     const JS=await ensurePdfLibs();await catRmReady();
     const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});doc.setCharSpace(0);   /* mods161: 595×842 como MN */
-    await prepPdfLogo();const logo=pdfLogo(doc);   /* logo de la tienda arriba a la derecha (decisión de Fabio, todos los PDF) */
+    const logo=0;   /* mods168: el catálogo sin logo, como MN */
     await catSimpleDraw(doc,l,logo);
     await catYield();const blob=doc.output('blob');catBusyOff();
     pdfDoneDlg(blob,t('m_inventario')+'.pdf');   /* MN: "Inventario.pdf" */
@@ -3401,7 +3401,7 @@ async function catExportCustomPDF(ids){
     if(o.photo)await catLoadPhotos(rows);
     catBusy(t('cx_generating'));
     const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});doc.setCharSpace(0);   /* mods161: 595×842 como MN */
-    await prepPdfLogo();const logo=pdfLogo(doc);   /* logo de la tienda arriba a la derecha (decisión de Fabio, todos los PDF) */
+    const logo=0;   /* mods168: el catálogo sin logo, como MN */
     await catCustomDraw(doc,rows,o,logo);
     await catYield();const blob=doc.output('blob');catBusyOff();
     pdfDoneDlg(blob,t('chip_catalog')+'.pdf');   /* MN: "Catálogo.pdf" */
@@ -4194,7 +4194,7 @@ function cpGoRep(){
 // PDF de la compra (D10: formato del plan): A4 con la plantilla de los reportes de MN; se comparte o se guarda
 async function purchPDF(x,ret){   /* mods163: ret → devuelve {blob,name} para la ventana Recibo / Ticket */
   const p0=typeof x==='object'&&x?x:purById(x);if(!p0)return;
-  try{if(!ret)toast(t('cp_pdf_gen'));const JS=await ensurePdfLibs(),p=purById(p0.id)||p0,lines=await purLines(p),doc=await mnRepDoc(JS),sym=moneySym();
+  try{if(!ret)toast(t('cp_pdf_gen'));const JS=await ensurePdfLibs(),p=purById(p0.id)||p0,lines=await purLines(p),doc=await mnRepDoc(JS,true),sym=moneySym();
     mnNativeText(doc,LANG==='es'?'Recibo de compra':t('cp_det_t'),30,60,12);let y=mnNativeBusiness(doc,92);
     const pv=purProv(p),provider=p.provider||(pv?provName(pv):'');
     if(provider){y=mnNativeLine(doc,t('cp_provider').toUpperCase(),y,12,15);y=mnNativeLine(doc,provider,y,15,35,535);}
@@ -4303,7 +4303,7 @@ async function buildSaleReceiptBlob(sale){
   if(opts().pdfFmt==='ticket')return buildSaleTicketBlob(sale);
   const JS=await ensurePdfLibs(),lines=await srLinesFor(sale);if(!lines.length)return null;
   if(opts().pdfDesign==='extra')return rcExtraBlob(sale,lines);   /* mods161: Diseño Extra de MN */
-  const cfg=receiptCfg(),folio=sale.folio||sale.id,doc=await mnRepDoc(JS);
+  const cfg=receiptCfg(),folio=sale.folio||sale.id,doc=await mnRepDoc(JS,true);
   mnNativeText(doc,t('rc_receipt'),30,60,12);let y=mnNativeBusiness(doc,92);
   // En el recibo de venta original el teléfono se imprime sin prefijo.
   for(const s of [cfg.owner,cfg.email,cfg.phone].filter(Boolean))y=mnNativeLine(doc,s,y,15,20,350);
@@ -6241,8 +6241,7 @@ async function repExportPDF(){
     if(selIds.length===1&&MN_PDF[selIds[0]]){await MN_PDF[selIds[0]](JS);return;}   // estructura de Mi Negocio
     if(!selIds.includes('sale_day')&&selIds.some(id=>REP_CSV[id])){await repCsvPDF(JS,selIds.filter(id=>REP_CSV[id]));return;}
     if(!selIds.includes('sale_day')){toast(t('io_empty'));return;}   /* sin filas en lo elegido: no inventar un PDF de Venta por día */
-    const r=repEnsureRange();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});const M=40;
-    await prepPdfLogo();pdfLogo(doc);
+    const r=repEnsureRange();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});const M=40;   /* mods168: sin logo, como MN */
     let y=54;
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=22;
     doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(60);
@@ -6731,7 +6730,7 @@ async function rsvExportPDF(){
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
     const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});
     const fmt=n=>mnNum2(n);   /* mods161: hasta 2 decimales como MN (11,405.07), redondeo exacto (sin Math.fround) y el separador de la tienda */
-    await catRmReady();await prepPdfLogo();pdfLogo(doc);
+    await catRmReady();   /* mods168: la reserva sin logo, como MN */
     const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
     mnInvTable(doc,rsvFileBase(),body);
     const blob=doc.output('blob');
@@ -7492,7 +7491,7 @@ async function mnNativeOrder(record,purchase){
   y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(record.lines||[]).map(l=>{const price=purchase?l.cost:l.price;return [String(l.name||''),fmtQty(l.q),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
   mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(record.total)]]);mnPdfDone(doc,title+' '+record.folio+'.pdf');   /* mods161 */
 }
-async function mnRepDoc(JS){const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await catRmReady();await prepPdfLogo();doc._mnLogo=mnNativeLogo(doc);return doc;}
+async function mnRepDoc(JS,logo){const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await catRmReady();if(logo)await prepPdfLogo();doc._mnLogo=logo?mnNativeLogo(doc):false;return doc;}   /* mods168: logo solo donde MN lo pone (recibo, compra, por cobrar/pagar) */
 function mnRepHead(doc,o){
   o=o||{};let y=mnNativeBusiness(doc,90)+(doc._mnLogo&&!o.noLogoGap?60:0);
   if(o.from){mnNativeText(doc,t('mr_from')+': '+o.from+'       '+t('mr_to')+': '+o.to,30,y,14,'left',false,535);y+=24;}
@@ -7727,7 +7726,7 @@ async function tkExtraBlob(sale,lines){
    1.ª venta y 20 entre ventas; desde la 2.ª venta MN deja la negrita puesta: Cliente, Folio/Fecha, el encabezado, cantidad/precio/subtotal,
    el rótulo "TOTAL $" y los tres montos (los nombres y los rótulos de PAGOS y TOTAL A PAGAR siguen normales) ---- */
 async function mnNativeDebt(JS,purchase){
-  const D=purchase?purchPayData():salesRecvData(),cfg=receiptCfg(),doc=await mnRepDoc(JS),raw=purchase?await pcRawIndex():undefined;
+  const D=purchase?purchPayData():salesRecvData(),cfg=receiptCfg(),doc=await mnRepDoc(JS,true),raw=purchase?await pcRawIndex():undefined;
   mnNativeText(doc,t(purchase?'pc_hdr':'sr_hdr'),30,60,12);let y=mnNativeContacts(doc,mnNativeBusiness(doc,92),cfg);
   y=mnRepTable(doc,y,null,[[purchase?t('rep_purch_pay'):t('sr_order')]],{w:[534],fs:12,al:['center']});
   y=mnRepTable(doc,y,[t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],[[mnMon(D.total),mnMon(D.pagos),mnMon(D.deuda)]],{w:[178,178,178],fs:14,hfs:12,al:['center','center','center']});
@@ -12833,7 +12832,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016074413';
+const APP_VERSION='20261016080619';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

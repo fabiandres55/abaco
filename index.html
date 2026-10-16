@@ -7511,7 +7511,7 @@ function scTutorial(){
   return `<div class="osub" style="margin-bottom:10px">${t('tut_intro')}</div><div class="tut">${TUT.map(k=>`<div class="tut-i ${open===k?'on':''}"><div class="tut-h" data-act="tut:${k}"><span>${t('tut_'+k+'_h')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>${open===k?`<div class="tut-b">${t('tut_'+k).split('|').map(x=>`<p>${exEsc(x)}</p>`).join('')}</div>`:''}</div>`).join('')}</div>`;
 }
 /* ---------------- Configuración (como Mi Negocio) ---------------- */
-const OPT_DEF={sym:'$',dec:0,sep:'',pdfStatus:true,pdfFmt:'normal',pdfDesign:'simple',tkLogo:false,exQR:false,exSched:false,exText:'',scanner:1,cam:'back',scanCont:false,cliInfo:false,incQty:true,manualDate:false,notifyCli:true,newline:false,lock:null,bkRemind:7,bkLast:''};
+const OPT_DEF={sym:'$',dec:0,sep:'',pdfStatus:true,pdfFmt:'normal',pdfDesign:'extra',tkLogo:false,exQR:true,exSched:false,exText:'',scanner:1,cam:'back',scanCont:false,cliInfo:true,/* mods177: Diseño Extra con QR y cliente por defecto */incQty:true,manualDate:false,notifyCli:true,newline:false,lock:null,bkRemind:7,bkLast:''};
 function opts(){const r=state.receipt||{};return Object.assign({},OPT_DEF,r.opts||{});}
 function setOpt(k,v){state.receipt=state.receipt||{};state.receipt.opts=Object.assign({},state.receipt.opts||{},{[k]:v});persist();const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);}
 const NF_CACHE={};
@@ -13450,7 +13450,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016112203';
+const APP_VERSION='20261016113423';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

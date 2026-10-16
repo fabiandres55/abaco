@@ -3240,7 +3240,7 @@ async function catExportSimplePDF(){
   try{
     await catYield();
     const JS=await ensurePdfLibs();await catRmReady();
-    const doc=new JS({unit:'pt',format:'a4',compress:true});doc.setCharSpace(0);
+    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});doc.setCharSpace(0);
     await prepPdfLogo();const logo=pdfLogo(doc);   /* logo de la tienda arriba a la derecha (decisión de Fabio, todos los PDF) */
     await catSimpleDraw(doc,l,logo);
     await catYield();const blob=doc.output('blob');catBusyOff();
@@ -3363,7 +3363,7 @@ async function catExportCustomPDF(ids){
     const JS=await ensurePdfLibs();await catRmReady();
     if(o.photo)await catLoadPhotos(rows);
     catBusy(t('cx_generating'));
-    const doc=new JS({unit:'pt',format:'a4',compress:true});doc.setCharSpace(0);
+    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});doc.setCharSpace(0);
     await prepPdfLogo();const logo=pdfLogo(doc);   /* logo de la tienda arriba a la derecha (decisión de Fabio, todos los PDF) */
     await catCustomDraw(doc,rows,o,logo);
     await catYield();const blob=doc.output('blob');catBusyOff();
@@ -4215,6 +4215,15 @@ function mnPdfFonts(JS){
       this.addFileToVFS(name,data);this.addFont(name,'RobotoMN',style);
     }
   }]);
+}
+// Roboto de Android también en los exportadores anteriores y sus tablas.
+// La selección es por documento: no altera otras instancias de jsPDF.
+function mnPdfDoc(JS,options){
+  mnPdfFonts(JS);
+  const doc=new JS(options),setFont=doc.setFont.bind(doc);
+  doc.setFont=(name,...args)=>setFont(name==='helvetica'?'RobotoMN':name,...args);
+  doc.setFont('RobotoMN','normal');
+  return doc;
 }
 function saleReceiptInfo(sale){return String(sale.note||sale.addr||'').replace(/\r\n?/g,'\n').trim();}
 function saleReceiptClientInfo(sale){
@@ -5665,7 +5674,7 @@ async function srByClientExportPDF(JS){
 }
 /* documento del resumen: encabezado como el PDF de Ventas por Cobrar + tabla Cliente/Proveedor | Total | Pagos | Deuda */
 async function g3ByPdfDoc(JS,o){
-  const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;let y=52;
+  const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;let y=52;
   await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(o.title,M,y);y+=22;
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
@@ -6140,7 +6149,7 @@ async function repExportPDF(){
     if(selIds.length===1&&MN_PDF[selIds[0]]){await MN_PDF[selIds[0]](JS);return;}   // estructura de Mi Negocio
     if(!selIds.includes('sale_day')&&selIds.some(id=>REP_CSV[id])){await repCsvPDF(JS,selIds.filter(id=>REP_CSV[id]));return;}
     if(!selIds.includes('sale_day')){toast(t('io_empty'));return;}   /* sin filas en lo elegido: no inventar un PDF de Venta por día */
-    const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
+    const r=repEnsureRange();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
     await prepPdfLogo();pdfLogo(doc);
     let y=54;
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=22;
@@ -6161,7 +6170,7 @@ async function repExportPDF(){
 }
 async function txDayExportPDF(JS){
   const date=state.txDate||todayISO();const d=txDayData(date);const cfg=receiptCfg();
-  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40,W=doc.internal.pageSize.getWidth()-M*2,H=doc.internal.pageSize.getHeight();let y=56;
+  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40,W=doc.internal.pageSize.getWidth()-M*2,H=doc.internal.pageSize.getHeight();let y=56;
   // Mismas cifras del reporte en pantalla, con hasta dos decimales y signo.
   await prepPdfLogo();const logoBottom=pdfLogo(doc,{box:64,top:40});
   doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20);
@@ -6218,7 +6227,7 @@ async function txDayExportPDF(JS){
 }
 async function txTotalExportPDF(JS){
   const r=repEnsureRange();const cfg=receiptCfg();const D=txTotalData(r.from,r.to);
-  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
+  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
   const fmt=mnMon;
   const bandS={halign:'center',valign:'middle'};
@@ -6357,7 +6366,7 @@ async function salesRecvExportPDF(JS){
   const cfg=receiptCfg();
   // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
   const rawIdx=undefined;   /* srLinesFor baja el crudo solo si alguna venta no trae sus líneas */
-  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
+  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=mnAmount;
   const fmtD=mnMon;
@@ -6475,7 +6484,7 @@ async function pcLinesFor(p,rawIdx){
 async function purchPayExportPDF(JS){
   const {list,total,pagos,deuda}=purchPayData();
   const cfg=receiptCfg();
-  const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
+  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
   const fmtN=mnAmount;
   const fmtD=mnMon;
@@ -6765,7 +6774,7 @@ async function rsvExportPDF(){
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-    const doc=new JS({unit:'pt',format:'a4',compress:true});
+    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});
     const fmt=n=>(+n||0).toLocaleString('en-US');
     await prepPdfLogo();pdfLogo(doc);
     const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
@@ -7465,7 +7474,7 @@ function purProv(p){if(!p)return null;const l=(state.providers||[]).filter(x=>x&
 function provLabel(v){return (v.contact||v.company||'')+' ('+(v.contact&&v.company?v.company:t('mr_no_company'))+')';}
 function cliLabel(c){return (c.name||'')+' ('+((c.alias||'').trim()||t('mr_no_alias'))+')';}
 // --- PDF con la plantilla de los reportes de Mi Negocio ---
-async function mnRepDoc(JS){mnPdfFonts(JS);const doc=new JS({unit:'pt',format:[595,842],compress:true});const setFont=doc.setFont.bind(doc);doc.setFont=(name,...args)=>setFont(name==='helvetica'?'RobotoMN':name,...args);await prepPdfLogo();pdfLogo(doc);return doc;}
+async function mnRepDoc(JS){const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await prepPdfLogo();pdfLogo(doc);return doc;}
 function mnRepHead(doc,o){
   const nm=((receiptCfg().name||(state.profile&&state.profile.name))||'Abanico').toUpperCase();
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(nm,30,90);
@@ -8103,7 +8112,7 @@ function repExportCSV(){
   saveWithPicker(name,'text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }
 async function repCsvPDF(JS,ids){
-  const r=repEnsureRange();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
+  const r=repEnsureRange();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
   await prepPdfLogo();pdfLogo(doc);
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);doc.text(((cfg.name||(state.profile&&state.profile.name))||'Abanico').toUpperCase(),M,70);
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(r.from+'  →  '+r.to,M,90);
@@ -8265,7 +8274,7 @@ function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.prov
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
 async function poPDF(){
   const o=poById(state.poOpen);if(!o)return;
-  try{toast(t('po_pdf_gen'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
+  try{toast(t('po_pdf_gen'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('po_title'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -8408,7 +8417,7 @@ function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLoca
 async function quotePDF(){
   const q=quoteById(state.qtOpen);if(!q)return;
   try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();
-    const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
+    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sales_quote'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -12643,7 +12652,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261015195719';
+const APP_VERSION='20261015201517';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

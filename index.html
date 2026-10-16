@@ -3169,7 +3169,7 @@ function catUnits(ch,b){const M=catRm(),i=b?1:0;let u=M.u[i].get(ch);if(u!=null)
 function catKern(a,c,b){const M=catRm();if(!M.cv)return 0;const i=b?1:0,k=a+c;let v=M.k[i].get(k);if(v!=null)return v;
   v=Math.round(catMt(M,k,b)-catMt(M,a,b)-catMt(M,c,b));M.k[i].set(k,v);return v;}
 // ancho en pt de s en Roboto a sz pt como lo mide MN (prev = la letra de antes, para el ajuste entre las dos)
-function catRW(s,sz,b,prev){let w=0,k=0,p=prev||'';for(const ch of s){const u=catUnits(ch,b);w+=Math.floor(Math.round(u*sz/32)/64+0.5);if(p)k+=catKern(p,ch,b);p=ch;}return w+k*sz/2048;}
+function catRW(s,size,b,prev){const sz=Math.floor(size);let w=0,k=0,p=prev||'';for(const ch of s){w+=Math.floor(Math.round(catUnits(ch,b)*sz/32)/64+.5);if(p)k+=catKern(p,ch,b);p=ch;}return w+k*sz/2048;}
 // texto que Helvetica (WinAnsi) puede escribir: letras con tilde que no tiene → sin la tilde; emoji y marcas invisibles → fuera; lo demás → "?"
 // emoji, modificadores, banderas, marcas y caracteres invisibles: fuera. Se arma con new RegExp: un navegador viejo sin \p{…} no rompe la
 // app (usa la versión simple)
@@ -3196,13 +3196,18 @@ function catEllip(s,W,sz,b){let x=s;while(x&&catRW(x+'…',sz,b)>W)x=x.slice(0,-
 // escribe s en (x,y) con Helvetica pero del ancho que tendría en Roboto (o max): más angosta con Tz, más ancha con espacio entre letras
 // (Tz y Tc van siempre en cada texto: quedan puestos en el PDF para el texto que sigue).
 // o.c = x es el centro; o.b = negrita (la letra ya puesta por quien llama); o.raw = ya limpio. Devuelve el ancho
-function catText(doc,s,x,y,sz,o){o=o||{};s=o.raw?s:catTx(s);if(!s)return 0;doc.setFontSize(sz);
-  let w=catRW(s,sz,o.b);if(o.max&&w>o.max)w=o.max;const hw=doc.getStringUnitWidth(s,{doKerning:false})*sz/doc.internal.scaleFactor;let hs=1,cs=0;   /* sin el kerning de jsPDF: Tj no lo aplica */
-  if(hw>w+0.01)hs=w/hw;else{const n=[...s].length;if(n>1)cs=(w-hw)/(n-1);}
-  doc.text(s,o.c?x-w/2:x,y,{charSpace:cs,horizontalScale:hs});return w;}
+function catText(doc,s,x,y,size,o){
+  o=o||{};s=o.raw?String(s):catTx(s);if(!s)return 0;doc.setFontSize(size);
+  const width=catRW(s,size,o.b),scale=o.max&&width>o.max?o.max/width:1,start=o.c?x-catMeasure(s,size,o.b)*scale/2:x,advanceSize=Math.floor(size);
+  // Android coloca cada glifo con su avance redondeado y el kerning del par.
+  // Ajustar solamente el ancho total distribuye el espacio de otra manera.
+  let dx=0,prev='';for(const ch of s){if(prev)dx+=catKern(prev,ch,o.b)*advanceSize/2048;
+    doc.text(ch,start+dx*scale,y,{charSpace:0,horizontalScale:scale});
+    dx+=Math.floor(Math.round(catUnits(ch,o.b)*advanceSize/32)/64+.5);prev=ch;
+  }return width*scale;
+}
 // negocio en negrita 20 pt (MN); si es muy largo se achica para no tapar el logo ni salirse de la hoja
-function catBizDraw(doc,y,logo){const s=catTx(catBizName());if(!s)return;const avail=(logo?481:565)-30;doc.setFont('helvetica','bold');
-  const w=catRW(s,20,1);const sz=w>avail?Math.max(8,Math.floor(200*avail/w)/10):20;catText(doc,s,30,y,sz,{b:1,max:avail,raw:1});doc.setFont('helvetica','normal');}
+function catBizDraw(doc,y,logo){return mnNativeBusiness(doc,y);}
 
 /* ---- Catálogo Simple = "Inventario.pdf" (MN, mn_catalogo_simple.pdf) ----
    "Inventario" 12 pt, negocio en negrita 20 pt, "FECHA:2026-10-11" 13 pt; tabla de x=30 con columnas 110/177/62/62/62/62, filas de 20,
@@ -3213,9 +3218,9 @@ async function catSimpleDraw(doc,list,logo){
   const X=30,COLS=[110,177,62,62,62,62],ROW=20,BOT=802,xs=[X];COLS.forEach(w=>xs.push(xs[xs.length-1]+w));
   doc.setTextColor(0);doc.setDrawColor(0);doc.setLineWidth(0.5);
   doc.setFont('helvetica','normal');catText(doc,t('m_inventario'),30,60,12);
-  catBizDraw(doc,92,logo);
-  catText(doc,t('sale_date').toUpperCase()+':'+todayISO(),30,132,13);
-  let y=212;
+  const by=catBizDraw(doc,92,logo);
+  catText(doc,t('sale_date').toUpperCase()+':'+todayISO(),30,by,13);
+  let y=by+80;
   pdfInvHead()[0].forEach((h,i)=>{doc.rect(xs[i],y,COLS[i],ROW);if(i===1)catText(doc,h,xs[i]+10,y+15,7,{max:COLS[i]-12});else catText(doc,h,xs[i]+COLS[i]/2,y+15,7,{c:1,max:COLS[i]-4});});
   y+=ROW;let n=0;
   for(const p of list){
@@ -3313,8 +3318,8 @@ function catGridCard(doc,r,o,x,top,h){const L=r._L;
 }
 async function catCustomDraw(doc,rows,o,logo){
   const BOT=802,G=o.layout==='grid',c=receiptCfg();
-  doc.setTextColor(0);catBizDraw(doc,92,logo);
-  doc.setFont('helvetica','normal');let b=92,bot=97;
+  doc.setTextColor(0);const by=catBizDraw(doc,92,logo);
+  doc.setFont('helvetica','normal');let b=by-40,bot=b+5;
   const info=[c.owner,c.email,c.phone?t('rc_phone')+': '+c.phone:''].map(x=>catTx((''+(x||'')).trim()).trim()).filter(Boolean);
   info.forEach((s,i)=>{b+=i?20:40;catText(doc,s,30,b,15,{raw:1,max:535});bot=b+5;});
   const msg=(''+(c.msg||'')).replace(/\s+$/,'');
@@ -4157,27 +4162,20 @@ function cpGoRep(){
 // PDF de la compra (D10: formato del plan): A4 con la plantilla de los reportes de MN; se comparte o se guarda
 async function purchPDF(x){
   const p0=typeof x==='object'&&x?x:purById(x);if(!p0)return;
-  try{toast(t('cp_pdf_gen'));const JS=await ensurePdfLibs();const p=purById(p0.id)||p0;const lines=await purLines(p);const cfg=receiptCfg();
-    const doc=await mnRepDoc(JS);const M=40,sym=moneySym();let y=58;
-    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('cp_det_t'),M,y);y+=30;
-    doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
-    doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);[cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=17;});
-    y+=12;doc.setTextColor(20);doc.setFontSize(11);
-    const pv=purProv(p),due=recDue('purch',p),pg=recPaid('purch',p),cred=purchaseIsCredit(p),si=t('sin_info');
-    const st=due>0.5?t('cp_topay'):((Array.isArray(p.pays)&&p.pays.length)?t('pst_paid_was'):t('cp_paid'));
-    [[t('sale_folio'),''+(p.folio||p.id)],[t('sale_date'),[p.date,p.time].filter(Boolean).join(' ')],[t('cp_provider'),p.provider||(pv?provName(pv):'')||si],[t('prv_company'),(pv&&pv.company)||si],[t('sale_payform'),payLbl(p.pay)||si],[t('ex_f_status'),st]]
-      .forEach(([k,v])=>{const f=mnPdfFlow(doc,{x:M,y:y-11,w:515,top:40,bottom:40,font:'helvetica'});f.text(k+': '+v,11,17);y=f.y+11;});
-    const body=lines.length?lines.map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),qtyLoc(l.qty),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[{content:t('sale_noitems'),colSpan:4,styles:{halign:'center'}}]];
-    doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),(t('sd_price')+' '+sym).toUpperCase(),(t('sale_subtotal')+' '+sym).toUpperCase()]],body,theme:'grid',
-      styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
-      columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
-    const tb=[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred){tb.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)]);tb.push([(t('ttx_deuda')+' '+sym).toUpperCase(),moneyNum(due)]);}
-    doc.autoTable({startY:doc.lastAutoTable.finalY+14,margin:{left:M+330,right:M},body:tb,theme:'grid',styles:{fontSize:11,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:30,valign:'middle'},columnStyles:{0:{halign:'right'},1:{halign:'center',fontStyle:'bold'}}});
-    if(p.note){const f=mnPdfFlow(doc,{x:M,y:doc.lastAutoTable.finalY+13,w:515,top:40,bottom:40,font:'helvetica'});f.need(32);f.text(t('sd_info')+':',11,16,{style:'bold'});f.text(p.note,11,16);}
-    const name=t('cp_det_t')+' '+(p.folio||p.id)+'.pdf';const blob=doc.output('blob');const file=new File([blob],name,{type:'application/pdf'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return;}catch(e){if(e&&e.name==='AbortError')return;}}
-    const ok=await saveWithPicker(name,'application/pdf',blob);if(ok)toast(t('io_done_exp'));
-  }catch(e){toast(t('cp_pdf_err'));}
+  try{toast(t('cp_pdf_gen'));const JS=await ensurePdfLibs(),p=purById(p0.id)||p0,lines=await purLines(p),doc=await mnRepDoc(JS),sym=moneySym();
+    mnNativeText(doc,LANG==='es'?'Recibo de compra':t('cp_det_t'),30,60,12);let y=mnNativeBusiness(doc,92);
+    const pv=purProv(p),provider=p.provider||(pv?provName(pv):'');
+    if(provider){y=mnNativeLine(doc,t('cp_provider').toUpperCase(),y,12,15);y=mnNativeLine(doc,provider,y,15,35,535);}
+    if(pv?.company&&pv.company!==provider)y=mnNativeLine(doc,pv.company,y,12,17);
+    y=Math.max(y,200);y=mnNativeLine(doc,t('sale_folio').toUpperCase()+': '+(p.folio||p.id)+'     '+t('sale_date').toUpperCase()+': '+[p.date,p.time].filter(Boolean).join(' '),y,13,18)-18;
+    if(p.pay){y+=18;y=mnNativeLine(doc,mnNativePayment()+': '+payLbl(p.pay),y,13,18)-18;}
+    const due=recDue('purch',p),pg=recPaid('purch',p),cred=purchaseIsCredit(p),status=due>0.5?t('cp_topay'):t('cp_paid');
+    if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+status.toUpperCase(),y,15,15);}else y+=20;
+    y=Math.max(220,y);if(p.note)y=mnNativeParagraph(doc,p.note,y,12,350,10);
+    y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(l.name||'').replace(/^\.{3}\s*/,''),qtyLoc(l.qty),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);
+    const totals=[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred)totals.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)],[t('sr_total_pay')+' '+sym,moneyNum(due)]);
+    mnNativeTotal(doc,y+20,totals);await mnNativeShare(doc,t('cp_det_t')+' '+(p.folio||p.id)+'.pdf');
+  }catch(e){console.error('PDF compra',e);toast(t('cp_pdf_err'));}
 }
 /* ---------------- Recibo / Ticket ---------------- */
 function scRecibo(){
@@ -4272,38 +4270,24 @@ async function ensurePdfLibs(){
 // Construye el recibo PDF y devuelve {blob,name,folio}; null si no hay líneas.
 async function buildSaleReceiptBlob(sale){
   if(opts().pdfFmt==='ticket')return buildSaleTicketBlob(sale);
-  const JS=await ensurePdfLibs();mnPdfFonts(JS);const lines=await srLinesFor(sale);if(!lines.length)return null;
-  const cfg=receiptCfg(),folio=sale.folio||sale.id,doc=new JS({unit:'pt',format:[595,842],compress:true});
-  await prepPdfLogo();const logo=pdfLogo(doc,{box:72,top:40});
-  const f=mnPdfFlow(doc,{y:48});
-  f.text(t('rc_receipt'),12,14);f.gap(10);
-  f.text((cfg.name||'').toUpperCase(),20,24,{style:'bold',w:logo?451:535});f.gap(21);
-  [cfg.owner,cfg.email,cfg.phone].filter(Boolean).forEach(s=>f.text(s,15,20));
-  if(cfg.msg){f.gap(4);f.text(cfg.msg,14,16,{w:375});}
-  const info=saleReceiptInfo(sale);
-  if(info){f.gap(20);f.text(info,12,14);f.gap(8);}else f.gap(18);
-  if(sale.client){f.text(t('sale_client')+': '+sale.client,13,15);
-    const clientInfo=saleReceiptClientInfo(sale);if(clientInfo.length){f.gap(4);clientInfo.forEach(s=>f.text(s,12,14));}
-    f.gap(23);
-  }
-  f.text(t('sale_folio')+': '+folio+'     '+t('sale_date')+': '+(sale.date||todayISO()),13,18);
-  if(sale.pay)f.text(t('sale_payform')+': '+payLbl(sale.pay),13,23);else f.gap(5);
+  const JS=await ensurePdfLibs(),lines=await srLinesFor(sale);if(!lines.length)return null;
+  const cfg=receiptCfg(),folio=sale.folio||sale.id,doc=await mnRepDoc(JS);
+  mnNativeText(doc,t('rc_receipt'),30,60,12);let y=mnNativeBusiness(doc,92);
+  // En el recibo de venta original el teléfono se imprime sin prefijo.
+  for(const s of [cfg.owner,cfg.email,cfg.phone].filter(Boolean))y=mnNativeLine(doc,s,y,15,20,350);
+  if(cfg.msg)y=mnNativeParagraph(doc,cfg.msg,y-10,14,350,30);
+  const info=saleReceiptInfo(sale);if(info)y=mnNativeParagraph(doc,info,y-10,12,350,20);
+  if(sale.client)y=mnNativeLine(doc,t('sale_client')+': '+sale.client,y,13,18);
+  for(const s of saleReceiptClientInfo(sale))y=mnNativeLine(doc,s,y,12,17,350);
+  y+=20;const meta=t('sale_folio')+': '+folio+'     '+t('sale_date')+': '+(sale.date||todayISO());
+  y=mnNativeLine(doc,meta,y,13,18)-18;
+  if(sale.pay){y+=18;y=mnNativeLine(doc,mnNativePayment()+': '+payLbl(sale.pay),y,13,18)-18;}
   const total=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,total-paid),pending=due>0.5;
-  if(opts().pdfStatus)f.text(t('rc_status')+': '+(pending?t('rc_pending'):t('sale_paid').toUpperCase()),13,23);
-  f.gap(13);f.need(40);doc.setLineHeightFactor(1.125);
-  doc.autoTable({startY:f.y,margin:{left:30,right:30,top:30,bottom:50},tableWidth:535,
-    head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-    body:lines.map(l=>[l.name,fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]),
-    theme:'grid',styles:{font:'RobotoMN',fontStyle:'normal',fontSize:13,textColor:0,lineColor:0,lineWidth:0.2,cellPadding:2,minCellHeight:20,valign:'middle',overflow:'linebreak'},
-    headStyles:{fillColor:[255,255,255],textColor:0,fontStyle:'normal',fontSize:10,cellPadding:{left:5,right:5,top:4,bottom:4},minCellHeight:20,halign:'center'},
-    columnStyles:{0:{cellWidth:214,halign:'left',fontSize:8,cellPadding:{left:5,right:5,top:1,bottom:1},valign:'top'},1:{cellWidth:107,halign:'center'},2:{cellWidth:107,halign:'center'},3:{cellWidth:107,halign:'center'}},
-    showHead:'firstPage',rowPageBreak:'avoid',...mnReceiptCells(doc,true)});
+  if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+(pending?t('rc_pending'):t('sale_paid').toUpperCase()),y,13,18)-18;}
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(180,y+23),40),lines.map(l=>[l.name,fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]));
   const totals=[[(t('total')+' '+moneySym()).toUpperCase(),mnAmount(total)]];
-  if(pending){totals.push([(t('sr_pagos_lbl')+' '+moneySym()).toUpperCase(),mnAmount(paid)],[t('sr_total_pay')+' '+moneySym(),mnAmount(due)]);}
-  doc.autoTable({startY:doc.lastAutoTable.finalY+20,margin:{left:30,right:30,top:30,bottom:50},tableWidth:535,body:totals,theme:'grid',
-    styles:{font:'RobotoMN',fontStyle:'normal',fontSize:13,textColor:0,lineColor:0,lineWidth:0.2,cellPadding:2,minCellHeight:20,valign:'middle'},
-    columnStyles:{0:{cellWidth:267,halign:'right'},1:{cellWidth:268,halign:'center'}},pageBreak:'avoid',rowPageBreak:'avoid',...mnReceiptCells(doc,false)});
-  return {blob:doc.output('blob'),name:t('rc_receipt')+' '+folio+'.pdf',folio};
+  if(pending)totals.push([(t('sr_pagos_lbl')+' '+moneySym()).toUpperCase(),mnAmount(paid)],[t('sr_total_pay')+' '+moneySym(),mnAmount(due)]);
+  mnNativeTotal(doc,y+20,totals);return {blob:doc.output('blob'),name:t('rc_receipt')+' '+folio+'.pdf',folio};
 }
 async function genSaleReceiptPDF(sale){
   try{toast(t('rc_generating'));const r=await buildSaleReceiptBlob(sale);if(!r){toast(t('rc_none'));return;}
@@ -5674,27 +5658,10 @@ async function srByClientExportPDF(JS){
 }
 /* documento del resumen: encabezado como el PDF de Ventas por Cobrar + tabla Cliente/Proveedor | Total | Pagos | Deuda */
 async function g3ByPdfDoc(JS,o){
-  const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;let y=52;
-  await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(o.title,M,y);y+=22;
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);
-  [cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=17;});
-  y+=10;
-  const st={halign:'center',valign:'middle',fontSize:10,cellPadding:5,lineColor:[200,200,200],lineWidth:0.6,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'};
-  const B=x=>({content:x,styles:{fontStyle:'bold'}});
-  doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',
-    body:[[{content:o.rep,colSpan:3,styles:{halign:'center'}}],
-      [t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],
-      [mnMon(o.total),mnMon(o.pagos),mnMon(o.deuda)]],
-    styles:Object.assign({},st,{fontSize:11,cellPadding:6})});
-  y=doc.lastAutoTable.finalY+18;
-  const body=[[{content:o.first,styles:{halign:'left',fontStyle:'bold'}},B(t('sr_total_lbl')+' '+moneySym()),B(t('sr_pagos_lbl')+' '+moneySym()),B(t('ttx_deuda')+' '+moneySym())]]
-    .concat(o.rows.map(r=>[{content:''+(r[0]||''),styles:{halign:'left'}},o.fmtN(r[1]),o.fmtN(r[2]),o.fmtN(r[3])]));
-  doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,styles:st,columnStyles:{0:{halign:'left'},1:{cellWidth:95},2:{cellWidth:95},3:{cellWidth:95}}});
-  const blob=doc.output('blob');
-  const ok=await saveWithPicker(o.title+'.pdf','application/pdf',blob);
-  if(ok)toast(t('io_done_exp'));
+  const doc=await mnRepDoc(JS);let y=mnNativeBusiness(doc,60);mnNativeText(doc,t('sale_date').toUpperCase()+':'+todayISO(),30,y,13);y+=doc._mnLogo?110:80;
+  y=mnRepTable(doc,y,[o.first,t('sr_total_lbl')+' '+moneySym(),t('sr_pagos_lbl')+' '+moneySym(),t('ttx_deuda')+' '+moneySym()],o.rows.map(r=>[String(r[0]||''),o.fmtN(r[1]),o.fmtN(r[2]),o.fmtN(r[3])]),{w:[205,110,110,110],fs:8,hfs:7,nameCol:0,cell:a=>a.section==='body'&&a.col===0?{base:a.value.length>=35?14:15,size:a.value.length>=35?7:8}:null});
+  mnRepBlock(doc,y+20,o.rep,[t('sr_total_lbl'),t('sr_pagos_lbl'),t('ttx_deuda')],[mnMon(o.total),mnMon(o.pagos),mnMon(o.deuda)]);
+  if(await saveWithPicker(o.title+'.pdf','application/pdf',doc.output('blob')))toast(t('io_done_exp'));
 }
 /* ---------------- Compras por Pagar ---------------- */
 async function pcByProvExportPDF(JS){
@@ -5788,9 +5755,11 @@ function g6ProdRow(o){const p=o.p||{};
   return '<div class="mnrow g6prow"><div class="mnph g6ph">'+saleProdImg(p,g6BoxQ())+'</div><div class="g6p-t"><div class="g6p-k">'+exEsc(o.key||'')+'</div><div class="g6p-n">'+exEsc(o.name||'')+'</div><div class="g6p-b"><b class="num">#'+mnNum(o.q)+'</b><b class="num">'+rmoney(o.tot)+'</b></div></div></div>';}
 function g6Strip(list){return '<div class="g6strip">'+mnStrip(list)+'</div>';}
 // 10) Orden de compra: todas las órdenes vigentes (Mi Negocio no usa rango de fechas aquí)
-async function g6PoPdf(JS){const a=repPOData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
-  const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{date:todayISO(),title:t('rep_purch_order')});
-  mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[226,135,87,87],foot:[t('total'),'',mnNum(repTotals(a).q),mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'purch_order',todayISO());}
+async function g6PoPdf(JS){
+  const a=repPOData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date:todayISO(),title:t('rep_purch_order')});
+  y=mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0});
+  mnRepBlock(doc,y+20,t('rep_purch_order'),[t('me_qty'),t('total')],[mnNum(repTotals(a).q),mnMon(repTotals(a).tot)]);await mnRepSave(doc,'purch_order',todayISO());
+}
 // Reporte cotización: franja Cantidad / Total / Ganancia y la lista completa de productos con su foto
 // g7_abc (fase 2): Análisis ABC, Registro de compras e Ingresos y gastos extra con la estructura de Mi Negocio.
 // Solo cambia la presentación; los datos salen de las mismas funciones de siempre (repABCData, repInvHist, repPLogLoad, repIncExpData).
@@ -6169,105 +6138,57 @@ async function repExportPDF(){
   }catch(e){toast(t('io_err'));}
 }
 async function txDayExportPDF(JS){
-  const date=state.txDate||todayISO();const d=txDayData(date);const cfg=receiptCfg();
-  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40,W=doc.internal.pageSize.getWidth()-M*2,H=doc.internal.pageSize.getHeight();let y=56;
-  // Mismas cifras del reporte en pantalla, con hasta dos decimales y signo.
-  await prepPdfLogo();const logoBottom=pdfLogo(doc,{box:64,top:40});
-  doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20);
-  const name=doc.splitTextToSize((cfg.name||'').toUpperCase(),W-(logoBottom?84:0));doc.text(name,M,y);y+=Math.max(1,name.length)*20+4;
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(50);doc.text(t('sale_date').toUpperCase()+': '+date,M,y);y=Math.max(y+18,logoBottom+12);
-  const styles={fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,halign:'center',valign:'middle'};
-  const summary=(title,labels,values)=>{
-    doc.autoTable({startY:y,margin:{left:M,right:M,top:40,bottom:40},theme:'grid',styles,
-      body:[[{content:title,colSpan:labels.length,styles:{fontStyle:'bold',fillColor:[245,245,245]}}],
-        labels.map(content=>({content,styles:{fontStyle:'bold',fontSize:8,textColor:90}})),values.map(mnMon)]});
-    y=doc.lastAutoTable.finalY;
-  };
+  const date=state.txDate||todayISO(),d=txDayData(date),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date});
+  const row=(values,size)=>{y=mnRepTable(doc,y,null,[values],{w:Array(values.length).fill(535/values.length),al:Array(values.length).fill('center'),fs:size});};
+  const summary=(title,labels,values)=>{row([title],12);y+=2;row(labels,10);row(values.map(mnMon),13);};
   summary(t('tx_res_ing'),[t('tx_ventas_pag'),t('tx_type_pventas'),t('tx_ing_pag'),t('tx_pagos_ing'),t('tx_tot_ing')],[d.ventasPag,d.pagosVentas,d.ingPag,d.pagosIng,d.totIng]);
-  const expenses=[t('tx_compras_pag'),t('tx_pagos_compras'),t('tx_gastos_pag'),t('tx_pagos_gastos')],amounts=[d.comprasPag,d.pagosCompras,d.gastosPag,d.pagosGastos];
-  if(d.salEmp){expenses.push(t('tx_sal_emp'));amounts.push(d.salEmp);}
-  summary(t('tx_res_gas'),expenses.concat(t('tx_tot_egr')),amounts.concat(d.totEgr));
-  doc.autoTable({startY:y,margin:{left:M,right:M,top:40,bottom:40},theme:'grid',styles,
-    body:[[{content:t('tx_balance')+' '+mnMon(d.balance),styles:{fontStyle:'bold',fontSize:12}}]]});
-  y=doc.lastAutoTable.finalY+20;
-  const upper=k=>t(k).toUpperCase();
-  const section=(title,head,rows,widths)=>{
-    if(!rows.length)return;
-    // Orden alfabético por cliente, proveedor o concepto; no cambia las listas de la app.
-    rows.sort((a,b)=>BIN_COLL.compare(''+a[2],''+b[2])||BIN_COLL.compare(''+b[1],''+a[1])||BIN_COLL.compare(''+a[0],''+b[0]));
-    if(y+86>H-40){doc.addPage();y=40;}
-    const columnStyles={};widths.forEach((cellWidth,i)=>columnStyles[i]={cellWidth,halign:i===2?'left':'center'});
-    doc.autoTable({startY:y,margin:{left:M,right:M,top:40,bottom:40},theme:'grid',styles:{...styles,fontSize:9,cellPadding:5},columnStyles,
-      head:[[{content:title.toUpperCase(),colSpan:head.length,styles:{halign:'left',fontSize:11,fontStyle:'normal'}}],head],body:rows,
-      headStyles:{fillColor:[255,255,255],textColor:40,fontStyle:'normal'},showHead:'everyPage',rowPageBreak:'avoid'});
-    y=doc.lastAutoTable.finalY+20;
+  const labels=[t('tx_compras_pag'),t('tx_pagos_compras'),t('tx_gastos_pag'),t('tx_pagos_gastos')],values=[d.comprasPag,d.pagosCompras,d.gastosPag,d.pagosGastos];
+  if(d.salEmp){labels.push(t('tx_sal_emp'));values.push(d.salEmp);}
+  summary(t('tx_res_gas'),labels.concat(t('tx_tot_egr')),values.concat(d.totEgr));row([t('tx_balance')+' '+mnMon(d.balance)],13);y+=40;
+  const upper=k=>t(k).toUpperCase(),status=(credit,due)=>credit?(due>0.5?'-':'+ -'):'+';
+  const section=(title,head,rows,w)=>{
+    if(!rows.length)return;rows.sort((a,b)=>BIN_COLL.compare(''+a[2],''+b[2])||BIN_COLL.compare(''+b[1],''+a[1])||BIN_COLL.compare(''+a[0],''+b[0]));
+    y=mnNativeNeed(doc,y,72);mnNativeText(doc,title.toUpperCase(),30,y,12);y+=12;
+    y=mnRepTable(doc,y,head,rows,{w,al:w.map((_,i)=>i===2?'left':'center'),fs:13,hfs:10,nameCol:2,product:true});y+=40;
   };
-  const status=(credit,due)=>credit?(due>0.5?'-':'+ -'):'+';
-  const txHead=who=>[upper('sale_folio'),upper('me_time'),upper(who),upper('total'),upper('rc_status')];
-  const widths=[55,55,W-55-55-95-55,95,55];
-  section(t('tx_type_ventas'),[...txHead('sale_client').slice(0,4),upper('svc_profit'),upper('rc_status')],d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleTotal(s)),mnAmount(saleProfit(s)),status(saleIsCredit(s),recDue('sale',s))]),[50,48,W-50-48-90-90-55,90,90,55]);
-  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnAmount(x.p.p)]),[55,55,W-55-55-100,100]);
-  payments(t('tx_type_pventas'),d.pv,'sale_client');
-  section(t('tx_type_compras'),txHead('cp_provider'),d.compras.map(p=>[''+(p.folio||p.id),p.time||'',p.provider||t('sin_info'),mnAmount(p.total),status(purchaseIsCredit(p),purchDueAmt(p))]),widths);
-  payments(t('tx_type_pcompras'),d.pc,'cp_provider');
+  const txHead=who=>[upper('sale_folio'),upper('me_time'),upper(who),upper('total'),upper('rc_status')],w=[80,80,248,80,47];
+  section(t('tx_type_ventas'),txHead('sale_client'),d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleTotal(s)),status(saleIsCredit(s),recDue('sale',s))]),w);
+  section(t('tx_type_compras'),txHead('cp_provider'),d.compras.map(p=>[''+(p.folio||p.id),p.time||'',p.provider||t('sin_info'),mnAmount(p.total),status(purchaseIsCredit(p),purchDueAmt(p))]),w);
   const extraHead=[upper('sale_folio'),upper('me_time'),upper('mr_h_category'),upper('total'),upper('rc_status')];
-  for(const type of ['in','out']){
-    const label=type==='in'?'ttx_type_ing':'ttx_type_gas';
-    section(t(label),extraHead,d.extras.filter(m=>m.type===type).map(m=>[''+(m.folio||m.id),m.time||'',[m.cat,m.concept||m.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(exTotal(m)),status(exPending(m)||!!(m.pays&&m.pays.length),exDue(m))]),widths);
-    section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(x.p.p)]),[55,55,W-55-55-100,100]);
-  }
+  for(const type of ['in','out'])section(t(type==='in'?'ttx_type_ing':'ttx_type_gas'),extraHead,d.extras.filter(m=>m.type===type).map(m=>[''+(m.folio||m.id),m.time||'',[m.cat,m.concept||m.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(exTotal(m)),status(exPending(m)||!!m.pays?.length,exDue(m))]),w);
+  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnAmount(x.p.p)]),[80,80,248,80]);
+  payments(t('tx_type_pventas'),d.pv,'sale_client');payments(t('tx_type_pcompras'),d.pc,'cp_provider');
+  for(const type of ['in','out'])section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(x.p.p)]),[80,80,248,80]);
   const payroll=(state.payroll||[]).filter(p=>p&&!p.del&&(''+(p.date||'')).slice(0,10)===date);
-  section(t('tx_sal_emp'),[upper('sale_folio'),upper('me_time'),upper('emp_name'),upper('total')],payroll.map(p=>[''+(p.folio||p.id),p.time||'',p.empName||((state.employees||[]).find(e=>''+e.id===''+p.emp)||{}).name||t('sin_info'),mnAmount(p.amount)]),[55,55,W-55-55-100,100]);
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60);
-  const legend=doc.splitTextToSize(t('tx_status_legend').replace(/−/g,'-'),W);
-  if(y+legend.length*12>H-40){doc.addPage();y=40;}doc.text(legend,M,y);
-  const blob=doc.output('blob');
-  const ok=await saveWithPicker(t('rep_tx_day')+' '+date+'.pdf','application/pdf',blob);
-  if(ok)toast(t('io_done_exp'));
+  section(t('tx_sal_emp'),[upper('sale_folio'),upper('me_time'),upper('emp_name'),upper('total')],payroll.map(p=>[''+(p.folio||p.id),p.time||'',p.empName||((state.employees||[]).find(e=>''+e.id===''+p.emp)||{}).name||t('sin_info'),mnAmount(p.amount)]),[80,80,248,80]);
+  // ABANICO también muestra ganancia por venta; no se elimina ese importe del PDF.
+  section(t('svc_profit'),[upper('sale_folio'),upper('me_time'),upper('sale_client'),upper('svc_profit')],d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleProfit(s))]),[80,80,248,80]);
+  y=mnNativeNeed(doc,y,26);mnNativeParagraph(doc,t('tx_status_legend').replace(/−/g,'-'),y-10,11,535);
+  if(await saveWithPicker(t('rep_tx_day')+' '+date+'.pdf','application/pdf',doc.output('blob')))toast(t('io_done_exp'));
 }
 async function txTotalExportPDF(JS){
-  const r=repEnsureRange();const cfg=receiptCfg();const D=txTotalData(r.from,r.to);
-  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
-  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
-  const fmt=mnMon;
-  const bandS={halign:'center',valign:'middle'};
-  // dibuja una tabla en y y devuelve finalY (rows contiguos comparten borde)
-  const tbl=(rows,yy)=>{doc.autoTable({startY:yy,margin:{left:M,right:M},body:rows,theme:'grid',
-    styles:{halign:'center',valign:'middle',fontSize:10,cellPadding:6,lineColor:[200,200,200],lineWidth:0.7,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'}});
-    return doc.lastAutoTable.finalY;};
-  const need=(yy,h)=>{if(yy+h>pageH-40){doc.addPage();return 48;}return yy;};
-  const sub=(txt,cols)=>({content:txt,colSpan:cols,styles:bandS});
-  const label=(txt,yy)=>{yy=need(yy,120);doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(txt,M,yy);return yy+8;};
-  let y=56;
-  await prepPdfLogo();pdfLogo(doc,{box:64,top:36});
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(60);doc.text(ti('ttx_pdf_sub',{a:r.from,b:r.to}),M,y);y+=26;
-  // Resumen: Ingresos | Egresos | Balance
-  y=tbl([[t('ttx_ingresos'),t('ttx_egresos'),t('ttx_balance')],[fmt(D.ingresos),fmt(D.egresos),fmt(D.balance)]],y);
-  y+=28;
-  // Total de Ventas
-  y=label(t('ttx_sec_ventas'),y);
-  y=tbl([[sub(t('ttx_ventas_pag'),3)],[t('ttx_cant'),t('ttx_ingresos'),t('ttx_gan')],[String(D.ventasPag.n),fmt(D.ventasPag.ing),fmt(D.ventasPag.gan)]],y);
-  y=tbl([[sub(t('ttx_ventas_cobrar'),4)],[t('ttx_cant'),t('ttx_ingresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.ventasCob.n),fmt(D.ventasCob.ing),fmt(D.ventasCob.pagos),fmt(D.ventasCob.deuda)]],y);
-  y=tbl([[t('ttx_tot_ing_cobrar').replace(/<br\s*\/?\s*>/gi,' '),t('ttx_tot_gan_cobrar').replace(/<br\s*\/?\s*>/gi,' ')],[fmt(D.totIng),fmt(D.totGan)]],need(y,80));
-  y+=28;
-  // Total de compras
-  y=label(t('ttx_sec_compras'),y);
-  y=tbl([[sub(t('ttx_compras_pag'),2)],[t('ttx_cant'),t('ttx_egresos')],[String(D.comprasPag.n),fmt(D.comprasPag.egr)]],y);
-  y=tbl([[sub(t('ttx_compras_pagar'),4)],[t('ttx_cant'),t('ttx_egresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.comprasPagar.n),fmt(D.comprasPagar.egr),fmt(D.comprasPagar.pagos),fmt(D.comprasPagar.deuda)]],y);
-  y+=28;
-  // Total de ingresos extras
-  y=label(t('ttx_sec_ing_extra'),y);
-  y=tbl([[sub(t('ttx_ing_extra_pag'),2)],[t('ttx_cant'),t('ttx_ingresos')],[String(D.ingExtraPag.n),fmt(D.ingExtraPag.ing)]],y);
-  y=tbl([[sub(t('ttx_ing_extra_cobrar'),4)],[t('ttx_cant'),t('ttx_ingresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.ingExtraCob.n),fmt(D.ingExtraCob.ing),fmt(D.ingExtraCob.pagos),fmt(D.ingExtraCob.deuda)]],y);
-  y+=28;
-  // Total de gastos extras
-  y=label(t('ttx_sec_gasto_extra'),y);
-  y=tbl([[sub(t('ttx_gasto_extra_pag'),3)],[t('ttx_cant'),t('ttx_gastos'),t('ttx_salario')],[String(D.gastoExtraPag.n),fmt(D.gastoExtraPag.gas),fmt(D.salario)]],y);
-  y=tbl([[sub(t('ttx_gasto_extra_pagar'),4)],[t('ttx_cant'),t('ttx_gastos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.gastoExtraPagar.n),fmt(D.gastoExtraPagar.gas),fmt(D.gastoExtraPagar.pagos),fmt(D.gastoExtraPagar.deuda)]],y);
-  const blob=doc.output('blob');
-  const ok=await saveWithPicker(t('rep_tx_total')+' '+r.from+'_'+r.to+'.pdf','application/pdf',blob);
-  if(ok)toast(t('io_done_exp'));
+  const r=repEnsureRange(),D=txTotalData(r.from,r.to),doc=await mnRepDoc(JS),fmt=mnMon;
+  let y=mnNativeBusiness(doc,90);mnNativeText(doc,ti('ttx_pdf_sub',{a:r.from,b:r.to}),30,y,14);y+=64;
+  const row=(values,size,widths,cell)=>{y=mnRepTable(doc,y,null,[values],{w:widths||Array(values.length).fill(360/values.length),al:Array(values.length).fill('center'),fs:size,cell});};
+  const block=(title,labels,values,gap)=>{row([title],12);if(gap)y+=2;row(labels,11);row(values,13);};
+  const label=text=>{mnNativeText(doc,text,30,y,12);y+=12;};
+  row([t('ttx_ingresos'),t('ttx_egresos'),t('ttx_balance')],12);row([fmt(D.ingresos),fmt(D.egresos),fmt(D.balance)],12);y+=100;
+  label(t('ttx_sec_ventas'));
+  block(t('ttx_ventas_pag'),[t('ttx_cant'),t('ttx_ingresos'),t('ttx_gan')],[String(D.ventasPag.n),fmt(D.ventasPag.ing),fmt(D.ventasPag.gan)]);
+  block(t('ttx_ventas_cobrar'),[t('ttx_cant'),t('ttx_ingresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.ventasCob.n),fmt(D.ventasCob.ing),fmt(D.ventasCob.pagos),fmt(D.ventasCob.deuda)]);
+  // Dos totales adicionales de ABANICO caben en el espacio entre secciones.
+  const next=y+80;y+=20;
+  row([t('ttx_tot_ing_cobrar').replace(/<br\s*\/?\s*>/gi,' '),t('ttx_tot_gan_cobrar').replace(/<br\s*\/?\s*>/gi,' ')],8,null,()=>({base:9,step:9}));row([fmt(D.totIng),fmt(D.totGan)],13);y=Math.max(y+20,next);
+  label(t('ttx_sec_compras'));
+  block(t('ttx_compras_pag'),[t('ttx_cant'),t('ttx_egresos')],[String(D.comprasPag.n),fmt(D.comprasPag.egr)],true);
+  block(t('ttx_compras_pagar'),[t('ttx_cant'),t('ttx_egresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.comprasPagar.n),fmt(D.comprasPagar.egr),fmt(D.comprasPagar.pagos),fmt(D.comprasPagar.deuda)],true);
+  doc.addPage();y=90;label(t('ttx_sec_ing_extra'));
+  block(t('ttx_ing_extra_pag'),[t('ttx_cant'),t('ttx_ingresos')],[String(D.ingExtraPag.n),fmt(D.ingExtraPag.ing)],true);
+  block(t('ttx_ing_extra_cobrar'),[t('ttx_cant'),t('ttx_ingresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.ingExtraCob.n),fmt(D.ingExtraCob.ing),fmt(D.ingExtraCob.pagos),fmt(D.ingExtraCob.deuda)],true);
+  y+=80;label(t('ttx_sec_gasto_extra'));
+  block(t('ttx_gasto_extra_pag'),[t('ttx_cant'),t('ttx_gastos'),t('ttx_salario')],[String(D.gastoExtraPag.n),fmt(D.gastoExtraPag.gas),fmt(D.salario)],true);
+  block(t('ttx_gasto_extra_pagar'),[t('ttx_cant'),t('ttx_gastos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.gastoExtraPagar.n),fmt(D.gastoExtraPagar.gas),fmt(D.gastoExtraPagar.pagos),fmt(D.gastoExtraPagar.deuda)],true);
+  if(await saveWithPicker(t('rep_tx_total')+' '+r.from+'_'+r.to+'.pdf','application/pdf',doc.output('blob')))toast(t('io_done_exp'));
 }
 /* ---------------- Ventas por Cobrar ---------------- */
 // Pago efectivo: si tiene abonos, la suma; si es crédito sin abonos, 0; si es contado, se asume pagada.
@@ -6361,52 +6282,7 @@ async function srLinesFor(s,rawIdx){
   if(rows&&rows.length)return alphaLines(rows.map(l=>({name:l.nombre||l.name||'—',qty:+(l.cantidad!=null?l.cantidad:l.qty)||0,price:+(l.p_venta!=null?l.p_venta:l.price)||0,subtotal:l.subtotal!=null?+l.subtotal:((+(l.p_venta||l.price)||0)*(+(l.cantidad||l.qty)||0))})));
   return [];
 }
-async function salesRecvExportPDF(JS){
-  const {list,total,pagos,deuda}=salesRecvData();
-  const cfg=receiptCfg();
-  // índice del archivo crudo por folio (respaldo cuando el detalle no está en este dispositivo)
-  const rawIdx=undefined;   /* srLinesFor baja el crudo solo si alguna venta no trae sus líneas */
-  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
-  const pageW=doc.internal.pageSize.getWidth();
-  const fmtN=mnAmount;
-  const fmtD=mnMon;
-  let y=52;
-  await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sr_hdr'),M,y);y+=22;
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);
-  [cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=17;});
-  y+=10;
-  // Resumen: Ordenar por Fecha / TOTAL | PAGOS | DEUDA
-  doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',
-    body:[[{content:t('sr_order'),colSpan:3,styles:{halign:'center'}}],
-      [t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],
-      [fmtD(total),fmtD(pagos),fmtD(deuda)]],
-    styles:{halign:'center',valign:'middle',fontSize:11,cellPadding:6,lineColor:[200,200,200],lineWidth:0.7,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'}});
-  y=doc.lastAutoTable.finalY+22;
-  for(const s of list){
-    const lines=await srLinesFor(s,rawIdx);
-    const tot=saleTotal(s),pg=srPaid(s),dd=Math.max(0,tot-pg);
-    const body=[
-      [{content:t('sale_client')+':'+(s.client||''),colSpan:4,styles:{halign:'left',fontStyle:'bold'}}],
-      [{content:t('sale_folio')+':'+(s.folio||s.id),colSpan:2,styles:{halign:'left',fontStyle:'bold'}},{content:t('sale_date')+':'+(s.date||''),colSpan:2,styles:{halign:'left',fontStyle:'bold'}}],
-      [{content:t('sr_col_prod'),styles:{halign:'left',fontStyle:'bold'}},{content:t('sr_col_qty'),styles:{fontStyle:'bold'}},{content:t('sr_col_price'),styles:{fontStyle:'bold'}},{content:t('sr_col_sub'),styles:{fontStyle:'bold'}}]
-    ];
-    (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
-      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
-    });
-    body.push([{content:t('sr_total_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_total_pay')+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
-    doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,
-      styles:{halign:'center',valign:'middle',fontSize:9,cellPadding:4,lineColor:[200,200,200],lineWidth:0.6,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'},
-      columnStyles:{0:{halign:'left'},1:{cellWidth:70},2:{cellWidth:95},3:{cellWidth:95}}});
-    y=doc.lastAutoTable.finalY+18;
-  }
-  const blob=doc.output('blob');
-  const ok=await saveWithPicker(t('rep_sales_recv')+'.pdf','application/pdf',blob);
-  if(ok)toast(t('io_done_exp'));
-}
+async function salesRecvExportPDF(JS){return mnNativeDebt(JS,false);}
 /* ---------------- Compras por Pagar (espejo de Ventas por Cobrar) ---------------- */
 // Pago efectivo de una compra: abonos si los hay; si es crédito (porpagar) sin abonos, 0; si es contado/pagada, total.
 const pcPaid=p=>{if(Array.isArray(p.pays)&&p.pays.length)return purchasePaidSum(p);return purchaseIsCreditStrict(p)?0:(+p.total||0);};
@@ -6481,50 +6357,7 @@ async function pcLinesFor(p,rawIdx){
   if(rows&&rows.length)return alphaLines(rows.map(l=>{const c=+(l.p_compra!=null?l.p_compra:(l.cost!=null?l.cost:l.p_venta))||0;const q=+(l.cantidad!=null?l.cantidad:l.qty)||0;return {name:l.nombre||l.name||'—',qty:q,price:c,subtotal:l.subtotal!=null?+l.subtotal:c*q};}));
   return [];
 }
-async function purchPayExportPDF(JS){
-  const {list,total,pagos,deuda}=purchPayData();
-  const cfg=receiptCfg();
-  const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
-  const pageW=doc.internal.pageSize.getWidth();
-  const fmtN=mnAmount;
-  const fmtD=mnMon;
-  const rawIdx=await pcRawIndex();
-  let y=52;
-  await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('pc_hdr'),M,y);y+=22;
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=24;
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(35);
-  [cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=17;});
-  y+=10;
-  doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',
-    body:[[{content:t('rep_purch_pay'),colSpan:3,styles:{halign:'center'}}],
-      [t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],
-      [fmtD(total),fmtD(pagos),fmtD(deuda)]],
-    styles:{halign:'center',valign:'middle',fontSize:11,cellPadding:6,lineColor:[200,200,200],lineWidth:0.7,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'}});
-  y=doc.lastAutoTable.finalY+22;
-  for(const p of list){
-    const lines=await pcLinesFor(p,rawIdx);
-    const tot=(+p.total||0),pg=pcPaid(p),dd=Math.max(0,tot-pg);
-    const body=[
-      [{content:t('cp_provider')+':'+(p.provider||''),colSpan:4,styles:{halign:'left',fontStyle:'bold'}}],
-      [{content:t('sale_folio')+':'+(p.folio||p.id),colSpan:2,styles:{halign:'left',fontStyle:'bold'}},{content:t('sale_date')+':'+(p.date||''),colSpan:2,styles:{halign:'left',fontStyle:'bold'}}],
-      [{content:t('sr_col_prod'),styles:{halign:'left',fontStyle:'bold'}},{content:t('sr_col_qty'),styles:{fontStyle:'bold'}},{content:t('sr_col_price'),styles:{fontStyle:'bold'}},{content:t('sr_col_sub'),styles:{fontStyle:'bold'}}]
-    ];
-    (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
-      body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
-    });
-    body.push([{content:t('sr_total_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_total_pay')+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
-    doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,
-      styles:{halign:'center',valign:'middle',fontSize:9,cellPadding:4,lineColor:[200,200,200],lineWidth:0.6,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'},
-      columnStyles:{0:{halign:'left'},1:{cellWidth:70},2:{cellWidth:95},3:{cellWidth:95}}});
-    y=doc.lastAutoTable.finalY+18;
-  }
-  const blob=doc.output('blob');
-  const ok=await saveWithPicker(t('rep_purch_pay')+'.pdf','application/pdf',blob);
-  if(ok)toast(t('io_done_exp'));
-}
+async function purchPayExportPDF(JS){return mnNativeDebt(JS,true);}
 /* ---------------- Ingresos Extras por Cobrar ---------------- */
 // Adeudo de un ingreso extra: si tiene abonos, total−abonos; si está marcado crédito, total; si es contado, 0.
 // Ingresos y gastos extras: {id,folio,date,time,type:'in'|'out',cat,desc,total,status:'pagado'|'pendiente',pay,pays:[{f,p}],del}
@@ -6774,9 +6607,9 @@ async function rsvExportPDF(){
     if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS){toast(t('io_err'));return;}
     if(!(JS.API&&JS.API.autoTable))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});
+    const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});
     const fmt=n=>(+n||0).toLocaleString('en-US');
-    await prepPdfLogo();pdfLogo(doc);
+    await catRmReady();await prepPdfLogo();pdfLogo(doc);
     const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
     mnInvTable(doc,rsvFileBase(),body);
     const blob=doc.output('blob');
@@ -7034,34 +6867,35 @@ function exportSalesFull(list){
 // Recibo en formato ticket (80 mm)
 async function buildSaleTicketBlob(sale){
   const JS=await ensurePdfLibs();mnPdfFonts(JS);const lines=await srLinesFor(sale);if(!lines.length)return null;
-  const cfg=receiptCfg(),W=219,M=5,folio=sale.folio||sale.id,total=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,total-paid);
+  await catRmReady();const cfg=receiptCfg(),W=219,M=5,folio=sale.folio||sale.id,total=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,total-paid);
   const probe=new JS({unit:'pt',format:[W,400],compress:true}),commands=[];let y=7;
   const add=(value,size,step,style,align,x,width)=>{
     probe.setFont('RobotoMN',style||'normal');probe.setFontSize(size);
-    const wrapped=String(value==null?'':value).split('\n').flatMap(s=>s?probe.splitTextToSize(s,width||W-2*M):['']);
+    const wrapped=String(value==null?'':value).split('\n').flatMap(s=>s?catLines(s,width||W-2*M,size,style==='bold'):['']);
     for(const text of wrapped){commands.push({text,size,style:style||'normal',align:align||'left',x:x==null?(align==='center'?W/2:M):x,y});y+=step;}
   };
   add(t('rc_receipt'),8,10);y+=16;
-  add((cfg.name||'').toUpperCase(),10,12,'bold','center');y+=4;
+  add((cfg.name||'').toUpperCase(),10,12,'bold','center',105);y+=4;
   [cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean).forEach(s=>add(s,9,14));
   if(cfg.msg){y-=2;add(cfg.msg,8,9);}
   const info=saleReceiptInfo(sale);if(info){y+=10;add(info,8,9);}
   if(sale.client){y+=13;add(t('sale_client'),8,10);add(sale.client,8,10);saleReceiptClientInfo(sale).forEach(s=>add(s,8,10));}
   y+=12;add(t('sale_folio')+': '+folio+'     '+t('sale_date')+': '+(sale.date||todayISO()),9,14);
-  if(sale.pay)add(t('sale_payform')+': '+payLbl(sale.pay),9,14);
+  if(sale.pay)add(mnNativePayment()+': '+payLbl(sale.pay),9,14);
   if(opts().pdfStatus)add(t('rc_status')+':  '+(due>0.5?t('rc_pending'):t('sale_paid').toUpperCase()),10,12);
   y+=18;
-  const row=(values,size,step)=>{const start=y;let end=y;values.forEach((v,i)=>{y=start;add(v,size,step,null,'center',M+34.5+69*i,65);end=Math.max(end,y);});y=end;};
+  const row=(values,size,step)=>{const start=y;let end=y;values.forEach((v,i)=>{y=start;add(v,size,step,null,'center',M+34+69*i,65);end=Math.max(end,y);});y=end;};
   row([t('cx_qty').toUpperCase(),t('rc_price').toUpperCase()+'('+moneySym()+')',t('sale_subtotal').toUpperCase()+'('+moneySym()+')'],7,8);y+=10;
   for(const l of lines){const start=y;add(l.name,String(l.name||'').length>38?7:9,10);y=Math.max(start+16,y+4);row([fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))],9,14);y+=5;}
   y+=20;
-  const totalRow=(label,value)=>{const start=y;add(label+' '+moneySym(),9,12,null,'right',108,103);const end=y;y=start-1;add(mnAmount(value),10,12,'bold','left',114,100);y=Math.max(start+14,end,y);};
+  const totalRow=(label,value)=>{const start=y;const first=commands.length;add(label+' '+moneySym(),9,12,null,'right',109,103);const end=y;y=start-1;add(mnAmount(value),10,12,'bold','left',114,100);for(let i=first;i<commands.length;i++)commands[i].y+=1;y=Math.max(start+12,end,y);};
   totalRow(t('total').toUpperCase(),total);
   if(due>0.5){totalRow(t('sr_pagos_lbl').toUpperCase(),paid);totalRow(t('sr_total_pay'),due);}
   // Los tickets muy extensos continúan en otra página antes del límite de jsPDF.
-  const height=Math.max(260,Math.min(14000,y+39)),doc=new JS({unit:'pt',format:[W,height],compress:true});let shift=0;
+  const nativeHeight=(cfg.name?(cfg.name.length>=32?150:140):125)+[cfg.owner,cfg.email,cfg.phone].filter(Boolean).length*14+(cfg.msg?catLines(cfg.msg,210,8).length*9+10:0)+lines.length*35+(due>0.5?70:20)+(info?catLines(info,210,8).length*9+10:0)+(sale.client?21:0)+(opts().pdfStatus?25:0)+(sale.pay?15:0)+10;
+  const height=Math.max(260,Math.min(14000,Math.max(nativeHeight,y+39))),doc=new JS({unit:'pt',format:[W,height],compress:true});let shift=0;
   for(const c of commands){if(c.y-shift+16>height-M){doc.addPage([W,height]);shift=c.y-M;}
-    doc.setFont('RobotoMN',c.style);doc.setFontSize(c.size);doc.setTextColor(0);if(c.text)doc.text(c.text,c.x,c.y-shift+c.size,{align:c.align});
+    doc.setFont('RobotoMN',c.style);doc.setFontSize(c.size);doc.setTextColor(0);if(c.text)mnNativeText(doc,c.text,c.x,c.y-shift+c.size,c.size,c.align,c.style==='bold');
   }
   return {blob:doc.output('blob'),name:t('rc_receipt')+' '+folio+'.pdf',folio};
 }
@@ -7474,38 +7308,134 @@ function purProv(p){if(!p)return null;const l=(state.providers||[]).filter(x=>x&
 function provLabel(v){return (v.contact||v.company||'')+' ('+(v.contact&&v.company?v.company:t('mr_no_company'))+')';}
 function cliLabel(c){return (c.name||'')+' ('+((c.alias||'').trim()||t('mr_no_alias'))+')';}
 // --- PDF con la plantilla de los reportes de Mi Negocio ---
-async function mnRepDoc(JS){const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await prepPdfLogo();pdfLogo(doc);return doc;}
+function catMeasure(s,size,b){return Math.ceil(catRW(s,size,b));}
+function mnNativeText(doc,value,x,y,size,align,bold,max){
+  const s=String(value==null?'':value);doc.setFont('RobotoMN',bold?'bold':'normal');doc.setTextColor(0);
+  const w=catMeasure(s,size,!!bold);catText(doc,s,align==='right'?x-Math.min(w,max||w):x,y,size,{raw:1,b:!!bold,c:align==='center',max});
+}
+function mnNativeMetrics(size){return ({7:[7,8],8:[8,9],9:[9,10],10:[9,11],11:[10,13],12:[11,14],12.5:[12,14],13:[12,15],14:[13,16],15:[14,17],17:[16,20],20:[19,23]})[size]||[Math.ceil(size*.93),Math.round(size*1.17)];}
+function mnNativeLayout(doc,value,x,y,width,size,align,bold){
+  const lines=catLines(value,Math.floor(width),size,!!bold),[base,step]=mnNativeMetrics(size);
+  lines.forEach((s,i)=>mnNativeText(doc,s,x+(align==='center'?Math.floor(width/2)-Math.floor(catRW(s,size,bold)/2):align==='right'?Math.floor(width):0),y+base+i*step,size,align==='center'?'left':align,bold));
+  return lines.length*step;
+}
+function mnNativeNeed(doc,y,height,bottom){if(y+height>doc.internal.pageSize.getHeight()-(bottom==null?40:bottom)){doc.addPage();return 30;}return y;}
+function mnNativeLogo(doc){
+  const src=rawLogo();if(!src)return false;
+  try{const data=(_pdfLogo.src===src&&_pdfLogo.data)||src,p=doc.getImageProperties(data),s=Math.min(100/p.width,100/p.height),w=p.width*s,h=p.height*s;
+    doc.addImage(data,p.fileType||'JPEG',435+(100-w)/2,60+(100-h)/2,w,h);return true;
+  }catch(e){return false;}
+}
+function mnNativeBusiness(doc,y){
+  const name=String(receiptCfg().name||'Abanico').toUpperCase();
+  if(name.length<32){mnNativeText(doc,name,30,y,20,'left',true,350);return y+40;}
+  const h=mnNativeLayout(doc,name,30,y-10,350,17,'left',true);return y+Math.max(65,h+20);
+}
+function mnNativeTotal(doc,y,rows){return mnRepTable(doc,y,null,rows,{w:[267,268],fs:13,al:['right','center'],bold:(r,c)=>c===1});}
+function mnNativeProducts(doc,y,rows,head){return mnRepTable(doc,y,head||[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()],rows,{w:[214,107,107,107],fs:13,hfs:10,nameCol:0,product:true});}
+function mnNativeContacts(doc,y,cfg){
+  for(const s of [cfg.owner,cfg.email,cfg.phone&&(t('rc_phone')+': '+cfg.phone)].filter(Boolean)){
+    const ls=catLines(s,350,15);for(const l of ls){y=mnNativeNeed(doc,y,20);mnNativeText(doc,l,30,y,15);y+=20;}
+  }return y;
+}
+function mnNativeParagraph(doc,value,y,size,width,gap){
+  const [base,step]=mnNativeMetrics(size);for(const line of catLines(value,width||535,size)){y=mnNativeNeed(doc,y,step);mnNativeText(doc,line,30,y+base,size);y+=step;}return y+(gap||0);
+}
+async function mnNativeDebt(JS,purchase){
+  const D=purchase?purchPayData():salesRecvData(),cfg=receiptCfg(),doc=await mnRepDoc(JS),raw=purchase?await pcRawIndex():undefined;
+  mnNativeText(doc,t(purchase?'pc_hdr':'sr_hdr'),30,60,12);let y=mnNativeContacts(doc,mnNativeBusiness(doc,92),cfg);
+  y=mnRepTable(doc,y,null,[[purchase?t('rep_purch_pay'):t('sr_order')]],{w:[534],fs:12,al:['center']});
+  y=mnRepTable(doc,y,[t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],[[mnMon(D.total),mnMon(D.pagos),mnMon(D.deuda)]],{w:[178,178,178],fs:14,hfs:12,al:['center','center','center']});
+  for(const r of D.list){
+    const lines=purchase?await pcLinesFor(r,raw):await srLinesFor(r,raw),total=purchase?(+r.total||0):saleTotal(r),paid=purchase?pcPaid(r):srPaid(r),due=Math.max(0,total-paid);
+    y=mnNativeNeed(doc,y+40,80);
+    y=mnRepTable(doc,y,null,[[t(purchase?'cp_provider':'sale_client')+':'+(purchase?r.provider||'':r.client||'')]],{w:[534],fs:13});
+    y=mnRepTable(doc,y,null,[[t('sale_folio')+':'+(r.folio||r.id),t('sale_date')+':'+(r.date||'')]],{w:[267,267],fs:13,al:['left','left']});
+    if(r.note)y=mnNativeParagraph(doc,r.note,y,12,535,4);
+    y=mnNativeProducts(doc,y,(lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).map(l=>[l.name||'',l.qty===''?'':fmtQty(l.qty),l.price===''?'':mnAmount(l.price),l.subtotal===''?'':mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]));
+    y=mnNativeTotal(doc,y,[[(t('sr_total_lbl')+' '+moneySym()).toUpperCase(),mnAmount(total)],[(t('sr_pagos_lbl')+' '+moneySym()).toUpperCase(),mnAmount(paid)],[t('sr_total_pay')+' '+moneySym(),mnAmount(due)]]);
+  }
+  if(await saveWithPicker(t(purchase?'rep_purch_pay':'rep_sales_recv')+'.pdf','application/pdf',doc.output('blob')))toast(t('io_done_exp'));
+}
+function mnNativeLine(doc,value,y,size,step,width){
+  const ls=catLines(value,width||535,size);for(const s of ls){y=mnNativeNeed(doc,y,size+3);mnNativeText(doc,s,30,y,size);y+=step;}return y;
+}
+function mnNativePayment(){return LANG==='es'?'Forma de Pago':t('sale_payform');}
+async function mnNativeShare(doc,name){
+  const blob=doc.output('blob'),file=new File([blob],name,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return;}catch(e){if(e?.name==='AbortError')return;}}
+  if(await saveWithPicker(name,'application/pdf',blob))toast(t('io_done_exp'));
+}
+async function mnNativeOrder(record,purchase){
+  const JS=await ensurePdfLibs(),cfg=receiptCfg(),doc=await mnRepDoc(JS),title=t(purchase?'po_title':'sales_quote');
+  mnNativeText(doc,title,30,60,14);let y=mnNativeContacts(doc,mnNativeBusiness(doc,94),cfg);
+  if(cfg.msg)y=mnNativeParagraph(doc,cfg.msg,y-10,14,350,30);
+  if(record.note)y=mnNativeParagraph(doc,record.note,y-10,12,350,20);
+  const party=purchase?record.provider:record.client;
+  if(party)y=mnNativeLine(doc,t(purchase?'cp_provider':'sale_client').toUpperCase()+': '+party,y,13,18);
+  if(!purchase)for(const s of saleReceiptClientInfo(record))y=mnNativeLine(doc,s,y,12,17,350);
+  y+=23;
+  y=mnNativeLine(doc,t('po_issue')+':  '+(purchase?record.issue||'':record.date||''),y,13,18);
+  y=mnNativeLine(doc,t('po_due')+':  '+(record.due||''),y,13,23);
+  // El folio propio de ABANICO se conserva en el margen derecho de la fecha.
+  mnNativeText(doc,t('sale_folio')+': '+record.folio,435,Math.max(174,y-41),11,'left',false,130);
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(record.lines||[]).map(l=>{const price=purchase?l.cost:l.price;return [String(l.name||'').replace(/^\.{3}\s*/,''),fmtQty(l.q),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
+  mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(record.total)]]);await mnNativeShare(doc,title+' '+record.folio+'.pdf');
+}
+async function mnRepDoc(JS){const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await catRmReady();await prepPdfLogo();doc._mnLogo=mnNativeLogo(doc);return doc;}
 function mnRepHead(doc,o){
-  const nm=((receiptCfg().name||(state.profile&&state.profile.name))||'Abanico').toUpperCase();
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(nm,30,90);
-  doc.setFont('helvetica','normal');doc.setTextColor(30);let y=130;
-  if(o.from){doc.setFontSize(14);doc.text(t('mr_from')+': '+o.from,30,y);doc.text(t('mr_to')+': '+o.to,30+Math.max(176,doc.getTextWidth(t('mr_from')+': '+o.from)+20),y);y+=24;}
-  else if(o.date){doc.setFontSize(14);doc.text(t('mr_date')+': '+o.date,30,y);y+=24;}
-  else y=160;
-  if(o.title){doc.setFontSize(12);doc.text(o.title,30,y);y+=18;}
-  return o.title?y+4:y;
+  o=o||{};let y=mnNativeBusiness(doc,90)+(doc._mnLogo&&!o.noLogoGap?60:0);
+  if(o.from){mnNativeText(doc,t('mr_from')+': '+o.from+'       '+t('mr_to')+': '+o.to,30,y,14,'left',false,535);y+=24;}
+  else if(o.date){mnNativeText(doc,t('mr_date')+':'+o.date,30,y,14);y+=24;}
+  else if(o.title)y+=30;
+  if(o.title){let title=String(o.title);if(LANG==='es'&&['rep_pay_forms','rep_category','rep_tags','rep_employees','rep_top_prod','rep_abc','rep_merma'].some(k=>t(k)===title))title=title.replace(/ (\S+)$/,'$1');mnNativeText(doc,title.replace(/\n/g,''),30,y,12);y+=22;}
+  return y;
 }
 function mnRepTable(doc,y,head,rows,o){
-  o=o||{};const W=535,n=(head||rows[0]||[]).length;let w=o.w;
-  if(!w){const num=Math.min(80,Math.floor(W*0.6/Math.max(1,n-1)));w=[W-num*(n-1)];for(let i=1;i<n;i++)w.push(num);}
-  const cs={};w.forEach((x,i)=>cs[i]={cellWidth:x,halign:(o.al&&o.al[i])||(i===0?'left':'center')});
-  doc.autoTable({startY:y,head:head?[head]:undefined,body:rows,foot:o.foot?[o.foot]:undefined,theme:o.plain?'plain':'grid',
-    styles:{font:'helvetica',fontSize:o.fs||8,cellPadding:{top:2,bottom:2,left:o.plain?0:5,right:5},minCellHeight:o.plain?14:20,lineColor:0,lineWidth:o.plain?0:0.2,textColor:0,valign:'middle',overflow:'linebreak'},
-    headStyles:{fillColor:[255,255,255],textColor:0,fontStyle:'normal',fontSize:o.hfs||8,cellPadding:1,halign:'center',valign:'middle'},
-    footStyles:{fillColor:[255,255,255],textColor:20,fontStyle:'bold',halign:'center'},showFoot:'lastPage',
-    columnStyles:cs,margin:{left:30,right:30,top:30,bottom:50},rowPageBreak:'avoid',showHead:'firstPage',
-    didParseCell:d=>{if(d.section==='head')d.cell.styles.halign=(o.al&&o.al[d.column.index])||(d.column.index===0?'left':'center');if(o.nameCol!=null&&d.section==='body'&&d.column.index===o.nameCol&&String(d.cell.raw||'').length>33){d.cell.styles.fontSize=7;d.cell.styles.valign='top';d.cell.styles.cellPadding={top:1,bottom:1,left:5,right:5};}if(o.bold&&d.section==='body'&&o.bold(d.row.index,d.column.index))d.cell.styles.fontStyle='bold';}});
-  return doc.lastAutoTable.finalY;
+  o=o||{};const n=(head||rows[0]||[]).length;if(!n)return y;
+  const w=o.w||[535-(n-1)*80,...Array(n-1).fill(80)],cs={};w.forEach((v,i)=>cs[i]={cellWidth:v,halign:o.al?.[i]||(i===0?'left':'center')});
+  const plain=!!o.plain,fs=o.fs||8,hfs=o.hfs||fs;
+  doc.autoTable({startY:y,head:head?[head]:undefined,body:rows,foot:o.foot?[o.foot]:undefined,
+    theme:plain?'plain':'grid',tableWidth:w.reduce((a,b)=>a+b,0),columnStyles:cs,
+    margin:{left:30,right:30,top:30,bottom:plain?60:40},rowPageBreak:'avoid',showHead:'firstPage',showFoot:'lastPage',
+    styles:{font:'RobotoMN',fontSize:fs,fontStyle:'normal',textColor:0,lineColor:0,lineWidth:plain?0:.5,cellPadding:0,minCellHeight:plain?mnNativeMetrics(fs)[1]:20,overflow:'linebreak'},
+    headStyles:{fillColor:[255,255,255],fontStyle:'normal',fontSize:hfs},footStyles:{fillColor:[255,255,255],fontStyle:'normal'},
+    didParseCell:d=>{
+      const c=d.cell,i=d.column.index,isHead=d.section==='head',isFoot=d.section==='foot';
+      let size=isHead?hfs:fs,align=o.al?.[i]||(i===0?'left':'center'),bold=!!(o.bold&&o.bold(d.row.index,i,d.section));
+      const value=String(c.raw&&typeof c.raw==='object'?c.raw.content??'':c.raw??'');
+      let pad=plain?0:align==='left'?10:5,base=plain?mnNativeMetrics(size)[0]:15,step=plain?mnNativeMetrics(size)[1]:size*1.125;
+      if(!isHead&&!isFoot&&o.nameCol===i){
+        const small=value.length>=34;size=o.product?(small?8:10):(small?7:8);pad=5;
+        base=o.product?(small?9:14):(small?8:12);step=o.product?(small?9:11):(small?8:9);
+      }
+      if(!isHead&&!isFoot&&o.keyCol===i){size=8;pad=5;base=value.length>15?9:14;step=9;}
+      if(o.cell){const a=o.cell({section:d.section,row:d.row.index,col:i,value,size,align,bold,pad,base,step});if(a)({size,align,bold,pad,base,step}={size,align,bold,pad,base,step,...a});}
+      const width=w.slice(i,i+(c.colSpan||1)).reduce((a,b)=>a+b,0);
+      // Android drawText mantiene los títulos en una línea; los párrafos usan StaticLayout.
+      const lines=isHead&&!plain?[value.replace(/\n/g,' ')]:catLines(value,Math.floor(width)-(plain?0:pad+(align==='left'?0:5)),size,bold);
+      c._mn={lines,size,align,bold,pad,base,step};c.text=[];c.styles.fontSize=size;
+      c.styles.minCellHeight=plain?lines.length*step:Math.max(20,base+(lines.length-1)*step+2);
+    },
+    willDrawCell:d=>{
+      const c=d.cell,a=c._mn;if(!a)return false;
+      if(!plain){doc.setDrawColor(0);doc.setLineWidth(.5);doc.rect(c.x,c.y,c.width,c.height);}
+      const x=a.align==='center'?c.x+(plain?Math.floor(c.width)/2:Math.floor(c.width/2)):a.align==='right'?c.x+c.width-5:c.x+a.pad;
+      a.lines.forEach((s,j)=>{const left=plain&&a.align==='center'?c.x+Math.floor(c.width/2)-Math.floor(catRW(s,a.size,a.bold)/2):x;
+        mnNativeText(doc,s,left,c.y+a.base+j*a.step,a.size,plain&&a.align==='center'?'left':a.align,a.bold,plain?Math.floor(c.width):c.width-(a.align==='left'?a.pad+2:a.align==='center'?1:5));});
+      return false;
+    }
+  });return doc.lastAutoTable.finalY;
 }
 // bloque "título / etiquetas / valores" con líneas, como en las fichas de Mi Negocio (producto, cliente, proveedor)
 function mnRepBlock(doc,y,title,labels,vals){
-  if(y>740){doc.addPage();y=50;}
-  const W=535,n=labels.length,cw=W/n;doc.setDrawColor(20);doc.setLineWidth(0.8);doc.line(30,y,565,y);y+=16;
-  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(20);doc.text(title,297.5,y,{align:'center'});y+=14;
-  labels.forEach((l,i)=>doc.text(''+l,30+cw*i+cw/2,y,{align:'center'}));y+=13;vals.forEach((v,i)=>doc.text(''+v,30+cw*i+cw/2,y,{align:'center'}));
-  return y+12;
+  y=mnNativeNeed(doc,y,64,60);mnRepRule(doc,y);y+=10;
+  y+=mnNativeLayout(doc,title,30,y,535,12.5,'center');
+  const n=labels.length,cw=535/n;
+  labels.forEach((v,i)=>mnNativeLayout(doc,v,i?cw*i:30,y,cw,12,'center'));y+=14;
+  vals.forEach((v,i)=>mnNativeLayout(doc,v,i?cw*i:30,y,cw,13,'center'));return y+15+11;
 }
-function mnRepRule(doc,y){doc.setDrawColor(20);doc.setLineWidth(0.8);doc.line(30,y,565,y);return y;}
+function mnRepRule(doc,y){doc.setDrawColor(0);doc.setLineWidth(1);doc.line(30,y,565,y);return y;}
 async function mnRepSave(doc,id,suffix){const ok=await saveWithPicker(t('rep_'+id)+(suffix?' '+suffix:'')+'.pdf','application/pdf',doc.output('blob'));if(ok)toast(t('io_done_exp'));}
 const repRangeTxt=()=>{const r=repEnsureRange();return r.from+' a '+r.to;};
 // Acciones de los reportes nuevos: mrep:sort:ID · mrep:tab:ID:valor · mrep:pick:ID:valor · mrep:clear:ID · mrep:abcinfo · mrep:day:ID:fecha
@@ -7555,67 +7485,56 @@ const MN_PDF={
     await mnRepSave(doc,'pay_forms',repRangeTxt());},
   async tx_prod(JS){
     const r={...repEnsureRange()},cat=g4fTxCat(),store=currentDataId(),sort=repSortKey('tx_prod');
-    // Las dos secciones pertenecen al archivo, independientemente de la pestaña visible.
     let sales=repLinesFor(r),purchases=repPLinesFor(r);
-    for(let i=0;(!sales||!purchases)&&i<100;i++){
-      await new Promise(resolve=>setTimeout(resolve,300));
-      if(currentDataId()!==store)return;
-      sales=repLinesFor(r);purchases=repPLinesFor(r);
-    }
+    for(let i=0;(!sales||!purchases)&&i<100;i++){await new Promise(resolve=>setTimeout(resolve,300));if(currentDataId()!==store)return;sales=repLinesFor(r);purchases=repPLinesFor(r);}
     if(!sales||!purchases)return toast(t('rp_loading'));
-    const select=lines=>{
-      const rows=repAggBy(cat==null?lines:lines.filter(l=>(l.cat||'')===cat),lineProdKey,l=>l.name);
-      return rows.sort((a,b)=>(sort==='name'?0:((sort==='qty'?b.q-a.q:b.tot-a.tot)))||BIN_COLL.compare(a.name,b.name));
-    };
+    const select=ls=>repAggBy(cat==null?ls:ls.filter(l=>(l.cat||'')===cat),lineProdKey,l=>l.name).sort((a,b)=>(sort==='name'?0:(sort==='qty'?b.q-a.q:b.tot-a.tot))||BIN_COLL.compare(a.name,b.name));
     const sections=[[t('mr_prod_sales'),select(sales.filter(l=>!l.svc))],[t('mr_prod_purch'),select(purchases)]];
-    if(sections.every(([,rows])=>!rows.length))return toast(t('mr_empty'));
+    if(sections.every(([,a])=>!a.length))return toast(t('mr_empty'));
     const doc=await mnRepDoc(JS);if(currentDataId()!==store)return;let y=mnRepHead(doc,{from:r.from,to:r.to});
-    const H=doc.internal.pageSize.getHeight(),W=doc.internal.pageSize.getWidth()-60;
-    for(const [title,rows] of sections){
-      if(y+100>H-50){doc.addPage();y=40;}
-      doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(20);doc.text(title,30,y);y+=22;
-      const total=repTxProdTotal(rows);
-      doc.autoTable({startY:y,margin:{left:30,right:30,top:30,bottom:50},theme:'grid',
-        head:[[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')]],
-        body:rows.length?rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]):[[{content:t('sin_info'),colSpan:3}]],
-        foot:[[{content:t('total').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right'}},{content:mnAmount(total),styles:{fontStyle:'bold'}}]],
-        styles:{font:'helvetica',fontSize:13,cellPadding:{top:2,bottom:2,left:5,right:5},minCellHeight:20,lineColor:0,lineWidth:0.2,textColor:0,valign:'middle',overflow:'linebreak'},
-        columnStyles:{0:{cellWidth:321,halign:'left',fontSize:8},1:{cellWidth:107,halign:'center'},2:{cellWidth:107,halign:'center'}},
-        headStyles:{fillColor:[255,255,255],textColor:20,fontStyle:'normal',fontSize:10,halign:'center'},
-        footStyles:{fillColor:[255,255,255],textColor:20,fontStyle:'normal',fontSize:10,halign:'center'},showHead:'firstPage',showFoot:'lastPage',rowPageBreak:'avoid'});
-      y=doc.lastAutoTable.finalY+28;
-    }
+    for(const [title,a] of sections){y=mnNativeNeed(doc,y,82);mnNativeText(doc,title,30,y,12);y+=22;
+      if(a.length){y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],a.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+        y=mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTxProdTotal(a))]])+40;}}
     await mnRepSave(doc,'tx_prod',r.from+' a '+r.to);
   },
-  async tx_serv(JS){const r=repEnsureRange();const a=repTxServData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('tx_serv',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
-    const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_serv_sales')});
-    mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[375,80,80],foot:[t('total'),'',mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'tx_serv',repRangeTxt());},
-  async merma(JS){const r=repEnsureRange();const a=repMermaData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('merma',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
-    const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_merma')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_total')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[218,157,80,80],foot:[t('total'),'','',mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'merma',repRangeTxt());},
+  async tx_serv(JS){const r=repEnsureRange(),a=repTxServData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));
+    const rows=repSorted('tx_serv',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_serv_sales')});
+    y=mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+    mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTotals(a).tot)]]);await mnRepSave(doc,'tx_serv',repRangeTxt());
+  },
+  async merma(JS){const r=repEnsureRange(),a=repMermaData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('merma',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
+    const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_merma')});
+    y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+    mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTotals(a).tot)]]);await mnRepSave(doc,'merma',repRangeTxt());
+  },
   async top_prod(JS){const r=repEnsureRange();const a=repTopProdData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_prod',a,{name:o=>o.name,profit:o=>o.gan,sales:o=>o.tot});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_top_prod')});
     mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_profit'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnAmount(o.gan),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0});await mnRepSave(doc,'top_prod',repRangeTxt());},
-  async prod_detail(JS){const D=repProdDetailData();if(!D)return toast(t('rp_loading'));if(!D.p)return toast(t('mr_pick_prod_hint'));const r=repEnsureRange();const p=D.p;
-    const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=200;doc.setFont('helvetica','normal');doc.setFontSize(14);doc.setTextColor(20);doc.text(mnName(p),30,y);y+=16;doc.setFontSize(11);doc.text(''+(p.key||''),30,y);y+=14;doc.text(catName(p.cat),30,y);y+=40;
-    doc.setFontSize(12);doc.text(t('mr_from')+': '+r.from+'      '+t('mr_to')+': '+r.to,30,y);y+=18;
-    const detail=(title,head,rows,widths)=>{if(!rows.length)return;if(y>680){doc.addPage();y=50;}doc.setFontSize(10);doc.text(title,30,y);y=mnRepTable(doc,y+10,head,rows,{w:widths})+20;};
+  async prod_detail(JS){const D=repProdDetailData();if(!D)return toast(t('rp_loading'));if(!D.p)return toast(t('mr_pick_prod_hint'));const r=repEnsureRange(),p=D.p,doc=await mnRepDoc(JS);let y=mnRepHead(doc,{})+90;
+    y+=mnNativeLayout(doc,mnName(p),30,y,535,15);y+=mnNativeLayout(doc,p.key||'',30,y,535,13);y+=mnNativeLayout(doc,catName(p.cat),30,y,535,13);y+=30;
+    y+=mnNativeLayout(doc,t('mr_from')+': '+r.from+'       '+t('mr_to')+': '+r.to,30,y,535,13);y+=10;
     y=mnRepBlock(doc,y,t('mr_sum_sales'),[t('me_qty'),t('mr_sales'),t('svc_profit')],[mnNum(D.sv.q),mnMon(D.sv.tot),mnMon(D.sv.tot-D.sv.cost)]);
-    detail(t('mr_top_cli_prod'),[t('sale_client'),t('me_qty'),t('mr_sales'),t('svc_profit')],D.cl.map(o=>[[o.c.name,o.c.alias].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot),mnAmount(o.tot-o.cost)]),[265,70,100,100]);
     y=mnRepBlock(doc,y,t('mr_sum_purch'),[t('me_qty'),t('mr_purchases')],[mnNum(D.pu.q),mnMon(D.pu.tot)]);
-    detail(t('mr_top_prov_prod'),[t('cp_provider'),t('me_qty'),t('mr_purchases')],D.pv.map(o=>[[o.name,o.co].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot)]),[345,80,110]);
     y=mnRepBlock(doc,y,t('mr_merma'),[t('me_qty'),t('total')+' '+moneySym()],[mnNum(D.mm.q),mnMon(D.mm.tot)]);mnRepRule(doc,y);
-    await mnRepSave(doc,'prod_detail',(p.key||'')+' '+repRangeTxt());},
+    // Detalles disponibles en ABANICO: se conservan después del resumen original.
+    for(const [title,head,rows,w]of [[t('mr_top_cli_prod'),[t('sale_client'),t('me_qty'),t('mr_sales'),t('svc_profit')],D.cl.map(o=>[[o.c.name,o.c.alias].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot),mnAmount(o.tot-o.cost)]),[265,70,100,100]],[t('mr_top_prov_prod'),[t('cp_provider'),t('me_qty'),t('mr_purchases')],D.pv.map(o=>[[o.name,o.co].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot)]),[345,80,110]]]){
+      if(rows.length){y=mnNativeNeed(doc,y+10,60,60);y+=mnNativeLayout(doc,title,30,y,535,12.5,'center');y=mnRepTable(doc,y,head,rows,{w,fs:11,hfs:11,plain:true});y+=10;mnRepRule(doc,y);}}
+    await mnRepSave(doc,'prod_detail',(p.key||'')+' '+repRangeTxt());
+  },
   async category(JS){const r=repEnsureRange();const a=repCategoryData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('category',a,{name:o=>o.name,sales:o=>o.tot,profit:o=>o.gan});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_category')});
     mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnAmount(o.tot),mnAmount(o.gan)]),{w:[335,100,100],fs:8.5,hfs:9.5});await mnRepSave(doc,'category',repRangeTxt());},
-  async inventory(JS){const D=repInvData();if(!D.l.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=230;
-    doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(20);doc.text(D.cat||t('mr_all_products'),297.5,y,{align:'center'});y+=14;
-    const L=[[t('mr_n_products')],[t('mr_in_reserve')],[t('mr_investment')],[t('mr_pos_sales')],[t('mr_pos_profit')]],V=[mnNum(D.T.n),mnNum(D.T.rsv),mnMon(D.T.inv),mnMon(D.T.pv),mnMon(D.T.pg)];const cw=535/5;doc.setFontSize(9.5);
-    L.forEach((l,i)=>{const ls=doc.splitTextToSize(l[0],cw-8);ls.forEach((s,j)=>doc.text(s,30+cw*i+cw/2,y+j*12,{align:'center'}));doc.text(V[i],30+cw*i+cw/2,y+26,{align:'center'});});y+=40;mnRepRule(doc,y);y+=16;
-    doc.setFontSize(10.5);D.units.forEach(o=>{if(y>780){doc.addPage();y=50;}doc.text(o.u,30,y);doc.text('#'+mnNum(o.q),400,y,{align:'center'});doc.text(mnMon(o.inv),520,y,{align:'center'});y+=14;});y+=4;mnRepRule(doc,y);y+=10;
-    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales'),t('mr_h_posprofit')],D.l.map(p=>[(p.key?p.key+'/':'')+mnName(p),mnNum(+p.stock||0),mnAmount(D.inv(p)),mnAmount(D.pv(p)),mnAmount(D.pv(p)-D.inv(p))]),{w:[175,90,90,90,90],plain:true,fs:11});
-    await mnRepSave(doc,'inventory',todayISO());},
+  async inventory(JS){const D=repInvData();if(!D.l.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{})+90;
+    y+=mnNativeLayout(doc,D.cat||t('mr_all_products'),30,y,535,13,'center');
+    const labels=[t('mr_n_products'),t('mr_in_reserve'),t('mr_investment'),t('mr_pos_sales'),t('mr_pos_profit')],values=[mnNum(D.T.n),mnNum(D.T.rsv),mnMon(D.T.inv),mnMon(D.T.pv),mnMon(D.T.pg)];
+    const nativeLabels=LANG==='es'?['Número de\nproductos','Productos en\nreserva','Inversion\nTotal','Total de\nposibles ventas','Total de\nposibles ganancias']:labels;
+    const cells=nativeLabels.map((l,i)=>catLines(l,107,11).join('\n')+'\n'+values[i]);let height=0;
+    cells.forEach((s,i)=>height=Math.max(height,mnNativeLayout(doc,s,30+107*i,y,107,11,'center')));y+=height+10;mnRepRule(doc,y);y+=10;
+    for(const o of D.units){y=mnNativeNeed(doc,y,14,60);const h=mnNativeLayout(doc,o.u,30,y,321,11);mnNativeLayout(doc,'#'+mnNum(o.q),351,y,107,12,'center');mnNativeLayout(doc,mnMon(o.inv),458,y,107,12,'center');y+=Math.max(h,14);}
+    y+=10;mnRepRule(doc,y);y+=10;
+    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales').replace(/\s+/,'\n'),t('mr_h_posprofit').replace(/\s+/,'\n')],D.l.map(p=>[(p.key||'')+'/'+mnName(p),mnNum(+p.stock||0),mnAmount(D.inv(p)),mnAmount(D.pv(p)),mnAmount(D.pv(p)-D.inv(p))]),{w:[535/3,535/6,535/6,535/6,535/6],plain:true,fs:10,hfs:11});
+    await mnRepSave(doc,'inventory',todayISO());
+  },
   async tags(JS){const r=repEnsureRange();const a=repTagsData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('tags',a,{name:o=>o.name,qty:o=>o.n,sales:o=>o.tot,profit:o=>o.gan});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_tags')});
     mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_qty'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnNum(o.n),mnAmount(o.tot),mnAmount(o.gan)]),{w:[295,80,80,80],fs:9,hfs:8});await mnRepSave(doc,'tags',repRangeTxt());},
@@ -7628,37 +7547,35 @@ const MN_PDF={
   async purch_order(JS){await g6PoPdf(JS);},
   async abc(JS){const a=repABCData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{title:t('rep_abc')});
     mnRepTable(doc,y,[t('mr_h_class'),t('mr_h_prodname'),t('mr_h_pval'),t('mr_h_pacc')],a.map(o=>[o.cls,o.name,''+o.pv,''+o.acc]),{w:[35,240,130,130],fs:8,hfs:8,nameCol:1,al:['center','left','center','center']});await mnRepSave(doc,'abc',todayISO());},
-  async inc_exp(JS){const r=repEnsureRange();const D=repIncExpData();if(!D.inc.a.length&&!D.exp.a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to});
-    for(const [lbl,X] of [[t('mr_incomes'),D.inc],[t('mr_expenses'),D.exp]]){if(y>760){doc.addPage();y=50;}doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(30);doc.text(lbl,30,y);y+=22;
-      if(X.a.length){y=mnRepTable(doc,y,[t('mr_h_category'),t('mr_h_qty'),t('mr_h_subtotal')],X.a.map(o=>[o.name,mnNum(o.n),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10})+14;
-        y=mnRepTable(doc,y,null,[[t('total')+' '+moneySym(),mnAmount(X.T)]],{w:[267,268],fs:13,al:['right','center'],bold:(ri,ci)=>ci===1})+24;}}
-    await mnRepSave(doc,'inc_exp',repRangeTxt());},
-  async clients(JS){const id=state.repPick&&state.repPick.clients;const c=id&&(state.clients||[]).find(x=>x&&''+x.id===''+id);if(!c)return toast(t('mr_pick_cli_hint'));const D=repCliDetail(c);if(D.prods===null)return toast(t('rp_loading'));const r=repEnsureRange();
-    const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=150;doc.setFontSize(13);doc.setTextColor(20);doc.text(c.name||'',30,y);y+=15;doc.setFontSize(11);doc.text(c.alias||'',30,y);y+=34;doc.setFontSize(11);doc.text(r.from+'  -  '+r.to,30,y);y+=14;
+  async inc_exp(JS){const r=repEnsureRange(),D=repIncExpData();if(!D.inc.a.length&&!D.exp.a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to});
+    for(const [lbl,X]of [[t('mr_incomes'),D.inc],[t('mr_expenses'),D.exp]]){y=mnNativeNeed(doc,y,82);mnNativeText(doc,lbl,30,y,12);y+=22;
+      if(X.a.length){y=mnRepTable(doc,y,[t('mr_h_category'),t('mr_h_qty'),t('mr_h_subtotal')],X.a.map(o=>[o.name,mnNum(o.n),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});y=mnNativeTotal(doc,y+20,[[t('total')+' '+moneySym(),mnAmount(X.T)]])+40;}}
+    await mnRepSave(doc,'inc_exp',repRangeTxt());
+  },
+  async clients(JS){const id=state.repPick&&state.repPick.clients,c=id&&(state.clients||[]).find(x=>x&&''+x.id===''+id);if(!c)return toast(t('mr_pick_cli_hint'));const D=repCliDetail(c);if(D.prods===null)return toast(t('rp_loading'));const r=repEnsureRange(),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{});
+    y+=mnNativeLayout(doc,c.name||'',30,y,535,15);y+=mnNativeLayout(doc,c.alias||t('mr_no_alias'),30,y,535,13);y+=30;y+=mnNativeLayout(doc,r.from+'  -  '+r.to,30,y,535,13);y+=10;
     y=mnRepBlock(doc,y,t('mr_n_sales'),[t('mr_paid'),t('mr_to_collect'),t('total')],['#'+D.nP,'#'+D.nC,'#'+(D.nP+D.nC)]);
     y=mnRepBlock(doc,y,t('mr_sale_tx'),[t('mr_paid'),t('mr_to_collect'),t('total')],[mnMon(D.tP),mnMon(D.tC),mnMon(D.tP+D.tC)]);
-    y=mnRepBlock(doc,y,t('mr_sale_credit'),[t('mr_to_collect'),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);
-    if(y>760){doc.addPage();y=50;}y=mnRepRule(doc,y)+16;doc.setFontSize(10);doc.text(t('m_ventas'),297.5,y,{align:'center'});y+=6;
-    y=mnRepTable(doc,y,null,D.S.map(s=>[''+(s.folio||s.id),saleDate(s),payLbl(s.pay)||'...',(s.tag||'...'),mnMon(saleTotal(s)),saleIsCredit(s)&&saleDueAmt(s)>0.5?t('mr_to_collect'):t('mr_paid')]),{w:[70,85,95,95,110,80],al:['center','center','center','center','right','center'],plain:true,fs:11})+8;
-    if(y>760){doc.addPage();y=50;}y=mnRepRule(doc,y)+16;doc.text(t('mr_prod_sales'),297.5,y,{align:'center'});y+=6;
-    y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[335,120,80],al:['left','center','center'],plain:true,fs:11})+8;mnRepRule(doc,y);
-    await mnRepSave(doc,'clients',(c.name||'')+' '+repRangeTxt());},
-  async top_clients(JS){const r=repEnsureRange();const a=repTopCliData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_clients',a,{name:o=>o.name,sales:o=>o.tot,profit:o=>o.gan});
-    const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_clients')});y=mnRepRule(doc,y-4)+8;
-    mnRepTable(doc,y,null,rows.map(o=>[o.name,mnMon(o.gan),mnMon(o.tot)]),{w:[335,100,100],al:['left','center','center'],plain:true,fs:11});await mnRepSave(doc,'top_clients',repRangeTxt());},
-  async provider(JS){const id=state.repPick&&state.repPick.provider;const v=id&&(state.providers||[]).find(x=>x&&''+x.id===''+id);if(!v)return toast(t('mr_pick_prov_hint'));const D=repProvDetail(v);if(D.prods===null)return toast(t('rp_loading'));const r=repEnsureRange();
-    const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=150;doc.setFontSize(13);doc.setTextColor(20);doc.text(v.contact||v.company||'',30,y);y+=15;doc.setFontSize(11);doc.text(v.contact?(v.company||''):'',30,y);y+=34;doc.text(r.from+'  -  '+r.to,30,y);y+=14;
+    y=mnRepBlock(doc,y,t('mr_sale_credit'),[t('mr_to_collect'),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);mnRepRule(doc,y);y+=10;
+    if(D.S.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('m_ventas'),30,y,535,12.5,'center');y=mnRepTable(doc,y,null,D.S.map(s=>[''+(s.folio||s.id),saleDate(s),payLbl(s.pay)||'...',(s.tag||'...'),mnMon(saleTotal(s)),saleIsCredit(s)&&saleDueAmt(s)>0.5?t('mr_to_collect'):t('mr_paid')]),{w:Array(6).fill(535/6),al:Array(6).fill('center'),plain:true,fs:11});y+=10;mnRepRule(doc,y);y+=10;}
+    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_sales'),30,y,535,12.5,'center');y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
+    await mnRepSave(doc,'clients',(c.name||'')+' '+repRangeTxt());
+  },
+  async top_clients(JS){const r=repEnsureRange(),a=repTopCliData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_clients',a,{name:o=>o.name,sales:o=>o.tot,profit:o=>o.gan}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_clients')});mnRepRule(doc,y-10);
+    mnRepTable(doc,y,null,rows.map(o=>[o.name,mnMon(o.gan),mnMon(o.tot)]),{w:[321,107,107],plain:true,fs:11});await mnRepSave(doc,'top_clients',repRangeTxt());
+  },
+  async provider(JS){const id=state.repPick&&state.repPick.provider,v=id&&(state.providers||[]).find(x=>x&&''+x.id===''+id);if(!v)return toast(t('mr_pick_prov_hint'));const D=repProvDetail(v);if(D.prods===null)return toast(t('rp_loading'));const r=repEnsureRange(),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{});
+    y+=mnNativeLayout(doc,v.contact||v.company||'',30,y,535,15);y+=mnNativeLayout(doc,v.contact?(v.company||''):'',30,y,535,13);y+=30;y+=mnNativeLayout(doc,r.from+'  -  '+r.to,30,y,535,13);y+=10;
     y=mnRepBlock(doc,y,t('mr_n_purch'),[t('mr_paid'),t('mr_to_pay'),t('total')],['#'+D.nP,'#'+D.nC,'#'+(D.nP+D.nC)]);
     y=mnRepBlock(doc,y,t('mr_purch_tx'),[t('mr_paid'),t('mr_to_pay'),t('total')],[mnMon(D.tP),mnMon(D.tC),mnMon(D.tP+D.tC)]);
-    y=mnRepBlock(doc,y,t('mr_purch_credit_pdf'),[t('mr_to_pay'),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);
-    if(y>760){doc.addPage();y=50;}y=mnRepRule(doc,y)+16;doc.setFontSize(10);doc.text(t('m_compras'),297.5,y,{align:'center'});y+=6;
-    y=mnRepTable(doc,y,null,D.C.map(p=>[''+(p.folio||p.id),p.date||'',payLbl(p.pay)||'...',mnMon(+p.total||0),purchaseIsCredit(p)&&purchDueAmt(p)>0.5?'P':'']),{w:[80,100,110,140,105],al:['center','center','center','right','center'],plain:true,fs:11})+8;
-    if(y>760){doc.addPage();y=50;}y=mnRepRule(doc,y)+16;doc.text(t('mr_prod_purch'),297.5,y,{align:'center'});y+=6;
-    y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[335,120,80],al:['left','center','center'],plain:true,fs:11})+8;mnRepRule(doc,y);
-    await mnRepSave(doc,'provider',(v.contact||v.company||'')+' '+repRangeTxt());},
-  async top_providers(JS){const r=repEnsureRange();const a=repTopProvData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_providers',a,{name:o=>o.name,purch:o=>o.tot});
-    const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('cp_provider')});y=mnRepRule(doc,y-4)+8;
-    mnRepTable(doc,y,null,rows.map(o=>[o.name,mnMon(o.tot)]),{w:[400,135],al:['left','center'],plain:true,fs:11});await mnRepSave(doc,'top_providers',repRangeTxt());}
+    y=mnRepBlock(doc,y,t('mr_purch_credit_pdf'),[t('mr_to_pay'),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);mnRepRule(doc,y);y+=10;
+    if(D.C.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('m_compras'),30,y,535,12.5,'center');y=mnRepTable(doc,y,null,D.C.map(p=>[''+(p.folio||p.id),p.date||'',payLbl(p.pay)||'...',mnMon(+p.total||0),purchaseIsCredit(p)&&purchDueAmt(p)>0.5?'P':'']),{w:[107,107,107,107,107],al:Array(5).fill('center'),plain:true,fs:11});y+=10;mnRepRule(doc,y);y+=10;}
+    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_purch'),30,y,535,12.5,'center');y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
+    await mnRepSave(doc,'provider',(v.contact||v.company||'')+' '+repRangeTxt());
+  },
+  async top_providers(JS){const r=repEnsureRange(),a=repTopProvData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_providers',a,{name:o=>o.name,purch:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('cp_provider')});mnRepRule(doc,y-10);
+    mnRepTable(doc,y,null,rows.map(o=>[o.name,mnMon(o.tot)]),{w:[401.25,133.75],plain:true,fs:11});await mnRepSave(doc,'top_providers',repRangeTxt());
+  }
 };
 
 // Tabla en tarjetas: rows=[{t:titulo, c:[[etiqueta,valor,'m'|'n'|'p'|'' ],…], bar:0..100, act, badge}] + total
@@ -8112,17 +8029,10 @@ function repExportCSV(){
   saveWithPicker(name,'text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});
 }
 async function repCsvPDF(JS,ids){
-  const r=repEnsureRange();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;
-  await prepPdfLogo();pdfLogo(doc);
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(20);doc.text(((cfg.name||(state.profile&&state.profile.name))||'Abanico').toUpperCase(),M,70);
-  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(r.from+'  →  '+r.to,M,90);
-  let y=110;
-  ids.forEach(id=>{const x=REP_CSV[id];doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(20);if(y>740){doc.addPage();y=50;}doc.text(x.name,M,y);
-    doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[x.head],body:(x.pdfRows||x.rows).map(row=>row.map(v=>typeof v==='number'?mnNum(v):(v==null?'':''+v))),theme:'grid',
-      styles:{fontSize:8,cellPadding:4,lineColor:[205,205,205],lineWidth:0.5,textColor:40},headStyles:{fillColor:[245,245,245],textColor:40,fontStyle:'bold'},columnStyles:{0:{cellWidth:180}}});
-    y=doc.lastAutoTable.finalY+28;});
-  const name=(ids.length===1?REP_CSV[ids[0]].name:t('rep_results'))+' '+r.from+' a '+r.to+'.pdf';
-  const ok=await saveWithPicker(name,'application/pdf',doc.output('blob'));if(ok)toast(t('io_done_exp'));
+  const r=repEnsureRange(),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to});
+  for(const id of ids){const x=REP_CSV[id];y=mnNativeNeed(doc,y,82);mnNativeText(doc,x.name,30,y,12);y+=22;
+    y=mnRepTable(doc,y,x.head,(x.pdfRows||x.rows).map(row=>row.map(v=>typeof v==='number'?mnNum(v):(v==null?'':String(v)))),{fs:8,hfs:8})+40;}
+  const name=(ids.length===1?REP_CSV[ids[0]].name:t('rep_results'))+' '+r.from+' a '+r.to+'.pdf';if(await saveWithPicker(name,'application/pdf',doc.output('blob')))toast(t('io_done_exp'));
 }
 /* ---------------- Orden de compra con productos (como Mi Negocio) ---------------- */
 // mods147e (P5, MN 50–52h): barra "✕ Orden de Compra" en la lista y en el editor; vencimiento vacío y obligatorio (D12); vencidas en rojo,
@@ -8272,27 +8182,7 @@ function poText(o){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLocaleS
     ...alphaLines(o.lines||[]).map(l=>qtyLoc(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')),'',o.note||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
-async function poPDF(){
-  const o=poById(state.poOpen);if(!o)return;
-  try{toast(t('po_pdf_gen'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
-    await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
-    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('po_title'),M,y);y+=30;
-    doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
-    doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(35);[cfg.owner,cfg.email,cfg.phone].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=19;});
-    y+=14;doc.setTextColor(20);if(o.provider){const f=mnPdfFlow(doc,{x:M,y:y-13,w:515,top:40,bottom:40,font:'helvetica'});f.text(t('cp_provider')+': '+o.provider,13,16);y=f.y+19;}
-    doc.text(t('sale_folio')+': '+o.folio+'     '+t('po_issue')+': '+(o.issue||''),M,y);y+=19;if(o.due){doc.text(t('po_due')+': '+o.due,M,y);y+=19;}
-    doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),(t('po_buy')+' '+moneySym()).toUpperCase(),(t('sale_subtotal')+' '+moneySym()).toUpperCase()]],
-      body:alphaLines(o.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.cost),fmtN(l.subtotal!=null?l.subtotal:(+l.cost||0)*(+l.q||0))]),theme:'grid',
-      styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
-      columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
-    doc.autoTable({startY:doc.lastAutoTable.finalY+14,margin:{left:M,right:M},tableWidth:515,body:[[(t('total').toUpperCase()+' '+moneySym()),fmtN(o.total)]],theme:'grid',styles:{fontSize:11,cellPadding:6,lineColor:[205,205,205],lineWidth:.5,textColor:40,minCellHeight:26},columnStyles:{0:{cellWidth:330,halign:'right'},1:{cellWidth:185,halign:'center',fontStyle:'bold'}},pageBreak:'avoid'});
-    const f=mnPdfFlow(doc,{x:M,y:doc.lastAutoTable.finalY+18,w:515,top:40,bottom:40,font:'helvetica'});
-    if(o.note){f.text(o.note,11,14);f.gap(8);}
-    const name=t('po_title')+' '+o.folio+'.pdf';const blob=doc.output('blob');const file=new File([blob],name,{type:'application/pdf'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return;}catch(e){if(e&&e.name==='AbortError')return;}}
-    const ok=await saveWithPicker(name,'application/pdf',blob);if(ok)toast(t('io_done_exp'));
-  }catch(e){toast(t('io_err'));}
-}
+async function poPDF(){const o=poById(state.poOpen);if(!o)return;try{toast(t('po_pdf_gen'));await mnNativeOrder(o,true);}catch(e){console.error('PDF orden',e);toast(t('io_err'));}}
 /* ---- Clientes: llamar / WhatsApp, resumen de ventas e importar desde contactos ---- */
 function cliQuickHTML(c){
   const nm=(''+(c.name||'')).trim().toLowerCase();const S=(state.sales||[]).filter(x=>(''+(x.client||'')).trim().toLowerCase()===nm);
@@ -8414,34 +8304,7 @@ async function quoteDel(){const q0=quoteById(state.qtOpen);if(!q0)return;if(!awa
 function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLocaleString(numLoc());
   return [(cfg.name||'').toUpperCase(),t('sales_quote')+' #'+q.folio+' · '+(q.date||''),q.due?t('qt_due')+': '+q.due:'',q.client?t('sale_client')+': '+q.client:'','',
     ...alphaLines(q.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')+' — $'+f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))),'',t('total').toUpperCase()+': $'+f(q.total),q.note?'\n'+q.note:'',cfg.msg?'\n'+cfg.msg:''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
-async function quotePDF(){
-  const q=quoteById(state.qtOpen);if(!q)return;
-  try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();
-    const doc=mnPdfDoc(JS,{unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
-    await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
-    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sales_quote'),M,y);y+=30;
-    doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
-    doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(35);[cfg.owner,cfg.email,cfg.phone].filter(Boolean).forEach(l=>{doc.text(''+l,M,y);y+=19;});
-    y+=14;doc.setTextColor(20);
-    if(q.client){const f=mnPdfFlow(doc,{x:M,y:y-13,w:515,top:40,bottom:40,font:'helvetica'});f.text(t('sale_client')+': '+q.client,13,16);y=f.y+19;}
-    doc.text(t('sale_folio')+': '+q.folio+'     '+t('sale_date')+': '+(q.date||''),M,y);y+=19;
-    if(q.due){doc.text(t('qt_due')+': '+q.due,M,y);y+=19;}
-    doc.autoTable({startY:y+8,margin:{left:M,right:M},
-      head:[[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()]],
-      body:alphaLines(q.lines||[]).map(l=>[(''+(l.name||'')).replace(/^\.{3}\s*/,''),fmtQty(l.q),fmtN(l.price),fmtN(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))]),
-      theme:'grid',styles:{fontSize:9,cellPadding:6,lineColor:[205,205,205],lineWidth:0.5,textColor:40,valign:'middle'},
-      headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
-      columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
-    doc.autoTable({startY:doc.lastAutoTable.finalY+14,margin:{left:M,right:M},tableWidth:515,body:[[(t('total').toUpperCase()+' '+moneySym()),fmtN(q.total)]],theme:'grid',styles:{fontSize:11,cellPadding:6,lineColor:[205,205,205],lineWidth:.5,textColor:40,minCellHeight:26},columnStyles:{0:{cellWidth:330,halign:'right'},1:{cellWidth:185,halign:'center',fontStyle:'bold'}},pageBreak:'avoid'});
-    const f=mnPdfFlow(doc,{x:M,y:doc.lastAutoTable.finalY+18,w:515,top:40,bottom:40,font:'helvetica'});
-    if(q.note){f.text(q.note,11,14);f.gap(8);}
-    if(cfg.msg)f.text(cfg.msg,11,14);
-    const name=t('sales_quote')+' '+q.folio+'.pdf';const blob=doc.output('blob');
-    const file=new File([blob],name,{type:'application/pdf'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return;}catch(e){if(e&&e.name==='AbortError')return;}}
-    const ok=await saveWithPicker(name,'application/pdf',blob);if(ok)toast(t('io_done_exp'));
-  }catch(e){toast(t('io_err'));}
-}
+async function quotePDF(){const q=quoteById(state.qtOpen);if(!q)return;try{toast(t('rc_generating'));await mnNativeOrder(q,false);}catch(e){console.error('PDF cotización',e);toast(t('io_err'));}}
 // Reporte cotización: los productos de las cotizaciones (cantidad, total y ganancia), como Mi Negocio
 function repQuoteData(){const by={};quotesLive().forEach(q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
 function repQuote(){const a=repQuoteData();
@@ -9355,21 +9218,8 @@ function closeIO(){document.getElementById('iodlg').classList.remove('on');}
 // Tabla de inventario con las medidas de los PDF de Mi Negocio (Inventario y Productos en Reserva): márgenes 30, filas de 20,
 // columnas 110 / 178 / 62 / 62 / 61 / 62 pt; los nombres largos bajan la letra para caber en dos líneas.
 function mnInvTable(doc,title,body){
-  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(30);doc.text(title,30,61);
-  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text(((state.profile&&state.profile.name)||'Abanico').toUpperCase(),30,93);
-  doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(30);doc.text(t('sale_date').toUpperCase()+':'+todayISO(),30,133);
-  doc.autoTable({
-    startY:192,theme:'grid',head:pdfInvHead(),body,
-    styles:{font:'helvetica',fontSize:8,cellPadding:{top:2,bottom:2,left:5,right:5},minCellHeight:20,lineColor:[60,60,60],lineWidth:0.5,textColor:[20,20,20],valign:'middle',overflow:'linebreak'},
-    headStyles:{fillColor:[255,255,255],textColor:[20,20,20],fontStyle:'normal',fontSize:7,halign:'center',valign:'middle',lineColor:[60,60,60],lineWidth:0.5,minCellHeight:20},
-    bodyStyles:{fillColor:[255,255,255]},
-    columnStyles:{0:{cellWidth:110,halign:'left'},1:{cellWidth:178,halign:'left'},2:{cellWidth:62,halign:'center'},3:{cellWidth:62,halign:'center'},4:{cellWidth:61,halign:'center'},5:{cellWidth:62,halign:'center'}},
-    margin:{left:30,right:30,top:30,bottom:50},rowPageBreak:'avoid',showHead:'firstPage',   /* como Mi Negocio: filas enteras y encabezado solo en la primera hoja */
-    didParseCell:d=>{
-      if(d.section==='head'&&d.column.index===1){d.cell.styles.halign='left';d.cell.styles.cellPadding={top:2,bottom:2,left:10,right:5};}
-      if(d.section==='body'&&d.column.index<=1){doc.setFontSize(8);if(doc.getTextWidth(''+(d.cell.raw||''))>(d.column.index===0?100:168))d.cell.styles.fontSize=6.5;}
-    }
-  });
+  mnNativeText(doc,title,30,60,12);const y=mnNativeBusiness(doc,92);mnNativeText(doc,t('sale_date').toUpperCase()+':'+todayISO(),30,y,13);
+  return mnRepTable(doc,y+60,pdfInvHead()[0],body,{w:[110,177,62,62,62,62],fs:8,hfs:7,nameCol:1,keyCol:0,al:['center','left','center','center','center','center'],cell:a=>a.section==='body'&&a.col===0?{align:'left'}:a.section==='body'&&a.col===1?{base:a.value.length>=35?8:15,size:a.value.length>=35?7:8}:null});
 }
 function invCsvString(list){
   list=list.slice().sort(prodCmp);
@@ -10834,7 +10684,7 @@ function prepPdfLogo(){
   return new Promise(res=>{try{const img=new Image();img.onload=()=>{try{const max=400;const sc=Math.min(max/img.width,max/img.height,1);const w=Math.max(1,Math.round(img.width*sc)),hh=Math.max(1,Math.round(img.height*sc));const cv=document.createElement('canvas');cv.width=w;cv.height=hh;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,hh);cx.drawImage(img,0,0,w,hh);const d=cv.toDataURL('image/jpeg',0.92);_pdfLogo={src,data:d};res(d);}catch(e){res(null);}};img.onerror=()=>res(null);img.src=src;}catch(e){res(null);}});
 }
 // Logo de la tienda arriba a la derecha de la página actual del PDF; devuelve la y inferior del logo (0 si no hay)
-function pdfLogo(doc,opt){const src=rawLogo();if(!src)return 0;const lg=(_pdfLogo.src===src&&_pdfLogo.data)?_pdfLogo.data:src;try{const o=opt||{};const pw=doc.internal.pageSize.getWidth();const M=o.margin||40,box=o.box||64,top=o.top||32;const pr=doc.getImageProperties(lg);const sc=Math.min(box/pr.width,box/pr.height);const w=pr.width*sc,hh=pr.height*sc;doc.addImage(lg,(pr.fileType||'JPEG'),pw-M-w,top,w,hh);return top+hh;}catch(e){return 0;}}
+function pdfLogo(doc,opt){return mnNativeLogo(doc)?160:0;}
 function saveReceiptCfg(){const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};state.receipt={name:g('rc_name'),owner:g('rc_owner'),email:g('rc_email'),phone:g('rc_phone'),msg:g('rc_msg'),logo:(state.receipt&&state.receipt.logo)||''};persist();const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);renderDrawer();toast(t('rc_saved'));}
 /* ---------------- sincronización EN VIVO entre dispositivos ---------------- */
 let LIVE_TS={},LIVE_BUSY=false,LIVE_WAIT=false,LIVE_PEND={};   /* LIVE_PEND: versión que se está bajando ahora por documento (no pedirla dos veces) */
@@ -12154,27 +12004,20 @@ function closeQR(){document.getElementById('qrdlg').classList.remove('on');}
 async function qrShare(){if(!QR_CUR)return;try{const b=await (await fetch(QR_CUR.url)).blob();await saveWithPicker('QR '+QR_CUR.key.replace(/[\\/:*?"<>|]/g,'_')+'.png','image/png',b);}catch(_){toast(t('io_err'));}}
 // PDF con el QR de cada producto elegido (12 por hoja: QR, clave y nombre)
 async function massQRPdf(ids){
-  const list=ids.map(id=>P(id)).filter(p=>p&&(''+(p.key||'')).trim()).sort(prodCmp);
-  if(!list.length){toast(t('mass_none'));return false;}
+  const list=ids.map(id=>P(id)).filter(p=>p&&String(p.key||'').trim()).sort(prodCmp);if(!list.length){toast(t('mass_none'));return false;}
   toast(t('cx_generating'));
-  try{
-    if(!await qrLib())throw 0;
-    if(!(window.jspdf&&window.jspdf.jsPDF))await sbScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    const JS=window.jspdf&&window.jspdf.jsPDF;if(!JS)throw 0;
-    const doc=new JS({unit:'pt',format:'a4',compress:true});
-    const W=595.28,H=841.89,M=36,cols=3,rows=4,cw=(W-2*M)/cols,ch=(H-2*M)/rows,qs=Math.min(cw,ch)-62;
-    list.forEach((p,i)=>{
-      const k=i%(cols*rows);if(i&&!k)doc.addPage();
-      const cx=M+(k%cols)*cw,cy=M+Math.floor(k/cols)*ch,key=(''+p.key).trim();
-      doc.addImage(qrCanvas(qrMake(key),4,1).toDataURL('image/png'),'PNG',cx+(cw-qs)/2,cy+8,qs,qs);
-      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20);
-      doc.text(doc.splitTextToSize(key,cw-12)[0],cx+cw/2,cy+qs+24,{align:'center'});
-      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(70);
-      doc.text(doc.splitTextToSize((''+(p.name||'')).replace(/^\.{3}\s*/,''),cw-12).slice(0,2),cx+cw/2,cy+qs+37,{align:'center'});
-    });
-    const ok=await saveWithPicker(t('qr_file')+' '+todayISO()+'.pdf','application/pdf',doc.output('blob'));
-    if(ok)toast(t('io_done_exp'));return ok;
-  }catch(_){toast(t('io_err'));return false;}
+  try{if(!await qrLib())throw Error('QR');const JS=await ensurePdfLibs(),doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});await catRmReady();
+    for(let i=0;i<list.length;i++){
+      const slot=i%15;if(i&&!slot)doc.addPage();const p=list[i],x=(slot%3)*198,y=(i>=15?30:0)+Math.floor(slot/3)*160,key=String(p.key).trim();
+      doc.addImage(qrCanvas(qrMake(key),4,4).toDataURL('image/png'),'PNG',x+49,y+10,100,100);
+      mnNativeText(doc,key,x+99,y+120,9,'center',false,158);
+      let size=9,lines=catLines(p.name||'',158,size);while(lines.length>2&&size>5){size-=.5;lines=catLines(p.name||'',158,size);}
+      const step=size+1,top=y+125+Math.max(0,(25-lines.length*step)/2);
+      lines.forEach((s,j)=>mnNativeText(doc,s,x+99,top+size+j*step,size,'center',false,158));
+      if(i%60===59)await catYield();
+    }
+    const ok=await saveWithPicker(t('qr_file')+' '+todayISO()+'.pdf','application/pdf',doc.output('blob'));if(ok)toast(t('io_done_exp'));return ok;
+  }catch(e){console.error('PDF QR',e);toast(t('io_err'));return false;}
 }
 
 /* ---------- Opciones Inventario ---------- */
@@ -12652,7 +12495,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261015201517';
+const APP_VERSION='20261015211652';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

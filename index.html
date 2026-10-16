@@ -5510,8 +5510,15 @@ function mnBand(txt,cls){return '<div class="mnband '+(cls||'')+'">'+txt+'</div>
 function mnChip(label,on,act,kind){return '<button class="mnchip '+(on?'on':'')+'" data-act="'+act+'">'+(kind==='check'?'<i class="mnbx">'+(on?'<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>':'')+'</i>':'<i class="mnrd"></i>')+label+'</button>';}
 function mnEmpty(txt,fill){return '<div class="mnempty '+(fill?'fill':'')+'">'+(txt||t('sin_info'))+'</div>';}
 /* CSV del reporte sin dibujar tarjetas (las filas de Mi Negocio se dibujan aparte) */
-function repCsv(id,head,rows,opts){opts=opts||{};REP_CSV[id]={name:t('rep_'+id),head:[opts.first||t('rp_item')].concat(head.map(h=>h[0])),rows:rows.map(r=>[r.csvT!=null?r.csvT:r.t].concat(r.c.map(c=>c[2]==='m'||c[2]==='n'?Math.round((+c[1]||0)*100)/100:(c[2]==='p'?c[1]+'%':c[1]))))};
-  if(opts.total)REP_CSV[id].rows.push([t('total')].concat(opts.total.map(c=>c==null?'':(c[2]==='m'||c[2]==='n'?Math.round((+c[1]||0)*100)/100:c[1]))));}
+function repCsv(id,head,rows,opts){
+  opts=opts||{};
+  const data=rows.map(r=>({name:r.csvT!=null?r.csvT:r.t,c:r.c}));
+  if(opts.total)data.push({name:t('total'),c:opts.total.map(c=>c||[null,'',''])});
+  const value=c=>c[2]==='m'||c[2]==='n'?(+c[1]||0):c[2]==='p'?c[1]+'%':c[1];
+  REP_CSV[id]={name:t('rep_'+id),head:[opts.first||t('rp_item')].concat(head.map(h=>h[0])),
+    rows:data.map(r=>[r.name].concat(r.c.map(c=>{const v=value(c);return typeof v==='number'?(v<0?-1:1)*Math.round(Math.abs(v)*100)/100:v;}))),
+    pdfRows:data.map(r=>[r.name].concat(r.c.map(c=>typeof value(c)==='number'?(c[2]==='m'?mnAmount(value(c)):mnNum(value(c))):value(c))))};
+}
 /* botón redondo del reporte (Mi Negocio): ícono y acción por reporte; las acciones se registran en REP_FAB_ACT */
 const REP_FAB={};const REP_FAB_ACT={};
 const FAB_DEF_HTML='<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
@@ -5608,7 +5615,7 @@ async function g3ByPdf(kind){
 async function srByClientExportPDF(JS){
   const {list,total,pagos,deuda}=salesRecvData();const rows=salesRecvByClient(list);
   await g3ByPdfDoc(JS,{title:t('sr_by_client'),rep:t('rep_sales_recv'),first:t('sale_client'),rows:rows.map(o=>[o.client,o.total,o.pagos,o.deuda]),total,pagos,deuda,
-    fmtN:n=>Math.round(+n||0).toLocaleString('en-US')});
+    fmtN:mnAmount});
 }
 /* documento del resumen: encabezado como el PDF de Ventas por Cobrar + tabla Cliente/Proveedor | Total | Pagos | Deuda */
 async function g3ByPdfDoc(JS,o){
@@ -5624,10 +5631,10 @@ async function g3ByPdfDoc(JS,o){
   doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',
     body:[[{content:o.rep,colSpan:3,styles:{halign:'center'}}],
       [t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],
-      ['$'+o.fmtN(o.total),'$'+o.fmtN(o.pagos),'$'+o.fmtN(o.deuda)]],
+      [mnMon(o.total),mnMon(o.pagos),mnMon(o.deuda)]],
     styles:Object.assign({},st,{fontSize:11,cellPadding:6})});
   y=doc.lastAutoTable.finalY+18;
-  const body=[[{content:o.first,styles:{halign:'left',fontStyle:'bold'}},B(t('sr_total_lbl')+' $'),B(t('sr_pagos_lbl')+' $'),B(t('ttx_deuda')+' $')]]
+  const body=[[{content:o.first,styles:{halign:'left',fontStyle:'bold'}},B(t('sr_total_lbl')+' '+moneySym()),B(t('sr_pagos_lbl')+' '+moneySym()),B(t('ttx_deuda')+' '+moneySym())]]
     .concat(o.rows.map(r=>[{content:''+(r[0]||''),styles:{halign:'left'}},o.fmtN(r[1]),o.fmtN(r[2]),o.fmtN(r[3])]));
   doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,styles:st,columnStyles:{0:{halign:'left'},1:{cellWidth:95},2:{cellWidth:95},3:{cellWidth:95}}});
   const blob=doc.output('blob');
@@ -5638,7 +5645,7 @@ async function g3ByPdfDoc(JS,o){
 async function pcByProvExportPDF(JS){
   const {list,total,pagos,deuda}=purchPayData();const rows=purchPayByProvider(list);
   await g3ByPdfDoc(JS,{title:t('pc_by_prov'),rep:t('rep_purch_pay'),first:t('cp_provider'),rows:rows.map(o=>[o.prov,o.total,o.pagos,o.deuda]),total,pagos,deuda,
-    fmtN:n=>(Math.round((+n||0)*100)/100).toLocaleString('en-US')});   /* hasta 2 decimales, como el PDF de Compras por Pagar */
+    fmtN:mnAmount});   /* hasta 2 decimales, como el PDF de Compras por Pagar */
 }
 /* ---------------- Gastos extras por pagar / Ingresos extras por cobrar ---------------- */
 // g4_formas — Formas de pago, Reporte merma, Transacciones por producto y Transacciones por servicio como Mi Negocio.
@@ -5651,7 +5658,7 @@ function g4fCashIc(){return '<svg viewBox="0 0 20 16" class="mnf g4cash" aria-hi
 // caja abierta gris con "?" (producto sin foto en Mi Negocio)
 function g4fBoxIc(){return '<svg viewBox="0 0 24 26" class="g4box" aria-hidden="true"><path d="M3 14.5 12 11.5 9.6 8.6.7 11.6z" fill="#8f8f8f"/><path d="M21 14.5 12 11.5 14.4 8.6 23.3 11.6z" fill="#a9a9a9"/><path d="M12 1.6c-2 0-3.3 1.2-3.3 3h2c0-.8.5-1.3 1.3-1.3s1.3.5 1.3 1.2c0 1.3-2.2 1.5-2.2 3.7v.5h2v-.3c0-1.6 2.2-1.9 2.2-4 0-1.7-1.3-2.8-3.3-2.8z" fill="#8a8a8a"/><path d="M3 14.5 12 11.5 21 14.5 12 17.5z" fill="#454545"/><circle cx="12.1" cy="13.1" r="1.05" fill="#9a9a9a"/><path d="M3 14.5 12 17.5v8L3 22z" fill="#5a5a5a"/><path d="M21 14.5 12 17.5v8l9-3.5z" fill="#7a7a7a"/><path d="M3 14.5.6 17.9l8.9 3.2L12 17.5z" fill="#9e9e9e"/><path d="M21 14.5l2.4 3.4-8.9 3.2L12 17.5z" fill="#b4b4b4"/></svg>';}
 // cantidades como hoy en las tarjetas de reportes (mismo formato que repCards 'n')
-function g4fNum(v){return (Math.round((+v||0)*100)/100).toLocaleString(numLoc());}
+function g4fNum(v){const n=+v||0,r=Math.round(Math.abs(n)*100)/100;return (n<0&&r?-r:r).toLocaleString(numLoc());}
 // categoría elegida en Transacciones por producto (null = Todos los productos)
 function g4fTxCat(){const c=state.repCat&&state.repCat.tx_prod;return c==null||c===''?null:c;}
 // "Seleccione la categoría" (Mi Negocio): TODOS LOS PRODUCTOS y las categorías vinculadas a productos, sin "SIN CATEGORÍA" ni marcas
@@ -5728,7 +5735,7 @@ function g6Strip(list){return '<div class="g6strip">'+mnStrip(list)+'</div>';}
 // 10) Orden de compra: todas las órdenes vigentes (Mi Negocio no usa rango de fechas aquí)
 async function g6PoPdf(JS){const a=repPOData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
   const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{date:todayISO(),title:t('rep_purch_order')});
-  mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnNum(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'purch_order',todayISO());}
+  mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[226,135,87,87],foot:[t('total'),'',mnNum(repTotals(a).q),mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'purch_order',todayISO());}
 // Reporte cotización: franja Cantidad / Total / Ganancia y la lista completa de productos con su foto
 // g7_abc (fase 2): Análisis ABC, Registro de compras e Ingresos y gastos extra con la estructura de Mi Negocio.
 // Solo cambia la presentación; los datos salen de las mismas funciones de siempre (repABCData, repInvHist, repPLogLoad, repIncExpData).
@@ -6096,7 +6103,7 @@ async function repExportPDF(){
     doc.setFontSize(10);doc.text((LANG==='es'?'Período: ':'Period: ')+r.from+'  →  '+r.to,M,y);y+=6;
     const {days}=repDayData();const WK=LANG==='es'?WK_ES:WK_EN;
     const L=LANG==='es'?['Día','Ventas #','Ventas $','Compras $','Ingresos $','Gastos $','Neto']:['Day','Sales #','Sales $','Purch. $','Income $','Expenses $','Net'];
-    const body=days.map((x,w)=>[WK[w],x.vN,Math.round(x.vA),Math.round(x.cA),Math.round(x.iA),Math.round(x.gA),Math.round(x.vA-x.cA+x.iA-x.gA)]);
+    const body=days.map((x,w)=>[WK[w],x.vN,mnAmount(x.vA),mnAmount(x.cA),mnAmount(x.iA),mnAmount(x.gA),mnAmount(x.vA-x.cA+x.iA-x.gA)]);
     doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[L],body,theme:'grid',
       styles:{fontSize:9,cellPadding:5,lineColor:[205,205,205],lineWidth:0.5,textColor:40,halign:'right'},
       headStyles:{fillColor:[42,166,223],textColor:255,fontStyle:'bold',halign:'center',fontSize:9},
@@ -6126,7 +6133,7 @@ async function txDayExportPDF(JS){
   if(d.salEmp){expenses.push(t('tx_sal_emp'));amounts.push(d.salEmp);}
   summary(t('tx_res_gas'),expenses.concat(t('tx_tot_egr')),amounts.concat(d.totEgr));
   doc.autoTable({startY:y,margin:{left:M,right:M,top:40,bottom:40},theme:'grid',styles,
-    body:[[{content:t('tx_balance')+' $ '+mnNum(d.balance),styles:{fontStyle:'bold',fontSize:12}}]]});
+    body:[[{content:t('tx_balance')+' '+mnMon(d.balance),styles:{fontStyle:'bold',fontSize:12}}]]});
   y=doc.lastAutoTable.finalY+20;
   const upper=k=>t(k).toUpperCase();
   const section=(title,head,rows,widths)=>{
@@ -6143,19 +6150,19 @@ async function txDayExportPDF(JS){
   const status=(credit,due)=>credit?(due>0.5?'-':'+ -'):'+';
   const txHead=who=>[upper('sale_folio'),upper('me_time'),upper(who),upper('total'),upper('rc_status')];
   const widths=[55,55,W-55-55-95-55,95,55];
-  section(t('tx_type_ventas'),txHead('sale_client'),d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnNum(saleTotal(s)),status(saleIsCredit(s),recDue('sale',s))]),widths);
-  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnNum(x.p.p)]),[55,55,W-55-55-100,100]);
+  section(t('tx_type_ventas'),[...txHead('sale_client').slice(0,4),upper('svc_profit'),upper('rc_status')],d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleTotal(s)),mnAmount(saleProfit(s)),status(saleIsCredit(s),recDue('sale',s))]),[50,48,W-50-48-90-90-55,90,90,55]);
+  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnAmount(x.p.p)]),[55,55,W-55-55-100,100]);
   payments(t('tx_type_pventas'),d.pv,'sale_client');
-  section(t('tx_type_compras'),txHead('cp_provider'),d.compras.map(p=>[''+(p.folio||p.id),p.time||'',p.provider||t('sin_info'),mnNum(p.total),status(purchaseIsCredit(p),purchDueAmt(p))]),widths);
+  section(t('tx_type_compras'),txHead('cp_provider'),d.compras.map(p=>[''+(p.folio||p.id),p.time||'',p.provider||t('sin_info'),mnAmount(p.total),status(purchaseIsCredit(p),purchDueAmt(p))]),widths);
   payments(t('tx_type_pcompras'),d.pc,'cp_provider');
   const extraHead=[upper('sale_folio'),upper('me_time'),upper('mr_h_category'),upper('total'),upper('rc_status')];
   for(const type of ['in','out']){
     const label=type==='in'?'ttx_type_ing':'ttx_type_gas';
-    section(t(label),extraHead,d.extras.filter(m=>m.type===type).map(m=>[''+(m.folio||m.id),m.time||'',[m.cat,m.concept||m.desc].filter(Boolean).join(' / ')||t('sin_info'),mnNum(exTotal(m)),status(exPending(m)||!!(m.pays&&m.pays.length),exDue(m))]),widths);
-    section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnNum(x.p.p)]),[55,55,W-55-55-100,100]);
+    section(t(label),extraHead,d.extras.filter(m=>m.type===type).map(m=>[''+(m.folio||m.id),m.time||'',[m.cat,m.concept||m.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(exTotal(m)),status(exPending(m)||!!(m.pays&&m.pays.length),exDue(m))]),widths);
+    section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(x.p.p)]),[55,55,W-55-55-100,100]);
   }
   const payroll=(state.payroll||[]).filter(p=>p&&!p.del&&(''+(p.date||'')).slice(0,10)===date);
-  section(t('tx_sal_emp'),[upper('sale_folio'),upper('me_time'),upper('emp_name'),upper('total')],payroll.map(p=>[''+(p.folio||p.id),p.time||'',p.empName||((state.employees||[]).find(e=>''+e.id===''+p.emp)||{}).name||t('sin_info'),mnNum(p.amount)]),[55,55,W-55-55-100,100]);
+  section(t('tx_sal_emp'),[upper('sale_folio'),upper('me_time'),upper('emp_name'),upper('total')],payroll.map(p=>[''+(p.folio||p.id),p.time||'',p.empName||((state.employees||[]).find(e=>''+e.id===''+p.emp)||{}).name||t('sin_info'),mnAmount(p.amount)]),[55,55,W-55-55-100,100]);
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60);
   const legend=doc.splitTextToSize(t('tx_status_legend').replace(/−/g,'-'),W);
   if(y+legend.length*12>H-40){doc.addPage();y=40;}doc.text(legend,M,y);
@@ -6167,8 +6174,7 @@ async function txTotalExportPDF(JS){
   const r=repEnsureRange();const cfg=receiptCfg();const D=txTotalData(r.from,r.to);
   const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
-  const round2=n=>Math.round((+n||0)*100)/100;
-  const fmt=n=>'$'+round2(n).toLocaleString('en-US');
+  const fmt=mnMon;
   const bandS={halign:'center',valign:'middle'};
   // dibuja una tabla en y y devuelve finalY (rows contiguos comparten borde)
   const tbl=(rows,yy)=>{doc.autoTable({startY:yy,margin:{left:M,right:M},body:rows,theme:'grid',
@@ -6188,6 +6194,7 @@ async function txTotalExportPDF(JS){
   y=label(t('ttx_sec_ventas'),y);
   y=tbl([[sub(t('ttx_ventas_pag'),3)],[t('ttx_cant'),t('ttx_ingresos'),t('ttx_gan')],[String(D.ventasPag.n),fmt(D.ventasPag.ing),fmt(D.ventasPag.gan)]],y);
   y=tbl([[sub(t('ttx_ventas_cobrar'),4)],[t('ttx_cant'),t('ttx_ingresos'),t('ttx_pagos'),t('ttx_deuda')],[String(D.ventasCob.n),fmt(D.ventasCob.ing),fmt(D.ventasCob.pagos),fmt(D.ventasCob.deuda)]],y);
+  y=tbl([[t('ttx_tot_ing_cobrar').replace(/<br\s*\/?\s*>/gi,' '),t('ttx_tot_gan_cobrar').replace(/<br\s*\/?\s*>/gi,' ')],[fmt(D.totIng),fmt(D.totGan)]],need(y,80));
   y+=28;
   // Total de compras
   y=label(t('ttx_sec_compras'),y);
@@ -6306,8 +6313,8 @@ async function salesRecvExportPDF(JS){
   const rawIdx=undefined;   /* srLinesFor baja el crudo solo si alguna venta no trae sus líneas */
   const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
-  const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');
-  const fmtD=n=>'$'+fmtN(n);
+  const fmtN=mnAmount;
+  const fmtD=mnMon;
   let y=52;
   await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sr_hdr'),M,y);y+=22;
@@ -6333,9 +6340,9 @@ async function salesRecvExportPDF(JS){
     (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
       body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
     });
-    body.push([{content:t('sr_total_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_total_pay')+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_total_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_total_pay')+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
     doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,
       styles:{halign:'center',valign:'middle',fontSize:9,cellPadding:4,lineColor:[200,200,200],lineWidth:0.6,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'},
       columnStyles:{0:{halign:'left'},1:{cellWidth:70},2:{cellWidth:95},3:{cellWidth:95}}});
@@ -6424,8 +6431,8 @@ async function purchPayExportPDF(JS){
   const cfg=receiptCfg();
   const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;
   const pageW=doc.internal.pageSize.getWidth();
-  const fmtN=n=>(Math.round((+n||0)*100)/100).toLocaleString('en-US');   // preserva hasta 2 decimales (compras)
-  const fmtD=n=>'$'+fmtN(n);
+  const fmtN=mnAmount;
+  const fmtD=mnMon;
   const rawIdx=await pcRawIndex();
   let y=52;
   await prepPdfLogo();pdfLogo(doc,{box:60,top:32});
@@ -6451,9 +6458,9 @@ async function purchPayExportPDF(JS){
     (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).forEach(l=>{
       body.push([{content:l.name||'',styles:{halign:'left',fontSize:8}},l.qty===''?'':fmtQty(l.qty),l.price===''?'':fmtN(l.price),(l.subtotal!=null&&l.subtotal!=='')?fmtN(l.subtotal):(l.price!==''?fmtN((+l.price||0)*(+l.qty||0)):'')]);
     });
-    body.push([{content:t('sr_total_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
-    body.push([{content:t('sr_total_pay')+' $',colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_total_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(tot),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_pagos_lbl').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(pg),colSpan:2,styles:{fontStyle:'bold'}}]);
+    body.push([{content:t('sr_total_pay')+' '+moneySym(),colSpan:2,styles:{halign:'right',fontStyle:'bold'}},{content:fmtN(dd),colSpan:2,styles:{fontStyle:'bold'}}]);
     doc.autoTable({startY:y,margin:{left:M,right:M},theme:'grid',body,
       styles:{halign:'center',valign:'middle',fontSize:9,cellPadding:4,lineColor:[200,200,200],lineWidth:0.6,textColor:[30,30,30],fillColor:[255,255,255],font:'helvetica'},
       columnStyles:{0:{halign:'left'},1:{cellWidth:70},2:{cellWidth:95},3:{cellWidth:95}}});
@@ -7330,12 +7337,15 @@ async function delPay(kind,id,i,pid){
 }
 function saleDueAmt(x){return Math.max(0,saleTotal(x)-srPaid(x));}
 function purchDueAmt(p){const paid=Array.isArray(p.pays)&&p.pays.length?purchasePaidSum(p):(purchaseIsCreditStrict(p)?0:(+p.total||0));return Math.max(0,(+p.total||0)-paid);}
-function rmoney(v){return money(Math.round((+v||0)*100)/100);}
+function rmoney(v){return money(v);}
 function rpct(a,b){return b>0?Math.round(a*1000/b)/10:0;}
 /* ================= Reportes con la estructura de Mi Negocio (pantalla, PDF y "Ordenar") ================= */
 // Número como en los PDF de Mi Negocio: comas de miles, hasta 2 decimales sin ceros de más y el signo delante ("-129,160")
 function mnNum(v){const n=+v||0;const r=Math.round(Math.abs(n)*100)/100;return (n<0&&r?'-':'')+r.toLocaleString('en-US',{maximumFractionDigits:2});}
-function mnMon(v){const n=+v||0;const r=Math.round(Math.abs(n)*100)/100;return '$'+(n<0&&r?'-':'')+r.toLocaleString('en-US',{maximumFractionDigits:2});}   /* "$-129,160", como Mi Negocio */
+// Los importes usan la misma precisión, separador y moneda que la pantalla.
+function mnAmount(v){return g3Num(v);}
+function mnMon(v){return money(v);}
+function repTotals(rows){return rows.reduce((s,o)=>({q:s.q+(+o.q||0),tot:s.tot+(+o.tot||0),cost:s.cost+(+o.cost||0)}),{q:0,tot:0,cost:0});}
 // Ordenar (como el menú ≡ de Mi Negocio). Por defecto: nombre (orden alfabético)
 const REP_SORTS={pay_forms:['name','sales','purch','balance'],tx_prod:['name','qty','total'],tx_serv:['name','qty','total'],merma:['name','qty','total'],top_prod:['name','profit','sales'],category:['name','sales','profit'],tags:['name','qty','sales','profit'],quote:['name','qty','total'],purch_order:['name','qty','total'],top_clients:['name','sales','profit'],top_providers:['name','purch']};
 function repSortKey(id){const k=state.repSort&&state.repSort[id];return (REP_SORTS[id]||[]).includes(k)?k:'name';}
@@ -7413,10 +7423,11 @@ function mnRepTable(doc,y,head,rows,o){
   o=o||{};const W=535,n=(head||rows[0]||[]).length;let w=o.w;
   if(!w){const num=Math.min(80,Math.floor(W*0.6/Math.max(1,n-1)));w=[W-num*(n-1)];for(let i=1;i<n;i++)w.push(num);}
   const cs={};w.forEach((x,i)=>cs[i]={cellWidth:x,halign:(o.al&&o.al[i])||(i===0?'left':'center')});
-  doc.autoTable({startY:y,head:head?[head]:undefined,body:rows,theme:o.plain?'plain':'grid',
+  doc.autoTable({startY:y,head:head?[head]:undefined,body:rows,foot:o.foot?[o.foot]:undefined,theme:o.plain?'plain':'grid',
     styles:{font:'helvetica',fontSize:7.5,cellPadding:{top:3,bottom:3,left:o.plain?0:8,right:5},minCellHeight:o.plain?14:20,lineColor:[40,40,40],lineWidth:o.plain?0:0.5,textColor:[20,20,20],valign:'middle',overflow:'linebreak'},
     headStyles:{fillColor:[255,255,255],textColor:[20,20,20],fontStyle:'normal',fontSize:7,halign:'center',valign:'middle'},
-    columnStyles:cs,margin:{left:30,right:30,top:40,bottom:50},rowPageBreak:'avoid',showHead:'firstPage',
+    footStyles:{fillColor:[255,255,255],textColor:20,fontStyle:'bold',halign:'center'},showFoot:'lastPage',
+    columnStyles:cs,margin:{left:30,right:30,top:40,bottom:50},rowPageBreak:'avoid',showHead:'everyPage',
     didParseCell:d=>{if(d.section==='head')d.cell.styles.halign=(o.al&&o.al[d.column.index])||(d.column.index===0?'left':'center');if(o.bold&&d.section==='body'&&o.bold(d.row.index,d.column.index))d.cell.styles.fontStyle='bold';}});
   return doc.lastAutoTable.finalY;
 }
@@ -7474,7 +7485,7 @@ function repPLogLoad(day,l){const k=currentDataId()+'|'+day+'|'+l.length+'|'+DAT
 const MN_PDF={
   async pay_forms(JS){const r=repEnsureRange();const l=repPayFormsData();if(!l.length)return toast(t('mr_empty'));const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,balance:o=>o.b});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_pay_forms')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_purch'),t('mr_h_inc'),t('mr_h_exp'),t('mr_h_bal')],rows.map(o=>[o.name,mnNum(o.v),mnNum(o.c),mnNum(o.i),mnNum(o.g),mnNum(o.b)]),{w:[135,80,80,80,80,80]});
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_purch'),t('mr_h_inc'),t('mr_h_exp'),t('mr_h_bal')],rows.map(o=>[o.name,mnAmount(o.v),mnAmount(o.c),mnAmount(o.i),mnAmount(o.g),mnAmount(o.b)]),{w:[135,80,80,80,80,80]});
     await mnRepSave(doc,'pay_forms',repRangeTxt());},
   async tx_prod(JS){
     const r={...repEnsureRange()},cat=g4fTxCat(),store=currentDataId(),sort=repSortKey('tx_prod');
@@ -7490,7 +7501,7 @@ const MN_PDF={
       const rows=repAggBy(cat==null?lines:lines.filter(l=>(l.cat||'')===cat),lineProdKey,l=>l.name);
       return rows.sort((a,b)=>(sort==='name'?0:((sort==='qty'?b.q-a.q:b.tot-a.tot)))||BIN_COLL.compare(a.name,b.name));
     };
-    const sections=[[t('mr_prod_sales'),select(sales)],[t('mr_prod_purch'),select(purchases)]];
+    const sections=[[t('mr_prod_sales'),select(sales.filter(l=>!l.svc))],[t('mr_prod_purch'),select(purchases)]];
     if(sections.every(([,rows])=>!rows.length))return toast(t('mr_empty'));
     const doc=await mnRepDoc(JS);if(currentDataId()!==store)return;let y=mnRepHead(doc,{from:r.from,to:r.to});
     const H=doc.internal.pageSize.getHeight(),W=doc.internal.pageSize.getWidth()-60;
@@ -7500,8 +7511,8 @@ const MN_PDF={
       const total=repTxProdTotal(rows);
       doc.autoTable({startY:y,margin:{left:30,right:30,top:40,bottom:50},theme:'grid',
         head:[[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')]],
-        body:rows.length?rows.map(o=>[o.name,mnNum(o.q),mnNum(o.tot)]):[[{content:t('sin_info'),colSpan:3}]],
-        foot:[[{content:t('total').toUpperCase()+' $',colSpan:2,styles:{halign:'right'}},{content:mnNum(total),styles:{fontStyle:'bold'}}]],
+        body:rows.length?rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]):[[{content:t('sin_info'),colSpan:3}]],
+        foot:[[{content:t('total').toUpperCase()+' '+moneySym(),colSpan:2,styles:{halign:'right'}},{content:mnAmount(total),styles:{fontStyle:'bold'}}]],
         styles:{font:'helvetica',fontSize:7.5,cellPadding:{top:3,bottom:3,left:8,right:5},minCellHeight:20,lineColor:[40,40,40],lineWidth:0.5,textColor:20,valign:'middle',overflow:'linebreak'},
         columnStyles:{0:{cellWidth:W-160,halign:'left'},1:{cellWidth:80,halign:'center'},2:{cellWidth:80,halign:'center'}},
         headStyles:{fillColor:[255,255,255],textColor:20,fontStyle:'normal',fontSize:7,halign:'center'},
@@ -7512,47 +7523,49 @@ const MN_PDF={
   },
   async tx_serv(JS){const r=repEnsureRange();const a=repTxServData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('tx_serv',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_serv_sales')});
-    mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnNum(o.tot)]),{w:[375,80,80]});await mnRepSave(doc,'tx_serv',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[375,80,80],foot:[t('total'),'',mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'tx_serv',repRangeTxt());},
   async merma(JS){const r=repEnsureRange();const a=repMermaData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('merma',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_merma')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_total')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnNum(o.tot)]),{w:[218,157,80,80]});await mnRepSave(doc,'merma',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_total')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[218,157,80,80],foot:[t('total'),'','',mnAmount(repTotals(a).tot)]});await mnRepSave(doc,'merma',repRangeTxt());},
   async top_prod(JS){const r=repEnsureRange();const a=repTopProdData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_prod',a,{name:o=>o.name,profit:o=>o.gan,sales:o=>o.tot});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_top_prod')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_profit'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnNum(o.gan),mnNum(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'top_prod',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_profit'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnAmount(o.gan),mnAmount(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'top_prod',repRangeTxt());},
   async prod_detail(JS){const D=repProdDetailData();if(!D)return toast(t('rp_loading'));if(!D.p)return toast(t('mr_pick_prod_hint'));const r=repEnsureRange();const p=D.p;
     const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=200;doc.setFont('helvetica','normal');doc.setFontSize(14);doc.setTextColor(20);doc.text(mnName(p),30,y);y+=16;doc.setFontSize(11);doc.text(''+(p.key||''),30,y);y+=14;doc.text(catName(p.cat),30,y);y+=40;
     doc.setFontSize(12);doc.text(t('mr_from')+': '+r.from+'      '+t('mr_to')+': '+r.to,30,y);y+=18;
+    const detail=(title,head,rows,widths)=>{if(!rows.length)return;if(y>680){doc.addPage();y=50;}doc.setFontSize(10);doc.text(title,30,y);y=mnRepTable(doc,y+10,head,rows,{w:widths})+20;};
     y=mnRepBlock(doc,y,t('mr_sum_sales'),[t('me_qty'),t('mr_sales'),t('svc_profit')],[mnNum(D.sv.q),mnMon(D.sv.tot),mnMon(D.sv.tot-D.sv.cost)]);
+    detail(t('mr_top_cli_prod'),[t('sale_client'),t('me_qty'),t('mr_sales'),t('svc_profit')],D.cl.map(o=>[[o.c.name,o.c.alias].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot),mnAmount(o.tot-o.cost)]),[265,70,100,100]);
     y=mnRepBlock(doc,y,t('mr_sum_purch'),[t('me_qty'),t('mr_purchases')],[mnNum(D.pu.q),mnMon(D.pu.tot)]);
-    y=mnRepBlock(doc,y,t('mr_merma'),[t('me_qty'),t('total')+' $'],[mnNum(D.mm.q),mnMon(D.mm.tot)]);mnRepRule(doc,y);
+    detail(t('mr_top_prov_prod'),[t('cp_provider'),t('me_qty'),t('mr_purchases')],D.pv.map(o=>[[o.name,o.co].filter(Boolean).join(' / '),mnNum(o.q),mnAmount(o.tot)]),[345,80,110]);
+    y=mnRepBlock(doc,y,t('mr_merma'),[t('me_qty'),t('total')+' '+moneySym()],[mnNum(D.mm.q),mnMon(D.mm.tot)]);mnRepRule(doc,y);
     await mnRepSave(doc,'prod_detail',(p.key||'')+' '+repRangeTxt());},
   async category(JS){const r=repEnsureRange();const a=repCategoryData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('category',a,{name:o=>o.name,sales:o=>o.tot,profit:o=>o.gan});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_category')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnNum(o.tot),mnNum(o.gan)]),{w:[333,101,101]});await mnRepSave(doc,'category',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnAmount(o.tot),mnAmount(o.gan)]),{w:[333,101,101]});await mnRepSave(doc,'category',repRangeTxt());},
   async inventory(JS){const D=repInvData();if(!D.l.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=230;
     doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(20);doc.text(D.cat||t('mr_all_products'),297.5,y,{align:'center'});y+=14;
     const L=[[t('mr_n_products')],[t('mr_in_reserve')],[t('mr_investment')],[t('mr_pos_sales')],[t('mr_pos_profit')]],V=[mnNum(D.T.n),mnNum(D.T.rsv),mnMon(D.T.inv),mnMon(D.T.pv),mnMon(D.T.pg)];const cw=535/5;doc.setFontSize(9.5);
     L.forEach((l,i)=>{const ls=doc.splitTextToSize(l[0],cw-8);ls.forEach((s,j)=>doc.text(s,30+cw*i+cw/2,y+j*12,{align:'center'}));doc.text(V[i],30+cw*i+cw/2,y+26,{align:'center'});});y+=40;mnRepRule(doc,y);y+=16;
     doc.setFontSize(10.5);D.units.forEach(o=>{if(y>780){doc.addPage();y=50;}doc.text(o.u,30,y);doc.text('#'+mnNum(o.q),400,y,{align:'center'});doc.text(mnMon(o.inv),520,y,{align:'center'});y+=14;});y+=4;mnRepRule(doc,y);y+=10;
-    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales'),t('mr_h_posprofit')],D.l.map(p=>[(p.key?p.key+'/':'')+mnName(p),mnNum(+p.stock||0),mnNum(D.inv(p)),mnNum(D.pv(p)),mnNum(D.pv(p)-D.inv(p))]),{w:[175,90,90,90,90],plain:true});
+    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales'),t('mr_h_posprofit')],D.l.map(p=>[(p.key?p.key+'/':'')+mnName(p),mnNum(+p.stock||0),mnAmount(D.inv(p)),mnAmount(D.pv(p)),mnAmount(D.pv(p)-D.inv(p))]),{w:[175,90,90,90,90],plain:true});
     await mnRepSave(doc,'inventory',todayISO());},
   async tags(JS){const r=repEnsureRange();const a=repTagsData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('tags',a,{name:o=>o.name,qty:o=>o.n,sales:o=>o.tot,profit:o=>o.gan});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_tags')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_qty'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnNum(o.n),mnNum(o.tot),mnNum(o.gan)]),{w:[275,80,90,90]});await mnRepSave(doc,'tags',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_qty'),t('mr_h_sales'),t('mr_h_profit')],rows.map(o=>[o.name,mnNum(o.n),mnAmount(o.tot),mnAmount(o.gan)]),{w:[275,80,90,90]});await mnRepSave(doc,'tags',repRangeTxt());},
   async employees(JS){const r=repEnsureRange();const a=repEmpData();if(!a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_employees')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_role'),t('mr_h_att'),t('mr_h_abs'),t('mr_h_late'),t('mr_h_salary')],a.map(o=>[o.name,o.role||'',''+o.att,''+o.abs,''+o.late,mnNum(o.sal)]),{w:[145,120,70,65,65,70]});await mnRepSave(doc,'employees',repRangeTxt());},
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_role'),t('mr_h_att'),t('mr_h_abs'),t('mr_h_late'),t('mr_h_salary')],a.map(o=>[o.name,o.role||'',''+o.att,''+o.abs,''+o.late,mnAmount(o.sal)]),{w:[145,120,70,65,65,70]});await mnRepSave(doc,'employees',repRangeTxt());},
   async quote(JS){const a=repQuoteData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('quote',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
-    const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{date:todayISO(),title:t('rep_quote')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnNum(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'quote',todayISO());},
-  async purch_order(JS){const r=repEnsureRange();const a=repPOData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
-    const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_purch_order')});
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnNum(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'purch_order',repRangeTxt());},
+    const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date:todayISO(),title:t('rep_quote')});const T=repTotals(a);
+    y=mnRepBlock(doc,y,t('rep_quote'),[t('me_qty'),t('total'),t('svc_profit')],[mnNum(a.length),mnMon(T.tot),mnMon(T.tot-T.cost)]);
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[226,135,87,87]});await mnRepSave(doc,'quote',todayISO());},
+  async purch_order(JS){await g6PoPdf(JS);},
   async abc(JS){const a=repABCData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{title:t('rep_abc')});
     mnRepTable(doc,y,[t('mr_h_class'),t('mr_h_prodname'),t('mr_h_pval'),t('mr_h_pacc')],a.map(o=>[o.cls,o.name,''+o.pv,''+o.acc]),{w:[50,275,105,105],al:['center','left','center','center']});await mnRepSave(doc,'abc',todayISO());},
   async inc_exp(JS){const r=repEnsureRange();const D=repIncExpData();if(!D.inc.a.length&&!D.exp.a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to});y-=6;
     for(const [lbl,X] of [[t('mr_incomes'),D.inc],[t('mr_expenses'),D.exp]]){if(y>760){doc.addPage();y=50;}doc.setFont('helvetica','normal');doc.setFontSize(12);doc.setTextColor(30);doc.text(lbl,30,y);y+=16;
-      if(X.a.length){y=mnRepTable(doc,y,[t('mr_h_category'),t('mr_h_qty'),t('mr_h_subtotal')],X.a.map(o=>[o.name,mnNum(o.n),mnNum(o.tot)]),{w:[333,101,101]})+14;
-        y=mnRepTable(doc,y,null,[[t('total')+' $',mnNum(X.T)]],{w:[270,265],al:['right','center'],bold:(ri,ci)=>ci===1})+24;}}
+      if(X.a.length){y=mnRepTable(doc,y,[t('mr_h_category'),t('mr_h_qty'),t('mr_h_subtotal')],X.a.map(o=>[o.name,mnNum(o.n),mnAmount(o.tot)]),{w:[333,101,101]})+14;
+        y=mnRepTable(doc,y,null,[[t('total')+' '+moneySym(),mnAmount(X.T)]],{w:[270,265],al:['right','center'],bold:(ri,ci)=>ci===1})+24;}}
     await mnRepSave(doc,'inc_exp',repRangeTxt());},
   async clients(JS){const id=state.repPick&&state.repPick.clients;const c=id&&(state.clients||[]).find(x=>x&&''+x.id===''+id);if(!c)return toast(t('mr_pick_cli_hint'));const D=repCliDetail(c);if(D.prods===null)return toast(t('rp_loading'));const r=repEnsureRange();
     const doc=await mnRepDoc(JS);mnRepHead(doc,{});let y=150;doc.setFontSize(13);doc.setTextColor(20);doc.text(c.name||'',30,y);y+=15;doc.setFontSize(11);doc.text(c.alias||'',30,y);y+=34;doc.setFontSize(11);doc.text(r.from+'  -  '+r.to,30,y);y+=14;
@@ -7585,9 +7598,8 @@ const MN_PDF={
 // Tabla en tarjetas: rows=[{t:titulo, c:[[etiqueta,valor,'m'|'n'|'p'|'' ],…], bar:0..100, act, badge}] + total
 function repCards(id,head,rows,opts){
   opts=opts||{};const lim=(state.repMore&&state.repMore[id])||opts.limit||60;const shown=rows.slice(0,lim);
-  const fmt=(v,k)=>k==='m'?rmoney(v):k==='p'?(v+'%'):k==='n'?(Math.round((+v||0)*100)/100).toLocaleString(numLoc()):exEsc(v);
-  REP_CSV[id]={name:t('rep_'+id),head:[opts.first||t('rp_item')].concat(head.map(h=>h[0])),rows:rows.map(r=>[r.csvT!=null?r.csvT:r.t].concat(r.c.map(c=>c[2]==='m'||c[2]==='n'?Math.round((+c[1]||0)*100)/100:(c[2]==='p'?c[1]+'%':c[1]))))};
-  if(opts.total)REP_CSV[id].rows.push([t('total')].concat(opts.total.map(c=>c==null?'':(c[2]==='m'||c[2]==='n'?Math.round((+c[1]||0)*100)/100:c[1]))));
+  const fmt=(v,k)=>k==='m'?rmoney(v):k==='p'?(v+'%'):k==='n'?g4fNum(v):exEsc(v);
+  repCsv(id,head,rows,opts);
   const g=head.length;const card=(r,cls)=>`<div class="rtab-r ${cls||r.cls||''}" ${r.act?`data-act="${r.act}" style="cursor:pointer"`:''}><div class="rtab-n">${r.badge||''}${exEsc(r.t)}</div>${r.bar!=null?`<div class="rbar"><div style="width:${Math.max(0,Math.min(100,Math.floor(r.bar)))}%"></div></div>`:''}<div class="rtab-g g${g}">${r.c.map((c,i)=>`<div><span>${exEsc(c[0]!=null?c[0]:head[i][0])}</span><b class="${c[2]==='m'||c[2]==='n'?'num':''}${c[3]?' '+c[3]:''}">${fmt(c[1],c[2])}</b></div>`).join('')}</div></div>`;
   const more=rows.length>lim?`<div class="loadmore" data-act="repmore:${id}">${ti('inv_more',{n:rows.length-lim})}</div>`:'';
   const tot=opts.total?card({t:t('total'),c:opts.total.map((c,i)=>c||[head[i][0],'',''])},'rtab-tot'):'';
@@ -7625,7 +7637,7 @@ function repPayForms(){
 // Merma: tarjeta con fechas, Total y el gráfico (ícono "event"); la lista sigue como hoy hasta tener una captura de Mi Negocio con merma
 // 2) Merma
 function repMermaData(){const l=(state.mermas||[]).filter(m=>m&&!m.del&&inR(m.date));const by={};l.forEach(m=>{const k=m.pid!=null?'p'+m.pid:(''+m.name).trim().toUpperCase();const pr=m.pid!=null?P(m.pid):null;const o=by[k]||(by[k]={name:pr?pr.name:m.name,key:(pr&&pr.key)||m.key||'',q:0,tot:0,n:0});o.q+=+m.qty||0;o.tot+=(+m.qty||0)*(+m.cost||0);o.n++;});return Object.values(by);}
-function repMerma(){const a=repMermaData();const tot=a.reduce((s,o)=>s+o.tot,0);
+function repMerma(){const a=repMermaData();const tot=repTotals(a).tot;
   const ch=state.repCharts!==false?mpcCard(a.length?mpcBars('merma',a.slice().sort((x,y)=>y.tot-x.tot).slice(0,30).reverse().map(o=>({v:[o.tot],tip:[o.name,'#'+(o.key||''),money(o.tot)]})),mpcSig(a,o=>o.tot)):mpcEmpty()):'';
   const head=repDateHead({event:true,cls:'m10 me-h',total:a.length?rmoney(tot):'$...',inner:ch});
   if(!a.length)return head+(REP_SINGLE?'<div class="mnempty me-e">'+t('sin_info')+'</div>':'<div class="empty" style="margin:14px 0">'+t('sin_info')+'</div>');
@@ -7699,9 +7711,9 @@ function repProdDetail(){
   const head='<div class="g5ph"><div class="g5ph-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5ph-t"><div class="g5ph-k">'+exEsc(p.key||'')+'</div><div class="g5ph-n">'+exEsc(mnName(p))+'</div><div class="g5ph-cl">'+exEsc(t('f_category'))+'</div><div class="g5ph-cv">'+svgF(MN_IC.category)+'<b>'+exEsc(catName(p.cat))+'</b></div></div></div>';
   return pk+repDateHead({cls:'r8 m10 g5pdh',inner:pch})+'<div class="g5pcard">'+head+'<div class="g5div"></div>'
     +sec(t('mr_sum_sales'))+'<div class="g5kv c3">'+kv(t('me_qty'),mnNum(D.sv.q))+kv(t('mr_sales'),rmoney(D.sv.tot))+kv(t('svc_profit'),rmoney(D.sv.tot-D.sv.cost))+'</div>'
-    +(D.cl.length?sec(t('mr_top_cli_prod'))+'<div class="mnscroll g5scr">'+D.cl.map(o=>card(MN_IC.person,o.c.name||'',o.c.alias||'',[[t('me_qty'),mnNum(o.q)],[t('mr_sales'),mnNum(o.tot)],[t('svc_profit'),mnNum(o.tot-o.cost)]])).join('')+'</div>':'')
+    +(D.cl.length?sec(t('mr_top_cli_prod'))+'<div class="mnscroll g5scr">'+D.cl.map(o=>card(MN_IC.person,o.c.name||'',o.c.alias||'',[[t('me_qty'),mnNum(o.q)],[t('mr_sales'),mnAmount(o.tot)],[t('svc_profit'),mnAmount(o.tot-o.cost)]])).join('')+'</div>':'')
     +'<div class="g5div"></div>'+sec(t('mr_sum_purch'))+'<div class="g5kv c2">'+kv(t('me_qty'),mnNum(D.pu.q))+kv(t('mr_purchases'),rmoney(D.pu.tot))+'</div>'
-    +(D.pv.length?sec(t('mr_top_prov_prod'))+'<div class="mnscroll g5scr">'+D.pv.map(o=>card(MN_IC.contacts,o.name,o.co,[[t('me_qty'),mnNum(o.q)],[t('mr_purchases'),mnNum(o.tot)]])).join('')+'</div>':'')
+    +(D.pv.length?sec(t('mr_top_prov_prod'))+'<div class="mnscroll g5scr">'+D.pv.map(o=>card(MN_IC.contacts,o.name,o.co,[[t('me_qty'),mnNum(o.q)],[t('mr_purchases'),mnAmount(o.tot)]])).join('')+'</div>':'')
     +'<div class="g5div"></div>'+sec(t('mr_merma'))+'<div class="g5kv c2">'+kv(t('me_qty'),mnNum(D.mm.q))+kv(t('total'),rmoney(D.mm.tot))+'</div></div>';
 }
 // Reporte categoría: ventas y ganancia por categoría del rango (filas grises con el ícono de categoría, lista corrida)
@@ -7734,7 +7746,7 @@ function repInventory(){const D=repInvData();if(!(state.products||[]).length)ret
   repCsv('inventory',[[t('me_qty')],[t('mr_investment_s')],[t('mr_pos_sales_s')],[t('mr_pos_profit_s')]],D.l.map(p=>({t:mnName(p),c:[[null,+p.stock||0,'n'],[null,D.inv(p),'m'],[null,D.pv(p),'m'],[null,D.pv(p)-D.inv(p),'m']]})),{first:t('rc_product')});
   const lim=(state.repMore&&state.repMore.inventory)||60;   /* solo se arman las filas que se dibujan (de a 60, la lista corrida pide más) */
   const rows={n:D.l.length,at:i=>{const p=D.l[i];return mnRow({img:saleProdImg(p,G5_BOXQ),lines:[p.key?'<span class="g5k">'+exEsc(p.key)+'</span>':'',exEsc(mnName(p))].filter(Boolean),
-    cols:[[exEsc(t('me_qty')),mnNum(+p.stock||0)],[exEsc(t('mr_investment_s')),mnNum(D.inv(p))],[exEsc(t('g5_pos_sales')),mnNum(D.pv(p))],[exEsc(t('g5_pos_profit')),mnNum(D.pv(p)-D.inv(p))]],cls:'g5inv',badge:g5StockIcon(p)});}};   /* se arman solo las filas que se van mostrando */
+    cols:[[exEsc(t('me_qty')),mnNum(+p.stock||0)],[exEsc(t('mr_investment_s')),mnAmount(D.inv(p))],[exEsc(t('g5_pos_sales')),mnAmount(D.pv(p))],[exEsc(t('g5_pos_profit')),mnAmount(D.pv(p)-D.inv(p))]],cls:'g5inv',badge:g5StockIcon(p)});}};   /* se arman solo las filas que se van mostrando */
   return sel+sum+un+(D.l.length?mnList('inventory',rows):repEmpty());}
 // 8) Etiquetas
 // Reporte etiquetas: cantidad de ventas, ventas y ganancia por etiqueta del rango
@@ -7762,7 +7774,7 @@ function repEmployees(){const a=repEmpData();if(!a.length)return repDateHead({cl
 // 10) Orden de compra
 // Reporte orden de compra: los productos de las órdenes del rango (cantidad y total)
 function repPOData(){const by={};(state.porders||[]).filter(o=>o&&!o.del).forEach(o=>(o.lines||[]).forEach(l=>{const pr=(l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const g=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0});const qq=+l.q||0;g.q+=qq;g.tot+=l.subtotal!=null?+l.subtotal:(+l.cost||0)*qq;}));return Object.values(by);}
-function repPurchOrder(){const a=repPOData();const T=a.reduce((s,o)=>({q:s.q+o.q,tot:s.tot+o.tot}),{q:0,tot:0});
+function repPurchOrder(){const a=repPOData();const T=repTotals(a);
   const strip=g6Strip([[t('me_qty'),'#'+mnNum(T.q)],[t('total'),rmoney(T.tot)]]);   /* siempre visible, también sin órdenes */
   if(!a.length)return strip+mnEmpty(t('sin_info'),REP_SINGLE);
   const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
@@ -8040,7 +8052,7 @@ async function repCsvPDF(JS,ids){
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60);doc.text(r.from+'  →  '+r.to,M,90);
   let y=110;
   ids.forEach(id=>{const x=REP_CSV[id];doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(20);if(y>740){doc.addPage();y=50;}doc.text(x.name,M,y);
-    doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[x.head],body:x.rows.map(row=>row.map(v=>typeof v==='number'?Math.round(v).toLocaleString('en-US'):(v==null?'':''+v))),theme:'grid',
+    doc.autoTable({startY:y+8,margin:{left:M,right:M},head:[x.head],body:(x.pdfRows||x.rows).map(row=>row.map(v=>typeof v==='number'?mnNum(v):(v==null?'':''+v))),theme:'grid',
       styles:{fontSize:8,cellPadding:4,lineColor:[205,205,205],lineWidth:0.5,textColor:40},headStyles:{fillColor:[245,245,245],textColor:40,fontStyle:'bold'},columnStyles:{0:{cellWidth:180}}});
     y=doc.lastAutoTable.finalY+28;});
   const name=(ids.length===1?REP_CSV[ids[0]].name:t('rep_results'))+' '+r.from+' a '+r.to+'.pdf';
@@ -8196,7 +8208,7 @@ function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.prov
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
 async function poPDF(){
   const o=poById(state.poOpen);if(!o)return;
-  try{toast(t('po_pdf_gen'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
+  try{toast(t('po_pdf_gen'));const JS=await ensurePdfLibs();const cfg=receiptCfg();const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('po_title'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -8338,7 +8350,7 @@ function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLoca
 async function quotePDF(){
   const q=quoteById(state.qtOpen);if(!q)return;
   try{toast(t('rc_generating'));const JS=await ensurePdfLibs();const cfg=receiptCfg();
-    const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=n=>Math.round(+n||0).toLocaleString('en-US');let y=58;
+    const doc=new JS({unit:'pt',format:'a4',compress:true});const M=40;const fmtN=mnAmount;let y=58;
     await prepPdfLogo();pdfLogo(doc,{box:72,top:40});
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(90);doc.text(t('sales_quote'),M,y);y+=30;
     doc.setFont('helvetica','bold');doc.setFontSize(21);doc.setTextColor(20);doc.text((cfg.name||'').toUpperCase(),M,y);y+=26;
@@ -8354,7 +8366,7 @@ async function quotePDF(){
       headStyles:{fillColor:[255,255,255],textColor:95,fontStyle:'normal',halign:'center',fontSize:9},
       columnStyles:{0:{cellWidth:235,halign:'left',fontSize:8},1:{cellWidth:95,halign:'center'},2:{cellWidth:95,halign:'center'},3:{cellWidth:90,halign:'center'}}});
     let fy=doc.lastAutoTable.finalY+14;doc.setDrawColor(205);doc.setLineWidth(0.5);doc.rect(M,fy,330,26);doc.rect(M+330,fy,185,26);
-    doc.setFontSize(11);doc.setTextColor(40);doc.text(t('total').toUpperCase()+' $',M+322,fy+17,{align:'right'});doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(fmtN(q.total),M+330+92,fy+17,{align:'center'});fy+=44;
+    doc.setFontSize(11);doc.setTextColor(40);doc.text(t('total').toUpperCase()+' '+moneySym(),M+322,fy+17,{align:'right'});doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(fmtN(q.total),M+330+92,fy+17,{align:'center'});fy+=44;
     doc.setFont('helvetica','normal');doc.setFontSize(11);
     if(q.note){const w=doc.splitTextToSize(''+q.note,515);doc.text(w,M,fy);fy+=w.length*14+8;}
     if(cfg.msg){const w=doc.splitTextToSize(''+cfg.msg,515);doc.text(w,M,fy);}
@@ -8367,7 +8379,7 @@ async function quotePDF(){
 // Reporte cotización: los productos de las cotizaciones (cantidad, total y ganancia), como Mi Negocio
 function repQuoteData(){const by={};quotesLive().forEach(q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
 function repQuote(){const a=repQuoteData();
-  const T=a.reduce((s,o)=>({q:s.q+o.q,tot:s.tot+o.tot,cost:s.cost+o.cost}),{q:0,tot:0,cost:0});
+  const T=repTotals(a);
   const strip=g6Strip([[t('me_qty'),'#'+mnNum(a.length)],[t('total'),rmoney(T.tot)],[t('svc_profit'),rmoney(T.tot-T.cost)]]);
   if(!a.length)return REP_SINGLE?strip+mnEmpty(t('sin_info'),true):'<div class="empty" style="margin-top:18px">'+t('qt_none')+'</div>';
   const rows=repSorted('quote',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
@@ -8737,7 +8749,7 @@ function pickTotalTag(k){
 // Transacciones por servicio: cantidad y total por servicio del rango
 function repTxServData(){const L=repLinesFor(repEnsureRange());if(!L)return null;return repAggBy(L.filter(l=>l.svc),l=>(''+l.name).trim().toUpperCase(),l=>l.name);}
 function repTxServ(){const a=repTxServData();if(!a)return repLoading();
-  const tot=a.reduce((s,o)=>s+o.tot,0);
+  const tot=repTotals(a).tot;
   const head=repDateHead({total:rmoney(tot),totalAlign:'r',cls:'m10 ts-h'});
   if(!a.length)return head+mnEmpty(t('sin_info'),true);
   const rows=repSorted('tx_serv',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
@@ -12574,7 +12586,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261015185226';
+const APP_VERSION='20261015191704';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

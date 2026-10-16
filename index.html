@@ -2430,6 +2430,313 @@ function colApply(c,dark){const r=document.documentElement,v=c?colVariants(c,dar
     .formbody{padding-left:calc(14px + var(--gut));padding-right:calc(14px + var(--gut))}
     .sheetcard{padding-left:var(--gut);padding-right:var(--gut)}
   }
+/* mods170: calendario como el de Mi Negocio */
+.mndpdlg{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+.mndpdlg.on{display:flex}
+.mndp-box{width:288px;background:var(--mncal-bg,#fff);border-radius:2px;box-shadow:0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);overflow:hidden;font-family:Roboto,system-ui,sans-serif;color:var(--mncal-tx,rgba(0,0,0,.87))}
+.mndp-hd{height:95px;background:var(--mn-acc,#21b4ff);display:flex;flex-direction:column;align-items:flex-start;padding:0 24px;box-sizing:border-box}
+.mndp-hd button{background:none;border:0;padding:0;color:rgba(255,255,255,.7);font-family:inherit;text-align:left;cursor:pointer}
+.mndp-hd button.act{color:#fff}
+.mndp-y{font-size:18.4px;font-weight:500;line-height:1;margin-top:17px}
+.mndp-d{font-size:34px;font-weight:500;line-height:1;margin-top:9px;white-space:nowrap}
+.mndp-bd{height:339px;position:relative}
+.mndp-nav{display:flex;align-items:center;justify-content:space-between;height:48px;padding:10px 13px 0;box-sizing:content-box}
+.mndp-ar{width:48px;height:48px;border:0;background:none;display:grid;place-items:center;padding:0;cursor:pointer}
+.mndp-ar svg{width:24px;height:24px;fill:var(--mncal-tx,rgba(0,0,0,.87))}
+.mndp-mon{font-size:16.1px;font-weight:500;color:var(--mncal-tx,rgba(0,0,0,.87))}
+.mndp-wd,.mndp-days{display:grid;grid-template-columns:repeat(7,35.2px);margin:0 20px}
+.mndp-wd{height:40px;align-items:center;margin-top:3px}
+.mndp-wd span{text-align:center;font-size:13.8px;color:var(--mncal-mu,#666)}
+.mndp-days{grid-auto-rows:40.2px}
+.mncd{border:0;background:none;font-family:inherit;font-size:13.8px;color:var(--mncal-tx,rgba(0,0,0,.87));border-radius:50%;width:35px;height:35px;margin:auto;padding:0;cursor:pointer}
+.mncd.on{background:var(--mn-acc,#21b4ff);color:#fff;font-weight:500}
+.mncd:disabled{color:rgba(0,0,0,.26);cursor:default}
+.mndp-years{height:100%;overflow-y:auto}
+.mncy{display:block;width:100%;height:48px;border:0;background:none;font-family:inherit;font-size:18.4px;color:var(--mncal-tx,rgba(0,0,0,.87));cursor:pointer}
+.mncy.on{height:60px;font-size:29.9px;font-weight:500;color:var(--mn-acc,#21b4ff)}
+.mndp-bt{height:62px;display:flex;justify-content:flex-end;align-items:center;padding-right:12px;gap:0}
+.mndp-bt button{border:0;background:none;color:var(--mn-acc,#21b4ff);font-family:inherit;font-size:16.1px;font-weight:500;letter-spacing:.02em;text-transform:uppercase;padding:0 12px;height:54px;min-width:64px;cursor:pointer}
+[data-theme="dark"] .mndpdlg{--mncal-bg:#424242;--mncal-tx:rgba(255,255,255,.87);--mncal-mu:rgba(255,255,255,.6)}
+[data-theme="dark"] .mncd:disabled{color:rgba(255,255,255,.3)}
+  /* ==== mods171: piezas comunes de los reportes como Mi Negocio (REA 2026-10-16, informes G1…G6) ==== */
+  :root{--r171-dlg:#212121;--r171-pop:#fafafa;--r171-pop-t:#000;--r171-box:#fdfdfd;--r171-ln:#c6c6c6;--r171-lnt:#b9b9b9;--r171-lnb:#d0d0d0;--r171-ins:rgba(0,0,0,.15)}
+  html[data-theme="dark"]{--r171-dlg:var(--ink);--r171-pop:#2b2f34;--r171-pop-t:var(--ink);--r171-box:var(--mn-field);--r171-ln:#4a5056;--r171-lnt:#5a6066;--r171-lnb:#4a5056;--r171-ins:rgba(0,0,0,.5)}
+  /* 1) menú "Ordenar": AlertDialog de MN (s39, s57, s66, s81, s95): izquierda, #212121, título 500 22/29, ítems 18,2 en filas de 48, esquinas 2, 8 abajo */
+  .askdlg.mnmenu .askcard{border-radius:2px;padding:0 0 8px;max-width:332.8px;box-shadow:0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14),0 9px 46px 8px rgba(0,0,0,.12)}
+  .askdlg.mnmenu .askcard .askmsg{font:500 22px/29px var(--ui);color:var(--r171-dlg);text-align:left;margin:0;padding:18px 25px 8.5px}
+  .askdlg.mnmenu .askcard .askmenu{margin:0}
+  .askdlg.mnmenu .askcard .askmenu button{height:48px;padding:0 25px;font:400 18.2px/48px var(--ui);color:var(--r171-dlg);text-align:left;border-radius:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* velo de las ventanas de los reportes: negro al 60 % (MN #e1e1e1 → 90) */
+  #device.rvmode>.permdlg.askdlg,#device.rvmode .permdlg.mncal,#device.rvmode .permdlg.g5catdlg,.permdlg.abc171{background:rgba(0,0,0,.6)}
+  /* 2) "Intervalo de Transacciones:" (s06, s78, s108): fondo #e1e1e1, ventana de 210,5 dp, cajas 146 × 42,3 con borde fino y sombra interior,
+     fecha 700 15, título 18, rótulos 15, ✓ de 40 dp con centro a 105 dp del borde de arriba y 42 del derecho */
+  .mncal .mncal-c{position:relative;background:var(--mn-bg);width:min(332.8px,92vw);padding:0 0 15.3px}
+  .mncal .mncal-c .mncal-t{font:700 18px/21px var(--ui);color:var(--mn-txt);margin:0;padding:21.7px 20.6px 0}
+  .mncal .mncal-c .mncal-g{display:block;margin:12.8px 0 0}
+  .mncal .mncal-c .mncal-f{display:flex;flex-direction:column;align-items:center;gap:1.2px;width:146px;margin:0 0 0 60.8px}
+  .mncal .mncal-c .mncal-ok+.mncal-f{margin-top:16.5px}
+  .mncal .mncal-c .mncal-f span{font:400 15px/18px var(--ui)}
+  .mncal .mncal-c .mncal-f label{width:146px;height:42.3px;box-sizing:border-box;background:var(--r171-box);border:1px solid var(--r171-ln);border-top-color:var(--r171-lnt);border-bottom-color:var(--r171-lnb);border-radius:0;box-shadow:inset 0 8px 9px -7px var(--r171-ins);font:700 15px/40.3px var(--ui)}
+  .mncal .mncal-c .mncal-f label b{font-weight:inherit}
+  .mncal .mncal-c .mncal-ok{position:absolute;top:84.9px;right:22px;width:40px;height:40px;margin:0}
+  .mncal .mncal-c .mncal-ok svg{width:24px;height:24px}
+  /* 3) barra del reporte (s01, s38, s65, s94): botones de 48 dp; con ⋮ (CSV, extra de Abanico) el ⋮ mide 24 y, si hay 3 íconos más, 42 cada uno
+     para que quepa "Top Proveedores"; 8 dp entre el título y el primer ícono; PDF de contorno 21 × 24; Ordenar 12 % más grande; (i) atenuado de 24 dp */
+  .rvbar .rvi{width:48px}
+  .rvbar .rvi.more{width:24px}
+  .rvbar:has(.rvi+.rvi+.rvi+.rvi.more) .rvi:not(.more){width:42px}
+  .rvbar .rvt{margin-right:8px}
+  .rvbar .rvi svg.mnpdf{width:21px;height:24px}
+  .rvbar .rvi.pdfw svg.mnpdf{width:27px;height:31px}
+  .g3bypdf svg.mnpdf{width:20px;height:23px}
+  .rvbar .rvi[data-act^="mrep:sort"] svg{width:27px;height:27px}
+  .rvbar .rvi.r171i svg{width:29px;height:29px}
+  /* 4) tarjeta de fechas: ícono de 18 × 19 (MN 13,2 × 14,6 dp de tinta) sin mover el texto; tarjeta plana (MN sin sombra) */
+  .mnh-l{gap:5px}
+  .mnh-l svg{width:18px;height:19px;margin:-2px 0 -2px -2.3px}
+  .rvbody .mnhead{box-shadow:none}
+  /* 5) sin barras de desplazamiento (MN no las muestra) y sin contornos de foco al tocar (queda :focus-visible para el teclado) */
+  #screen[data-s="repview"],#screen[data-s="reportes"],#screen[data-s="repview"] *,.g5cat-l,#askdlg .askmsg,.abc171c,.sp171{scrollbar-width:none}
+  #screen[data-s="repview"]::-webkit-scrollbar,#screen[data-s="reportes"]::-webkit-scrollbar,#screen[data-s="repview"] *::-webkit-scrollbar,.g5cat-l::-webkit-scrollbar,#askdlg .askmsg::-webkit-scrollbar,.abc171c::-webkit-scrollbar,.sp171::-webkit-scrollbar{display:none}
+  #device.rvmode :focus:not(:focus-visible),#screen[data-s="reportes"] :focus:not(:focus-visible){outline:none}
+  .rvbody #pfType:focus,.rvbody #txType:focus,.rvbody #txtType:focus{outline:none}
+  /* 6) vacíos centrados: compensar los 24 px de abajo de .rvbody (MN centra en todo el alto libre) */
+  .rvbody:not(.fabpad)>.mnempty.fill:last-child{margin-bottom:-24px}
+  /* 7) buscador (Clientes, Proveedor, Productos a Detalle): sin foco borde gris de 1 dp con sombra interior y fondo #fdfdfd;
+     con foco naranja con el borde de abajo más grueso y oscuro (#f17b09); íconos y sangría medidos (s52, s53, s58, s85) */
+  .rvbody .rpbox{background:var(--r171-box);border:1px solid var(--r171-ln);border-top-color:var(--r171-lnt);border-bottom-color:var(--r171-lnb);padding:1px;box-shadow:inset 0 8px 9px -7px var(--r171-ins),inset 7px 0 7px -7px var(--r171-ins)}
+  .rvbody .rpbox:focus-within,.rvbody .rpbox.r171foc{border:2px solid #f9931f;border-top-color:#fb9b27;border-bottom:2.5px solid #f17b09;padding:0;box-shadow:inset 0 7px 8px -7px rgba(0,0,0,.08)}
+  .rvbody .rpbox:focus-within>svg,.rvbody .rpbox.r171foc>svg{margin-left:-1px}
+  .rvbody input.rpsearch{-webkit-appearance:none;appearance:none}
+  .rvbody input.rpsearch::-webkit-search-cancel-button,.rvbody input.rpsearch::-webkit-search-decoration{-webkit-appearance:none;display:none}
+  .rvbody .g8pk{padding-top:9.5px}
+  .rvbody .g8pk .rpbox>svg{left:8.8px;width:20px;height:20px}
+  .rvbody .g8pk .rpbox:has(#rpSearch_provider)>svg{left:9.9px;width:18px;height:18px}
+  .rvbody .g8pk .rpbox>.rpsearch{padding-left:36px}
+  .rvbody .rpsugg{scrollbar-width:none;border-radius:0}
+  .rvbody .rpsugg::-webkit-scrollbar{display:none}
+  .rvbody .g8pk .rpsugg{padding-bottom:6px}
+  .rvbody .rps{margin:0 5px;padding:0;font-size:13.3px;color:var(--mn-txt);background:none;border-radius:0}
+  /* 8) desplegables tipo Spinner (Transacciones por Día, Total, Formas de Pago): menú flotante de MN pegado al control (s10, s40) */
+  #txType,#txtType,#pfType{pointer-events:none}
+  .permdlg.spin171{background:transparent;padding:0;display:none}
+  .permdlg.spin171.on{display:block}
+  .sp171{position:absolute;box-sizing:border-box;width:max-content;max-width:calc(100% - 8px);max-height:calc(100% - 8px);overflow-y:auto;background:var(--r171-pop);border-radius:2px;box-shadow:0 5px 5px -3px rgba(0,0,0,.2),0 8px 10px 1px rgba(0,0,0,.14),0 3px 14px 2px rgba(0,0,0,.12)}
+  .sp171o{height:48px;display:flex;align-items:center;padding:0 8px 0 8.6px;font:400 18px var(--ui);color:var(--r171-pop-t);white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .sp171o:active{background:rgba(0,0,0,.1)}
+  /* 9a) ayuda (i) de Total de Transacciones (s02): letra 18/21 #212121, párrafos con negritas, ACEPTAR del color principal 500 16, esquinas 2 */
+  .askdlg.r171help .askcard{border-radius:2px;padding:0;max-width:332.8px}
+  .askdlg.r171help .askcard .askmsg{font:400 18px/21px var(--ui);color:var(--r171-dlg);margin:0;padding:20.4px 24px 4px;max-height:calc(100dvh - 190px)}
+  .askdlg.r171help .askmsg b{font-weight:700}
+  .askdlg.r171help .askbtns{padding:4px 12px 4px;gap:0}
+  .askdlg.r171help .askbtns button{height:54px;padding:0 12px;color:var(--mn-acc);font:500 16px var(--ui);letter-spacing:.02em;border-radius:2px}
+  /* 9b) ayuda (i) del Análisis ABC (s48): ventana de 332,8 dp sin título ni botones; cuadros de color y nota roja */
+  .abc171 .abc171c{width:min(332.8px,100%);max-height:100%;overflow-y:auto;box-sizing:border-box;padding:5px;background:var(--mn-card);color:var(--mn-txt);border-radius:2px;box-shadow:0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14),0 9px 46px 8px rgba(0,0,0,.12)}
+  .abc171 .abc171c p{margin:0;padding:1.5px 0;font:400 14.9px/17.4px var(--ui)}
+  .abc171 .abc171r{display:flex;align-items:center;gap:5px;margin-top:5px;min-height:20.3px;font:400 14.9px/17.5px var(--ui)}
+  .abc171 .abc171r span{padding:1.4px 0}
+  .abc171 .abc171r i{flex:0 0 19.9px;height:19.9px}
+  .abc171 .abc171c .abc171n{margin-top:5px;padding:0 0 0 5px;color:#f00;font:400 10px/12.3px var(--ui)}
+  /* ===== mods172: G2 de la REA de reportes (medidas en dp del Samsung, capturas de MN vcob_*, s24-s27) ===== */
+  /* Ventas/Compras por Pagar: rótulos Total/Pagos/Deuda de 13 (tarjeta fija y tarjetas de venta), 15 en las de compra */
+  .srsum.g3sum .ttx-big .c .l{font-size:13px}
+  .srlist.g3l .g3card .sr3l{font-size:13px}
+  .srlist.g3l.pc .g3card .sr3l{font-size:15px;line-height:20.3px}
+  /* forma de pago de la tarjeta ("Sin información", "CONTADO") de 13 */
+  .srlist.g3l .g3card .scard-pay{font-size:13px;gap:6px}
+  .srlist.g3l .g3card .scard-pay>span{padding:0}
+  /* botón naranja con esquinas de 8 y el texto 1,4 más abajo */
+  .srsum.g3sum .srbtn{border-radius:8px;line-height:30.8px}
+  /* tarjeta 3 más baja y hueco de 10,8 entre tarjetas (mismo paso que MN) */
+  .srlist.g3l .g3card{padding:2.7px 3px 1.1px}
+  .srlist.g3l{gap:10.8px;margin-top:1px}
+  /* Resumen por cliente / proveedor: nombre 17, rótulos 13, cifras 15 */
+  .g3byc .g3byn{font-size:17px;line-height:21px}
+  .g3byc .g3byr .sr3l{font-size:13px}
+  .g3byc .g3byr .sr3 b{font-size:15px}
+  /* calendario del detalle de una venta por cobrar: S_CAL es de trazo (salía como cuadro negro relleno) */
+  .rd-head .rd-date svg{fill:none;stroke:currentColor;stroke-width:2}
+  /* ---- detalle de compra desde Compras por Pagar (s26): barra azul "✕ Compras por Pagar 🗑 PDF" ---- */
+  #saledlg .sheet-h:has(.g3pd-del){height:calc(56px + env(safe-area-inset-top,0px));min-height:0;box-sizing:border-box;padding:env(safe-area-inset-top,0px) 0 0;gap:0;background:var(--mn-bar);color:#fff;border-bottom:0;box-shadow:0 2px 4px rgba(0,0,0,.25);font:500 20px/24px var(--ui);position:relative;z-index:2}
+  #saledlg .sheet-h:has(.g3pd-del) #saleH{flex:1;min-width:0;margin-left:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #saledlg .sheet-h:has(.g3pd-del) .sd-hacts{gap:0;margin:0 10px 0 0}
+  #saledlg .sheet-h:has(.g3pd-del) .sheet-x{order:-1;width:56px;height:56px;border-radius:0;background:none;font-size:0;color:#fff}
+  #saledlg .sheet-h:has(.g3pd-del) .sheet-x::before{content:'';width:24px;height:24px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") center/24px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") center/24px no-repeat}
+  #saledlg .sheet-h .g3pd-del{width:48px;color:#fff}
+  #saledlg .sheet-h .g3pd-del svg{width:24px;height:24px}
+  #saledlg .sheet-list:has(>.g3pd){padding:0;background:var(--mn-bg)}
+  .g3pd{display:flex;flex-direction:column;padding:12px 0 24px;min-height:100%;box-sizing:border-box;background:var(--mn-bg);color:var(--mn-txt);font-family:var(--ui)}
+  /* tarjeta de datos: 10 de margen, radio 2, 5 de relleno; renglones de 20,3 (texto 15) y rótulos de 16,4 (12) */
+  .g3pd-card{margin:0 10px;background:var(--mn-card);border-radius:2px;box-shadow:var(--mn-sh);padding:5px 5px 4.3px}
+  .g3pd-t{position:relative;font:400 15px/20.3px var(--ui);color:var(--mn-txt);min-height:20.3px;overflow-wrap:anywhere}
+  .g3pd-b{font-weight:700}
+  .g3pd-l{font:400 12px/16.4px var(--ui);color:var(--mn-txt)}
+  .g3pd-gap{margin-top:10px}
+  .g3pd-i{padding-left:23.3px}
+  .g3pd-i>svg{position:absolute;left:0;top:1.15px;width:18px;height:18px;color:var(--mn-ico)}
+  .g3pd-dt{padding-left:26.6px;white-space:pre}
+  .g3pd-info{display:flex;align-items:flex-start;gap:4px;white-space:pre-line}
+  .g3pd-info>span{flex:1;min-width:0}
+  .g3pd-info .g3pd-ib{margin:0 0 0 auto}
+  .g3pd-ib{flex:none;width:24px;height:24px;padding:0;border:0;background:none;color:var(--mn-txt);display:grid;place-items:center;cursor:pointer}
+  .g3pd-ib svg{width:24px;height:24px}
+  .g3pd-pay{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:19.9px;min-height:24.2px;font:400 15px/20.3px var(--ui);color:var(--mn-txt)}
+  .g3pd-pay svg.g3cash{width:17.5px;height:14.6px;color:var(--mn-ico);flex:none;margin-right:-2px}
+  .g3pd-pay>span{margin-right:3px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .g3pd-ed{font:400 12px/16px var(--ui);color:var(--mn-lbl);text-align:right;margin-top:2px}
+  /* cajas Total / Pagos / Deuda: a la derecha (129 → 374 dp), 44 de alto, radio 7; rótulo alineado a 104 del borde, cifra a 10,7 */
+  .g3pd-box{display:flex;align-items:center;height:44px;margin:15.3px 10px 0 auto;width:245px;max-width:calc(100% - 20px);box-sizing:border-box;padding:3px 9.3px 0 0;background:var(--mn-card);border-radius:7px;color:var(--mn-txt)}
+  .g3pd-box>span{flex:none;width:104px;text-align:right;font:700 18.25px/22px var(--ui);white-space:nowrap}
+  .g3pd-box>b{flex:1;min-width:0;text-align:right;font:500 18.5px/22px var(--ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .g3pd-box.p{margin-top:5px}
+  .g3pd-box.p>span{font-size:15px}
+  .g3pd-box.p>b{font-weight:700}
+  .g3pd-sep{height:2.1px;margin:8.2px 10px 0 auto;width:245px;max-width:calc(100% - 20px);background:var(--mn-txt)}
+  .g3pd-sep+.g3pd-box{margin-top:10px}
+  /* botón verde "CONFIRMAR EL PAGO DE LA DEUDA" (dos renglones, ✓ a la derecha) */
+  .g3pd-all{display:flex;align-items:center;justify-content:space-between;height:48px;margin:15px 10px 0 auto;width:245px;max-width:calc(100% - 20px);box-sizing:border-box;padding:0 13px 0 5px;border:0;border-radius:24px;background:var(--mn-ok);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);cursor:pointer;text-align:left}
+  .g3pd-all>span{font:500 15px/17px var(--ui);white-space:pre-line}
+  .g3pd-all>svg{width:36px;height:36px;color:#fff;flex:none}
+  /* tarjetas "Detalle de pagos" / "Programar Pagos": radio 7, píldora azul con ícono y texto */
+  .g3pd-card2{margin:15px 10px 0;background:var(--mn-card);border-radius:7px;box-shadow:var(--mn-sh);padding:0 10px;color:var(--mn-txt)}
+  .g3pd-h{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:31.3px;padding:18.5px 0 0}
+  .g3pd-h:last-child{padding-bottom:16px}
+  .g3pd-pays .g3pd-h>b{margin-top:12px}   /* MN: el título de Detalle de pagos va 6 más abajo que la píldora */
+  .g3pd-h>b{font:700 15px/20px var(--ui)}
+  .g3pd-pill{flex:none;display:flex;align-items:center;gap:9.2px;height:31.7px;padding:0 12.4px 0 3px;border:0;border-radius:16px;background:var(--mn-acc);color:#fff;font:400 16.7px/1 var(--ui);cursor:pointer}
+  .g3pd-pill svg{width:24px;height:24px}
+  html[data-theme="dark"] .g3pd-pill{color:var(--card)}   /* en oscuro el color de la app es claro (#c9cdd2) */
+  .g3pd-empty{font:400 18px/21.2px var(--ui);color:var(--mn-empty);text-align:center;white-space:pre-line;padding:29px 0 31px}
+  .g3pd-pl{padding:12px 0 6px}
+  .g3pd-pr{display:flex;align-items:center;gap:8px;min-height:40px;border-top:1px solid var(--mn-sep);font:400 15px/20px var(--ui)}
+  .g3pd-prd{flex:1;min-width:0;display:flex;align-items:center;gap:8px;white-space:pre}
+  .g3pd-prd svg{width:18px;height:18px;color:var(--mn-ico);flex:none}
+  .g3pd-pr>b{font-weight:700}
+  .g3pd-items .rd-plist{margin:12px 0 10px;border-color:var(--mn-sep);background:var(--mn-card)}
+  .g3pd-items .rd-ph{background:var(--mn-row);color:var(--mn-txt)}
+  .g3pd-items .rd-prow{border-color:var(--mn-sep)}
+  .g3pd-items .rd-pn,.g3pd-items .rd-pg{color:var(--mn-txt)}
+  /* Programar Pagos encima del detalle (la ventana de pagos es una hoja de la app, z 15) */
+  #schedlg{z-index:19}
+  /* ---- ventana "Agregar Pago" (s27): fondo #e1e1e1, título centrado 18,5 negrita, campo "#Pago" y ✓ verde de 45 ---- */
+  #cfgdlg .sheetcard:has(.g3pa){background:var(--mn-bg)}
+  #cfgdlg .sheetcard:has(.g3pa) .sheet-h{background:var(--mn-bg);border-bottom:0;font:700 18.5px/24px var(--ui);color:var(--mn-txt);padding:14px 12px 12px 52px}
+  #cfgdlg .sheetcard:has(.g3pa) #cfgH{flex:1;text-align:center}
+  #cfgdlg .sheetcard:has(.g3pa) .sheet-x{background:none;color:var(--mn-txt)}
+  #cfgdlg .sheet-list:has(>.g3pa){background:var(--mn-bg);padding:0}
+  .g3pa{display:flex;justify-content:center;padding:26px 16px 24px}
+  .g3pa-r{display:flex;align-items:center;gap:29.5px;margin-left:-5px}
+  .g3pa-in{width:136.5px;height:42px;box-sizing:border-box;border:1px solid var(--mn-sep);border-radius:0;background:var(--mn-card);color:var(--mn-txt);font:400 16px var(--ui);text-align:center;padding:0 6px;outline:0;-moz-appearance:textfield;appearance:textfield}
+  .g3pa-in::placeholder{color:var(--mn-ph);opacity:1}
+  .g3pa-in::-webkit-outer-spin-button,.g3pa-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .g3pa-in:focus{border-color:var(--mn-acc)}
+  .g3pa-ok{flex:none;width:45px;height:45px;border-radius:50%;border:0;padding:0;background:var(--mn-ok);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 6px rgba(0,0,0,.3)}
+  .g3pa-ok svg{width:24px;height:24px}
+  /* ===== mods173: lista de reportes, Total/Transacciones por Día y reportes de productos como Mi Negocio ===== */
+  /* Barra de la LISTA de reportes (s00/s46 de MN), solo en esa pantalla: título 20/500 desde x = 72, subtítulo 16 blanco,
+     campana y ⋮ RELLENOS (Material notifications / more_vert) en botones de 48 y 40 dp pegados al borde derecho. */
+  .device:has(>#screen[data-s="reportes"])>.appbar{padding-right:0}
+  .device:has(>#screen[data-s="reportes"])>.appbar .title{margin-left:16px;line-height:normal}
+  .device:has(>#screen[data-s="reportes"])>.appbar .title .t1{font:500 20px/27px var(--ui)}
+  .device:has(>#screen[data-s="reportes"])>.appbar .title .t2{font:400 16px/22px var(--ui);color:#fff}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="notifs"]{width:48px;height:48px;margin-right:-6px;border-radius:50%}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="toast:more"]{position:relative;width:40px;height:48px;border-radius:50%}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="notifs"]>svg,
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="toast:more"]>svg{visibility:hidden}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="notifs"]::before,
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="toast:more"]::before{content:"";position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;background:#fff;pointer-events:none;
+    -webkit-mask:var(--m173ic) center/24px 24px no-repeat;mask:var(--m173ic) center/24px 24px no-repeat}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="notifs"]::before{--m173ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E")}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="toast:more"]::before{--m173ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z'/%3E%3C/svg%3E")}
+  .device:has(>#screen[data-s="reportes"])>.appbar [data-act="toast:more"]::before{margin-left:-14px}   /* MN: los puntos 2 dp a la izquierda del centro del botón */
+  /* s46: la última fila de mosaicos llega al borde de abajo (sin la franja gris de 5 dp) */
+  #screen[data-s="reportes"] .repgrid{padding-bottom:0}
+  /* s14: estado de la venta cortado a 98 dp con "…" ("Pagado (fue por cob…") */
+  .txvcard .txvc-bot>.txe{max-width:98px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+  /* Transacciones por Producto (s79): nombre a 14 px si es corto; si no, 12 px en hasta 2 renglones */
+  .tp-r .mnl>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .tp-r .mnl.m173big{font-size:14px;line-height:16.4px}
+  /* Top Productos (s82): nombre largo a 12 px en 2 renglones de 15 (caja de 30 dp) */
+  .mnrow.g5tp .mnl.m173f14{font-size:14px}
+  .mnrow.g5tp .mnl.m173f13{font-size:13px}
+  .mnrow.g5tp .mnl.m173f12{font-size:12px}
+  .mnrow.g5tp .mnl.m173sm{font-size:12px;line-height:15px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  /* Productos a Detalle — texto de ayuda (s85): 350 dp útiles, corta "…el nombre/ | clave … de | barras." */
+  .rvbody .g5hint{padding:0 12px}
+  /* sugerencias (s86): clave y nombre a 13 px #5f5f5f (la regla general .rps span los dejaba en 12 px gris azulado), nombre más abajo, caja "?" de 18 dp */
+  .rvbody .rps.g5sug .g5sug-t span{font-size:13px;color:var(--mn-txt)}
+  .rvbody .rps.g5sug .g5sug-n{margin-top:6px;align-items:center}
+  .rvbody .rps.g5sug .g5sug-n .g5boxq{width:18.5px;height:18.5px;margin:0 .5px}
+  .rvbody .rpick.g5pick .rpsugg{left:-1.5px;right:62.5px}
+  /* ícono del lector: 24 dp de tinta como MN (s85) */
+  .rpscan.g5scan svg.g5scic{width:25px;height:25px}
+  /* después de elegir el producto, el campo queda marcado (borde naranja) como en MN, sin abrir el teclado */
+  .rvbody .rpick.g5pick .rpbox.m173foc{border-color:var(--mn-focus)}
+  /* gráfico de Productos a Detalle (s87/s89): más ancho, 9 dp más arriba y tarjeta de 212.6 dp */
+  .mnhead.g5pdh .mpc{margin:-9px 4.5px -3.5px}
+  /* s88/s90: espacio final de ~11 dp (solo el margen de la tarjeta) */
+  .rvbody:has(>.g5pcard){padding-bottom:0}
+  /* ===== mods174: Formas de Pago, Inventario, ABC, Etiquetas, Empleados, Cotización / Orden Compra, Ingresos y Gastos (REA 2026-10-16) ===== */
+  /* Formas de Pago (s38): columnas Ventas|Compras e Ingresos|Gastos con 10 dp de margen interior (MN: 14.9–192 y 192–369 dp) */
+  .pfc .pfc-g{padding:0 10px}
+  /* Reporte Inventario (s43/s45): clave con el ícono ✓/⚠ en la misma línea; nombre a 14.2 px que se achica si no cabe (g5FitNames) */
+  .mnrow.g5inv .g5kl{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:20px}
+  .mnrow.g5inv .g5kl .g5k{min-width:0;overflow-wrap:anywhere}
+  .mnrow.g5inv .g5kl .g5stk{position:static;flex:none;margin-right:3px}
+  .mnrow.g5inv .g5nm{display:block;font-size:14.2px;line-height:20.3px;white-space:pre-wrap;overflow-wrap:anywhere;margin-right:-2.2px}   /* caja del nombre de MN: 104.9 → 366.2 dp */
+  /* Ventana "Seleccione la categoría" (s44): banda de 42.3 dp, subtítulo de 13 px, divisores #909090, caja de TODOS de 20 px, sin barra */
+  .permdlg.g5catdlg .g5cat-h{height:42.3px;padding-top:0}   /* MN: título 24.2 dp + subtítulo 18.1 dp */
+  .permdlg.g5catdlg .g5cat-h b{line-height:24.2px}
+  .permdlg.g5catdlg .g5cat-h span{font-size:13px;line-height:18.1px;margin-top:0}
+  html:not([data-theme="dark"]) .permdlg.g5catdlg .g5cat-r{border-bottom-color:#909090}
+  .permdlg.g5catdlg .g5cat-r>i{width:20px;height:20px}
+  .permdlg.g5catdlg .g5cat-r>i .g5boxq{width:20px;height:20px}
+  .permdlg.g5catdlg .g5cat-l{scrollbar-width:none}
+  .permdlg.g5catdlg .g5cat-l::-webkit-scrollbar{display:none}
+  [data-fab][data-rep="g5cat:inventory"]:focus:not(:focus-visible){outline:none}
+  /* Análisis ABC (s47): cuadrícula fina (como el gráfico de barras), círculo final de 6.5 dp, espacios repetidos del nombre */
+  .abcwrap .abcch .ac-g{stroke-width:var(--hair,.4px)}
+  .abcwrap .abcch .ac-end{width:2.5px;height:2.5px;border-width:2px}
+  .abct-r>span:first-child{white-space:pre-wrap}
+  /* Reporte Etiquetas (s104): letra 15.5 / 12 / 15 (como Categoría) y columnas 25 / 37.5 / 37.5 % (MN: 88.5 / 133 / 132.6 dp) */
+  .mnrow.g6tag .mnt-h{font-size:15.5px}
+  .mnrow.g6tag .mncols span{font-size:12px}
+  .mnrow.g6tag .mncols b{font-size:15px}
+  .mnrow.g6tag .mncols.g6flex{display:grid;grid-template-columns:88.5fr 133fr 132.6fr}
+  .mnrow.g6tag .mncols.g6flex>div{min-width:0}
+  /* Reporte Empleados (s106): nombre y cargo a 15 px, rótulos a 12 px */
+  .mnrow.g6emp .g6e-l{font-size:15px}
+  .mnrow.g6emp .g6e-g span,.mnrow.g6emp .g6e-s span{font-size:12px}
+  /* Cotización y Orden Compra (s116/s118): franja de totales con rótulos de 10 px y valores de 15 px */
+  .g6strip .mnstrip span{font-size:10px}
+  .g6strip .mnstrip b{font-size:15px}
+  /* Ingresos y Gastos Extra (s107): la fecha inicial a 5 dp del borde de la tarjeta (la columna Fecha Final no se mueve) */
+  .rvbody .g7ie-h .mnh-d>:first-child{margin-left:-5px}
+  /* mods175 (G4 de la REA de reportes): tarjetas de Reporte clientes / proveedor, Registro de compras, Venta por día y Top clientes */
+  /* carruseles: nombre del producto 15 sp en 2 renglones de 17,4 (caja de 34,8 a 7 del borde: así los renglones caen donde MN), centrado en alto junto a la caja (MN s55/s60) */
+  .mncard.g8p .g8pn{top:7px;right:5px;height:34.8px;max-height:none;display:flex;align-items:center;font-size:15px;line-height:17.4px;-webkit-line-clamp:none}
+  .mncard.g8p .g8pn>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:34.8px;min-width:0}
+  /* estado "Pagado (fue por cobrar)" en 2 renglones dentro de 126 de ancho, el último renglón en la línea del total (MN s55) */
+  .mncard.g8c .g8r3{align-items:flex-end;align-items:last baseline}
+  .mncard.g8c .g8st{white-space:normal;max-width:126px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:14px}
+  /* Registro de compras: rojo de "Producto eliminado" de MN (s72); el modo oscuro conserva el suyo */
+  :root:not([data-theme="dark"]){--g7-del:#fc5d5d}
+  /* foto vacía: la caja grande con "?" sobre el color de la tarjeta, sin fondo blanco (s72) */
+  .g7h .g7h-ph:has(>.g7h-pi>svg),.g7h .g7h-pi:has(>svg){background:transparent}
+  .g7h .g7h-pi>svg.g8boxq{width:64px;height:67px}
+  /* nombre: respeta los dobles espacios; si a 13,5 no cabe en un renglón pasa a 2 renglones de 16,3 (s72) */
+  .g7h .g7h-n{white-space:pre}
+  .g7h .g7h-n.w2{white-space:pre-wrap;overflow-wrap:anywhere;line-height:16.3px;max-height:32.6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .g7pc .g7pc-n{white-space:pre-wrap}
+  /* chips Por Producto / Por Compra 3 dp más angostos (s70) */
+  .mnchips.g7pl-ch .mnchip{padding:0 4.5px}
+  /* Venta por día: 6,4 entre tarjetas y la última a 2 del borde inferior (s68/s69) */
+  .rvbody .wkcard.g6wk{margin-bottom:6.4px}
+  .rvbody>.wkcard.g6wk:last-child{margin-bottom:-22px}
+  /* Top clientes: paso de fila 127 (s56) */
+  div.mnrow.g8tc{padding-bottom:23.5px}
+  /* Reporte clientes / proveedor sin elegir: la ayuda gris centrada en todo el alto libre hasta el borde, interlínea 21,3 (MN s52/s58) */
+  .rvbody>.g8pk~.mnempty.fill{margin-bottom:-24px;line-height:21.3px}
 </style>
 
 <div class="device" id="device">
@@ -4528,6 +4835,306 @@ async function rcvAct(a){const R=RCV;if(!R)return;
 // Escape (PC): cierra el visor de imagen/texto o la ventana Recibo / Ticket si es la de arriba
 document.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.defaultPrevented)return;const top=topLayer();   /* defaultPrevented: otra ventana ya atendió este Escape */if(!top)return;
   const f={rcviewdlg:closeRcView,sharedlg:closeShareRecibo}[top.id];if(f){e.preventDefault();e.stopPropagation();f();}},true);
+/* ==== mods170: calendario como el de Mi Negocio (DatePicker de Android, tema Material claro) ====
+   Medido en las capturas de MN (s07-calendario-inicial, s109-extras-anios, s110-extras-2025; 1 dp = 2,8125 px):
+   cuadro 288 dp de ancho; encabezado de 95 dp en el color de la app con el año (18,4) y la fecha "Mar, 15 de sept" (39); el que no
+   está activo va al 70 %. Mes "Septiembre de 2026" (16,1, peso 500) con flechas de 48 dp; fila "D L M M J V S" (13,8, gris #666);
+   días en celdas de 35,2 × 40,2 dp (13,8) y círculo de 35 dp en el elegido; botones CANCELAR / ACEPTAR (16,1, peso 500, mayúsculas).
+   Tocar el año abre la lista de años (filas de 48 dp; el elegido 60 dp, grande y en color). Reemplaza el selector del navegador en
+   todas las fechas de la app (input type=date): al aceptar pone el valor y dispara input/change, así siguen funcionando los
+   manejadores de siempre. */
+const MNCAL_TX={es:{wd:['D','L','M','M','J','V','S'],wdl:['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],ms:['ene','feb','mar','abr','may','jun','jul','ago','sept','oct','nov','dic'],
+  ml:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],ok:'ACEPTAR',no:'CANCELAR',prev:'Mes anterior',next:'Mes siguiente',
+  hdr:(d,m,wd)=>`${wd}, ${d} de ${m}`,mon:(m,y)=>`${m} de ${y}`},
+  en:{wd:['S','M','T','W','T','F','S'],wdl:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],ms:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  ml:['January','February','March','April','May','June','July','August','September','October','November','December'],ok:'OK',no:'CANCEL',prev:'Previous month',next:'Next month',
+  hdr:(d,m,wd)=>`${wd}, ${m} ${d}`,mon:(m,y)=>`${m} ${y}`}};
+let MNCAL=null;
+function mnCalIso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function mnCalParse(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?new Date(+m[1],+m[2]-1,+m[3]):null;}
+function mnDatePick(value,o){o=o||{};return new Promise(res=>{
+  const tx=MNCAL_TX[LANG==='en'?'en':'es'];const min=mnCalParse(o.min)||new Date(1900,0,1),max=mnCalParse(o.max)||new Date(2100,11,31);
+  let sel=mnCalParse(value)||new Date();if(sel<min)sel=new Date(min);if(sel>max)sel=new Date(max);
+  let view=new Date(sel.getFullYear(),sel.getMonth(),1),mode='day';
+  let d=document.getElementById('mndpdlg');if(!d){d=document.createElement('div');d.id='mndpdlg';d.className='mndpdlg';document.body.appendChild(d);}
+  const done=v=>{d.classList.remove('on');d.innerHTML='';MNCAL=null;res(v);};
+  MNCAL={done};
+  try{BACK_CLOSE.mndpdlg=()=>{if(MNCAL)MNCAL.done(null);};}catch(_){}   /* atrás del teléfono cierra el calendario (como MN) */
+  const draw=()=>{
+    const y=sel.getFullYear();
+    let body='';
+    if(mode==='day'){
+      const first=new Date(view.getFullYear(),view.getMonth(),1),days=new Date(view.getFullYear(),view.getMonth()+1,0).getDate(),lead=first.getDay();
+      const canPrev=new Date(view.getFullYear(),view.getMonth(),0)>=new Date(min.getFullYear(),min.getMonth(),1),canNext=new Date(view.getFullYear(),view.getMonth()+1,1)<=max;
+      let cells='';for(let i=0;i<lead;i++)cells+='<span></span>';
+      for(let i=1;i<=days;i++){const dt=new Date(view.getFullYear(),view.getMonth(),i),dis=dt<min||dt>max,on=mnCalIso(dt)===mnCalIso(sel);
+        cells+=`<button type="button" class="mncd${on?' on':''}"${dis?' disabled':''} data-mncd="${mnCalIso(dt)}" aria-label="${String(i).padStart(2,'0')} ${tx.ml[view.getMonth()].toLowerCase()} ${view.getFullYear()}">${i}</button>`;}
+      body=`<div class="mndp-nav"><button type="button" class="mndp-ar" data-mncnav="-1" aria-label="${tx.prev}"${canPrev?'':' style="visibility:hidden"'}><svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button><span class="mndp-mon">${tx.mon(tx.ml[view.getMonth()],view.getFullYear())}</span><button type="button" class="mndp-ar" data-mncnav="1" aria-label="${tx.next}"${canNext?'':' style="visibility:hidden"'}><svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button></div>
+        <div class="mndp-wd">${tx.wd.map(w=>`<span>${w}</span>`).join('')}</div><div class="mndp-days">${cells}</div>`;
+    }else{
+      let ys='';for(let k=min.getFullYear();k<=max.getFullYear();k++)ys+=`<button type="button" class="mncy${k===y?' on':''}" data-mncy="${k}">${k}</button>`;
+      body=`<div class="mndp-years">${ys}</div>`;
+    }
+    d.innerHTML=`<div class="mndp-box" role="dialog" aria-modal="true"><div class="mndp-hd"><button type="button" class="mndp-y${mode==='year'?' act':''}" data-mncmode="year">${y}</button><button type="button" class="mndp-d${mode==='day'?' act':''}" data-mncmode="day">${tx.hdr(sel.getDate(),tx.ms[sel.getMonth()],tx.wdl[sel.getDay()])}</button></div>
+      <div class="mndp-bd">${body}</div><div class="mndp-bt"><button type="button" data-mncbtn="no">${tx.no}</button><button type="button" data-mncbtn="ok">${tx.ok}</button></div></div>`;
+    if(mode==='year'){const on=d.querySelector('.mncy.on');if(on)on.scrollIntoView({block:'center'});}
+  };
+  d.onclick=e=>{
+    if(e.target===d)return done(null);
+    const b=e.target.closest('button');if(!b||b.disabled)return;
+    if(b.dataset.mncbtn)return done(b.dataset.mncbtn==='ok'?mnCalIso(sel):null);
+    if(b.dataset.mncnav){view=new Date(view.getFullYear(),view.getMonth()+(+b.dataset.mncnav),1);return draw();}
+    if(b.dataset.mncd){sel=mnCalParse(b.dataset.mncd);return draw();}
+    if(b.dataset.mncmode){mode=b.dataset.mncmode;view=new Date(sel.getFullYear(),sel.getMonth(),1);return draw();}
+    if(b.dataset.mncy){const ny=+b.dataset.mncy;let nd=new Date(ny,sel.getMonth(),Math.min(sel.getDate(),new Date(ny,sel.getMonth()+1,0).getDate()));if(nd<min)nd=new Date(min);if(nd>max)nd=new Date(max);sel=nd;mode='day';view=new Date(sel.getFullYear(),sel.getMonth(),1);return draw();}
+  };
+  draw();d.classList.add('on');
+  try{if(typeof navPush==='function'&&typeof navCur==='function')navPush(navCur());}catch(_){}   /* entrada de historial: atrás cierra solo el calendario */
+});}
+/* toda fecha de la app abre este calendario (toque o showPicker() desde el código) */
+async function mnCalForInput(inp){if(!inp||inp.disabled||inp.readOnly)return;const v=await mnDatePick(inp.value,{min:inp.min,max:inp.max});
+  if(v==null||v===inp.value)return;inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}));}
+(function(){const sp=HTMLInputElement.prototype.showPicker;
+  HTMLInputElement.prototype.showPicker=function(){if(this.type==='date')return void mnCalForInput(this);if(sp)return sp.call(this);};
+  document.addEventListener('click',e=>{const inp=e.target&&e.target.closest&&(e.target.matches('input[type=date]')?e.target:(e.target.closest('label')&&e.target.closest('label').querySelector('input[type=date]')));
+    if(!inp)return;e.preventDefault();e.stopPropagation();mnCalForInput(inp);},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MNCAL){e.stopPropagation();MNCAL.done(null);}},true);
+})();
+/* ==== mods171: piezas comunes de los reportes como Mi Negocio (REA 2026-10-16, informes G1…G6) ====
+   Va antes de scNueva (antes de MN_IC y BACK_CLOSE): aquí solo se definen funciones y escuchas; lo que usa esas constantes corre al abrir. */
+/* (9a) ventana con HTML (negritas) y clase propia; cada ventana nueva quita la clase de la anterior */
+function r171AskClean(){try{askEl().classList.remove('r171help');}catch(_){}}
+{const _ao=askOpen;askOpen=function(){r171AskClean();return _ao.apply(this,arguments);};
+ const _am=appMenu;appMenu=function(){r171AskClean();return _am.apply(this,arguments);};}
+function r171AlertHtml(html){const p=askOpen('',false,'',true);const d=askEl();d.classList.add('r171help');d.querySelector('.askmsg').innerHTML=html;return p;}
+/* texto exacto de MN (s02-total-ayuda), con "transacción" con tilde */
+function r171TotalHelpHtml(){
+  return LANG==='en'
+    ?'<b>Since version 6.7.0</b>\n\nThe "Total Transactions" report adds the payments of the transactions made within the selected time range.\n\nPreviously (before version 6.7.0) only the payments of the transactions whose registration date was within the selected time range were taken into account.\n\n<b>To generate the previous report (before version 6.7.0), disable the option "Include unreferenced payments".</b>'
+    :'<b>A partir de la versión 6.7.0</b>\n\nEn el reporte "Total de Transacciones" se agregan los pagos de las transacciones realizadas en el intervalo de tiempo seleccionado.\n\nAnteriormente (antes de la versión 6.7.0) sólo se tomaban en cuenta los pagos de las transacciones en los cuales se encontraba la fecha de registro de la transacción en el intervalo de tiempo seleccionado.\n\n<b>En caso de querer generar el reporte anterior (antes de la versión 6.7.0) deshabilite la opción "Incluir pagos sin referencia de transacción".</b>';
+}
+/* (9b) ayuda del Análisis ABC (s48-abc-ayuda): 5 bloques, sin título ni botones; se cierra tocando fuera, con Atrás o Esc */
+function r171AbcEl(){let d=document.getElementById('abc171dlg');if(d)return d;d=document.createElement('div');d.id='abc171dlg';d.className='permdlg abc171';
+  (document.getElementById('device')||document.body).appendChild(d);d.addEventListener('click',e=>{if(!e.target.closest('.abc171c'))r171AbcClose();});return d;}
+function r171AbcClose(){const d=document.getElementById('abc171dlg');if(d)d.classList.remove('on');}
+function r171AbcHelp(){const d=r171AbcEl();try{BACK_CLOSE.abc171dlg=r171AbcClose;}catch(_){}
+  const T=LANG==='en'
+    ?['ABC analysis is a method of classification into three groups that identifies the items with the greatest impact on inventory and sales.','They are the most important products (They are 60% of your sales, always keep stock in the inventory)','They are products of secondary importance','They are products of lower relevance','*ABC analysis depends on the number of sales recorded, so it is important to have at least three months of sales for a better analysis.']
+    :['El análisis ABC es un método de clasificación en tres grupos que permite identificar los artículos que tienen un mayor impacto en el inventario y las ventas.','Son los productos más importante (Son el 60% de tus ventas, siempre contar con reservas en el inventario)','Son productos de importancia secundaria','Son productos de menor relevancia','*El análisis ABC depende del número de ventas registradas, por lo tanto es importante tener al menos tres meses de ventas para un mejor análisis.'];
+  const row=(c,x)=>'<div class="abc171r"><i style="background:'+c+'"></i><span>'+x+'</span></div>';
+  d.innerHTML='<div class="abc171c" role="dialog" aria-modal="true"><p>'+T[0]+'</p>'+row('#c6fafa',T[1])+row('#bef99c',T[2])+row('#e7b2fa',T[3])+'<p class="abc171n">'+T[4]+'</p></div>';
+  d.classList.add('on');}
+/* (8) desplegables tipo Spinner: el <select> no recibe toques (pointer-events:none); un toque sobre él abre el menú de MN pegado al control:
+   #FAFAFA, filas de 48 dp, sin velo ni radios, mismo ancho que el control menos 8,4 dp (s10: 131,6 de 140). Elegir = change del <select>. */
+const R171_SPIN='#txType,#txtType,#pfType';let R171SP=null;
+function r171SpinEl(){let d=document.getElementById('spin171dlg');if(d)return d;d=document.createElement('div');d.id='spin171dlg';d.className='permdlg spin171';
+  (document.getElementById('device')||document.body).appendChild(d);
+  d.addEventListener('click',e=>{const b=e.target.closest('[data-sp171]');const sel=R171SP;if(b&&sel){r171SpinClose();if(sel.value!==b.dataset.sp171){sel.value=b.dataset.sp171;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));}return;}
+    if(!e.target.closest('.sp171'))r171SpinClose();});return d;}
+function r171SpinClose(){R171SP=null;const d=document.getElementById('spin171dlg');if(d){d.classList.remove('on');d.innerHTML='';}}
+function r171SpinOpen(sel){const d=r171SpinEl();try{BACK_CLOSE.spin171dlg=r171SpinClose;}catch(_){}R171SP=sel;
+  d.innerHTML='<div class="sp171" role="listbox">'+[...sel.options].map(o=>'<div class="sp171o" role="option" aria-selected="'+(o.selected?'true':'false')+'" data-sp171="'+exEsc(o.value)+'">'+exEsc(o.textContent)+'</div>').join('')+'</div>';
+  d.classList.add('on');const p=d.firstChild,dv=d.getBoundingClientRect(),r=sel.getBoundingClientRect();
+  p.style.minWidth=Math.max(0,r.width-8.4)+'px';let x=r.left-dv.left,y=r.top-dv.top;const pw=p.offsetWidth,ph=p.offsetHeight;
+  if(x+pw>dv.width-4)x=Math.max(4,dv.width-4-pw);if(y+ph>dv.height-4)y=Math.max(4,dv.height-4-ph);p.style.left=x+'px';p.style.top=y+'px';}
+document.addEventListener('click',e=>{const tg=e.target;if(!tg||!tg.closest||tg.closest('#spin171dlg'))return;
+  for(const s of document.querySelectorAll(R171_SPIN)){if(s.disabled)continue;const r=s.getBoundingClientRect();if(!r.width)continue;
+    const hit=tg===s||(tg.contains(s)&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom);
+    if(hit){e.preventDefault();e.stopPropagation();r171SpinOpen(s);return;}}},true);
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const s=document.getElementById('spin171dlg'),a=document.getElementById('abc171dlg');
+  if(s&&s.classList.contains('on')){e.stopPropagation();r171SpinClose();}else if(a&&a.classList.contains('on')){e.stopPropagation();r171AbcClose();}},true);
+/* (7) buscador de los reportes: teclado en MAYÚSCULAS con "Hecho" (MN textCapCharacters), sin corrector ni autocompletar de Chrome
+   (type=search y nombre al azar), lista de coincidencias hasta el teclado o el borde de abajo, y el campo queda con aspecto enfocado tras elegir */
+let R171_FOC=null;
+function r171SugFit(box){if(!box||!box.closest('.rvbody'))return;const vv=window.visualViewport,bottom=vv?vv.offsetTop+vv.height:window.innerHeight;
+  box.style.maxHeight=Math.max(90,Math.floor(bottom-box.getBoundingClientRect().top))+'px';}
+function r171PickDeco(){if(R171_FOC&&state.screen!=='repview')R171_FOC=null;if(R171SP&&!R171SP.isConnected)r171SpinClose();
+  document.querySelectorAll('#body input.rpsearch').forEach(i=>{
+    if(!i.dataset.r171){i.dataset.r171='1';i.setAttribute('autocapitalize','characters');i.setAttribute('enterkeyhint','done');i.setAttribute('autocorrect','off');i.setAttribute('spellcheck','false');
+      i.setAttribute('autocomplete','off');i.setAttribute('name','rp171_'+(i.dataset.rp||'q')+'_'+Math.random().toString(36).slice(2,7));i.setAttribute('role','combobox');i.setAttribute('aria-autocomplete','list');
+      const ty=()=>{try{if(i.type!=='search')i.type='search';}catch(_){}};if(document.activeElement===i)i.addEventListener('blur',ty,{once:true});else ty();
+      const b=i.closest('.rpbox');if(b&&R171_FOC&&i.dataset.rp===R171_FOC&&document.activeElement!==i)b.classList.add('r171foc');}
+    const s=document.getElementById('rpSugg_'+i.dataset.rp);if(s&&s.childElementCount)r171SugFit(s);});}
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-act^="mrep:pick:"]');if(b)R171_FOC=b.dataset.act.split(':')[2]||null;},true);
+document.addEventListener('pointerdown',e=>{if(!R171_FOC)return;const b=e.target&&e.target.closest&&e.target.closest('.rpbox');if(b)return;R171_FOC=null;document.querySelectorAll('.rpbox.r171foc').forEach(x=>x.classList.remove('r171foc'));},true);
+document.addEventListener('focusin',e=>{const i=e.target;if(!i||!i.classList||!i.classList.contains('rpsearch'))return;R171_FOC=null;const b=i.closest('.rpbox');if(b)b.classList.remove('r171foc');
+  setTimeout(()=>r171SugFit(document.getElementById('rpSugg_'+i.dataset.rp)),0);});
+document.addEventListener('input',e=>{const i=e.target;if(i&&i.classList&&i.classList.contains('rpsearch'))setTimeout(()=>r171SugFit(document.getElementById('rpSugg_'+i.dataset.rp)),0);});
+try{if(window.visualViewport){const f=()=>document.querySelectorAll('.rvbody .rpsugg').forEach(s=>{if(s.childElementCount)r171SugFit(s);});visualViewport.addEventListener('resize',f);visualViewport.addEventListener('scroll',f);}}catch(_){}
+/* (10) calendario de mods170 en los reportes: fecha máxima HOY (días futuros grises, sin › en el mes actual); en Ingresos y Gastos Extra la
+   mínima es hoy menos 1 año (s109/s110). Se ponen min/max al input justo antes de que mods170 abra su calendario (window va antes que document). */
+function r171DateLim(inp){if(!inp||inp.type!=='date')return;if(state.screen!=='repview'&&!inp.closest('#mncaldlg'))return;
+  const hoy=todayISO();if(!inp.max||inp.max>hoy)inp.max=hoy;
+  if(REP_SINGLE&&REP_SINGLE_ID==='inc_exp'){const d=new Date();d.setFullYear(d.getFullYear()-1);const mn=mnCalIso(d);if(!inp.min||inp.min<mn)inp.min=mn;}}
+window.addEventListener('click',e=>{const tg=e.target;if(!tg||!tg.closest)return;const inp=tg.matches('input[type=date]')?tg:(tg.closest('label')&&tg.closest('label').querySelector('input[type=date]'));if(inp)r171DateLim(inp);},true);
+{const sp=HTMLInputElement.prototype.showPicker;HTMLInputElement.prototype.showPicker=function(){if(this.type==='date')r171DateLim(this);return sp?sp.call(this):undefined;};}
+/* al cargar: las ventanas nuevas existen desde el inicio (el historial del gesto atrás las cuenta) y el buscador se decora tras cada dibujo */
+r171AbcEl();r171SpinEl();
+setTimeout(()=>{try{const b=document.getElementById('body');if(b)new MutationObserver(r171PickDeco).observe(b,{childList:true,subtree:true});}catch(_){}},0);
+/* ==== mods172: G2 de la REA de reportes (Ventas por Cobrar, Compras por Pagar, Ingresos/Gastos extras pendientes) ====
+   Evidencia: capturas de MN s24-s27 y vcob_* (1 dp = 2,8125 px) e informe hallazgos/G2.md. */
+Object.assign(I18N.es,{g3_pay_add:'Agregar Pago',g3_pay_ph:'#Pago',g3_confirm_all:'CONFIRMAR EL\nPAGO DE LA DEUDA',g3_pay_det:'Detalle de pagos',g3_add:'Agregar',g3_pay_empty:'Presione + para\nagregar pagos.',g3_sched:'Programar Pagos',g3_edit:'Editar'});
+Object.assign(I18N.en,{g3_pay_add:'Add Payment',g3_pay_ph:'#Payment',g3_confirm_all:'CONFIRM PAYMENT\nOF THE DEBT',g3_pay_det:'Payment details',g3_add:'Add',g3_pay_empty:'Press + to\nadd payments.',g3_sched:'Schedule Payments',g3_edit:'Edit'});
+/* hora actual "HH:MM" (el pago se guarda con la fecha y hora del momento, como MN: su ventana no pide fecha ni hora) */
+function g3NowHM(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+/* ---- Resumen por proveedor (s25): las compras sin proveedor registrado se juntan en "Proveedores sin registro" (va primero, como MN) ----
+   Proveedor de una compra, con la regla de tplPurchases (la de MN): el registrado por su id; por nombre solo si la compra no es una
+   importada sin proveedor (en MN id 0). Sin proveedor registrado → null. */
+function g3PurProv(c){if(!c)return null;const has=c.provId!=null&&c.provId!=='';if(has){const pv=provById(c.provId);if(pv)return pv;}
+  if(c.imported&&!has)return null;return provByName(c.provider);}
+function purchPayByProvider(list){
+  const NR='\u0000nr',m=new Map();
+  list.forEach(p=>{const pv=g3PurProv(p);const k=pv?'id:'+pv.id:NR;let o=m.get(k);if(!o){o={prov:pv?(provName(pv)||p.provider||'—'):t('prv_no_rec'),nr:!pv,total:0,pagos:0};m.set(k,o);}o.total+=(+p.total||0);o.pagos+=pcPaid(p);});   /* Map: conserva el orden de aparición */
+  const r=[...m.values()].map(o=>({prov:o.prov,nr:o.nr,total:o.total,pagos:o.pagos,deuda:o.total-o.pagos}));
+  if(!G3_RESUMEN_ORDEN_MN)r.sort((a,b)=>prodColl().compare(''+a.prov,''+b.prov));   /* alfabético (decisión de Fabio) */
+  return r.filter(o=>o.nr).concat(r.filter(o=>!o.nr));   /* "Proveedores sin registro" arriba, como MN s25 */
+}
+/* ---- Detalle de una compra desde Compras por Pagar (s26), con la estructura de MN ---- */
+let G3PD_TOK=0;
+/* bote con ✕ de MN (borrar compra): contorno blanco */
+const G3PD_DEL='<svg viewBox="0 0 24 24" class="g3pd-delic" aria-hidden="true"><path d="M8.6 2.6h6.8v1.6h4.4v2.2H4.2V4.2h4.4z" fill="currentColor"/><path d="M5.9 7.5h12.2l-.9 13.1a1.6 1.6 0 0 1-1.6 1.5H8.4a1.6 1.6 0 0 1-1.6-1.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9.3 11.2l5.4 5.4M14.7 11.2l-5.4 5.4" stroke="currentColor" stroke-width="2.3" stroke-linecap="square"/></svg>';
+const G3PD_PEN='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
+const G3PD_PLUS='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z';
+/* botones de la barra: 🗑 y el PDF blanco de la barra de Compras por Pagar (se toma de repBarHTML: si la barra común cambia su ícono, este lo sigue) */
+function g3pdActs(pid){
+  let pdf='';try{const m=(repBarHTML('purch_pay','')||'').match(/<button class="rvi pdfw"[\s\S]*?<\/button>/);if(m)pdf=m[0];}catch(_){}
+  if(!pdf)pdf='<button class="rvi pdfw" aria-label="PDF">'+MN_PDF_IC+'</button>';
+  pdf=pdf.replace(/\sdata-act="[^"]*"/,'').replace('<button ','<button data-act="purpdf:'+pid+'" ');
+  return '<button class="rvi w g3pd-del" data-act="purdel:'+pid+'" aria-label="'+exEsc(t('menu_del'))+'">'+G3PD_DEL+'</button>'+pdf;
+}
+async function openPayDet(id){
+  if(lockNeeds('compras')){drawer(false);return askPin(()=>openPayDet(id));}   /* con 🗑 y ✏, el PIN de Compras como el detalle de Compras (mods148) */
+  const p0=(state.purchases||[]).find(x=>''+x.id===''+id);if(!p0)return;const tok=++G3PD_TOK;const pid=exEsc(p0.id),eid=encodeURIComponent(p0.id);
+  document.getElementById('saleH').textContent=t('rep_purch_pay');
+  saleHActs(g3pdActs(pid));
+  const dlg=document.getElementById('saledlg');dlg.classList.add('on','full');
+  const body=document.getElementById('saleBody');if(!body.querySelector('.g3pd'))body.innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
+  let lines=[];try{lines=((Array.isArray(p0.items)&&p0.items.length)||(Array.isArray(p0.lines)&&p0.lines.length))?await pcLinesFor(p0,null):await pcLinesFor(p0,await pcRawIndex());}catch(_){lines=[];}   /* mods146c: items primero */
+  if(tok!==G3PD_TOK||!dlg.classList.contains('on'))return;
+  const r=(state.purchases||[]).find(x=>''+x.id===''+id)||p0;   /* lo último (pudo cambiar mientras se leían las líneas) */
+  const si=t('sin_info'),esc=x=>exEsc(x).replace(/\n/g,'<br>'),ic=d=>svgF(d);
+  const pv=purProv(r),name=r.provider||(pv?provName(pv):''),comp=pv&&pv.company?pv.company:'';
+  const tot=recTotal('purch',r),pg=recPaid('purch',r),due=recDue('purch',r),pays=Array.isArray(r.pays)?r.pays:[];
+  const pen=act=>`<button class="g3pd-ib" data-act="${act}" aria-label="${exEsc(t('menu_edit'))}">${ic(G3PD_PEN)}</button>`;
+  const box=(l,v,c)=>`<div class="g3pd-box${c?' '+c:''}"><span>${l} ${exEsc(moneySym())}</span><b class="num">${moneyNum(v)}</b></div>`;
+  const prow=(x,i)=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}${x.h?'  '+exEsc(x.h):''}</span><b class="num">${moneyNum(+x.p||0)}</b><button class="g3pd-ib" data-act="paydel:purch:${eid}:${i}:${encodeURIComponent(x.id||'')}" aria-label="${exEsc(t('remove'))}">${ic(MN_IC.del)}</button></div>`;
+  const srow=x=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}  ${exEsc(x.h||'00:00')}</span><b class="num">${moneyNum(+x.p||0)}</b></div>`;
+  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  body.innerHTML=`<div class="g3pd">
+    <div class="g3pd-card">
+      <div class="g3pd-t">${t('sale_folio')}: ${exEsc(r.folio||r.id)}</div>
+      <div class="g3pd-t g3pd-i g3pd-dt">${ic(MN_IC.event)}<span>${exEsc([r.date,r.time].filter(Boolean).join('  '))||si}</span></div>
+      <div class="g3pd-l">${t('prv_company')}</div><div class="g3pd-t g3pd-b">${comp?esc(comp):si}</div>
+      <div class="g3pd-l">${t('cp_provider')}</div><div class="g3pd-t g3pd-b g3pd-i">${ic(MN_IC.contacts)}<span>${name?esc(name):si}</span></div>
+      <div class="g3pd-l g3pd-gap">${t('sd_info')}</div>
+      <div class="g3pd-t g3pd-i g3pd-info">${ic(MN_IC.infoO)}<span>${r.note?esc(r.note):si}</span>${pen('purinfo:'+pid)}</div>
+      <div class="g3pd-pay">${G3_CASH}<span>${r.pay?exEsc(payLbl(r.pay)):si}</span>${r.pay?`<button class="g3pd-ib" data-act="purpayclr:${pid}" aria-label="✕">${ic(MN_IC.close)}</button>`:''}${pen('purpay:'+pid)}</div>
+      ${r.edited?`<div class="g3pd-ed">${t('sale_edited')}: ${exEsc(localStamp(r.edited))}</div>`:''}
+    </div>
+    ${box(t('sr_total_lbl'),tot,'')}${box(t('sr_pagos_lbl'),pg,'p')}<div class="g3pd-sep"></div>${box(t('ttx_deuda'),due,'')}
+    ${due>0.5?`<button class="g3pd-all" data-act="payall:purch:${eid}"><span>${esc(t('g3_confirm_all'))}</span>${ic(MN_IC.check)}</button>`:''}
+    <div class="g3pd-card2 g3pd-pays"><div class="g3pd-h"><b>${t('g3_pay_det')}</b>${due>0.5?`<button class="g3pd-pill" data-act="payadd:purch:${eid}">${ic(G3PD_PLUS)}<span>${t('g3_add')}</span></button>`:''}</div>
+      ${pays.length?`<div class="g3pd-pl">${pays.map(prow).join('')}</div>`:`<div class="g3pd-empty">${esc(t('g3_pay_empty'))}</div>`}</div>
+    <div class="g3pd-card2"><div class="g3pd-h"><b>${t('g3_sched')}</b><button class="g3pd-pill" data-act="g3sched:${eid}">${ic(G3PD_PEN)}<span>${t('g3_edit')}</span></button></div>
+      ${(r.sched||[]).length?`<div class="g3pd-pl">${r.sched.map(srow).join('')}</div>`:''}</div>
+    <div class="g3pd-card2 g3pd-items"><div class="g3pd-h"><b>${t('sd_items')}</b>${pen('puredit:'+pid)}</div>
+      <div class="rd-plist"><div class="rd-ph"><span>${t('cx_qty')}</span><span>${t('sd_price')} ${moneySym()}</span><span>${t('sale_subtotal')} ${moneySym()}</span></div>${rows}</div></div>
+  </div>`;
+}
+/* "Editar" de Programar Pagos: la misma ventana de Compras, sobre la compra guardada (SCHED.rec) */
+function g3SchedOpen(id){const r=recGet('purch',id);if(!r)return;schedEl();SCHED={kind:'purch',rec:{kind:'purch',id:r.id},list:(r.sched||[]).map(x=>({...x})),adding:false,edit:-1};
+  document.getElementById('schedH').textContent=t('sched_btn');fillSched();document.getElementById('schedlg').classList.add('on');}
+function g3SchedRecDebt(){const R=SCHED.rec,r=recGet(R.kind,R.id);return r?recDue(R.kind,r):0;}
+function g3SchedRecSave(){const R=SCHED.rec,list=SCHED.list;SCHED=null;const d=document.getElementById('schedlg');if(d)d.classList.remove('on');
+  const r=recGet(R.kind,R.id);if(!r)return;const nl=list.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));if(JSON.stringify(nl)===JSON.stringify(r.sched||[]))return;
+  if(nl.length)r.sched=nl;else delete r.sched;r.payEdited=new Date().toISOString();recSaveChange(R.kind);recRefresh(R.kind,R.id);}
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-act^="g3sched:"]');if(!b)return;e.stopPropagation();g3SchedOpen(decodeURIComponent(b.dataset.act.slice(8)));},true);
+/* ---- Ventana "Agregar Pago" (s27) como MN: título, un campo "#Pago" y el botón redondo verde ✓ (sin abrir el teclado al entrar).
+   Sigue a pantalla completa (decisión de Fabio). El pago se guarda con la fecha y hora actuales; "Pago total" queda en el botón verde
+   grande del detalle. Vale para compras y ventas (payadd). */
+function openPayAdd(kind,id){
+  const r=recGet(kind,id);if(!r)return;const due=recDue(kind,r);if(due<=0.5)return;PAY_T={kind,id};
+  document.getElementById('cfgH').textContent=t('g3_pay_add');
+  document.getElementById('cfgBody').innerHTML=`<div class="g3pa"><div class="g3pa-r"><input autocomplete="off" class="g3pa-in num" id="pay_amt" type="number" inputmode="decimal" step="any" min="0" enterkeyhint="done" placeholder="${exEsc(t('g3_pay_ph'))}"><button class="g3pa-ok" data-act="paysave" aria-label="${exEsc(t('save'))}">${svgF(MN_IC.check)}</button></div></div>`;
+  state.cfgKind=null;document.getElementById('cfgdlg').classList.add('on');   /* sin foco: MN no abre el teclado */
+}
+document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el&&el.id==='pay_amt'&&el.closest&&el.closest('.g3pa')){e.preventDefault();savePayDlg(false);}});
+/* ===== mods173: Total de Transacciones, Transacciones por Día y reportes de productos como Mi Negocio ===== */
+/* Centavos de MN: en las ventas importadas MN suma los SUBTOTALES de las líneas (números con decimales, p. ej. 14 × 1,567.86 =
+   21,950.039), no el total entero de la venta. Se leen una sola vez del archivo crudo (venta_producto, el mismo índice que usan los
+   reportes de productos) y se guardan por folio; mientras cargan se usa el total de siempre y al llegar se vuelve a dibujar. */
+let M173_SUB={p:null,m:null};
+function m173SubMap(){
+  if(!currentDataId())return null;let p;try{p=rawFolioIndex('venta_producto');}catch(_){return null;}
+  if(!p||typeof p.then!=='function')return null;if(M173_SUB.p===p)return M173_SUB.m;
+  const S={p,m:null};M173_SUB=S;
+  p.then(raw=>{if(M173_SUB!==S||!raw)return;const m={};for(const f in raw){let a=0;(raw[f]||[]).forEach(l=>{a+=+l.subtotal||0;});m[f]=a;}S.m=m;
+    if(state.screen==='repview'&&Object.keys(state.repSel||{}).some(i=>i==='tx_total'||i==='tx_day')){try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}}).catch(()=>{});
+  return null;}
+async function m173Ready(){m173SubMap();try{await rawFolioIndex('venta_producto');}catch(_){}await 0;return m173SubMap();}
+function m173Sub(s){
+  if(!s||!s.imported||(Array.isArray(s.items)&&s.items.length)||(Array.isArray(s.svcs)&&s.svcs.length))return null;   /* solo ventas importadas sin editar */
+  const m=m173SubMap();if(!m)return null;const v=m[''+(s.folio!=null?s.folio:(''+(s.id||'')).replace(/^V/,''))];
+  if(v==null||!isFinite(v))return null;return Math.abs(v-saleTotal(s))<1?v:null;}   /* solo diferencias de redondeo (MN: < 0.09) */
+function m173Tot(s){const v=m173Sub(s);return v==null?saleTotal(s):v;}
+function m173Prof(s){const v=m173Sub(s);return v==null?saleProfit(s):saleProfit(s)+(v-saleTotal(s));}   /* ganancia = subtotales − costo de las líneas */
+/* Hora del abono con segundos ("16:45:17" como MN): la importación guarda la fecha completa en ft; los abonos hechos en Abanico, en h */
+function m173PayTime(p){const m=(''+((p&&p.ft)||'')).match(/\d{2}:\d{2}:\d{2}/);return m?m[0]:((p&&p.h)||'');}
+/* Nombres de las filas con el auto-tamaño de MN:
+   - Transacciones por Producto: 14 px si el nombre cabe en un renglón corto (~240 dp a 14 px); si no, 12 px y hasta 2 renglones
+     (MN: "… FOAMI MOLDEABLE X12" y "… POMPONES PEQUEÑOS X100UND" grandes; "… PORTA CARNET…", "… LLAVERO LASER…" chicos).
+   - Top Productos: el nombre que no cabe en un renglón a 15.5 px baja a 14/13/12 px si así cabe; si no, 12 px en 2 renglones de 15
+     (caja de 30 dp de MN: "… PAPEL COREANO PREMIUM  PAQ X 20 PLIEGOS / PK-5005"). */
+function m173Fit(){try{
+  const cv=m173Fit.cv||(m173Fit.cv=document.createElement('canvas').getContext('2d'));const ff=getComputedStyle(document.body).fontFamily;
+  document.querySelectorAll('.mnrow.tp-r .mnl>span').forEach(sp=>{if(sp.dataset.m173)return;sp.dataset.m173=1;cv.font='400 14px '+ff;sp.parentNode.classList.toggle('m173big',cv.measureText(sp.textContent).width<=240);});
+  document.querySelectorAll('.mnrow.g5tp').forEach(r=>{const L=r.querySelectorAll('.mnt>.mnl');const n=L[L.length-1];if(!n||n.dataset.m173)return;n.dataset.m173=1;
+    const cs=getComputedStyle(n),W=n.clientWidth+.5,fits=px=>{cv.font=cs.fontWeight+' '+px+'px '+ff;return cv.measureText(n.textContent).width<=W;};
+    if(fits(parseFloat(cs.fontSize)))return;const k=[14,13,12].find(fits);n.classList.add(k?'m173f'+k:'m173sm');});   /* como el auto-tamaño de Android: el mayor tamaño que cabe */
+}catch(_){}}
+/* ===== mods174 (2026-10-16): REA de reportes, parte G3 + G6 (Formas de Pago, Inventario, ABC, Etiquetas, Empleados, Cotización, Ingresos y Gastos) ===== */
+/* Formas de Pago: los montos en cero salen "$0.0" como Mi Negocio (s38/s41 y referencias fpago_1/2; decisión de Fabio 2026-10-16: SÍ, también el Balance).
+   Solo en este reporte: en Transacciones por día y Empleados MN pone "$0". */
+const MN_PF_ZERO=true;
+function pfMoney(v){return MN_PF_ZERO&&Math.round((+v||0)*100)===0?moneySym()+'0.0':rmoney(v);}
+/* Reporte Cotización: Mi Negocio cuenta solo las cotizaciones VIGENTES (sin vender y con vencimiento >= hoy). Evidencia: tienda GRAF (copia de MN)
+   con 3 cotizaciones (folios 28, 35, 37; vencen 2026-10-06/08/10): el PDF de MN del 2026-10-04 lista 124 productos (las 3 vigentes) y la
+   pantalla de MN del 2026-10-15 (s116) da #0 / $0 / "Sin información" (las 3 vencidas). false = volver a contar todas. */
+const MN_QT_VIGENTES=true;
+/* Reporte Empleados: ícono del cargo = "business_center" de Material (maletín con franja), como MN (s106) */
+const MN174_BIZ='M10 16v-1H3.01L3 19c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-4h-7v1h-4zm10-9h-4.01V5l-2-2h-4l-2 2v2H4c-1.1 0-2 .9-2 2v3c0 1.11.89 2 2 2h6v-2h4v2h6c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-6 0h-4V5h4v2z';
+/* Reporte Inventario: el nombre del producto es de 14.2 px y, si no cabe, se achica como el autoSize de Android (s43/s45 de MN):
+   la caja del nombre mide 33 px de alto; se elige la letra más grande (14.2 → 8 px) con la que el nombre entra en esa caja
+   (1 línea a 14.2 px = 20.3; "… MOTIVOS REF: B-10" queda en 1 línea a ≈12.3 px; "… GIRATORIO ADM-15278" en 2 líneas a ≈11.5 px).
+   Si ni a 8 px cabe, se deja partir en más líneas. */
+const G5_NM_MAX=14.2,G5_NM_MIN=8,G5_NM_H=33,G5_NM_LH=20.3/14.2;
+function g5FitName(el){const w=el.clientWidth;if(!w)return;   /* aún no se ve: se reintenta en el próximo dibujo */
+  const fits=s=>{el.style.fontSize=s+'px';el.style.lineHeight=(s*G5_NM_LH).toFixed(2)+'px';return el.scrollHeight<=G5_NM_H+0.5&&el.scrollWidth<=el.clientWidth+0.5;};
+  el.dataset.fit='1';if(fits(G5_NM_MAX))return;
+  let lo=G5_NM_MIN,hi=G5_NM_MAX;if(!fits(lo))return;
+  while(hi-lo>0.1){const m=(lo+hi)/2;if(fits(m))lo=m;else hi=m;}
+  fits(Math.floor(lo*10)/10);}
+function g5FitNames(){try{document.querySelectorAll('.g5nm:not([data-fit])').forEach(g5FitName);}catch(_){}}
+(function(){let q=0;const run=()=>{q=0;g5FitNames();};
+  try{new MutationObserver(()=>{if(!q&&document.querySelector('.g5nm:not([data-fit])'))q=requestAnimationFrame(run);}).observe(document.documentElement,{childList:true,subtree:true});}catch(_){}
+  try{window.addEventListener('resize',()=>{document.querySelectorAll('.g5nm[data-fit]').forEach(e=>{e.removeAttribute('data-fit');e.style.fontSize=e.style.lineHeight='';});if(!q)q=requestAnimationFrame(run);});}catch(_){}})();
+setTimeout(function(){try{
+  /* textos (después de los Object.assign de las fases anteriores, que si no los pisarían) */
+  Object.assign(I18N.es,{mr_s_inc:'Ingresos Extra',mr_s_exp:'Gastos Extra',g5_cat_prefix:'Categoría: ',g5_pos_sales_t:'Total de\nposibles ventas',g5_pos_profit_t:'Total de\nposibles ganancias'});
+  Object.assign(I18N.en,{mr_s_inc:'Extra Income',mr_s_exp:'Extra Expenses',g5_cat_prefix:'Category: ',g5_pos_sales_t:'Total of\npossible sales',g5_pos_profit_t:'Total of\npossible profit'});
+  /* Formas de Pago: menú Ordenar con 6 opciones como MN (s39): Nombre, Ventas, Compras, Ingresos Extra, Gastos Extra, Balance */
+  REP_SORTS.pay_forms=['name','sales','purch','inc','exp','balance'];
+  /* Ingresos y Gastos Extra: el ⋮ (CSV) ya no aparece y desaparece al cambiar de pestaña; con la pestaña vacía avisa "No hay datos…" */
+  const csv0=repExportCSV;repExportCSV=function(){const ids=Object.keys(REP_CSV);if(ids.length&&ids.every(k=>REP_CSV[k]&&REP_CSV[k].empty)){toast(t('mr_empty'));return;}return csv0.apply(this,arguments);};
+}catch(e){console.error('mods174',e);}},0);
+/* mods175: ícono "today" de Material (cuadrito a la izquierda) en la fecha de las tarjetas de venta / compra (MN s55/s60) */
+const G8_IC_TODAY='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z';
+/* mods175: orden de los productos de los carruseles de Reporte clientes / proveedor. Fabio decidió ALFABÉTICO (2026-10-16);
+   MN los ordena por total de mayor a menor: poner true para copiarlo. */
+const MN_CARR_ORDEN_TOTAL=false;
+function g8ProdOrd(a,b){return (MN_CARR_ORDEN_TOTAL?(b.tot-a.tot):0)||BIN_COLL.compare(a.name,b.name);}
+/* mods175: como Android (regla UAX14 LB25), no cortar el renglón entre un guion y un número: "SU-253" pasa entero al 2.º renglón (MN s72) */
+function g7NoHyBr(h){return (''+h).replace(/-(?=\d)/g,'-\u2060');}
 function scNueva(){
   const q=fold(state.q.toLowerCase());
   const box=svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>');
@@ -4618,9 +5225,11 @@ function schedEl(){
   (document.getElementById('device')||document.body).appendChild(d);return d;
 }
 schedEl();
-function schedDebt(){return SCHED&&SCHED.kind==='purch'?pcDebt():Math.max(0,cartTotal()-saleInitAmt());}   /* mods146b: también la de la compra */
+function schedDebt(){if(SCHED&&SCHED.rec)return g3SchedRecDebt();   /* mods172 */
+  return SCHED&&SCHED.kind==='purch'?pcDebt():Math.max(0,cartTotal()-saleInitAmt());}   /* mods146b: también la de la compra */
 function openSched(kind){kind=kind==='purch'?'purch':'sale';SCHED={kind,list:((kind==='purch'?state.psched:state.saleSched)||[]).map(x=>({...x})),adding:false,edit:-1};schedEl();document.getElementById('schedH').textContent=t('sched_btn');fillSched();document.getElementById('schedlg').classList.add('on');}   /* mods146b: kind 'sale' | 'purch' */
-function closeSched(save){if(save&&SCHED){if(SCHED.kind==='purch')state.psched=SCHED.list;else state.saleSched=SCHED.list;}SCHED=null;const d=document.getElementById('schedlg');if(d)d.classList.remove('on');if(save)render();}
+function closeSched(save){if(save&&SCHED&&SCHED.rec)return g3SchedRecSave();   /* mods172 */
+  if(save&&SCHED){if(SCHED.kind==='purch')state.psched=SCHED.list;else state.saleSched=SCHED.list;}SCHED=null;const d=document.getElementById('schedlg');if(d)d.classList.remove('on');if(save)render();}
 function fillSched(){
   if(!SCHED)return;const now=new Date();const key=x=>(x.f||'')+' '+(x.h||'00:00');const nowK=todayISO()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const past=SCHED.list.filter(x=>key(x)<nowK).reduce((a,x)=>a+(+x.p||0),0),act=SCHED.list.filter(x=>key(x)>=nowK).reduce((a,x)=>a+(+x.p||0),0);
@@ -5576,7 +6185,7 @@ function repGet(){const ids=Object.keys(state.repSel||{});if(!ids.length)return 
 /* como Mi Negocio: cada vez que se abre, el reporte vuelve a su rango (Clientes y Proveedor 3 meses, los demás 1 mes; Transacciones
    por día y Registro de compras en el día de hoy) y el buscador de cliente/proveedor/producto vacío */
 function repDefaultRange(ids){const now=new Date(),iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const m=Math.max(1,...ids.map(i=>({clients:3,provider:3})[i]||1));const from=new Date(now);from.setMonth(from.getMonth()-m);state.repRange={from:iso(from),to:iso(now)};state.repMore={};
+  const m=Math.max(1,...ids.map(i=>({clients:3,provider:3})[i]||1));const from=new Date(now);from.setMonth(from.getMonth()-m);if(ids.length===1&&ids[0]==='tx_prod'){from.setTime(now.getTime());from.setDate(from.getDate()-7);}   /* mods173: MN abre Transacciones por Producto con 7 días (s77) */state.repRange={from:iso(from),to:iso(now)};state.repMore={};
   if(ids.includes('tx_day'))state.txDate=iso(now);if(ids.includes('purch_log'))state.repDay=iso(now);
   const pk=Object.assign({},state.repPick||{}),q=Object.assign({},(state.repQ&&typeof state.repQ==='object')?state.repQ:{});['clients','provider','prod_detail'].forEach(i=>{if(ids.includes(i)){delete pk[i];delete q[i];}});state.repPick=pk;state.repQ=q;
   ['sales_recv:sr','purch_pay:pc'].forEach(x=>{const [i,k]=x.split(':');if(ids.includes(i)){if(state.g3QOpen)state.g3QOpen[k]=false;if(state.g3Q)state.g3Q[k]='';}});   /* sin búsqueda */
@@ -5617,7 +6226,9 @@ const MN_IC={
   plusC:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z',
   more:'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
   check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'};
-const MN_PDF_IC='<svg viewBox="0 0 24 24" class="mnf mnpdf" aria-hidden="true"><path d="M5 1.5h10l5 5V22.5H5z" fill="currentColor" fill-opacity=".38" stroke="currentColor" stroke-width="1.2"/><text x="12.5" y="17" font-size="7.4" font-weight="700" text-anchor="middle" fill="currentColor" style="font-family:Roboto,Arial,sans-serif">PDF</text></svg>';
+/* mods171: PDF de contorno como MN (esquina doblada arriba a la izquierda, "PDF" de peso medio; 21 × 24 dp en la barra) */
+const MN_PDF_IC='<svg viewBox="0 0 21 24" class="mnf mnpdf" aria-hidden="true"><path d="M7.4.8h11.6a1.2 1.2 0 0 1 1.2 1.2v20a1.2 1.2 0 0 1-1.2 1.2H2a1.2 1.2 0 0 1-1.2-1.2V7.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7.4.8v5.1a1.5 1.5 0 0 1-1.5 1.5H.8z" fill="currentColor"/><text x="10.5" y="17" font-size="8.5" font-weight="500" text-anchor="middle" fill="currentColor" style="font-family:Roboto,Arial,sans-serif">PDF</text></svg>';
+MN_IC.today='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z';MN_IC.event=MN_IC.today;   /* mods171: MN usa "today" en las fechas de las tarjetas */
 var REP_SINGLE=false,REP_SINGLE_ID='';
 /* íconos de la barra por reporte, como en Mi Negocio */
 const REP_BAR={tx_day:['pdf','cal'],tx_total:['pdf','cal'],sales_recv:['pdfw'],purch_pay:['pdfw'],inc_recv:[],exp_pay:[],pay_forms:['sort','pdf','cal'],merma:['sort','pdf','cal'],tx_prod:['sort','pdf','cal'],tx_serv:['sort','pdf','cal'],top_prod:['sort','pdf','cal'],prod_detail:['pdf','cal'],category:['sort','pdf','cal'],inventory:['pdf'],tags:['sort','pdf','cal'],employees:['pdf','cal'],quote:['sort','pdf'],purch_order:['sort','pdf'],sale_day:['cal'],abc:['info','pdf'],purch_log:[],inc_exp:['pdf','cal'],clients:['pdf','cal'],top_clients:['sort','pdf','cal'],provider:['pdf','cal'],top_providers:['sort','pdf','cal']};
@@ -5629,7 +6240,7 @@ function repBarHTML(id,title){
     pdf:'<button class="rvi" data-act="reppdf" aria-label="PDF">'+MN_PDF_IC+'</button>',
     pdfw:'<button class="rvi pdfw" data-act="reppdf" aria-label="PDF">'+MN_PDF_IC+'</button>',
     cal:'<button class="rvi" data-act="rvcal" aria-label="'+(LANG==='es'?'Seleccione la Fecha':'Select the date')+'">'+svgF(MN_IC.dateRange)+'</button>',
-    info:'<button class="rvi w" data-act="mrep:abcinfo" aria-label="Info">'+svgF(MN_IC.infoO)+'</button>'};
+    info:'<button class="rvi r171i" data-act="mrep:abcinfo" aria-label="Info">'   /* mods171: atenuado como MN */+svgF(MN_IC.infoO)+'</button>'};
   const icons=show?(REP_BAR[id]||[]).map(k=>ic[k]||'').join(''):'';
   const more=REP_CSV[id]?'<button class="rvi w more" data-act="repcsv" aria-label="'+exEsc(t('ex_export'))+'">'+svgF(MN_IC.more)+'</button>':'';   /* CSV: extra de Abanico (Mi Negocio no lo tiene) */
   const sub=REP_BAR_SUB[id]?'<span class="rvs">'+REP_BAR_SUB[id][LANG==='es'?0:1]+'</span>':'';
@@ -5709,7 +6320,7 @@ function repTileLabel(id){const s=id==='_get'?t('rep_get'):t('rep_'+id);const m=
    Solo presentación: los datos salen de txDayData / txItems / txChart / txTotalData / txTotalDays / txLineChart sin cambios. */
 const G2T_CASH='<svg viewBox="0 0 20 16" class="g2t-cash" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 0h20v16H0zM4.3 2.2a2.1 2.1 0 0 1-2.1 2.1v7.4a2.1 2.1 0 0 1 2.1 2.1h11.4a2.1 2.1 0 0 1 2.1-2.1V4.3a2.1 2.1 0 0 1-2.1-2.1z"/><ellipse cx="10" cy="8" rx="1.9" ry="3.1" fill="currentColor"/></svg>';
 /* (i) de "Incluir pagos sin referencia de transacción" (Total de Transacciones) */
-document.addEventListener('click',function(e){const b=e.target&&e.target.closest&&e.target.closest('[data-act="ttxinfo"]');if(!b)return;e.stopPropagation();e.preventDefault();appAlert(g2tInfoText());},true);
+document.addEventListener('click',function(e){const b=e.target&&e.target.closest&&e.target.closest('[data-act="ttxinfo"]');if(!b)return;e.stopPropagation();e.preventDefault();r171AlertHtml(r171TotalHelpHtml());},true);   /* mods171: texto exacto de MN (s02) */
 function g2tInfoText(){
   return LANG==='es'
     ?'Incluir pagos sin referencia de transacción: suma en «Pagos» todos los abonos con fecha dentro del intervalo, aunque la venta, la compra o el ingreso/gasto extra al que pertenecen sea de otra fecha, y cuenta como «por cobrar / por pagar» las transacciones que recibieron abonos. Si no se marca, solo se suman los abonos de las transacciones por cobrar o por pagar del intervalo.'
@@ -5724,7 +6335,7 @@ function g2tSec(title,cards,first){
 /* billete relleno de Mi Negocio (rectángulo negro, interior blanco con esquinas cóncavas y óvalo negro) */
 const G3_CASH='<svg viewBox="0 0 20 16" class="g3cash" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 0h20v16H0zM4.3 2.2a2.1 2.1 0 0 1-2.1 2.1v7.4a2.1 2.1 0 0 1 2.1 2.1h11.4a2.1 2.1 0 0 1 2.1-2.1V4.3a2.1 2.1 0 0 1-2.1-2.1z"/><ellipse cx="10" cy="8" rx="1.9" ry="3.1" fill="currentColor"/></svg>';
 /* Orden del "Resumen por cliente/proveedor": Mi Negocio lo muestra en orden de aparición (fecha desc). Es parte de la
-   decisión pendiente del dueño sobre el orden (pregunta 2), así que por ahora queda como hoy (por deuda). true = como Mi Negocio. */
+   decisión pendiente del dueño sobre el orden (pregunta 2); por ahora en orden alfabético (decisión de Fabio). true = como Mi Negocio. */
 const G3_RESUMEN_ORDEN_MN=false;
 /* botón redondo azul con lupa (Mi Negocio): abre/cierra el buscador dentro de la tarjeta fija */
 REP_FAB.sales_recv=['search','srsearch'];REP_FAB.purch_pay=['search','pcsearch'];
@@ -5820,13 +6431,13 @@ function g4fCatPick(v){state.repCat=state.repCat||{};state.repCat.tx_prod=v==='_
 // Formas de pago: por forma de pago, ventas, compras, ingresos y gastos extra del rango y su balance (como Mi Negocio)
 /* ===== g5_productos (fase 2): Top productos, Productos a detalle, Reporte categoría y Reporte inventario como Mi Negocio ===== */
 /* textos de estas pantallas (los \n son saltos de línea de Mi Negocio; "escanee" bien escrito) */
-Object.assign(I18N.es,{mr_pick_prod_hint:'En el campo de texto escriba el nombre/ clave del producto o escanee el código de barras.',mr_top_prov_prod:'Principales proveedores de productos',mr_pos_sales_s:'Posibles Ventas $',mr_pos_profit_s:'Posibles Ganancias $',
+Object.assign(I18N.es,{mr_pick_prod_hint:'En el campo de texto escriba el nombre/\u200bclave del producto o escanee el código de barras.',tx_pay_lbl:'#Pago',mr_top_prov_prod:'Principales proveedores de productos',mr_pos_sales_s:'Posibles Ventas $',mr_pos_profit_s:'Posibles Ganancias $',
   g5_n_prod:'Número de\nproductos',g5_in_rsv:'Productos en\nreserva',g5_inv_tot:'Inversión\nTotal',g5_pos_sales_t:'Total de posibles\nventas',g5_pos_profit_t:'Total de posibles\nganancias',g5_pos_sales:'Posibles\nVentas $',g5_pos_profit:'Posibles\nGanancias $'});
-Object.assign(I18N.en,{mr_pick_prod_hint:'In the text field type the product name/ key or scan the barcode.',mr_top_prov_prod:'Top providers of products',mr_pos_sales_s:'Possible Sales $',mr_pos_profit_s:'Possible Profit $',
+Object.assign(I18N.en,{mr_pick_prod_hint:'In the text field type the product name/\u200bkey or scan the barcode.',tx_pay_lbl:'#Payment',mr_top_prov_prod:'Top providers of products',mr_pos_sales_s:'Possible Sales $',mr_pos_profit_s:'Possible Profit $',
   g5_n_prod:'Number of\nproducts',g5_in_rsv:'Products in\nreserve',g5_inv_tot:'Total\ninvestment',g5_pos_sales_t:'Total possible\nsales',g5_pos_profit_t:'Total possible\nprofit',g5_pos_sales:'Possible\nSales $',g5_pos_profit:'Possible\nProfit $'});
 /* caja con "?" (producto sin foto) y lector de códigos de Mi Negocio */
 const G5_BOXQ='<svg viewBox="0 0 24 24" class="g5boxq" aria-hidden="true"><path d="M4 11.2 12 14v8l-8-3.2z" fill="#7a7a7a"/><path d="M12 14l8-2.8v7.6L12 22z" fill="#5a5a5a"/><path d="M4 11.2 12 8.6l8 2.6-8 2.8z" fill="#3c3c3c"/><path d="M4 11.2 1.6 14l8.2 3.1L12 14z" fill="#9e9e9e"/><path d="M20 11.2 22.4 14l-8.2 3.1L12 14z" fill="#8c8c8c"/><text x="12" y="8" font-size="9" font-weight="700" text-anchor="middle" fill="#6d6d6d" style="font-family:Roboto,Arial,sans-serif">?</text></svg>';
-const G5_SCAN='<svg viewBox="0 0 24 24" class="g5scic" aria-hidden="true"><path d="M8.6 10.4 12.2 6.9c1.3-1 3-1.5 4.6-1.4l3.1.3c.8.1 1.2 1 .8 1.6l-.3.5c-.3.4-.8.6-1.3.6l-2.2.1-1.6 5.3z" fill="#2b3433"/><path d="M3.4 16.3 8.6 10.4l6.6 3.4-1.5 6.6z" fill="#37403d"/><path d="M4.3 15.3 13.9 19.4l-.2 1-10.3-4.1z" fill="#f39a9a"/><path d="M3.4 16.3 13.7 20.4l-.3 1.2L2.6 17.3z" fill="#e53935"/></svg>';
+const G5_SCAN='<svg viewBox="0 0 24 24" class="g5scic" aria-hidden="true"><g transform="translate(0 1)"><path d="M1.9 13.6 6.3 9.7 8.1 7.2 9.6 5.6 14.2 4.7 18.7 3.4c1.5-.3 3.6.7 4.8 2.9-.5.6-1.2.9-1.9 1.1L19 8.4 18 10.5 15.9 15.3 14.2 16.7z" fill="#2e3335" stroke="#2e3335" stroke-width=".5" stroke-linejoin="round"/><path d="M5.6 10.5 17.7 11.5 15.9 15.3 14.2 16.7 1.9 13.6z" fill="#34474e"/><path d="M18.7 4.3 21.8 5 22.5 5.8 19.7 5.8z" fill="#5d5250"/><path d="M1.9 13.4 14.2 16.7 14.6 18.6.7 14.1z" fill="#e53935"/><path d="M2 13.1 14.2 16.6 14.3 17.4 1.3 13.7z" fill="#f39a9a"/><path d="M14.6 18.6 17 18.3 14.4 17.8z" fill="#9e9e9e"/></g></svg>';   /* mods173: la pistola lectora de MN (más ancha, mango con remate redondo; s85) */
 /* botón redondo azul: categoría en Top productos y en Reporte inventario */
 REP_FAB.top_prod=['category','g5cat:top_prod'];REP_FAB.inventory=['category','g5cat:inventory'];
 REP_FAB_ACT['g5cat:top_prod']=()=>g5PickCat('top_prod');REP_FAB_ACT['g5cat:inventory']=()=>g5PickCat('inventory');
@@ -5861,7 +6472,7 @@ function g5CatSet(id,v){v=v||'';if(id==='inventory'){state.repTab=state.repTab||
 function g5TopCat(){return (state.repCat&&state.repCat.top_prod)||'';}
 // Top productos: los 50 con más ganancia del rango (clave, ganancia y ventas); con categoría elegida, solo las líneas de esa categoría
 function g5PdPicker(){const q=(state.repQ&&typeof state.repQ==='object'&&state.repQ.prod_detail)||'';
-  return '<div class="rpick g5pick"><div class="rpbox">'+svgF(MN_IC.search)+'<input autocomplete="off" id="rpSearch_prod_detail" data-rp="prod_detail" class="inp rpsearch" placeholder="'+exEsc(t('mr_pick_prod'))+'" value="'+exEsc(q)+'"><button class="rpclr" data-act="mrep:clear:prod_detail" aria-label="'+exEsc(t('remove'))+'">'+svgF(MN_IC.close)+'</button></div><button class="rpscan g5scan" data-act="scan:repprod" aria-label="'+exEsc(t('scan_title'))+'">'+G5_SCAN+'</button><div id="rpSugg_prod_detail" class="rpsugg">'+(q?g5SuggHTML(q):'')+'</div></div>';}
+  return '<div class="rpick g5pick"><div class="rpbox'+(state.repPick&&state.repPick.prod_detail&&!q?' m173foc':'')+'">'+svgF(MN_IC.search)+'<input autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" id="rpSearch_prod_detail" data-rp="prod_detail" class="inp rpsearch" placeholder="'+exEsc(t('mr_pick_prod'))+'" value="'+exEsc(q)+'"><button class="rpclr" data-act="mrep:clear:prod_detail" aria-label="'+exEsc(t('remove'))+'">'+svgF(MN_IC.close)+'</button></div><button class="rpscan g5scan" data-act="scan:repprod" aria-label="'+exEsc(t('scan_title'))+'">'+G5_SCAN+'</button><div id="rpSugg_prod_detail" class="rpsugg">'+(q?g5SuggHTML(q):'')+'</div></div>';}
 // Productos a detalle: se busca un producto y se ve su resumen del rango (ventas, principales clientes, compras, proveedores, merma)
 // g6_varios (fase 2): Reporte etiquetas, Reporte empleados, Reporte cotización, Reporte orden de compra y Venta por día
 // con la estructura de Mi Negocio. Cambia la presentación; los datos salen de las mismas funciones de siempre
@@ -5871,7 +6482,7 @@ PDF_REPORTS.delete('sale_day');        /* Venta por día no tiene PDF en Mi Nego
 setTimeout(function(){try{MN_PDF.purch_order=g6PoPdf;}catch(_){}},0);   /* PDF de orden de compra con la fecha de hoy, como cotización */
 // 8) Etiquetas: el gráfico va dentro de la tarjeta de fechas y cada etiqueta es una fila gris con el molinete
 function g6EmpRow(o){const c=(l,v)=>'<div><span>'+l+'</span><b class="num">'+v+'</b></div>';
-  return '<div class="mnrow g6emp"><div class="mnt"><div class="g6e-l">'+svgF(MN_IC.assignmentInd)+'<span>'+exEsc(o.name)+'</span></div><div class="g6e-l g6e-r">'+svgF(MN_IC.work)+'<span>'+exEsc(o.role||'')+'</span></div>'
+  return '<div class="mnrow g6emp"><div class="mnt"><div class="g6e-l">'+svgF(MN_IC.assignmentInd)+'<span>'+exEsc(o.name)+'</span></div><div class="g6e-l g6e-r">'+svgF(MN174_BIZ)+'<span>'+exEsc(o.role||'')+'</span></div>'
     +'<div class="g6e-g">'+c(t('mr_att'),'#'+o.att)+c(t('mr_abs'),'#'+o.abs)+c(t('mr_late'),'#'+o.late)+'</div><div class="g6e-s"><span>'+t('mr_salary')+'</span><b class="num">'+rmoney(o.sal)+'</b></div></div></div>';}
 // Fila de producto de Mi Negocio (cotización y orden de compra): foto redonda, clave, nombre y abajo #cantidad y $total
 function g6BoxQ(){return '<svg viewBox="0 0 48 48" class="g6boxq" aria-hidden="true"><path d="M8 16l16-8 16 8-16 8z" fill="currentColor" opacity=".55"/><path d="M8 16v17l16 8V24z" fill="currentColor" opacity=".8"/><path d="M40 16v17l-16 8V24z" fill="currentColor"/><text x="32" y="36" font-size="11" font-weight="700" text-anchor="middle" style="font-family:Roboto,Arial,sans-serif">?</text></svg>';}
@@ -5905,15 +6516,15 @@ function g7PlHist(h,byKey){const f=v=>mnNum(v);const tipo=+h.tipo||2;const p=h.k
   const ch=(lbl,a,b)=>Math.abs((+a||0)-(+b||0))>1e-9?`<div class="g7h-q">${lbl}</div><div class="g7h-q3"><span class="num">${f(a)}</span><span>--&gt;</span><span class="num">${f(b)}</span></div>`:'';
   const body=tipo===2?ch(t('me_qty'),h.cantidad_old,h.cantidad)+ch(t('rsv_label'),h.reserva_old,h.reserva)+ch(t('pi_buy'),h.p_compra_old,h.p_compra)+ch(t('pi_sale'),h.p_venta_old,h.p_venta)
     :`<div class="g7h-g"><div>${t('me_qty')}</div><div>${t('rsv_label')}</div><div class="num">${f(h.cantidad)}</div><div class="num">${f(h.reserva)}</div><div>${t('pi_buy')}</div><div>${t('pi_sale')}</div><div class="num">${f(h.p_compra)}</div><div class="num">${f(h.p_venta)}</div></div>`;
-  return `<div class="g7h g7h${tipo}"><div class="g7h-ph"><div class="g7h-pi">${p?saleProdImg(p,G7_BOXQ):G7_BOXQ}</div></div><div class="g7h-t"><div>${g7Tx('h'+tipo)}</div><div>&nbsp;${exEsc(h.fecha||'')}</div><div>${exEsc(h.key||'')}</div><div class="g7h-n">${exEsc(h.nombre||'')}</div>${body}</div></div>`;}
+  return `<div class="g7h g7h${tipo}"><div class="g7h-ph"><div class="g7h-pi">${p?saleProdImg(p,G8_BOXQ):G8_BOXQ}</div></div><div class="g7h-t"><div>${g7Tx('h'+tipo)}</div><div>&nbsp;${exEsc(h.fecha||'')}</div><div>${exEsc(h.key||'')}</div><div class="g7h-n">${g7NoHyBr(exEsc(h.nombre||''))}</div>${body}</div></div>`;}
 // tarjeta de "Por Compra": folio, proveedor, fecha y total; productos con nombre arriba y cantidad / compra / subtotal abajo (tocar abre la compra)
 function g7PlPurch(p,ls){
-  const it=ls.map(x=>`<div class="g7pc-it"><div class="g7pc-n">${exEsc(x.name)}</div><div class="g7pc-3"><span class="num">${mnNum(x.qty)}</span><span class="num">${mnNum(x.price)}</span><span class="num">${mnNum((+x.price||0)*(+x.qty||0))}</span></div></div>`).join('');
+  const it=ls.map(x=>`<div class="g7pc-it"><div class="g7pc-n">${g7NoHyBr(exEsc(x.name))}</div><div class="g7pc-3"><span class="num">${mnNum(x.qty)}</span><span class="num">${mnNum(x.price)}</span><span class="num">${mnNum((+x.price||0)*(+x.qty||0))}</span></div></div>`).join('');
   return `<div class="g7pc" data-act="purdet:${exEsc(p.id)}"><div>${t('mr_folio')}: ${exEsc(p.folio||p.id)}</div><div>${t('cp_provider')}: ${exEsc(p.provider||t('sin_info'))}</div>`
     +`<div class="g7pc-g"><div>${t('sale_date')}:</div><div>${t('total')} $</div><div>${exEsc((p.date||'')+(p.time?' '+(''+p.time).slice(0,5):''))}</div><div class="num">${mnNum(p.total)}</div></div>`
     +`<div class="g7pc-3"><span>${t('me_qty')}</span><span>${t('pi_buy')}</span><span>${t('mr_subtotal')} $</span></div><div class="g7pc-its">${it}</div></div>`;}
 // el nombre del producto va en un solo renglón y se achica para caber (como Mi Negocio)
-function g7PlFit(){try{document.querySelectorAll('#body .g7h-n').forEach(el=>{el.style.fontSize='';const cw=el.clientWidth,sw=el.scrollWidth;if(cw&&sw>cw+0.5)el.style.fontSize=Math.max(9,Math.floor(150*cw/sw)/10)+'px';});}catch(_){}}
+function g7PlFit(){try{document.querySelectorAll('#body .g7h-n').forEach(el=>{el.style.fontSize='';el.classList.remove('w2');const cw=el.clientWidth,sw=el.scrollWidth;if(cw&&sw>cw+0.5){const f=Math.floor(150*cw/sw)/10;el.style.fontSize=Math.max(13.5,f)+'px';if(f<13.5)el.classList.add('w2');}});}catch(_){}}   /* mods175: hasta 13,5 sp y luego 2 renglones (MN) */
 // líneas de las compras de un día (Registro de compras · Por compra): alfabético como hoy, o el orden de Mi Negocio con G7_PLOG_RAW
 async function g7PcLinesRaw(p,rawIdx){
   const map=l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:((+c||0)*(+l.qty||0))};};
@@ -5965,18 +6576,18 @@ function g8MoreWatch(){G8_IO.forEach(o=>o.disconnect());G8_IO=[];
     io.observe(m);G8_IO.push(io);});}
 /* tarjeta de venta (Reporte clientes): folio + fecha · forma de pago + etiqueta · estado (mismo criterio que txVCard) + total */
 function g8SaleCard(s){const due=saleIsCredit(s)&&saleDueAmt(s)>0.5;const st=saleIsCredit(s)?(due?t('sale_pending'):t('st_paid_was')):t('sale_paid');
-  return '<div class="mncard g8c" data-saledet="'+exEsc(s.id)+'"><div class="g8r1"><span class="g8f">'+exEsc(t('mr_folio'))+':'+exEsc(s.folio||s.id)+'</span>'+svgF(MN_IC.event)+'<span>'+exEsc(saleDate(s))+'</span></div>'
+  return '<div class="mncard g8c" data-saledet="'+exEsc(s.id)+'"><div class="g8r1"><span class="g8f">'+exEsc(t('mr_folio'))+':'+exEsc(s.folio||s.id)+'</span>'+svgF(G8_IC_TODAY)+'<span>'+exEsc(saleDate(s))+'</span></div>'
     +'<div class="g8r2"><span>'+G8_CASH+'<em>'+exEsc(payLbl(s.pay)||t('sin_info'))+'</em></span><span>'+svgF(MN_IC.toys)+'<em>'+exEsc((''+(s.tag||'')).trim()||t('rp_notag'))+'</em></span></div>'
     +'<div class="g8r3"><span class="g8st'+(due?' due':'')+'">'+exEsc(st)+'</span><b class="amt num">'+rmoney(saleTotal(s))+'</b></div></div>';}
 /* tarjeta de compra (Reporte proveedor): como la de venta pero sin etiqueta; Pagado / Pagado (fue por pagar) / Por Pagar */
 function g8PurchCard(p){const due=purchaseIsCredit(p)&&purchDueAmt(p)>0.5;const st=purchaseIsCredit(p)?(due?t('cp_topay'):t('pst_paid_was')):t('sale_paid');
-  return '<div class="mncard g8c" data-act="purdet:'+exEsc(p.id)+'"><div class="g8r1"><span class="g8f">'+exEsc(t('mr_folio'))+':'+exEsc(p.folio||p.id)+'</span>'+svgF(MN_IC.event)+'<span>'+exEsc(p.date||'')+'</span></div>'
+  return '<div class="mncard g8c" data-act="purdet:'+exEsc(p.id)+'"><div class="g8r1"><span class="g8f">'+exEsc(t('mr_folio'))+':'+exEsc(p.folio||p.id)+'</span>'+svgF(G8_IC_TODAY)+'<span>'+exEsc(p.date||'')+'</span></div>'
     +'<div class="g8r2"><span>'+G8_CASH+'<em>'+exEsc(payLbl(p.pay)||t('sin_info'))+'</em></span></div>'
     +'<div class="g8r3"><span class="g8st'+(due?' due':'')+'">'+exEsc(st)+'</span><b class="amt num">'+rmoney(+p.total||0)+'</b></div></div>';}
 /* tarjeta de producto: caja con "?", nombre en 2 renglones, #cantidad y total. Mi Negocio muestra siempre la caja aquí,
    aunque el producto tenga foto (ej. FOAMI MOLDEABLE X12 en cli_03, que sí tiene foto en Top productos) */
 function g8ProdCard(o){
-  return '<div class="mncard g8p"><div class="g8pi">'+G8_BOXQ+'</div><div class="g8pn">'+exEsc(o.name)+'</div><div class="g8r3"><b class="g8q num">#'+mnNum(o.q)+'</b><b class="amt num">'+rmoney(o.tot)+'</b></div></div>';}
+  return '<div class="mncard g8p"><div class="g8pi">'+G8_BOXQ+'</div><div class="g8pn"><span>'+g7NoHyBr(exEsc(o.name))+'</span></div><div class="g8r3"><b class="g8q num">#'+mnNum(o.q)+'</b><b class="amt num">'+rmoney(o.tot)+'</b></div></div>';}
 function g8Who(n,s){   /* persona + nombre y 2.º renglón (alias / empresa) de Top clientes y Top proveedores */
   return '<div class="g8who">'+svgF(MN_IC.person)+'<div><div class="g8n">'+exEsc((''+(n||'')).trim())+'</div><div class="g8a">'+exEsc(s)+'</div></div></div>';}
 function scRepView(){
@@ -6007,7 +6618,7 @@ function txDayData(date){
   const compras=(state.purchases||[]).filter(p=>p.date===date);
   const extras=extrasLive().filter(m=>m.date===date);
   const T=txTotalData(date,date,true);   /* mismas cuentas que "Total de transacciones" (con todos los pagos del día) */
-  const payList=(arr,kind)=>{const o=[];(arr||[]).forEach(r=>{if(Array.isArray(r.pays))r.pays.forEach(p=>{if(p&&p.f===date&&(+p.p||0))o.push({kind,r,p});});});return o.sort((a,b)=>(''+(b.p.h||'')).localeCompare(''+(a.p.h||'')));};
+  const payList=(arr,kind)=>{const o=[];(arr||[]).forEach(r=>{if(Array.isArray(r.pays))r.pays.forEach(p=>{if(p&&p.f===date&&(+p.p||0))o.push({kind,r,p});});});return o.sort((a,b)=>((b.p.f||'')+' '+m173PayTime(b.p)).localeCompare((a.p.f||'')+' '+m173PayTime(a.p)));};   /* mods173: hora con segundos, la más reciente primero (MN) */
   const pv=payList(state.sales,'sale'),pc=payList(state.purchases,'purch'),pe=payList(extrasLive(),'ex');
   const ventasPag=T.ventasPag.ing,pagosVentas=T.ventasCob.pagos,ingPag=T.ingExtraPag.ing,pagosIng=T.ingExtraCob.pagos;
   const comprasPag=T.comprasPag.egr,pagosCompras=T.comprasPagar.pagos,gastosPag=T.gastoExtraPag.gas,pagosGastos=T.gastoExtraPagar.pagos,salEmp=T.salario;
@@ -6015,10 +6626,10 @@ function txDayData(date){
   return {ventas,compras,extras,pv,pc,pe,ventasPag,pagosVentas,ingPag,pagosIng,totIng,comprasPag,pagosCompras,gastosPag,pagosGastos,salEmp,totEgr,balance:totIng-totEgr};
 }
 function txItems(d,type){
-  if(type==='ventas')return d.ventas.map(s=>({amount:saleTotal(s),profit:saleProfit(s),time:s.time||''}));
+  if(type==='ventas')return d.ventas.map(s=>({amount:m173Tot(s),profit:m173Prof(s),time:s.time||''}));   /* mods173: centavos de MN */
   if(type==='compras')return d.compras.map(p=>({amount:+p.total||0,profit:0,time:p.time||''}));
   if(type==='ingastos')return d.extras.map(m=>({amount:exTotal(m),profit:0,time:m.time||''}));
-  const pl={pventas:d.pv,pcompras:d.pc,pingastos:d.pe}[type];if(pl)return pl.map(x=>({amount:+x.p.p||0,profit:0,time:x.p.h||''}));   /* pagos del día */
+  const pl={pventas:d.pv,pcompras:d.pc,pingastos:d.pe}[type];if(pl)return pl.map(x=>({amount:+x.p.p||0,profit:0,time:m173PayTime(x.p)}));   /* pagos del día */
   return [];
 }
 const TX_PROV='<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M13 10.5h4M13 14h4M6.4 16c.6-1.6 4-1.6 4.6 0"/>';
@@ -6028,7 +6639,7 @@ function txVCard(s){
   return `<div class="txvcard">
     <div class="txvc-top"><span class="fol">${t('sale_folio')}: ${s.folio||s.id}</span><span class="hora">${svgF(MN_IC.schedule)}${s.time||''}</span></div>
     <div class="txvc-cli">${svgF(MN_IC.person)}<span>${exEsc(s.client||t('sin_info'))}</span></div>
-    <div class="txvc-tot"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(saleTotal(s))}</div></div><div class="c"><div class="l">${t('tx_profit')}</div><div class="v num">${money(saleProfit(s))}</div></div></div>
+    <div class="txvc-tot"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(m173Tot(s))}</div></div><div class="c"><div class="l">${t('tx_profit')}</div><div class="v num">${money(m173Prof(s))}</div></div></div>
     <div class="txvc-bot">${est}<span class="pay"><span>${payLbl(s.pay)||t('sin_info')}</span>${G2T_CASH}</span></div>
   </div>`;
 }
@@ -6045,9 +6656,9 @@ function txPCard(x){
   const r=x.r,who=x.kind==='sale'?(r.client||t('sin_info')):x.kind==='purch'?(r.provider||t('sin_info')):(r.concept||r.cat||t('sin_info'));
   const lbl=x.kind==='ex'?(r.type==='in'?'+ ':'− ')+exEsc(who):t('sale_folio')+': '+exEsc(r.folio||r.id);
   return `<div class="txvcard">
-    <div class="txvc-top"><span class="fol">${lbl}</span><span class="hora">${x.p.h?svgF(MN_IC.schedule)+exEsc(x.p.h):''}</span></div>
+    <div class="txvc-top"><span class="fol">${lbl}</span><span class="hora">${m173PayTime(x.p)?svgF(MN_IC.schedule)+exEsc(m173PayTime(x.p)):''}</span></div>
     ${x.kind==='ex'?'':`<div class="txvc-cli">${(x.kind==='sale'?svgF(MN_IC.person):svgF(MN_IC.contacts,'g2t-ct'))}<span>${exEsc(who)}</span></div>`}
-    <div class="txvc-tot one"><div class="c"><div class="l">${t('total')}</div><div class="v num">${money(+x.p.p||0)}</div></div></div>
+    <div class="txvc-tot one"><div class="c"><div class="l">${t('tx_pay_lbl')}</div><div class="v num">${money(+x.p.p||0)}</div></div></div>
   </div>`;
 }
 function txECard(m){
@@ -6103,14 +6714,14 @@ function txTotalData(from,to,incl){
   const salesR=state.sales.filter(s=>inRD(saleDate(s)));
   const vp=salesR.filter(s=>!isCredV(s));   // pagadas (contado)
   const vc=salesR.filter(s=>isCredV(s));     // por cobrar
-  const ventasPag={n:vp.length,ing:sum(vp,saleTotal),gan:sum(vp,saleProfit)};
+  const ventasPag={n:vp.length,ing:sum(vp,m173Tot),gan:sum(vp,m173Prof)};   /* mods173: subtotales de línea de MN (centavos) */
   const vcDeuda=vc.reduce((a,s)=>a+Math.max(0,saleTotal(s)-salePaidSum(s)),0);
   // Abonos (Pagos): con "incluir pagos" = TODOS los abonos del rango (incluso de ventas fuera del rango);
   // sin él = solo abonos de ventas status2 cuya venta está en el rango.
   let abonosVentas=0;
   if(inclPagos){state.sales.forEach(s=>{if(Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});}
   else{salesR.forEach(s=>{if(saleIsCreditStrict(s)&&Array.isArray(s.pays))s.pays.forEach(p=>{if(inRD(p.f))abonosVentas+=+p.p||0;});});}
-  const ventasCob={n:vc.length,ing:sum(vc,saleTotal),gan:sum(vc,saleProfit),deuda:vcDeuda,pagos:abonosVentas};
+  const ventasCob={n:vc.length,ing:sum(vc,m173Tot),gan:sum(vc,m173Prof),deuda:vcDeuda,pagos:abonosVentas};
   const purR=(state.purchases||[]).filter(p=>inRD(p.date));
   const cp=purR.filter(p=>!isCredP(p));
   const cc=purR.filter(p=>isCredP(p));
@@ -6134,7 +6745,7 @@ function txTotalData(from,to,incl){
   const ingresos=ventasPag.ing+abonosVentas+ingExtraPag.ing+ingExtraCob.pagos;
   const egresos=comprasPag.egr+abonosCompras+gastoExtraPag.gas+gastoExtraPagar.pagos+salario;
   // "Total Ingresos/Ganancias (incluye por cobrar)" = TODAS las ventas del rango (invariante)
-  const allR={ing:sum(salesR,saleTotal),gan:sum(salesR,saleProfit)};
+  const allR={ing:sum(salesR,m173Tot),gan:sum(salesR,m173Prof)};
   return {ventasPag,ventasCob,comprasPag,comprasPagar,ingExtraPag,ingExtraCob,gastoExtraPag,gastoExtraPagar,salario,
     totIng:allR.ing,totGan:allR.gan,ingresos,egresos,balance:ingresos-egresos};
 }
@@ -6147,8 +6758,8 @@ function txTotalDays(from,to,type){
   const idx={};days.forEach((d,i)=>idx[d.date]=i);
   const add=(date,ing,gan)=>{const i=idx[date];if(i==null)return;days[i].ing+=ing;days[i].gan+=gan||0;};
   if(type==='ventas'){
-    if(inclC){state.sales.forEach(s=>add(saleDate(s),saleTotal(s),saleProfit(s)));}
-    else{state.sales.forEach(s=>{if(!saleIsCreditStrict(s))add(saleDate(s),saleTotal(s),saleProfit(s));});}   /* como Mi Negocio: ventas que no son por cobrar, sin abonos */
+    if(inclC){state.sales.forEach(s=>add(saleDate(s),m173Tot(s),m173Prof(s)));}
+    else{state.sales.forEach(s=>{if(!saleIsCreditStrict(s))add(saleDate(s),m173Tot(s),m173Prof(s));});}   /* como Mi Negocio: ventas que no son por cobrar, sin abonos */
   }
   else if(type==='compras'){
     if(inclC){(state.purchases||[]).forEach(pu=>add(pu.date,+pu.total||0,0));}
@@ -6260,6 +6871,7 @@ async function repExportPDF(){
   }catch(e){toast(t('io_err'));}
 }
 async function txDayExportPDF(JS){
+  await m173Ready();   /* mods173: centavos de MN */
   const date=state.txDate||todayISO(),d=txDayData(date),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date,dateTxt:t('mr_date').toUpperCase()+':'+date});   /* mods161: "FECHA:" como MN */
   const row=(values,size)=>{y=mnRepTable(doc,y,null,[values],{w:Array(values.length).fill(535/values.length),al:Array(values.length).fill('center'),fs:size});};
   const summary=(title,labels,values)=>{row([title],12);y+=2;row(labels,10);row(values.map(mnMon),13);};
@@ -6274,21 +6886,22 @@ async function txDayExportPDF(JS){
     y=mnRepTable(doc,y,head,rows,{w,al:w.map((_,i)=>i===2?'left':'center'),fs:13,hfs:10,nameCol:2,product:true,cell:a=>a.section==='head'?{align:'center'}:null});y+=40;   /* mods161: encabezado centrado como MN */
   };
   const txHead=who=>[upper('sale_folio'),upper('me_time'),upper(who),upper('total'),upper('rc_status')],w=[80,80,248,80,47];
-  section(t('tx_type_ventas'),txHead('sale_client'),d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleTotal(s)),status(saleIsCredit(s),recDue('sale',s))]),w);
+  section(t('tx_type_ventas'),txHead('sale_client'),d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(m173Tot(s)),status(saleIsCredit(s),recDue('sale',s))]),w);
   section(t('tx_type_compras'),txHead('cp_provider'),d.compras.map(p=>[''+(p.folio||p.id),p.time||'',p.provider||t('sin_info'),mnAmount(p.total),status(purchaseIsCredit(p),purchDueAmt(p))]),w);
   const extraHead=[upper('sale_folio'),upper('me_time'),upper('mr_h_category'),upper('total'),upper('rc_status')];
   for(const type of ['in','out'])section(t(type==='in'?'ttx_type_ing':'ttx_type_gas'),extraHead,d.extras.filter(m=>m.type===type).map(m=>[''+(m.folio||m.id),m.time||'',[m.cat,m.concept||m.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(exTotal(m)),status(exPending(m)||!!m.pays?.length,exDue(m))]),w);
-  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnAmount(x.p.p)]),[80,80,248,80]);
+  const payments=(title,list,who)=>section(title,[upper('sale_folio'),upper('me_time'),upper(who),upper('total')],list.map(x=>[''+(x.r.folio||x.r.id),m173PayTime(x.p),x.kind==='sale'?(x.r.client||t('sin_info')):(x.r.provider||t('sin_info')),mnAmount(x.p.p)]),[80,80,248,80]);
   payments(t('tx_type_pventas'),d.pv,'sale_client');payments(t('tx_type_pcompras'),d.pc,'cp_provider');
-  for(const type of ['in','out'])section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),x.p.h||'',[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(x.p.p)]),[80,80,248,80]);
+  for(const type of ['in','out'])section(t(type==='in'?'tx_pagos_ing':'tx_pagos_gastos'),extraHead.slice(0,4),d.pe.filter(x=>x.r.type===type).map(x=>[''+(x.r.folio||x.r.id),m173PayTime(x.p),[x.r.cat,x.r.concept||x.r.desc].filter(Boolean).join(' / ')||t('sin_info'),mnAmount(x.p.p)]),[80,80,248,80]);
   const payroll=(state.payroll||[]).filter(p=>p&&!p.del&&(''+(p.date||'')).slice(0,10)===date);
   section(t('tx_sal_emp'),[upper('sale_folio'),upper('me_time'),upper('emp_name'),upper('total')],payroll.map(p=>[''+(p.folio||p.id),p.time||'',p.empName||((state.employees||[]).find(e=>''+e.id===''+p.emp)||{}).name||t('sin_info'),mnAmount(p.amount)]),[80,80,248,80]);
   // ABANICO también muestra ganancia por venta; no se elimina ese importe del PDF.
-  section(t('svc_profit'),[upper('sale_folio'),upper('me_time'),upper('sale_client'),upper('svc_profit')],d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(saleProfit(s))]),[80,80,248,80]);
+  section(t('svc_profit'),[upper('sale_folio'),upper('me_time'),upper('sale_client'),upper('svc_profit')],d.ventas.map(s=>[''+(s.folio||s.id),s.time||'',s.client||t('sin_info'),mnAmount(m173Prof(s))]),[80,80,248,80]);
   y=mnNativeNeed(doc,y,26);mnNativeParagraph(doc,t('tx_status_legend').replace(/−/g,'-'),y-10,11,535);
   mnPdfDone(doc,mnFile('tx_day'));   /* mods161 */
 }
 async function txTotalExportPDF(JS){
+  await m173Ready();   /* mods173: centavos de MN */
   const r=repEnsureRange(),D=txTotalData(r.from,r.to),doc=await mnRepDoc(JS),fmt=mnMon;
   let y=mnNativeBusiness(doc,90);mnNativeText(doc,ti('ttx_pdf_sub',{a:r.from,b:r.to}),30,y,14);y+=64;
   const row=(values,size,widths,cell)=>{y=mnRepTable(doc,y,null,[values],{w:widths||Array(values.length).fill(360/values.length),al:Array(values.length).fill('center'),fs:size,cell});};
@@ -6413,7 +7026,7 @@ function purchPayData(){
   const pagos=list.reduce((a,p)=>a+pcPaid(p),0);
   return {list,total,pagos,deuda:total-pagos};
 }
-function purchPayByProvider(list){
+function purchPayByProviderOld(list){   /* mods172: reemplazada (Proveedores sin registro) */
   const m=new Map();list.forEach(p=>{const k=(p.provider||'—');let o=m.get(k);if(!o){o={prov:k,total:0,pagos:0};m.set(k,o);}o.total+=(+p.total||0);o.pagos+=pcPaid(p);});   /* Map: conserva el orden de aparición */
   const r=[...m.values()].map(o=>({prov:o.prov,total:o.total,pagos:o.pagos,deuda:o.total-o.pagos}));
   return G3_RESUMEN_ORDEN_MN?r:r.sort((a,b)=>prodColl().compare(''+(a.client||a.prov),''+(b.client||b.prov)));   /* alfabético (decisión de Fabio) */
@@ -6439,9 +7052,9 @@ function pcByProvider(){
   document.getElementById('saleH').textContent=t('pc_by_prov');
   saleHActs(`<button class="g3bypdf" data-g3act="bypdf:pc" aria-label="PDF">${MN_PDF_IC}</button>`);
   document.getElementById('saledlg').classList.add('on');
-  document.getElementById('saleBody').innerHTML=`<div class="g3byc">${rows.map(o=>g3ByRow(MN_IC.contacts,o.prov,o.total,o.pagos,o.deuda)).join('')}</div>`;
+  document.getElementById('saleBody').innerHTML=`<div class="g3byc">${rows.map(o=>g3ByRow(MN_IC.person,o.prov,o.total,o.pagos,o.deuda)   /* mods172: persona, como MN s25 */).join('')}</div>`;
 }
-async function openPayDet(id){
+async function openPayDetOld(id){   /* mods172: reemplazada (detalle como MN s26) */
   const p=(state.purchases||[]).find(x=>''+x.id===''+id);if(!p)return;
   document.getElementById('saleH').textContent='#'+(p.folio||p.id);
   document.getElementById('saledlg').classList.add('on','full');
@@ -6905,7 +7518,9 @@ const NF_CACHE={};
 function moneyFmt(n){const o=(state.receipt&&state.receipt.opts)||{};
   /* como Mi Negocio si la tienda no eligió otra cosa: coma de miles, punto decimal y hasta 2 decimales ($530,800 · $4,898,187.5) */
   const auto=o.dec==null||o.dec==='auto'||o.dec==='';const dec=auto?2:Math.max(0,Math.min(2,+o.dec||0));const sep=o.sep||'en';const loc=sep==='es'?'es-CO':'en-US';const grp=sep!=='none';const k=loc+dec+grp+(auto?'a':'');
-  const f=NF_CACHE[k]||(NF_CACHE[k]=new Intl.NumberFormat(loc,{minimumFractionDigits:auto?0:dec,maximumFractionDigits:dec,useGrouping:grp}));const p=Math.pow(10,dec);const v=+n||0,r=Math.round(Math.abs(v)*p)/p;return (o.sym!=null?o.sym:'$')+f.format(v<0&&r?-r:r);}
+  const f=NF_CACHE[k]||(NF_CACHE[k]=new Intl.NumberFormat(loc,{minimumFractionDigits:auto?0:dec,maximumFractionDigits:dec,useGrouping:grp}));const p=Math.pow(10,dec);const v=+n||0,r=mnRoundHE(Math.abs(v),p);return (o.sym!=null?o.sym:'$')+f.format(v<0&&r?-r:r);}
+/* mods176: redondeo al par en los empates exactos, como MN (Java HALF_EVEN) */
+function mnRoundHE(x,p){const dec=Math.round(Math.log10(p));if(!isFinite(x)||x>=1e15)return Math.round(x*p)/p;const t=x.toFixed(dec+20),pt=t.indexOf('.'),ip=t.slice(0,pt),fr=t.slice(pt+1),keep=fr.slice(0,dec),rest=fr.slice(dec);const last=+((keep||ip).slice(-1));const up=/^50*$/.test(rest)?last%2===1:rest[0]>='5';const base=Number(ip+(dec?'.'+keep:''));return up?Math.round(base*p+1)/p:base;}
 /* cantidades, folios y números sueltos con el mismo separador que el dinero */
 function numLoc(){const o=(state.receipt&&state.receipt.opts)||{};return o.sep==='es'?'es-CO':'en-US';}   /* el negativo se redondea como el positivo; sin "-0" */
 // "$ -8,169,281.5": como el balance de "Transacciones por Día" en Mi Negocio (símbolo, espacio y el número con su signo)
@@ -7315,7 +7930,7 @@ function payBlockHTML(kind,r,inRep){
   </div>`;
 }
 let PAY_T=null;
-function openPayAdd(kind,id){
+function openPayAddOld(kind,id){   /* mods172: reemplazada (ventana Agregar Pago de MN s27) */
   const r=recGet(kind,id);if(!r)return;const due=recDue(kind,r);if(due<=0.5)return;PAY_T={kind,id};
   const d=new Date();const p2=n=>String(n).padStart(2,'0');
   document.getElementById('cfgH').textContent=t('pay_add');
@@ -7349,7 +7964,7 @@ function addPay(kind,id,amount,date,time){
 function savePayDlg(all){
   const P0=PAY_T;if(!P0)return;const r=recGet(P0.kind,P0.id);if(!r)return;
   const amt=all?recDue(P0.kind,r):+(document.getElementById('pay_amt')||{}).value;
-  const dt=(document.getElementById('pay_date')||{}).value||todayISO();const tm=(document.getElementById('pay_time')||{}).value||'';
+  const dt=(document.getElementById('pay_date')||{}).value||todayISO();const tm=(document.getElementById('pay_time')||{}).value||g3NowHM();   /* mods172 */
   if(dt>todayISO()){toast(t('pay_future'));return;}
   if(addPay(P0.kind,P0.id,amt,dt,tm)){closeCfgDlg();PAY_T=null;}
 }
@@ -7799,7 +8414,7 @@ async function mrepAct(act){
   if(cmd==='pick'){state.repPick=state.repPick||{};state.repPick[id]=p.slice(3).join(':');if(state.repQ&&typeof state.repQ==='object')delete state.repQ[id];state._keep=0;return render();}
   if(cmd==='clear'){if(state.repPick)delete state.repPick[id];if(state.repQ&&typeof state.repQ==='object')delete state.repQ[id];state._keep=0;return render();}
   if(cmd==='more')return repSugMore(id);   /* mods150 */
-  if(cmd==='abcinfo')return appAlert(t('mr_abc_info'));
+  if(cmd==='abcinfo')return r171AbcHelp();   /* mods171: ventana de MN (s48) */
 }
 // buscador de producto / cliente / proveedor (Productos a Detalle, Reporte Clientes, Reporte Proveedor)
 function repPickerHTML(id,ph){const q=(state.repQ&&typeof state.repQ==='object'&&state.repQ[id])||'';
@@ -7832,7 +8447,7 @@ function repPLogLoad(day,l){const k=currentDataId()+'|'+day+'|'+l.length+'|'+DAT
 // productos de una compra sin ordenar (orden propio de Mi Negocio), mismas cuentas que pcLinesFor; solo se usa con G7_PLOG_RAW
 // ---------- PDF de cada reporte con la estructura de Mi Negocio ----------
 const MN_PDF={
-  async pay_forms(JS){const r=repEnsureRange();const l=repPayFormsData();if(!l.length)return toast(t('mr_empty'));const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,balance:o=>o.b});
+  async pay_forms(JS){const r=repEnsureRange();const l=repPayFormsData();if(!l.length)return toast(t('mr_empty'));const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,inc:o=>o.i,exp:o=>o.g,balance:o=>o.b});
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_pay_forms')});
     mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_sales'),t('mr_h_purch'),t('mr_h_inc'),t('mr_h_exp'),t('mr_h_bal')],rows.map(o=>[o.name,mnAmount(o.v),mnAmount(o.c),mnAmount(o.i),mnAmount(o.g),mnAmount(o.b)]),{w:[135,80,80,80,80,80],fs:8,hfs:8});
     await mnRepSave(doc,'pay_forms',repRangeTxt());},
@@ -7963,10 +8578,10 @@ function repPayForms(){
   const chart=state.repCharts!==false?'<div class="pfsel"><select id="pfType" class="txsel">'+pfO+'</select></div>'+pfChartHTML(l):'';
   const head=REP_SINGLE?repDateHead({cls:'pf-h',inner:chart}):(chart?'<div class="pfchcard">'+chart+'</div>':'');
   if(!l.length)return (REP_SINGLE?head:'')+repEmpty();
-  const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,balance:o=>o.b});
+  const rows=repSorted('pay_forms',l,{name:o=>o.name,sales:o=>o.v,purch:o=>o.c,inc:o=>o.i,exp:o=>o.g,balance:o=>o.b});
   repCsv('pay_forms',[[t('mr_sales')],[t('mr_purchases')],[t('mr_inc_extra')],[t('mr_exp_extra')],[t('mr_balance')]],rows.map(o=>({t:o.name,c:[[null,o.v,'m'],[null,o.c,'m'],[null,o.i,'m'],[null,o.g,'m'],[null,o.b,'m']]})),{first:t('mr_name')});
-  const cell=(k,v)=>'<div><span>'+t(k)+'</span><b class="num">'+rmoney(v)+'</b></div>';
-  return head+'<div class="pfl">'+rows.map(o=>'<div class="pfc"><div class="pfc-n">'+g4fCashIc()+'<span>'+exEsc(o.name)+'</span></div><div class="pfc-g">'+cell('mr_sales',o.v)+cell('mr_purchases',o.c)+cell('mr_inc_extra',o.i)+cell('mr_exp_extra',o.g)+'</div><div class="pfc-b num">'+t('mr_balance')+': '+rmoney(o.b)+'</div></div>').join('')+'</div>';
+  const cell=(k,v)=>'<div><span>'+t(k)+'</span><b class="num">'+pfMoney(v)+'</b></div>';   /* mods174: $0.0 como MN */
+  return head+'<div class="pfl">'+rows.map(o=>'<div class="pfc"><div class="pfc-n">'+g4fCashIc()+'<span>'+exEsc(o.name)+'</span></div><div class="pfc-g">'+cell('mr_sales',o.v)+cell('mr_purchases',o.c)+cell('mr_inc_extra',o.i)+cell('mr_exp_extra',o.g)+'</div><div class="pfc-b num">'+t('mr_balance')+': '+pfMoney(o.b)+'</div></div>').join('')+'</div>';
 }
 // Merma: tarjeta con fechas, Total y el gráfico (ícono "event"); la lista sigue como hoy hasta tener una captura de Mi Negocio con merma
 // 2) Merma
@@ -7998,6 +8613,7 @@ function repTxProd(){
   const rows=repSorted('tx_prod',D.a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
   repCsv('tx_prod',[[t('me_qty')],[t('total')]],rows.map(o=>({t:o.name,c:[[null,o.q,'n'],[null,o.tot,'m']]})),{first:t('rc_product')});
   const list=mnList('tx_prod',rows.map(o=>mnRow({cls:'w tp-r',lines:[g4fBoxIc()+'<span>'+exEsc(o.name)+'</span>'],cols:[[t('me_qty'),g4fNum(o.q)],[t('total'),rmoney(o.tot)]]})));
+  setTimeout(m173Fit,0);   /* mods173: auto-tamaño de los nombres */
   return head+tabs+'<div class="tp-l">'+list+'</div>';
 }
 // ---- Reporte: Transacciones por servicio (rango de fechas) ----
@@ -8014,6 +8630,7 @@ function repTopProd(){const a=repTopProdData();if(!a)return repLoading();const c
   const rows=repSorted('top_prod',a,{name:o=>o.name,profit:o=>o.gan,sales:o=>o.tot});
   repCsv('top_prod',[[t('mr_key')],[t('svc_profit')],[t('mr_sales')]],rows.map(o=>({t:o.name,c:[[null,o.key||'—',''],[null,o.gan,'m'],[null,o.tot,'m']]})),{first:t('rc_product')});   /* la clave sigue en el CSV */
   setTimeout(()=>{try{bkApplyInvImages();}catch(_){}},30);
+  setTimeout(m173Fit,0);   /* mods173 */
   return head+mnList('top_prod',rows.map(o=>{const p=o.pid!=null?P(o.pid):null;
     return mnRow({img:p?saleProdImg(p,G5_BOXQ):G5_BOXQ,lines:[o.key?exEsc(o.key):'',exEsc(o.name)].filter(Boolean),cols:[[t('svc_profit'),rmoney(o.gan)],[t('mr_sales'),rmoney(o.tot)]],cls:'g5tp'});}));}
 /* buscador de Productos a Detalle: lupa, X para borrar y el lector de códigos redondo (siempre arriba) */
@@ -8045,9 +8662,9 @@ function repProdDetail(){
   const head='<div class="g5ph"><div class="g5ph-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5ph-t"><div class="g5ph-k">'+exEsc(p.key||'')+'</div><div class="g5ph-n">'+exEsc(mnName(p))+'</div><div class="g5ph-cl">'+exEsc(t('f_category'))+'</div><div class="g5ph-cv">'+svgF(MN_IC.category)+'<b>'+exEsc(catName(p.cat))+'</b></div></div></div>';
   return pk+repDateHead({cls:'r8 m10 g5pdh',inner:pch})+'<div class="g5pcard">'+head+'<div class="g5div"></div>'
     +sec(t('mr_sum_sales'))+'<div class="g5kv c3">'+kv(t('me_qty'),mnNum(D.sv.q))+kv(t('mr_sales'),rmoney(D.sv.tot))+kv(t('svc_profit'),rmoney(D.sv.tot-D.sv.cost))+'</div>'
-    +(D.cl.length?sec(t('mr_top_cli_prod'))+'<div class="mnscroll g5scr">'+D.cl.map(o=>card(MN_IC.person,o.c.name||'',o.c.alias||'',[[t('me_qty'),mnNum(o.q)],[t('mr_sales'),mnAmount(o.tot)],[t('svc_profit'),mnAmount(o.tot-o.cost)]])).join('')+'</div>':'')
+    +(D.cl.length?sec(t('mr_top_cli_prod'))+'<div class="mnscroll g5scr">'+D.cl.map(o=>card(MN_IC.person,o.c.name||'',(''+(o.c.alias||'')).trim()||t('mr_no_alias'),[[t('me_qty'),mnNum(o.q)],[t('mr_sales'),mnAmount(o.tot)],[t('svc_profit'),mnAmount(o.tot-o.cost)]])).join('')+'</div>':'')
     +'<div class="g5div"></div>'+sec(t('mr_sum_purch'))+'<div class="g5kv c2">'+kv(t('me_qty'),mnNum(D.pu.q))+kv(t('mr_purchases'),rmoney(D.pu.tot))+'</div>'
-    +(D.pv.length?sec(t('mr_top_prov_prod'))+'<div class="mnscroll g5scr">'+D.pv.map(o=>card(MN_IC.contacts,o.name,o.co,[[t('me_qty'),mnNum(o.q)],[t('mr_purchases'),mnAmount(o.tot)]])).join('')+'</div>':'')
+    +(D.pv.length?sec(t('mr_top_prov_prod'))+'<div class="mnscroll g5scr">'+D.pv.map(o=>card(MN_IC.contacts,o.name,(''+(o.co||'')).trim()||t('mr_no_company'),[[t('me_qty'),mnNum(o.q)],[t('mr_purchases'),mnAmount(o.tot)]])).join('')+'</div>':'')
     +'<div class="g5div"></div>'+sec(t('mr_merma'))+'<div class="g5kv c2">'+kv(t('me_qty'),mnNum(D.mm.q))+kv(t('total'),rmoney(D.mm.tot))+'</div></div>';
 }
 // Reporte categoría: ventas y ganancia por categoría del rango (filas grises con el ícono de categoría, lista corrida)
@@ -8075,12 +8692,12 @@ function repInventory(){const D=repInvData();if(!(state.products||[]).length)ret
   let sel='';if(!REP_SINGLE){const cats=g5Cats();   /* varios reportes juntos (sin botón redondo): el selector de antes */
     sel=`<div class="rsortbar"><select class="inp rcat" onchange="state.repTab=state.repTab||{};state.repTab.inventory=this.value;state.repMore={};render()"><option value="">${t('mr_all_products')}</option>${cats.map(c=>`<option value="${exEsc(c)}" ${c===D.cat?'selected':''}>${exEsc(c)}</option>`).join('')}</select></div>`;}
   /* resumen: se ven 3 columnas como Mi Negocio; las posibles ventas/ganancias quedan a la derecha (se deslizan) */
-  const sum='<div class="g5invsum"><div class="g5invsum-t">'+exEsc(D.cat||t('mr_all_products'))+'</div><div class="g5invk">'+[[t('g5_n_prod'),mnNum(D.T.n)],[t('g5_in_rsv'),mnNum(D.T.rsv)],[t('g5_inv_tot'),rmoney(D.T.inv)],[t('g5_pos_sales_t'),rmoney(D.T.pv)],[t('g5_pos_profit_t'),rmoney(D.T.pg)]].map(k=>'<div><span>'+exEsc(k[0])+'</span><b class="num">'+k[1]+'</b></div>').join('')+'</div></div>';
+  const sum='<div class="g5invsum"><div class="g5invsum-t">'+exEsc(D.cat?t('g5_cat_prefix')+D.cat:t('mr_all_products'))+'</div><div class="g5invk">'+[[t('g5_n_prod'),mnNum(D.T.n)],[t('g5_in_rsv'),mnNum(D.T.rsv)],[t('g5_inv_tot'),rmoney(D.T.inv)],[t('g5_pos_sales_t'),rmoney(D.T.pv)],[t('g5_pos_profit_t'),rmoney(D.T.pg)]].map(k=>'<div><span>'+exEsc(k[0])+'</span><b class="num">'+k[1]+'</b></div>').join('')+'</div></div>';
   const un='<div class="g5units"><div class="g5units-s">'+D.units.map(o=>'<div class="g5unit"><div class="g5unit-u">'+svgF(MN_IC.ruler)+'<span>'+exEsc(o.u)+'</span></div><div class="g5unit-v num"><span>#'+mnNum(o.q)+'</span><span>'+rmoney(o.inv)+'</span></div></div>').join('')+'</div></div>';
   repCsv('inventory',[[t('me_qty')],[t('mr_investment_s')],[t('mr_pos_sales_s')],[t('mr_pos_profit_s')]],D.l.map(p=>({t:mnName(p),c:[[null,+p.stock||0,'n'],[null,D.inv(p),'m'],[null,D.pv(p),'m'],[null,D.pv(p)-D.inv(p),'m']]})),{first:t('rc_product')});
   const lim=(state.repMore&&state.repMore.inventory)||60;   /* solo se arman las filas que se dibujan (de a 60, la lista corrida pide más) */
-  const rows={n:D.l.length,at:i=>{const p=D.l[i];return mnRow({img:saleProdImg(p,G5_BOXQ),lines:[p.key?'<span class="g5k">'+exEsc(p.key)+'</span>':'',exEsc(mnName(p))].filter(Boolean),
-    cols:[[exEsc(t('me_qty')),mnNum(+p.stock||0)],[exEsc(t('mr_investment_s')),mnAmount(D.inv(p))],[exEsc(t('g5_pos_sales')),mnAmount(D.pv(p))],[exEsc(t('g5_pos_profit')),mnAmount(D.pv(p)-D.inv(p))]],cls:'g5inv',badge:g5StockIcon(p)});}};   /* se arman solo las filas que se van mostrando */
+  const rows={n:D.l.length,at:i=>{const p=D.l[i];return mnRow({img:saleProdImg(p,G5_BOXQ),lines:['<span class="g5kl"><span class="g5k">'+exEsc(p.key||'')+'</span>'+g5StockIcon(p)+'</span>','<span class="g5nm">'+exEsc(mnName(p))+'</span>'],   /* mods174: ✓/⚠ en la línea de la clave */
+    cols:[[exEsc(t('me_qty')),mnNum(+p.stock||0)],[exEsc(t('mr_investment_s')),mnAmount(D.inv(p))],[exEsc(t('g5_pos_sales')),mnAmount(D.pv(p))],[exEsc(t('g5_pos_profit')),mnAmount(D.pv(p)-D.inv(p))]],cls:'g5inv'});}};   /* se arman solo las filas que se van mostrando */
   return sel+sum+un+(D.l.length?mnList('inventory',rows):repEmpty());}
 // 8) Etiquetas
 // Reporte etiquetas: cantidad de ventas, ventas y ganancia por etiqueta del rango
@@ -8266,7 +8883,7 @@ function abcPtr(ev,move){try{
 function pfChartHTML(l){
   const k=state.pfType||'v';const arr=l.slice().sort((x,y)=>BIN_COLL.compare(''+x.name,''+y.name));const vals=arr.map(o=>+o[k]||0);
   if(!vals.some(v=>v>0))return mpcEmpty();
-  return mpcBars('pay_forms',arr.map((o,i)=>({v:[vals[i]],tip:[o.name,money(vals[i])]})),k+'|'+mpcSig(arr,o=>o[k]));
+  return mpcBars('pay_forms',arr.map((o,i)=>({v:[vals[i]],tip:[o.name,money(Math.round(vals[i]))]   /* mods174: sin decimales como MN */})),k+'|'+mpcSig(arr,o=>o[k]));
 }
 function repABC(){const a=repABCData();if(!a)return repLoading();if(!a.length)return repEmpty();
   const head=REP_SINGLE?'':`<div class="rsortbar"><button class="rsort" data-act="mrep:abcinfo">${svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>')} ${t('mr_abc_what')}</button></div>`;   /* con un reporte el (i) va en la barra */
@@ -8283,8 +8900,8 @@ function repABC(){const a=repABCData();if(!a)return repLoading();if(!a.length)re
 // Registro de compras (como Mi Negocio): por fecha; "Por compra" = las compras del día con sus productos; "Por producto" = el historial de inventario de Mi Negocio de ese día
 function repPurchLog(){
   const day=state.repDay||todayISO();const tab=(state.repTab&&state.repTab.purch_log)||'prod';
-  const dayIn=REP_SINGLE?`<input autocomplete="off" type="date" id="rpDay" class="g7pl-day" value="${day}" tabindex="-1" aria-hidden="true">`
-    :`<div class="rvdates"><label class="rvdate"><span class="rvd-l">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('sale_date')}</span><input autocomplete="off" type="date" id="rpDay" value="${day}"></label></div>`;
+  const dayIn=REP_SINGLE?`<input autocomplete="off" type="date" id="rpDay" class="g7pl-day" value="${day}" max="${todayISO()}" tabindex="-1" aria-hidden="true">`
+    :`<div class="rvdates"><label class="rvdate"><span class="rvd-l">${svg('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>')} ${t('sale_date')}</span><input autocomplete="off" type="date" id="rpDay" value="${day}" max="${todayISO()}"></label></div>`;
   const top=dayIn+(REP_SINGLE?`<div class="g7pl-sub">${g7Tx('sub')}</div>`:'')+`<div class="mnchips g7pl-ch">${mnChip(g7Tx('prod'),tab==='prod','mrep:tab:purch_log:prod')}${mnChip(g7Tx('purch'),tab==='purch','mrep:tab:purch_log:purch')}</div>`;
   if(tab==='prod'){const H=repInvHist(day);if(!H)return top+repLoading();if(!H.length)return top+g7PlEmpty(g7Tx('noUpd'));
     const byKey={};(state.products||[]).forEach(p=>{if(p&&!p.del&&p.key!=null&&p.key!==''&&!byKey[''+p.key])byKey[''+p.key]=p;});
@@ -8302,7 +8919,7 @@ function repIncExpData(){const l=extrasLive().filter(m=>inR(m.date));const mk=ty
 function repIncExp(){const D=repIncExpData();const tab=(state.repTab&&state.repTab.inc_exp)||'in';const X=tab==='in'?D.inc:D.exp;
   const head=repDateHead({cls:'m10 g7ie-h'});
   const tabs=`<div class="rtabs mn big g7ie-t"><button class="${tab==='in'?'on':''}" data-act="mrep:tab:inc_exp:in">${t('mr_incomes')}</button><button class="${tab==='out'?'on':''}" data-act="mrep:tab:inc_exp:out">${t('mr_expenses')}</button></div>`;
-  if(!X.a.length)return head+tabs;
+  if(!X.a.length){if(REP_SINGLE&&(D.inc.a.length||D.exp.a.length))REP_CSV.inc_exp={name:t('rep_inc_exp'),head:[],rows:[],empty:1};return head+tabs;}   /* mods174: el ⋮ no salta al cambiar de pestaña */
   repCsv('inc_exp',[[t('qt_count')],[t('total')],['%']],X.a.map(o=>({t:o.name,c:[[null,'#'+o.n,''],[null,o.tot,'m'],[null,'%'+o.p,'']]})),{first:t('ex_cat'),total:[[null,'',''],[null,X.T,'m'],[null,'','']]});
   const ic=svgF(tab==='in'?G7_IC_PLUS:G7_IC_MINUS);
   return head+tabs+`<div class="g7ie-l">${X.a.map(o=>`<div class="g7ie-r${tab==='in'?' in':''}">${ic}<div class="g7ie-n">${exEsc(o.name)}</div><div class="g7ie-c num"># ${o.n}</div><div class="g7ie-m num">${rmoney(o.tot)}</div><div class="g7ie-b"><div style="width:${Math.max(0,Math.min(100,+o.p||0))}%"></div></div><div class="g7ie-p num">%${o.p}</div></div>`).join('')}</div>`;}
@@ -8316,7 +8933,7 @@ function repClientAgg(){return aggByName(repSalesR(),x=>x.client,(o,x)=>{o.n++;o
 // Reporte clientes: se busca un cliente registrado y se ve su resumen del rango (como Mi Negocio)
 function repCliDetail(c){const r=repEnsureRange();const S=(state.sales||[]).filter(s=>{if(!s||s.del||!inR(saleDate(s)))return false;const x=saleCli(s);return !!x&&x.id===c.id;});
   const open=s=>saleIsCredit(s)&&saleDueAmt(s)>0.5;const cred=S.filter(open),paid=S.filter(s=>!open(s));const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
-  const L=repLinesFor(r);let prods=null;if(L){const ids=new Set(S.map(s=>''+s.id));prods=repAggBy(L.filter(l=>ids.has(''+l.sid)),l=>l.svc?'s'+(''+l.name).toUpperCase():lineProdKey(l),l=>l.name).sort((a,b)=>BIN_COLL.compare(a.name,b.name));}
+  const L=repLinesFor(r);let prods=null;if(L){const ids=new Set(S.map(s=>''+s.id));prods=repAggBy(L.filter(l=>ids.has(''+l.sid)),l=>l.svc?'s'+(''+l.name).toUpperCase():lineProdKey(l),l=>l.name).sort(g8ProdOrd);}
   return {S:S.slice().sort((a,b)=>(saleDate(b)+(b.time||'')).localeCompare(saleDate(a)+(a.time||''))),nP:paid.length,nC:cred.length,tP:sum(paid,saleTotal),tC:sum(cred,saleTotal),pays:sum(cred,salePaidSum),due:sum(cred,saleDueAmt),prods};}
 function repClients(){   /* como Mi Negocio: buscador siempre arriba; con un cliente, UNA tarjeta (fechas, cliente, gráfica y 3 bandas) y los carruseles Ventas / Productos en ventas */
   const id=state.repPick&&state.repPick.clients;const c=id&&(state.clients||[]).find(x=>x&&''+x.id===''+id);
@@ -8347,7 +8964,7 @@ function repProvAgg(){return aggByName(repPurchR(),p=>p.provider,(o,p)=>{o.n++;o
 // Reporte proveedor: se busca un proveedor registrado y se ve su resumen del rango
 function repProvDetail(v){const r=repEnsureRange();const C=(state.purchases||[]).filter(p=>p&&!p.del&&inR(p.date)&&purProv(p)&&purProv(p).id===v.id);
   const open=p=>purchaseIsCredit(p)&&purchDueAmt(p)>0.5;const cred=C.filter(open),paid=C.filter(p=>!open(p));const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
-  const LP=repPLinesFor(r);let prods=null;if(LP){const ids=new Set(C.map(p=>''+p.id));prods=repAggBy(LP.filter(l=>ids.has(''+l.purId)),lineProdKey,l=>l.name).sort((a,b)=>BIN_COLL.compare(a.name,b.name));}
+  const LP=repPLinesFor(r);let prods=null;if(LP){const ids=new Set(C.map(p=>''+p.id));prods=repAggBy(LP.filter(l=>ids.has(''+l.purId)),lineProdKey,l=>l.name).sort(g8ProdOrd);}
   return {C:C.slice().sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''))||((+b.folio||0)-(+a.folio||0))),nP:paid.length,nC:cred.length,tP:sum(paid,p=>+p.total||0),tC:sum(cred,p=>+p.total||0),pays:sum(cred,purchasePaidSum),due:sum(cred,purchDueAmt),prods};}
 function repProvider(){   /* igual que Reporte clientes, sin gráfica (como Mi Negocio); el buscador no toma el foco solo */
   const id=state.repPick&&state.repPick.provider;const v=id&&(state.providers||[]).find(x=>x&&''+x.id===''+id);
@@ -8657,7 +9274,7 @@ function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLoca
     ...alphaLines(q.lines||[]).map(l=>(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')+' — $'+f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))),'',t('total').toUpperCase()+': $'+f(q.total),q.note?'\n'+q.note:'',cfg.msg?'\n'+cfg.msg:''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 async function quotePDF(){const q=quoteById(state.qtOpen);if(!q)return;openShareRecibo(q.id,'quote');}   /* mods169: "Cotización Registrada" como MN */
 // Reporte cotización: los productos de las cotizaciones (cantidad, total y ganancia), como Mi Negocio
-function repQuoteData(){const by={};quotesLive().forEach(q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
+function repQuoteData(){const by={};quotesLive().filter(q=>!MN_QT_VIGENTES||quoteStatus(q)==='open').forEach(   /* mods174: solo vigentes, como MN */q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
 function repQuote(){const a=repQuoteData();
   const T=repTotals(a);
   const strip=g6Strip([[t('me_qty'),'#'+mnNum(a.length)],[t('total'),rmoney(T.tot)],[t('svc_profit'),rmoney(T.tot-T.cost)]]);
@@ -12514,7 +13131,7 @@ function exitApp(){
 function navGuardSoon(){setTimeout(()=>{try{if(navSame(navCur(),NAVH.state))navPush({...navCur(),g:1});}catch(_){}},150);}   // 150 ms: la sección ya está pintada (requestAnimationFrame se detiene si la app no está visible)
 function navLayers(){
   const dev=document.getElementById('device');const L=[];if(dev.classList.contains('drawer-open'))L.push('drawer');
-  const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on')];if(dev.classList.contains('form-open'))list.push(document.getElementById('formscreen'));
+  const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on,.mndpdlg.on')];   /* mods170: el calendario también se cierra con atrás */if(dev.classList.contains('form-open'))list.push(document.getElementById('formscreen'));
   return L.concat(layerSort(list).reverse().map(e=>e.id));
 }
 function navCur(){return {s:state.screen,p:(state.profile&&state.profile.id)||'',L:navLayers()};}
@@ -12595,7 +13212,7 @@ function appReload(n){if((n|0)<20&&_syncPend()){setTimeout(()=>appReload((n|0)+1
 // La capa abierta que está encima (mayor z-index; a igual z-index, la última en el HTML)
 function layerSort(list){return list.sort((a,b)=>{const za=parseInt(getComputedStyle(a).zIndex)||0,zb=parseInt(getComputedStyle(b).zIndex)||0;if(za!==zb)return zb-za;return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?1:-1;});}   // de arriba hacia abajo
 function topLayer(){
-  const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on')];
+  const list=[...document.querySelectorAll('.histdlg.on,.sheetdlg.on,.permdlg.on,.mndpdlg.on')];   /* mods170: el calendario también se cierra con atrás */
   if(document.getElementById('device').classList.contains('form-open'))list.push(document.getElementById('formscreen'));
   if(!list.length)return null;
   return layerSort(list)[0];
@@ -12833,7 +13450,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016083841';
+const APP_VERSION='20261016112203';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

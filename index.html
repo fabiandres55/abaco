@@ -7498,7 +7498,7 @@ function mnRepHead(doc,o){
   if(o.from){mnNativeText(doc,t('mr_from')+': '+o.from+'       '+t('mr_to')+': '+o.to,30,y,14,'left',false,535);y+=24;}
   else if(o.date){mnNativeText(doc,o.dateTxt||(t('mr_date')+':'+o.date),30,y,14);y+=24;}
   else if(o.title)y+=30;
-  if(o.title){let title=String(o.title);if(LANG==='es'&&['rep_pay_forms','rep_category','rep_tags','rep_employees','rep_top_prod','rep_abc','rep_merma'].some(k=>t(k)===title))title=title.replace(/ (\S+)$/,'$1');mnNativeText(doc,title.replace(/\n/g,''),30,y,12);y+=22;}
+  if(o.title){const title=String(o.title).replace(/\s*\n\s*/g,' ').replace(/ {2,}/g,' ').trim();mnNativeText(doc,title,30,y,12);y+=22;}   /* mods167: con su espacio (MN junta las dos últimas palabras: error que no se copia) */
   return y;
 }
 function mnRepTable(doc,y,head,rows,o){
@@ -7737,7 +7737,7 @@ async function mnNativeDebt(JS,purchase){
     y=mnNativeNeed(doc,y+(i?20:40),80);
     y=mnRepTable(doc,y,null,[[t(purchase?'cp_provider':'sale_client')+':'+(purchase?r.provider||'':r.client||'')]],{w:[534],fs:10,bold:()=>B});
     y=mnRepTable(doc,y,null,[[t('sale_folio')+':'+(r.folio||r.id),t('sale_date')+':'+(r.date||'')]],{w:[267,267],fs:10,al:['left','left'],bold:()=>B});
-    if(r.note)y=mnNativeParagraph(doc,r.note,y,12,535,4);
+    if(purchase&&r.note)y=mnNativeParagraph(doc,r.note,y,12,535,4);   /* mods167: Ventas por Cobrar sin la nota, como MN */
     y=mnRepTable(doc,y,[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()],
       (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).map(l=>[l.name||'',l.qty===''?'':fmtQty(l.qty),l.price===''?'':mnAmount(l.price),l.subtotal===''?'':mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]),
       {w:[214,107,107,107],fs:13,hfs:10,nameCol:0,product:true,bold:(row,c,sec)=>B&&(sec==='head'||c>0)});
@@ -12833,7 +12833,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016052223';
+const APP_VERSION='20261016074413';
 // Abanico abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

@@ -2797,6 +2797,10 @@ html[data-theme="dark"] #screen[data-s="recibo"],html[data-theme="dark"] #mnidlg
 #mnidlg .mni-d.nt{padding:15.3px 0 13.5px 10px}
 #mnidlg .mni-d.nt textarea.mni-din{width:min(248.5px,calc(100% - 64.4px));height:90.3px}
 /* mods183: el producto se llama Relax (antes Abanico) — ADR-008 */
+/* mods184: logo de Relax (ícono en recuadro blanco redondeado) */
+.mkimg{display:block;object-fit:cover;border-radius:24%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.dh .logo .mk.mkimg{width:38px;height:38px}
+.ologo .mk.mkimg{width:104px;height:104px}
 </style>
 
 <div class="device" id="device">
@@ -2950,7 +2954,7 @@ html[data-theme="dark"] #screen[data-s="recibo"],html[data-theme="dark"] #mnidlg
         <rect x="66" y="48" width="4" height="4" fill="#d7dade"/><rect x="74" y="49" width="20" height="2.5" fill="#c3c7cc"/>
         <path d="M92 24l6 30 5-4-4-27z" fill="#e0a92e"/><path d="M92 24l7 2-1 4-6-2z" fill="#c98f22"/>
       </svg>
-      <div class="logo"><svg class="mk" viewBox="0 0 48 48"><rect x="4" y="6" width="40" height="36" rx="7" fill="none" stroke="#fff" stroke-width="3"/><line x1="15" y1="6" x2="15" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="24" y1="6" x2="24" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><line x1="33" y1="6" x2="33" y2="42" stroke="#fff" stroke-width="2" opacity=".5"/><circle class="bead" cx="15" cy="16" r="3.8"/><circle class="bead" cx="24" cy="31" r="3.8"/><circle class="bead" cx="33" cy="21" r="3.8"/></svg><span class="nm">Relax</span></div>
+      <div class="logo"><img class="mk mkimg" src="relax-icon-256.png" alt=""><span class="nm">Relax</span></div>
       <div class="dstoreav" id="drawerLogo" hidden></div>
       <div class="shop" id="drawerShop">Relax</div>
       <div class="sub"><span class="on"></span> <span id="drawerSync"></span></div>
@@ -12111,7 +12115,7 @@ function renderOnbo(){mnPdfCloseAll();   /* mods161: la ventana de exportar / el
   const s=state.onbo.step,tmp=state.onbo.tmp,role=tmp.role;let h='';
   const fld=(id,label,ph,val,type,ac)=>`<div class="fld"><span class="fl">${label}</span><input class="inp${type==='mask'?' pinmask':''}" id="${id}" placeholder="${ph}" ${type&&type!=='mask'?`type="${type}"`:''} autocomplete="${ac||'off'}" value="${val||''}"></div>`;
   if(s==='auth'){
-    h=`<div style="margin:14px 0 8px"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Relax</div><div class="osub" style="text-align:center;margin-top:2px">${t('au_gate_sub')}</div></div></div>
+    h=`<div style="margin:14px 0 8px"><div class="ologo"><img class="mk mkimg" src="relax-icon-256.png" alt=""><div class="nm">Relax</div><div class="osub" style="text-align:center;margin-top:2px">${t('au_gate_sub')}</div></div></div>
     <form id="auForm" method="post" action="#" autocomplete="on" novalidate style="display:contents">
     ${fld('au_email',t('au_email'),t('au_email_ph'),state.onbo.email||'','email','username')}
     ${fld('au_pass',t('au_pass'),t('au_pass_ph'),'','password','current-password')}
@@ -12127,7 +12131,7 @@ function renderOnbo(){mnPdfCloseAll();   /* mods161: la ventana de exportar / el
     <div style="text-align:center;margin-top:16px"><span data-act="logout" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">${t('au_logout')}</span></div>
     <div class="au-devby"><span>${t('au_devby')}</span><img src="complex-logo.png" alt="Complex_" loading="lazy"></div>`;
   }else if(s==='welcome'){
-    h=`<div style="margin:auto 0"><div class="ologo"><svg class="mk" viewBox="0 0 48 48">${OB_ABACUS}</svg><div class="nm">Relax</div><div class="osub" style="text-align:center;margin-top:2px">${t('ob_role_sub')}</div></div></div>
+    h=`<div style="margin:auto 0"><div class="ologo"><img class="mk mkimg" src="relax-icon-256.png" alt=""><div class="nm">Relax</div><div class="osub" style="text-align:center;margin-top:2px">${t('ob_role_sub')}</div></div></div>
     <button class="btn obtn" data-act="ob:start">${t('ob_start')}</button>`;
   }else if(s==='role'){
     h=`<h2>${t('ob_role_q')}</h2><div class="osub">${t('ob_role_sub')}</div>
@@ -13718,7 +13722,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261016213419';
+const APP_VERSION='20261016214325';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

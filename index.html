@@ -2831,6 +2831,11 @@ html[data-theme="dark"] #pdfviewdlg{--fl-dlg:var(--card)}
 .g3rd-g2{margin-top:11px}
 .g3rd-tag{margin-top:20px}
 .g3rd-tag>svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6}
+/* mods187: ventanas flotantes (Recibo / Ticket y vista previa) bien en cualquier pantalla */
+#sharedlg,#pdfviewdlg{position:fixed;inset:0;--gut:0px}
+#sharedlg .sheetcard{padding-left:0!important;padding-right:0!important;box-sizing:border-box}
+#pdfviewdlg>.histbar,#pdfviewdlg>.pv-wrap,#pdfviewdlg>.pvfoot{width:min(720px,100%)}
+@media (max-height:520px){#pdfviewdlg>.pv-wrap{height:calc(100% - 112px)}#pdfviewdlg>.pvfoot{padding:6px 14px 8px}#pdfviewdlg .pvprint{height:38px}}
 </style>
 
 <div class="device" id="device">
@@ -13845,7 +13850,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261017062600';
+const APP_VERSION='20261017141537';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

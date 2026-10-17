@@ -1,4 +1,4 @@
-// sw.js — Abanico abre sin internet: guarda la app (index.html), los íconos y las librerías.
+// sw.js — Relax abre sin internet: guarda la app (index.html), los íconos y las librerías.
 // Los datos de la tienda no pasan por aquí: siguen en el equipo (IndexedDB) y en la nube (Supabase).
 const CACHE='abanico-app-v4';
 const CORE=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
@@ -26,7 +26,7 @@ self.addEventListener('fetch',e=>{
       try{const r=await Promise.race([net,wait(6000)]);if(r&&(r.ok||r.type==='opaqueredirect'))return r;}catch(_){}   // solo una respuesta buena: una página de error del servidor (404/500…) no reemplaza la app guardada
       const m=(await c.match('./index.html'))||(await c.match('./'));if(m)return m;
       try{const r=await net;if(r)return r;}catch(_){}   // nada guardado aún (primera vez): lo que responda la red
-      return new Response('<meta name="viewport" content="width=device-width"><p style="font-family:sans-serif;padding:24px">Abanico necesita internet la primera vez que se abre.</p>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8'}});})());
+      return new Response('<meta name="viewport" content="width=device-width"><p style="font-family:sans-serif;padding:24px">Relax necesita internet la primera vez que se abre.</p>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8'}});})());
     return;
   }
   if(url.origin===location.origin){

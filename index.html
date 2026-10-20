@@ -5855,7 +5855,7 @@ function saveSale(){if(salesLoadingBlock())return;
   state.cart={};state.cartPrice={};state.scart={};state.scPrice={};state.scName={};state.cartAdj={};state.saleDate='';state.saleAddr='';state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';state.saleStatus='pagado';state.saleInit='';state.saleSched=[];state.salePayCleared=false;
   saleNotify(sale);
   if(opts().notifyCli&&sale.client&&!cliByName(sale.client)){const nm=sale.client;setTimeout(async()=>{if(await appConfirm(ti('cfg_reg_cli',{n:nm}))){state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e3),name:nm,alias:'',phone:'',email:'',address:'',notes:''});persist();toast(t('cli_saved'));}},400);}
-  state.screen='ventas';persist();persistSales();render();toast(`${t('sale_saved')} #${fol} · ${money(tot)}`);imprAuto(sale);   /* mods156 */
+  state.screen='ventas';persist();persistSales();prnPre(sale);render();toast(`${t('sale_saved')} #${fol} · ${money(tot)}`);imprAuto(sale);   /* mods204: prnPre */   /* mods156 */
   try{openShareRecibo(sale.id);}catch(e){console.error('recibo al guardar',e);}   /* mods166: "Venta Registrada" como MN */
 }
 async function saleCancel(){if(!state.quoteMode&&!state.editSale&&saleHas()&&!await appConfirm(t('sale_abort_q')))return;   // como Mi Negocio: "¿Anular venta?"
@@ -11635,7 +11635,8 @@ function recKey(key,x){if(key==='units'||key==='paymethods'||key==='saletags')re
 const BASE={};const BASES_LOADED={};
 function baseOf(id,key){return BASE[id+'|'+key]||null;}
 function mkBase(key,data){if(Array.isArray(data)){const map=new Map();data.forEach(x=>{const k=recKey(key,x);if(k!=null)map.set(k,JSON.stringify(x));});return {arr:true,map,json:JSON.stringify(data)};}return {arr:false,obj:data||{},json:JSON.stringify(data||{})};}
-function setBase(id,key,data,noSave){BASE[id+'|'+key]=mkBase(key,data);if(!noSave)try{idbKvPut('base:'+id+'|'+key,data);}catch(_){}}
+const BASE_TS={};   /* mods204: hora (updated_at) de la versión de la nube que es la base; solo se fija donde se sabe con certeza */
+function setBase(id,key,data,noSave){delete BASE_TS[id+'|'+key];BASE[id+'|'+key]=mkBase(key,data);if(!noSave)try{idbKvPut('base:'+id+'|'+key,data);}catch(_){}}
 const BASES_LOADING={};   /* la carga de las bases de una tienda es UNA sola y todos la esperan (antes la 2.ª subida seguía sin base y ganaba lo local) */
 async function loadBases(id){if(!id||BASES_LOADED[id])return;if(BASES_LOADING[id])return BASES_LOADING[id];
   const ep=()=>wipeSeen(id)+':'+(RESTORE_EPOCH[id]||0),e0=ep();
@@ -11663,7 +11664,8 @@ function wtokSet(id,key,ts,lj,same){WTOK_MEM[id+'|'+key]={ts,lj};try{localStorag
 function wtokClear(id,key,ot){if(!ot)delete WTOK_MEM[id+'|'+key];const t=wtokRead(id,key);const okk='abanico.wtokok.'+id+'|'+key;if(!t){try{localStorage.removeItem(okk);}catch(_){}return;}if(ot?t.ts!==ot.ts||t.inst!==ot.inst:t.inst!==INST)return;try{localStorage.removeItem('abanico.wtok.'+id+'|'+key);localStorage.removeItem(okk);}catch(_){}try{idbKvPut('wtok:'+id+'|'+key,null);}catch(_){}}
 function wtokOkGet(id,key){try{return localStorage.getItem('abanico.wtokok.'+id+'|'+key);}catch(_){return null;}}   /* hora de la subida que la nube CONFIRMÓ (aún sin terminar aquí) */
 function wtokConfirm(id,key,ts){const m=WTOK_MEM[id+'|'+key];if(m&&m.ts===ts)m.ok=true;try{localStorage.setItem('abanico.wtokok.'+id+'|'+key,ts);}catch(_){}}   /* ot: la de una copia anterior; sin ot, solo la propia (la de otra copia abierta no se borra) */
-async function sbPullDocTs(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?{d:r.data.data,ts:r.data.updated_at}:{d:null,ts:null};}catch(e){return null;}}   /* como sbPullDoc, con la hora; null = no se pudo bajar */
+async function sbPullDocTs(storeId,key){{const kk=storeId+'|'+key,c=SB_DIN[kk];if(c){delete SB_DIN[kk];if(Date.now()-c.at<15000)return {d:c.d,ts:c.ts};}}   /* mods204: rearmado del aviso (sin bajarlo) */
+  try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?{d:r.data.data,ts:r.data.updated_at}:{d:null,ts:null};}catch(e){return null;}}   /* como sbPullDoc, con la hora; null = no se pudo bajar */
 /* ---- Lista protegida vaciada A PROPÓSITO (borrar el último producto, cliente o venta): esa lista vacía sí se sube ----
    Se guarda en el equipo por si la app se recarga antes de subir; se borra cuando esa lista sube o deja de estar vacía. */
 function sbIntentEmpty(key){const id=currentDataId();if(!id)return;const mark=()=>{const d=sbDocData(key);if(!Array.isArray(d)||d.length)return false;try{const o=JSON.parse(localStorage.getItem('abanico.emptyok.'+id)||'{}');o[key]=Date.now();localStorage.setItem('abanico.emptyok.'+id,JSON.stringify(o));}catch(_){}return true;};if(!mark())Promise.resolve().then(()=>{if(currentDataId()===id)mark();});}   /* solo si de verdad quedó vacía (sirve llamarla antes o después de quitar el registro) */
@@ -11672,7 +11674,7 @@ function sbIntentHas(id,key){try{return !!JSON.parse(localStorage.getItem('abani
 function canonJ(x){return JSON.stringify(x,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((o,kk)=>(o[kk]=v[kk],o),{}):v);}
 function sameRecJ(a,b){if(a===b)return true;if(a==null||b==null)return false;try{return canonJ(JSON.parse(a))===canonJ(JSON.parse(b));}catch(_){return false;}}
 function sbIntentClear(id,key,t0){try{const o=JSON.parse(localStorage.getItem('abanico.emptyok.'+id)||'{}');if(!o[key]||(t0!=null&&!(o[key]<t0)))return;delete o[key];if(Object.keys(o).length)localStorage.setItem('abanico.emptyok.'+id,JSON.stringify(o));else localStorage.removeItem('abanico.emptyok.'+id);}catch(_){}}   /* t0: solo si lo subido se tomó después de vaciarla */
-function clearBases(id){syncKeys().forEach(key=>{delete BASE[id+'|'+key];try{idbKvPut('base:'+id+'|'+key,null);}catch(_){}});}
+function clearBases(id){syncKeys().forEach(key=>{delete BASE[id+'|'+key];delete BASE_TS[id+'|'+key];try{idbKvPut('base:'+id+'|'+key,null);}catch(_){}});}
 function mergeList(b,l,r){const bs=(b||[]).map(x=>JSON.stringify(x)),ls=l.map(x=>JSON.stringify(x));const res=r.slice();const rs=res.map(x=>JSON.stringify(x));
   ls.forEach((x,i)=>{if(!bs.includes(x)&&!rs.includes(x))res.push(l[i]);});
   return res.filter(x=>{const j=JSON.stringify(x);return !(bs.includes(j)&&!ls.includes(j));});}
@@ -11734,7 +11736,7 @@ function sbApplyRemote(id,key,remote,notify,rts){
   if(!b)merged=pend?mergeDoc(id,key,local,remote,true):remote;   // sin base: adoptar la nube (salvo cambios locales pendientes)
   else merged=mergeDoc(id,key,local,remote);
   if(notify&&b&&key==='sales'&&Array.isArray(merged))onRemoteSales(merged);
-  setBase(id,key,remote);setStateDoc(key,merged,id);if(rts!=null)LIVE_TS[key]=rts;   /* visto solo cuando de verdad se aplicó */
+  setBase(id,key,remote);if(rts!=null)BASE_TS[id+'|'+key]=rts;setStateDoc(key,merged,id);if(rts!=null)LIVE_TS[key]=rts;   /* visto solo cuando de verdad se aplicó */
   if(Array.isArray(merged)&&merged.length)sbIntentClear(id,key);   /* la lista ya no está vacía: la nota de "vaciada a propósito" ya no vale */
   return JSON.stringify(merged)!==JSON.stringify(remote);
 }
@@ -11749,7 +11751,43 @@ async function sbSyncWrite(sb,id,key){
   try{return await sbSyncWriteOne(sb,id,key);}
   finally{WRITING[key]--;rel();if(WLOCK[key]===chain)delete WLOCK[key];}
 }
+/* ===== mods204: el cambio dentro del aviso en tiempo real =====
+   {k:clave, p:versión anterior (updated_at), t:versión nueva, n:cuántos registros, h:huella del orden de las claves,
+    c:[[posición, registro nuevo o cambiado]…], x:[claves borradas]}. Solo listas; si pesa más de ~100 KB no se manda (se baja como antes).
+   Sale ANTES de subir (pre:1, para que el otro equipo lo vea ya; la subida tarda lo que tarde el 1,3 MB por la red del celular) y, cuando
+   la nube lo acepta, otro aviso "confirmado" (ok:hora). Quien lo recibió lo aplica como la versión nueva de la nube (PROV); si la subida
+   no llega a la nube (sin señal, otro equipo escribió en medio), la revisión normal lo corrige: la versión real de la nube manda. */
+const SB_DELTA={},SB_DIN={},FASTMISS={},EARLY={},PROV={};
+function sbProvHold(id,k){const p=PROV[id+'|'+k];return !!p&&Date.now()-p.at<15000&&tsSame(LIVE_TS[k],p.t);}   /* aplicado "antes de subir", sin confirmar aún */
+function sbKeysHash(key,arr){let h=0x811c9dc5;for(const x of arr){const k=recKey(key,x);const s=k==null?'\u0000':k;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}h^=10;h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+function sbMkDelta(key,remote,merged,prevTs,ts,rmap){
+  if(!prevTs||!Array.isArray(remote)||!Array.isArray(merged)||!SB_CHAN)return null;
+  let rm=rmap;if(!rm){rm=new Map();for(const x of remote){const k=recKey(key,x);if(k==null||rm.has(k))return null;rm.set(k,JSON.stringify(x));}}   /* rmap: el de la base (ya en texto) */
+  const c=[],seen=new Set();let len=0;
+  for(let i=0;i<merged.length;i++){const x=merged[i],k=recKey(key,x);if(k==null||seen.has(k))return null;seen.add(k);const j=JSON.stringify(x);if(rm.get(k)!==j){c.push([i,x]);len+=j.length+12;if(len>100000)return null;}}
+  const xd=[];rm.forEach((v,k)=>{if(!seen.has(k))xd.push(k);});if(JSON.stringify(xd).length>20000)return null;
+  return {k:key,p:prevTs,t:ts,n:merged.length,h:sbKeysHash(key,merged),c,x:xd,at:Date.now()};}
+function sbDeltaApply(key,base,D){
+  if(!Array.isArray(base)||!D||!Array.isArray(D.c)||!Array.isArray(D.x))return null;
+  const drop=new Set(D.x);D.c.forEach(([i,x])=>{const k=recKey(key,x);if(k!=null)drop.add(k);});
+  const kept=base.filter(x=>{const k=recKey(key,x);return k!=null&&!drop.has(k);});
+  if(kept.length+D.c.length!==D.n)return null;
+  const out=new Array(D.n),at=new Map(D.c.map(([i,x])=>[i,x]));let q=0;
+  for(let i=0;i<D.n;i++){if(at.has(i))out[i]=at.get(i);else out[i]=kept[q++];}
+  if(q!==kept.length||out.some(x=>x===undefined)||sbKeysHash(key,out)!==D.h)return null;
+  return out;}
+/* llegó un aviso con el cambio: se rearma el documento sobre la base (si es exactamente la versión anterior) y queda listo para aplicarlo */
+function sbDeltaIn(id,D){try{
+  if(!D||!D.k||!D.t||id!==currentDataId()||!syncKeys().includes(D.k))return;const kk=id+'|'+D.k;let base=null;
+  const c=SB_DIN[kk];if(c&&tsSame(c.ts,D.p)&&Date.now()-c.at<15000)base=c.d.slice();   // dos avisos seguidos: sobre el anterior aún sin aplicar
+  else{const b=baseOf(id,D.k);if(b&&b.arr&&BASE_TS[kk]&&tsSame(BASE_TS[kk],D.p))base=JSON.parse(b.json);}
+  const d=base?sbDeltaApply(D.k,base,D):null;
+  if(d)SB_DIN[kk]={ts:D.t,d,at:Date.now()};else delete SB_DIN[kk];
+  if(d&&D.pre)PROV[kk]={t:D.t,at:Date.now()};else delete PROV[kk];
+}catch(_){try{delete SB_DIN[id+'|'+D.k];}catch(__){}}}
 async function sbSyncWriteOne(sb,id,key){
+  delete SB_DELTA[id+'|'+key];
+  for(let i=0;i<80&&sbProvHold(id,key);i++)await new Promise(r=>setTimeout(r,100));   /* mods204: llegó un cambio "antes de subir" de otro equipo: se espera su confirmación (máx. 8 s) para no escribir encima */
   await loadBases(id);if(key==='sales')await salesReady(id);
   let landed=false;   /* se terminó aquí una subida anterior que sí había llegado */
   for(let attempt=0;attempt<6;attempt++){
@@ -11759,9 +11797,12 @@ async function sbSyncWriteOne(sb,id,key){
     if(Array.isArray(local)&&local.length)sbIntentClear(id,key,t0);   /* la lista ya no está vacía: la nota de "vaciada a propósito" ya no vale */
     const lj=JSON.stringify(local);const b=baseOf(id,key);
     if(b&&b.json===lj&&!wtokGet(id,key)){sbIntentClear(id,key,t0);return {ok:true,skip:!landed};}   // sin cambios locales respecto a la nube (con una subida sin confirmar, antes se mira la nube); nada que subir: la nota se borra
-    const r=await sb.from('store_docs').select('data,updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
+    /* mods204: subida directa — la base es la versión de la nube con hora BASE_TS: se sube sin bajarla (la condición updated_at la protege) */
+    const bts=BASE_TS[id+'|'+key],fast=attempt===0&&!landed&&!!b&&!!bts&&!wtokGet(id,key)&&!restoreOw(id).has(key);
+    if(!fast&&FASTMISS[key]){delete FASTMISS[key];if(await sbCheckWipe(id,sb,true))return {ok:true,skip:true};}   /* la subida directa no entró: ¿se vació la tienda? (la pregunta que se saltó) */
+    const r=fast?{data:{data:JSON.parse(b.json),updated_at:bts}}:await sb.from('store_docs').select('data,updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
     if(r&&r.error)throw r.error;
-    const row=r&&r.data;const remote=row?row.data:null;const prevTs=row?row.updated_at:null;
+    const row=r&&r.data;const remote=row?row.data:null;const prevTs=row?row.updated_at:null;if(fast)FASTMISS[key]=1;
     if(!row&&b&&await sbCheckWipe(id,sb,true))return {ok:true,skip:true};   /* el documento ya no existe en la nube pero este equipo lo conocía: ¿se vació o restauró? */
     {const wm=WTOK_MEM[id+'|'+key],ot=wm?null:wtokRead(id,key);const tk=wm?wm.ts:(wtokOrphan(ot)?ot.ts:null);   /* la propia, o la de una copia anterior (la de otra copia abierta no se toca) */
      const _conf=!!tk&&wtokOkGet(id,key)===tk;   /* la nube la confirmó: se termina aunque otro equipo haya escrito encima */
@@ -11769,7 +11810,7 @@ async function sbSyncWriteOne(sb,id,key){
       let wl=wm?wm.lj:null;
       if(wl==null){const v=await Promise.race([idbKvGet('wtok:'+id+'|'+key),new Promise(r=>setTimeout(r,3000))]);if(v&&v.ts===tk)wl=typeof v.lj==='string'?v.lj:((v.same&&tsSame(prevTs,tk))?JSON.stringify(remote):null);}   /* "igual a lo local" solo vale si la nube sigue siendo nuestra subida */
       if(wl!=null){if(sbHoldApply())await sbWaitHold(300000);if(id!==currentDataId())throw new Error('store-changed');   /* se cambió de tienda: queda pendiente y se termina al volver */
-        LAST_W[key]=null;setBase(id,key,remote);const now=sbDocData(key);const tmpB=mkBase(key,JSON.parse(wl));
+        LAST_W[key]=null;setBase(id,key,remote);if(prevTs)BASE_TS[id+'|'+key]=prevTs;const now=sbDocData(key);const tmpB=mkBase(key,JSON.parse(wl));
         const fin=Array.isArray(remote)?mergeArr(key,tmpB.map,Array.isArray(now)?now:[],remote):mergeRec(tmpB.obj||{},now||{},remote);
         SYNC_APPLYING=true;try{setStateDoc(key,fin,id);persistLocal();}finally{SYNC_APPLYING=false;}
         wtokClear(id,key,ot);LIVE_TS[key]=prevTs;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;if(restoreOw(id).has(key))restoreOwDone(id,key);if(Array.isArray(fin)&&(fin.length||!(Array.isArray(remote)&&remote.length)))sbIntentClear(id,key);
@@ -11780,7 +11821,9 @@ async function sbSyncWriteOne(sb,id,key){
     PL_WM++;let merged0;try{merged0=(row&&!ow)?mergeDoc(id,key,loc,remote,!b):loc;}finally{PL_WM--;}   /* mods150: fusión de subida (candado de la nube) */
     const mj=JSON.stringify(merged0);const merged=JSON.parse(mj);   /* copia fija: lo que se manda es lo que queda como base */
     if(!ow&&CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length&&!sbIntentHas(id,key))return {ok:false,recover:true};   /* vacía sin que el usuario la vaciara (borrado local, daño): se trae la nube */
-    const ts=sbNewTs();let w;LAST_W[key]={ts:ts.slice(0,23)+'Z',lj,merged,mj};   /* la subida se reconoce por su hora (con microsegundos al azar) */
+    const ts=sbNewTs();let w;LAST_W[key]={ts:ts.slice(0,23)+'Z',lj,merged,mj};
+    {const kk=id+'|'+key;delete EARLY[kk];try{if(SB_CHAN&&SB_CHAN_ID===id&&row){const D=sbMkDelta(key,remote,merged,prevTs,ts,fast?b.map:null);
+      if(D){delete D.at;D.pre=1;SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:[],d:D}});EARLY[kk]=ts;}}}catch(_){}}   /* mods204: keys:[] → un equipo sin mods204 no baja nada todavía (lo hará con el "confirmado") */   /* la subida se reconoce por su hora (con microsegundos al azar) */
     await Promise.race([wtokSet(id,key,ts,lj,mj===lj),new Promise(r=>setTimeout(r,3000))]);   /* la marca queda guardada ANTES de mandar: si la respuesta se pierde o la app se cierra, se reconoce después */
     if(row){
       w=await sb.from('store_docs').update({data:merged,updated_at:ts}).eq('store_id',id).eq('doc_key',key).eq('updated_at',prevTs).select('doc_key');
@@ -11794,7 +11837,9 @@ async function sbSyncWriteOne(sb,id,key){
     wtokConfirm(id,key,ts);   /* SÍ quedó: si se termina después (pregunta abierta, cambio de tienda, app cerrada), se reconoce aunque otro equipo escriba encima */
     if(mj!==lj&&id===currentDataId()&&sbHoldApply())await sbWaitHold(300000);   /* llegó algo de otro equipo y hay una pregunta o el formulario abierto: se refleja al cerrarse (si la app se cierra antes, la marca guardada lo termina) */
     if(mj!==lj&&id!==currentDataId()){LAST_W[key]=null;return {ok:true};}   /* se cambió de tienda: la marca guardada lo termina al volver (antes la base nueva con lo local viejo borraba lo de otros equipos) */
-    setBase(id,key,merged);LAST_W[key]=null;wtokClear(id,key);sbIntentClear(id,key,t0);LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;if(ow)restoreOwDone(id,key);   /* marca: lo que se leyó antes de esto puede estar viejo */
+    delete FASTMISS[key];{const kk=id+'|'+key;if(EARLY[kk]===ts)SB_DELTA[kk]={k:key,ok:ts,at:Date.now()};   /* mods204: el cambio ya salió antes de subir → ahora solo "confirmado" */
+      else try{SB_DELTA[kk]=sbMkDelta(key,remote,merged,prevTs,ts,fast?b.map:null);}catch(_){delete SB_DELTA[kk];}delete EARLY[kk];}   /* mods204: el cambio va en el aviso */
+    setBase(id,key,merged);BASE_TS[id+'|'+key]=ts;LAST_W[key]=null;wtokClear(id,key);sbIntentClear(id,key,t0);LIVE_TS[key]=ts;WRITE_SEQ[key]=(WRITE_SEQ[key]||0)+1;if(ow)restoreOwDone(id,key);   /* marca: lo que se leyó antes de esto puede estar viejo */
     if(mj!==lj&&id===currentDataId()){   // llegó algo de otro dispositivo: reflejarlo aquí sin perder cambios hechos mientras tanto
       const now=sbDocData(key);let fin=JSON.parse(mj);
       if(JSON.stringify(now)!==lj){const tmpB=mkBase(key,JSON.parse(lj));fin=Array.isArray(merged)?mergeArr(key,tmpB.map,now,merged):mergeRec(tmpB.obj||{},now,merged);}
@@ -11932,7 +11977,8 @@ function sbPushDoc(storeId,key,data){
   SB_TIMER[k]=setTimeout(async()=>{const p=SB_PENDING[k];if(!p)return;
     try{const sb=await sbInit();
       if(!sb||!sbOnline()){sbMarkDirty(p.storeId,p.key);if(SB_PENDING[k]===p&&p.storeId===currentDataId())delete SB_PENDING[k];return;}   // sin conexión → queda pendiente (como pendiente, no en la cola)
-      if(await sbCheckWipe(p.storeId,sb)){delete SB_PENDING[k];return;}   // se vació en otro dispositivo: no revivir datos viejos
+      {const direct=p.storeId===currentDataId()&&syncKeys().includes(p.key)&&!!BASE_TS[k]&&!!baseOf(p.storeId,p.key)&&!wtokGet(p.storeId,p.key);   /* mods204 */
+       if(direct)sbCheckWipe(p.storeId,sb).catch(()=>{});else if(await sbCheckWipe(p.storeId,sb)){delete SB_PENDING[k];return;}}   // se vació en otro dispositivo: no revivir datos viejos
       if(p.storeId===currentDataId()&&syncKeys().includes(p.key)){
         const res=await sbSyncWrite(sb,p.storeId,p.key);
         if(res.recover){if(SB_PENDING[k]===p){delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);await sbRecoverFromCloud(p.storeId,p.key);}return;}
@@ -11947,7 +11993,7 @@ function sbPushDoc(storeId,key,data){
       if(SB_PENDING[k]===p){delete SB_PENDING[k];sbClearDirty(p.storeId,p.key);}   /* mods148: solo la espera propia */
       if(p.storeId===currentDataId())sbBroadcast(p.key);
     }catch(e){sbMarkDirty(p.storeId,p.key);if(SB_PENDING[k]===p&&p.storeId===currentDataId())delete SB_PENDING[k];}   // falló la subida → queda pendiente para reintentar
-  },700);
+  },key==='sales'?100:300);   /* mods204: antes 700 ms (la venta, la que el otro equipo espera, sale primero) */
 }
 async function sbPullDoc(storeId,key){try{const sb=await sbInit();if(!sb)return null;const r=await sb.from('store_docs').select('data').eq('store_id',storeId).eq('doc_key',key).maybeSingle();if(r.error)return null;return r.data?r.data.data:null;}catch(e){return null;}}
 /* ---- Archivo crudo del .mn en la nube: una fila por tabla (raw:<tabla>) + índice ---- */
@@ -12371,16 +12417,19 @@ function imprBoxAct(a,v){if(a==='ipm'){if(!['auto','preguntar','no'].includes(v)
    dibuja al ancho del papel (80 mm = 576 puntos, 58 mm = 384) y va como imagen ESC/POS (GS v 0) + corte: sale igual que el PDF.
    Formato normal → impresora estándar: el PDF de la hoja tal cual (el puente lo imprime con el sistema, sin modo raw).
    Por el diálogo del sistema: el mismo PDF; @page toma el tamaño de su hoja (ticket = 219 pt de ancho, normal = carta). */
+let PV_PDFW=null;   /* mods204: un solo "trabajador" de pdf.js para los tickets (crear uno por ticket costaba ≈0,45 s) */
 async function escposTicketRaster(sale,c){c=c||imprCfg();const r=await buildSaleTicketBlob(sale);if(!r||!r.blob)throw new Error(t('rc_none'));
   const dots=c.ancho===80?576:384,L=await pvTimeout(pvLib(),20000);
-  const task=L.getDocument({data:new Uint8Array(await r.blob.arrayBuffer()),isOffscreenCanvasSupported:!pvWebKit(),verbosity:0});
+  let wk=null;try{if(L.PDFWorker){if(!PV_PDFW||PV_PDFW.destroyed)PV_PDFW=new L.PDFWorker();wk=PV_PDFW;}}catch(_){wk=null;PV_PDFW=null;}
+  const task=L.getDocument({data:new Uint8Array(await r.blob.arrayBuffer()),isOffscreenCanvasSupported:!pvWebKit(),verbosity:0,...(wk?{worker:wk}:{})});
   const B=[];for(let k=0;k<256;k++)B.push(0);B.push(0x1B,0x40);for(let k=0;k<32;k++)B.push(0);   /* mods191: la impresora pierde los primeros ~60 bytes de cada trabajo (al despertar): 256 NUL antes de ESC @ y 32 después */
-  try{const doc=await pvTimeout(task.promise,30000);
+  try{let doc;try{doc=await pvTimeout(task.promise,30000);}catch(e){if(wk){try{PV_PDFW.destroy();}catch(_){}PV_PDFW=null;}throw e;}   /* el trabajador falló: el próximo ticket crea otro */
     for(let i=1;i<=Math.min(doc.numPages,20);i++){const pg=await doc.getPage(i),v1=pg.getViewport({scale:1}),vp=pg.getViewport({scale:dots/v1.width});
-      const cv=document.createElement('canvas');cv.width=dots;cv.height=Math.ceil(vp.height);const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
+      const cv=document.createElement('canvas');cv.width=dots;cv.height=Math.ceil(vp.height);const cx=cv.getContext('2d',{willReadFrequently:true});cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
       await pg.render({canvasContext:cx,viewport:vp,intent:'print'}).promise;   /* mods202: 'print' no espera a que la ventana se dibuje (oculta = se quedaba parado) */
       const px=cx.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bw=w>>3;
-      const neg=(x,y)=>{const k=(y*w+x)*4;return (px[k]*0.299+px[k+1]*0.587+px[k+2]*0.114)<150;};
+      const bk=new Uint8Array(w*h);for(let q=0,k=0;q<bk.length;q++,k+=4)bk[q]=(px[k]*0.299+px[k+1]*0.587+px[k+2]*0.114)<150?1:0;   /* mods204: una vez por punto */
+      const neg=(x,y)=>bk[y*w+x]===1;
       let last=h-1;for(;last>0;last--){let any=false;for(let x=0;x<w;x+=1)if(neg(x,last)){any=true;break;}if(any)break;}   // sin el blanco del final de la hoja
       let first=0;for(;first<last;first++){let any=false;for(let x=0;x<w;x++)if(neg(x,first)){any=true;break;}if(any)break;}   /* mods189: sin el blanco de arriba */
       const H=Math.min(h,last+12),Y0=i===1?Math.max(0,first-8):0;
@@ -12420,7 +12469,19 @@ function prnParse(v){const m=/^pc:([^|]+)\|([\s\S]*)$/.exec(v||'');return m?{dev
 function prnShareOn(){const c=imprCfg();return imprEsPC()&&!!c.puenteVisto&&c.compartir!==false;}
 function prnPcName(){const c=imprCfg();return (''+(c.pcName||'')).trim()||(t('ip_pc_def')+' '+(''+deviceId()).slice(-4).toUpperCase());}
 async function prnSb(){try{const sb=await sbInit();const id=currentDataId();if(!sb||!id||(typeof sbOnline==='function'&&!sbOnline()))return null;return {sb,id};}catch(_){return null;}}
-function prnWakeSend(){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId())SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:['prn']}});}catch(_){}}
+function prnWakeSend(x){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId()){const pl={keys:['prn']};if(x&&x.job)pl.job=x.job;if(x&&x.ack)pl.ack=x.ack;SB_CHAN.send({type:'broadcast',event:'changed',payload:pl});}}catch(_){}}
+/* mods204: el pedido llega dentro del aviso (el PC no consulta la nube) y la respuesta vuelve igual (el celular no espera la consulta de 2 s) */
+const PRN_JOBQ=[],PRN_ACKIN={},PRN_ACKW=new Set(),PRN_PRE={};
+function prnMkJob(sale,rm){const job={id:'J'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),sale:''+sale.id,folio:sale.folio||'',pc:rm.dev,printer:rm.printer,fmt:opts().pdfFmt==='ticket'?'ticket':'normal',lang:LANG,at:new Date().toISOString()};
+  try{const sn=JSON.parse(JSON.stringify(sale));if(JSON.stringify(sn).length<60000)job.snap=sn;}catch(_){}   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
+  return job;}
+function prnSendJob(job){let jb=job;try{if(JSON.stringify(job).length>90000){jb={...job};delete jb.snap;}}catch(_){}prnWakeSend({job:jb});}
+/* venta recién guardada con impresión automática por un PC: el pedido sale ya (antes de redibujar la pantalla); prnRemoto lo guarda en la nube y espera la respuesta */
+function prnPre(sale){try{const ic=imprCfg();if(ic.modo!=='auto'||!sale)return;const rm=prnParse(ic.impresora);if(!rm||!SB_CHAN||SB_CHAN_ID!==currentDataId()||(typeof sbOnline==='function'&&!sbOnline()))return;
+  const job=prnMkJob(sale,rm);PRN_PRE[''+sale.id]={job,at:Date.now()};prnSendJob(job);}catch(_){}}
+function prnJobIn(j){if(!j||!j.id||j.pc!==deviceId()||!prnShareOn()||prnAge(j)>15*60000)return;if(!PRN_JOBQ.some(x=>x.id===j.id))PRN_JOBQ.push(j);prnPcInit().then(()=>prnPcTick(false));}
+function prnAckIn(a){if(!a||!a.id||!a.st||a.st==='busy')return;PRN_ACKIN[a.id]=a;PRN_ACKW.forEach(f=>{try{f();}catch(_){}});}
+function prnAckWait(ms){return new Promise(r=>{let f;const t=setTimeout(()=>{PRN_ACKW.delete(f);r();},ms);f=()=>{clearTimeout(t);PRN_ACKW.delete(f);r();};PRN_ACKW.add(f);});}
 function prnAge(p){const a=Date.parse(p&&p.at||'');return isNaN(a)?Infinity:Date.now()-a;}
 function prnOnline(p){return !!p&&!p.off&&prnAge(p)<180000;}   // el PC publica cada minuto: 3 min sin noticias = sin conexión
 /* ---- celular (y cualquier equipo): los PC de la tienda y sus impresoras ---- */
@@ -12441,14 +12502,19 @@ function prnSelStHtml(cur){const rm=prnParse(cur);if(!rm)return '';const p=PRN_P
 async function prnRemoto(sale,rm,o){o=o||{};const c=await prnSb();if(!c){toast(t('ip_rm_offline'));return false;}
   const key=PRN_JOB+deviceId();
   if(PRN_MYJOBS===null){PRN_MYJOBS=[];try{const d=await sbPullDoc(c.id,key);if(d&&Array.isArray(d.jobs))PRN_MYJOBS=d.jobs;}catch(_){}}
-  const job={id:'J'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),sale:''+sale.id,folio:sale.folio||'',pc:rm.dev,printer:rm.printer,fmt:opts().pdfFmt==='ticket'?'ticket':'normal',lang:LANG,at:new Date().toISOString()};
-  try{const sn=JSON.parse(JSON.stringify(sale));if(JSON.stringify(sn).length<60000)job.snap=sn;}catch(_){}   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
+  let job,pre=PRN_PRE[''+sale.id];delete PRN_PRE[''+sale.id];if(!(pre&&Date.now()-pre.at<30000&&pre.job.pc===rm.dev&&pre.job.printer===rm.printer))pre=null;
+  job=pre?pre.job:prnMkJob(sale,rm);   /* mods204: el mismo pedido que ya salió en prnPre (el PC no lo imprime dos veces: mismo id) */   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
   PRN_MYJOBS=PRN_MYJOBS.filter(x=>x&&prnAge(x)<15*60000).map(x=>{if(x.snap){const y={...x};delete y.snap;return y;}return x;}).concat([job]).slice(-20);   /* mods202: solo el último lleva la venta */
-  try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:key,data:{dev:deviceId(),jobs:PRN_MYJOBS},updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;}
-  catch(e){toast(t('ip_rm_offline'));return false;}
-  prnWakeSend();const pc=PRN_PCS.find(x=>x.dev===rm.dev),pn=(pc&&pc.name)||'PC';toast(ti('ip_rm_sent',{p:rm.printer||t('ip_default'),n:pn}));
-  for(let i=0;i<45;i++){await new Promise(r=>setTimeout(r,2000));await prnLoadPcs();const p=PRN_PCS.find(x=>x.dev===rm.dev),a=p&&p.acks&&p.acks[job.id];
-    if(a){if(a.st==='ok'){toast(ti('ip_rm_ok',{p:rm.printer||t('ip_default'),n:p.name||pn}));return true;}toast(t('ip_err')+': '+(a.msg||'?'));return false;}}
+  /* mods204: el pedido sale YA dentro del aviso (el PC empieza sin consultar la nube); la nube queda de respaldo (se guarda a la vez) */
+  if(!pre)prnSendJob(job);
+  let upOk=true;try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:key,data:{dev:deviceId(),jobs:PRN_MYJOBS},updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;}
+  catch(e){upOk=false;}
+  if(!upOk){await prnAckWait(6000);if(!PRN_ACKIN[job.id]){toast(t('ip_rm_offline'));return false;}}   /* sin nube pero el aviso pudo llegar: se espera la respuesta un momento */
+  else prnWakeSend();   // aviso de respaldo (PC sin mods204: consulta la nube)
+  const pc=PRN_PCS.find(x=>x.dev===rm.dev),pn=(pc&&pc.name)||'PC';if(!PRN_ACKIN[job.id])toast(ti('ip_rm_sent',{p:rm.printer||t('ip_default'),n:pn}));
+  for(let i=0;i<45;i++){let a=PRN_ACKIN[job.id];if(!a){await prnAckWait(2000);a=PRN_ACKIN[job.id];}let p=PRN_PCS.find(x=>x.dev===rm.dev);
+    if(!a){await prnLoadPcs();p=PRN_PCS.find(x=>x.dev===rm.dev);a=p&&p.acks&&p.acks[job.id];}
+    if(a&&a.st!=='busy'){delete PRN_ACKIN[job.id];if(a.st==='ok'){toast(ti('ip_rm_ok',{p:rm.printer||t('ip_default'),n:(p&&p.name)||pn}));return true;}toast(t('ip_err')+': '+(a.msg||'?'));return false;}}
   toast(ti('ip_rm_noresp',{n:pn}));return false;}
 /* ---- PC: publicar las impresoras y atender los trabajos ---- */
 function prnSig(E){return JSON.stringify([prnPcName(),E.impresoras||[],E.impresora||'',!!E.pdf]);}
@@ -12457,7 +12523,9 @@ async function prnPublish(c,E,off){const A=prnAcks(),acks={};Object.keys(A).sort
   try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:PRN_PC+deviceId(),data:d,updated_at:d.at},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;PRN_HB=Date.now();PRN_SIG=E?prnSig(E):'';return true;}catch(_){return false;}}
 // formato pedido por el celular: buildSaleReceiptBlob decide Normal/Ticket en su primer renglón, así que basta cambiarlo un instante
 function prnFmtBlob(sale,fmt){const r=state.receipt=state.receipt||{};r.opts=r.opts||{};const prev=r.opts.pdfFmt;r.opts.pdfFmt=fmt;let p;try{p=buildSaleReceiptBlob(sale);}finally{if(prev===undefined)delete r.opts.pdfFmt;else r.opts.pdfFmt=prev;}return p;}
-async function prnDo(j,E){let sale=null;
+let PRN_DRAW=false;   /* mods204: el PC está armando un ticket pedido por un celular */
+async function prnDo(j,E){PRN_DRAW=true;try{return await prnDo1(j,E);}finally{PRN_DRAW=false;}}
+async function prnDo1(j,E){let sale=null;
   {const T0=Date.now(),find=()=>state.sales.find(x=>''+x.id===''+j.sale);let ult=0;
     /* mods202: la venta viene dentro del trabajo (snap) → se imprime ya, sin esperar a que llegue por la sincronización */
     if(!(sale=find())&&j.snap&&''+j.snap.id===''+j.sale)sale=j.snap;
@@ -12476,13 +12544,16 @@ async function prnDo(j,E){let sale=null;
 let PRN_AGAIN=false;   /* mods202 */
 async function prnPcTick(force){if(PRN_BUSY){PRN_AGAIN=true;return;}if(!prnShareOn())return;PRN_BUSY=true;PRN_AGAIN=false;
   try{const c=await prnSb();if(!c)return;const E=await imprEstadoReciente();if(!E||!E.ok)return;
-    if(force||Date.now()-PRN_HB>55000||prnSig(E)!==PRN_SIG)await prnPublish(c,E);
+    const q=PRN_JOBQ.splice(0);   /* mods204: pedidos que llegaron dentro del aviso: primero se imprimen; la consulta a la nube va en la siguiente vuelta */
+    if(!q.length&&(force||Date.now()-PRN_HB>55000||prnSig(E)!==PRN_SIG))await prnPublish(c,E);
+    if(q.length)PRN_AGAIN=true;
     await prnLock(async()=>{
-    let rows=[];try{const r=await c.sb.from('store_docs').select('doc_key,data').eq('store_id',c.id).like('doc_key',PRN_JOB+'%');if(r&&!r.error&&Array.isArray(r.data))rows=r.data;}catch(_){}
-    const me=deviceId(),todo=[];rows.forEach(x=>{const d=x&&x.data;(d&&Array.isArray(d.jobs)?d.jobs:[]).forEach(j=>{if(j&&j.pc===me&&j.id&&prnAge(j)<15*60000)todo.push(j);});});
+    let rows=[];if(!q.length)try{const r=await c.sb.from('store_docs').select('doc_key,data').eq('store_id',c.id).like('doc_key',PRN_JOB+'%');if(r&&!r.error&&Array.isArray(r.data))rows=r.data;}catch(_){}
+    const me=deviceId(),todo=q.filter(j=>j&&j.pc===me&&j.id);rows.forEach(x=>{const d=x&&x.data;(d&&Array.isArray(d.jobs)?d.jobs:[]).forEach(j=>{if(j&&j.pc===me&&j.id&&prnAge(j)<15*60000)todo.push(j);});});
     todo.sort((a,b)=>(a.at||'')<(b.at||'')?-1:1);
     for(const j of todo){if(prnAcks()[j.id])continue;   // ya atendido (por esta u otra pestaña)
-      prnAckSet(j.id,{st:'busy',at:new Date().toISOString()});const r=await prnDo(j,E);prnAckSet(j.id,{st:r.st,msg:r.msg||'',at:new Date().toISOString()});await prnPublish(c,E);prnWakeSend();}
+      prnAckSet(j.id,{st:'busy',at:new Date().toISOString()});const r=await prnDo(j,E);const ak={st:r.st,msg:r.msg||'',at:new Date().toISOString()};prnAckSet(j.id,ak);
+      prnWakeSend({ack:{id:j.id,...ak}});await prnPublish(c,E);prnWakeSend();}   /* mods204: la respuesta sale por aviso antes de guardarla en la nube */
     });
   }finally{PRN_BUSY=false;if(PRN_AGAIN){PRN_AGAIN=false;Promise.resolve().then(()=>prnPcTick(false));}}}   /* mods202: el aviso que llegó mientras tanto */
 // los acks viejos (de antes de recargar el PC) se leen de su propio documento para no imprimir dos veces
@@ -12553,7 +12624,7 @@ async function sbLiveSync(){
       LIVE_BUSY=false;return;
     }
     const changed=[],tsOf={};
-    r.data.forEach(row=>{if(row.doc_key==='wipe')return;const k=row.doc_key;if(LIVE_TS[k]!==row.updated_at&&LIVE_PEND[k]!==row.updated_at){changed.push(k);tsOf[k]=row.updated_at;}});   // la primera revisión también aplica (antes solo anotaba)
+    r.data.forEach(row=>{if(row.doc_key==='wipe')return;const k=row.doc_key;if(!tsSame(LIVE_TS[k],row.updated_at)&&LIVE_PEND[k]!==row.updated_at&&!sbProvHold(id,k)){changed.push(k);tsOf[k]=row.updated_at;}});   // la primera revisión también aplica (antes solo anotaba)
     /* se marca como visto solo al bajarlo y aplicarlo (sbApplyRemote): si la bajada falla, se reintenta en la próxima revisión */
     if(changed.length){LIVE_BUSY=false;changed.forEach(k=>LIVE_PEND[k]=tsOf[k]);try{await sbPullAndApply(id,changed);}finally{changed.forEach(k=>{if(LIVE_PEND[k]===tsOf[k])delete LIVE_PEND[k];});}return;}
   }catch(e){SYNC_APPLYING=false;}
@@ -12570,7 +12641,11 @@ async function sbSubscribe(id){
     if(SB_CHAN){try{sb.removeChannel(SB_CHAN);}catch(e){}SB_CHAN=null;}
     SB_CHAN_ID=id;
     const ch=sb.channel('store:'+id,{config:{broadcast:{self:false}}});
-    ch.on('broadcast',{event:'changed'},msg=>{const ks=(msg&&msg.payload&&msg.payload.keys)||['products','sales','clients','mermas'];sbApplyChange(id,ks);});
+    ch.on('broadcast',{event:'changed'},msg=>{const pl=(msg&&msg.payload)||{};let ks=pl.keys||['products','sales','clients','mermas'];
+      try{if(pl.job)prnJobIn(pl.job);if(pl.ack)prnAckIn(pl.ack);}catch(_){}   /* mods204: impresión compartida por aviso */
+      if(pl.ok){ks=ks.filter(k=>{const kk=id+'|'+k,c=SB_DIN[kk];delete PROV[kk];return !((BASE_TS[kk]&&tsSame(BASE_TS[kk],pl.ok))||(c&&tsSame(c.ts,pl.ok)));});}   /* mods204: "confirmado" de lo que ya se aplicó: nada que bajar */
+      if(pl.d){sbDeltaIn(id,pl.d);if(pl.d.pre)ks=[pl.d.k];}else ks.forEach(k=>{delete SB_DIN[id+'|'+k];});   /* mods204: el cambio viene adentro (si no, lo rearmado antes ya no vale) */
+      if(ks.length)sbApplyChange(id,ks);});
     ch.subscribe(st=>{
       if(st==='SUBSCRIBED'){SB_CHAN=ch;}
       else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){if(SB_CHAN===ch)SB_CHAN=null;}   // se re-suscribe en el próximo tick
@@ -12579,7 +12654,9 @@ async function sbSubscribe(id){
   }catch(e){}
   SB_SUBBING=false;
 }
-function sbBroadcast(key){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId())SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:[key]}});}catch(e){}}
+function sbBroadcast(key){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId()){const kk=SB_CHAN_ID+'|'+key,D=SB_DELTA[kk];delete SB_DELTA[kk];
+  const pl={keys:[key]};if(D&&D.k===key&&Date.now()-D.at<30000){if(D.ok)pl.ok=D.ok;else{const o={...D};delete o.at;pl.d=o;}}   /* mods204: con el cambio adentro (o "confirmado" si ya salió) */
+  SB_CHAN.send({type:'broadcast',event:'changed',payload:pl});}}catch(e){}}
 async function sbApplyChange(id,keys){
   if(keys&&keys.indexOf('prn')>=0){try{prnWake();}catch(_){}keys=keys.filter(k=>k!=='prn');if(!keys.length)return;}   /* mods190: impresión compartida (no es un documento de datos) */
   if(keys&&keys.indexOf('wipe')>=0){   // aviso instantáneo: la tienda se vació/eliminó en otro dispositivo
@@ -12591,7 +12668,8 @@ async function sbApplyChange(id,keys){
   (keys||[]).forEach(k=>APPLY_Q.add(k));   // los avisos que llegan juntos se encolan (antes se perdían)
   if(APPLY_BUSY)return;APPLY_BUSY=true;
   try{
-    await new Promise(r=>setTimeout(r,150));
+    await new Promise(r=>setTimeout(r,[...APPLY_Q].every(k=>SB_DIN[id+'|'+k])?0:150));   /* mods204: con el cambio en el aviso no se espera */
+    for(let i=0;i<30&&PRN_DRAW;i++)await new Promise(r=>setTimeout(r,100));   /* mods204: imprimiendo un pedido del celular: primero el ticket */
     let guard=0;
     while(APPLY_Q.size&&guard++<20){
       if(id!==currentDataId()){APPLY_Q.clear();break;}
@@ -14342,7 +14420,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261020053440';
+const APP_VERSION='20261020075044';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

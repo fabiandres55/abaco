@@ -8686,7 +8686,7 @@ async function rcQROpen(q){let s=rcQRFind(q);
   if(!s){appAlert(ti('qr_nosale',{f:q.folio}));return false;}
   openSaleDet(s.id);return true;}
 // imagen del QR como MN: 90×90 px (90 pt), corrección L, bytes; módulo = 90 / (módulos + 8 de margen) (3 px en versión 1, 2 px en versión 2), centrado
-async function mnSaleQR(sale,withTime){try{if(!await qrLib())return null;const M=qrMatrixMN(qrMakeMN(mnSaleQRText(sale,withTime))),n=M.length,W=90,cell=Math.max(1,Math.floor(W/(n+8))),off=Math.floor((W-n*cell)/2);
+async function mnSaleQR(sale,withTime){try{if(!await qrLib())return null;const M=qrMatrixMN(qrMakeMN(mnSaleQRText(sale,withTime))),n=M.length,cell=12,W=(n+4)*cell,off=2*cell;   /* mods201: 2 cuadritos de margen y alta resolución (antes 90 px con 4 de margen): el QR sale más grande y nítido */
   const c=document.createElement('canvas');c.width=c.height=W;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,W);x.fillStyle='#000';
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(M[r][k])x.fillRect(off+k*cell,off+r*cell,cell,cell);return c.toDataURL('image/png');}catch(e){console.error('QR venta',e);return null;}}
 // pagos programados de la venta (los que se ponen en Nueva venta → Programar Pagos), por fecha
@@ -8783,7 +8783,7 @@ async function tkExtraBlob(sale,lines){
   if(sale.client){const a=[t('sale_client'),...catLines(sale.client,200,10)];const cp=saleCliParts(sale);if(cp)[cp.phone,cp.address,cp.email].filter(Boolean).forEach(x=>a.push(...catLines(x,200,10)));sec(a);}
   const info=saleReceiptInfo(sale);if(info)sec(catLines(info,200,10));
   // rótulo y valor por separado: el valor va 5.9 después del rótulo (MN: "Folio:" 10–34 → "8671" en 39.9; igual en las 4 líneas)
-  const qr=o.exQR?await mnSaleQR(sale,false):null,QS=66,qTop=ry+8,X0=qr?84:10;   /* mods189: el QR va a la izquierda del bloque Folio, como la referencia */
+  const qr=o.exQR?await mnSaleQR(sale,false):null,QS=90,qTop=ry+8,X0=qr?108:10;   /* mods201: QR de 90 pt (antes 66) para escanearlo rápido */   /* mods189: el QR va a la izquierda del bloque Folio, como la referencia */
   let yy=ry+9;const left=[[t('sale_folio')+':',''+folio],[t('sale_date')+':',sale.date||todayISO()]];
   if(o.pdfStatus)left.push([t('rc_status')+':',pending?t('rc_pending'):t('sale_paid').toUpperCase()]);
   if(sale.pay)left.push([mnNativePayment()+':',payLbl(sale.pay)]);
@@ -14332,7 +14332,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261019213818';
+const APP_VERSION='20261019220224';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

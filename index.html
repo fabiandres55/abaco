@@ -12381,7 +12381,7 @@ async function escposTicketRaster(sale,c){c=c||imprCfg();const r=await buildSale
   try{const doc=await pvTimeout(task.promise,30000);
     for(let i=1;i<=Math.min(doc.numPages,20);i++){const pg=await doc.getPage(i),v1=pg.getViewport({scale:1}),vp=pg.getViewport({scale:dots/v1.width});
       const cv=document.createElement('canvas');cv.width=dots;cv.height=Math.ceil(vp.height);const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
-      await pg.render({canvasContext:cx,viewport:vp}).promise;
+      await pg.render({canvasContext:cx,viewport:vp,intent:'print'}).promise;   /* mods202: 'print' no espera a que la ventana se dibuje (oculta = se quedaba parado) */
       const px=cx.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height,bw=w>>3;
       const neg=(x,y)=>{const k=(y*w+x)*4;return (px[k]*0.299+px[k+1]*0.587+px[k+2]*0.114)<150;};
       let last=h-1;for(;last>0;last--){let any=false;for(let x=0;x<w;x+=1)if(neg(x,last)){any=true;break;}if(any)break;}   // sin el blanco del final de la hoja
@@ -12444,8 +12444,9 @@ function prnSelStHtml(cur){const rm=prnParse(cur);if(!rm)return '';const p=PRN_P
 async function prnRemoto(sale,rm,o){o=o||{};const c=await prnSb();if(!c){toast(t('ip_rm_offline'));return false;}
   const key=PRN_JOB+deviceId();
   if(PRN_MYJOBS===null){PRN_MYJOBS=[];try{const d=await sbPullDoc(c.id,key);if(d&&Array.isArray(d.jobs))PRN_MYJOBS=d.jobs;}catch(_){}}
-  const job={id:'J'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),sale:''+sale.id,folio:sale.folio||'',pc:rm.dev,printer:rm.printer,fmt:opts().pdfFmt==='ticket'?'ticket':'normal',lang:LANG,at:new Date().toISOString()};   // el PC arma el recibo en el idioma de este equipo
-  PRN_MYJOBS=PRN_MYJOBS.filter(x=>x&&prnAge(x)<15*60000).concat([job]).slice(-20);
+  const job={id:'J'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),sale:''+sale.id,folio:sale.folio||'',pc:rm.dev,printer:rm.printer,fmt:opts().pdfFmt==='ticket'?'ticket':'normal',lang:LANG,at:new Date().toISOString()};
+  try{const sn=JSON.parse(JSON.stringify(sale));if(JSON.stringify(sn).length<60000)job.snap=sn;}catch(_){}   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
+  PRN_MYJOBS=PRN_MYJOBS.filter(x=>x&&prnAge(x)<15*60000).map(x=>{if(x.snap){const y={...x};delete y.snap;return y;}return x;}).concat([job]).slice(-20);   /* mods202: solo el último lleva la venta */
   try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:key,data:{dev:deviceId(),jobs:PRN_MYJOBS},updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;}
   catch(e){toast(t('ip_rm_offline'));return false;}
   prnWakeSend();const pc=PRN_PCS.find(x=>x.dev===rm.dev),pn=(pc&&pc.name)||'PC';toast(ti('ip_rm_sent',{p:rm.printer||t('ip_default'),n:pn}));
@@ -12460,7 +12461,12 @@ async function prnPublish(c,E,off){const A=prnAcks(),acks={};Object.keys(A).sort
 // formato pedido por el celular: buildSaleReceiptBlob decide Normal/Ticket en su primer renglón, así que basta cambiarlo un instante
 function prnFmtBlob(sale,fmt){const r=state.receipt=state.receipt||{};r.opts=r.opts||{};const prev=r.opts.pdfFmt;r.opts.pdfFmt=fmt;let p;try{p=buildSaleReceiptBlob(sale);}finally{if(prev===undefined)delete r.opts.pdfFmt;else r.opts.pdfFmt=prev;}return p;}
 async function prnDo(j,E){let sale=null;
-  for(let i=0;i<30&&!(sale=state.sales.find(x=>''+x.id===''+j.sale));i++){if(i%5===0){try{await sbApplyChange(currentDataId(),['sales']);}catch(_){}}await new Promise(r=>setTimeout(r,2000));}   // la venta puede tardar en llegar
+  {const T0=Date.now(),find=()=>state.sales.find(x=>''+x.id===''+j.sale);let ult=0;
+    /* mods202: la venta viene dentro del trabajo (snap) → se imprime ya, sin esperar a que llegue por la sincronización */
+    if(!(sale=find())&&j.snap&&''+j.snap.id===''+j.sale)sale=j.snap;
+    /* si no (trabajo de un celular viejo): se espera el AVISO de la venta (no un reloj frenado); la descarga de respaldo no se espera */
+    while(!sale&&!(sale=find())&&Date.now()-T0<60000){if(Date.now()-ult>=10000){ult=Date.now();try{sbApplyChange(currentDataId(),['sales']).then(()=>{PRN_SALE_EV.forEach(f=>{try{f();}catch(_){}});},()=>{});}catch(_){}}
+      await new Promise(r=>{let f;const t=setTimeout(()=>{PRN_SALE_EV.delete(f);r();},2500);f=()=>{clearTimeout(t);PRN_SALE_EV.delete(f);r();};PRN_SALE_EV.add(f);});}}   // la venta puede tardar en llegar
   if(!sale)return {st:'err',msg:t('ip_rm_nosale')};
   let bytes,tipo;LANG_IMP=(j.lang&&I18N[j.lang])?j.lang:null;   // el recibo sale en el idioma del celular que lo pidió (solo mientras se arma)
   try{if(j.fmt==='ticket'){bytes=await escposTicketRaster(sale,imprConAncho(j.printer||''));tipo='escpos';}   /* mods194: el ancho de ESA impresora del PC */
@@ -12469,7 +12475,8 @@ async function prnDo(j,E){let sale=null;
   finally{LANG_IMP=null;}
   try{const n=imprCfg().copias;for(let i=0;i<n;i++){const r=await puenteImprimir(bytes,j.printer||'',tipo);if(!r.ok)return {st:'err',msg:''+(r.error||'?')};}return {st:'ok'};}
   catch(e){return {st:'err',msg:t('ip_nobridge')};}}
-async function prnPcTick(force){if(PRN_BUSY||!prnShareOn())return;PRN_BUSY=true;
+let PRN_AGAIN=false;   /* mods202 */
+async function prnPcTick(force){if(PRN_BUSY){PRN_AGAIN=true;return;}if(!prnShareOn())return;PRN_BUSY=true;PRN_AGAIN=false;
   try{const c=await prnSb();if(!c)return;const E=await imprEstadoReciente();if(!E||!E.ok)return;
     if(force||Date.now()-PRN_HB>55000||prnSig(E)!==PRN_SIG)await prnPublish(c,E);
     await prnLock(async()=>{
@@ -12479,11 +12486,14 @@ async function prnPcTick(force){if(PRN_BUSY||!prnShareOn())return;PRN_BUSY=true;
     for(const j of todo){if(prnAcks()[j.id])continue;   // ya atendido (por esta u otra pestaña)
       prnAckSet(j.id,{st:'busy',at:new Date().toISOString()});const r=await prnDo(j,E);prnAckSet(j.id,{st:r.st,msg:r.msg||'',at:new Date().toISOString()});await prnPublish(c,E);prnWakeSend();}
     });
-  }finally{PRN_BUSY=false;}}
+  }finally{PRN_BUSY=false;if(PRN_AGAIN){PRN_AGAIN=false;Promise.resolve().then(()=>prnPcTick(false));}}}   /* mods202: el aviso que llegó mientras tanto */
 // los acks viejos (de antes de recargar el PC) se leen de su propio documento para no imprimir dos veces
 let PRN_INIT=false;
-async function prnPcInit(){if(PRN_INIT||!prnShareOn())return;const c=await prnSb();if(!c)return;PRN_INIT=true;try{const d=await sbPullDoc(c.id,PRN_PC+deviceId());if(d&&d.acks){const A=prnAcks();Object.keys(d.acks).forEach(k=>{if(!A[k])prnAckSet(k,d.acks[k]);});}}catch(_){}}
-setInterval(()=>{if(!prnShareOn())return;prnPcInit().then(()=>prnPcTick(false));},5000);
+let PRN_WARM=false;function prnWarm(){if(PRN_WARM)return;PRN_WARM=true;setTimeout(async()=>{try{const s=(state.sales||[]).find(x=>x&&x.items&&x.items.length);if(s)await escposTicketRaster(s,imprCfg());}catch(_){}},4000);}   /* mods202 */
+async function prnPcInit(){if(PRN_INIT||!prnShareOn())return;const c=await prnSb();if(!c)return;PRN_INIT=true;prnWarm();try{const d=await sbPullDoc(c.id,PRN_PC+deviceId());if(d&&d.acks){const A=prnAcks();Object.keys(d.acks).forEach(k=>{if(!A[k])prnAckSet(k,d.acks[k]);});}}catch(_){}}
+(function(){const tick=()=>{if(!prnShareOn())return;prnPcInit().then(()=>prnPcTick(false));};   /* mods202: el reloj en un Worker no se frena con la ventana oculta */
+  try{const u=URL.createObjectURL(new Blob(['setInterval(function(){postMessage(1)},5000)'],{type:'text/javascript'}));const w=new Worker(u);w.onmessage=tick;w.onerror=()=>{try{w.terminate();}catch(_){}setInterval(tick,5000);};}
+  catch(_){setInterval(tick,5000);}})();
 function prnWake(){if(prnShareOn())prnPcInit().then(()=>prnPcTick(false));}
 async function prnShareSet(on){imprSet('compartir',!!on);const c=await prnSb();if(c){if(on){const E=await imprEstadoReciente();if(E&&E.ok)await prnPublish(c,E);}else await prnPublish(c,null,true);}imprBoxRefresh();}
 function prnShareHtml(){const c=imprCfg();if(!imprEsPC()||!c.puenteVisto)return '';const on=c.compartir!==false,chk=svg('<path d="M5 12l5 5L20 7"/>');
@@ -12683,7 +12693,8 @@ function saleSummary(s){
     status:(tot-srPaid(s)>0.5)?'cobrar':'pagado',count:lines.reduce((a,l)=>a+l.q,0),lines:lines.slice(0,6),more:Math.max(0,lines.length-6)};
 }
 // Venta llegada de OTRO dispositivo (misma tienda) → notificación + sonido en el PC vinculado
-function onRemoteSales(incoming){
+const PRN_SALE_EV=new Set();   /* mods202: quienes esperan que llegue una venta (impresión pedida desde el celular) */
+function onRemoteSales(incoming){try{setTimeout(()=>{PRN_SALE_EV.forEach(f=>{try{f();}catch(_){}});},0);}catch(_){}
   try{
     if(!Array.isArray(incoming))return;
     const id=currentDataId();if(!id)return;
@@ -14332,7 +14343,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261019220224';
+const APP_VERSION='20261019224039';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

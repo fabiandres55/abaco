@@ -3109,9 +3109,9 @@ Object.assign(I18N.es,{sp_cnt_part:"{n} de {t} · ver todos",inv_flt_n:"{n} de {
 Object.assign(I18N.en,{sp_cnt_part:"{n} of {t} · see all",inv_flt_n:"{n} of {t} products"});
 Object.assign(I18N.en,{rsv_title:"Products in reserve",rsv_count1:"{n} product",rsv_cat:"Category: {c}",chips_more:"More options"});
 /* mods146b: textos del pie de la compra (P2 del plan de Compras) */
-Object.assign(I18N.es,{cp_abort_q:"¿Eliminar Compra?",prv_required:"El proveedor es obligatorio en una compra por pagar",cp_info:"Información adicional",cp_payform:"Forma de Pago",prv_add_t:"Agregar Proveedor",prv_reg_new:"Registrar Nuevo",prv_imp_contacts:"Importar Contactos",ntf_pay_purch:"#Pago Compra",pp_ev:"Pago de compra #{f} · {c} · {m}",sched_rm_or_ed:"¿Eliminar o Editar?",sched_clr_q:"¿Eliminar Pagos?",
+Object.assign(I18N.es,{cp_abort_q:"¿Eliminar Compra?",prv_required:"El proveedor es obligatorio: elígelo de tu lista o escríbelo",prv_required_po:"El proveedor es obligatorio en la orden de compra",cp_info:"Información adicional",cp_payform:"Forma de Pago",prv_add_t:"Agregar Proveedor",prv_reg_new:"Registrar Nuevo",prv_imp_contacts:"Importar Contactos",ntf_pay_purch:"#Pago Compra",pp_ev:"Pago de compra #{f} · {c} · {m}",sched_rm_or_ed:"¿Eliminar o Editar?",sched_clr_q:"¿Eliminar Pagos?",
   sched_help_p:"En esta sección puede programar fechas de pagos de una transacción. Puede programar parcial o totalmente los pagos.\n\n• Con el botón + puede programar un pago (día, hora y monto a pagar).\n• También puede programar los pagos de forma automática ingresando el número de pagos y días. La aplicación hace el cálculo automático con esta información.\n\nLos pagos programados se verán en Notificaciones, en la Agenda y en el detalle de la compra (Reportes → Compras por Pagar)."});
-Object.assign(I18N.en,{cp_abort_q:"Delete purchase?",prv_required:"A provider is required for a credit purchase",cp_info:"Additional information",cp_payform:"Payment Method",prv_add_t:"Add Provider",prv_reg_new:"Register New",prv_imp_contacts:"Import Contacts",ntf_pay_purch:"#Purchase Payment",pp_ev:"Purchase payment #{f} · {c} · {m}",sched_rm_or_ed:"Delete or Edit?",sched_clr_q:"Delete payments?",
+Object.assign(I18N.en,{cp_abort_q:"Delete purchase?",prv_required:"A provider is required: pick one from your list or type it",prv_required_po:"A provider is required for the purchase order",cp_info:"Additional information",cp_payform:"Payment Method",prv_add_t:"Add Provider",prv_reg_new:"Register New",prv_imp_contacts:"Import Contacts",ntf_pay_purch:"#Purchase Payment",pp_ev:"Purchase payment #{f} · {c} · {m}",sched_rm_or_ed:"Delete or Edit?",sched_clr_q:"Delete payments?",
   sched_help_p:"Here you can schedule payment dates for a transaction, partially or fully.\n\n• With the + button you schedule one payment (day, time and amount).\n• You can also schedule payments automatically by entering the number of payments and days; the app calculates them.\n\nScheduled payments are shown in Notifications, in the Calendar and in the purchase detail (Reports → Purchases Payable)."});
 const L=(()=>{const q=new URLSearchParams(location.search).get("lang");if(q)return q.slice(0,2).toLowerCase();
   try{const sv=localStorage.getItem("abanico.lang");if(sv==="es"||sv==="en")return sv;}catch(_){}   // elegido a mano en Ajustes
@@ -6391,7 +6391,7 @@ function pcProvLocked(){const id=state.pprovId;if(id==null||id==='')return null;
   return provName(p).toLowerCase()===(''+(state.pprovider||'')).trim().toLowerCase()?p:null;}
 function pcProvLabel(p){const n=provName(p);return p&&p.contact&&p.company?n+'('+p.company+')':n;}
 const IC_PRV_ADD='<circle cx="9" cy="7.6" r="3.6" fill="currentColor" stroke="none"/><path d="M2 20.5c0-4.1 3.1-6.6 7-6.6s7 2.5 7 6.6z" fill="currentColor" stroke="none"/><path d="M19.5 7.5v7M16 11h7"/>';
-function pcProvFieldHTML(mode){const lk=pcProvLocked(),req=mode!=='po'&&(state.pstatus||'pagado')==='porpagar';
+function pcProvFieldHTML(mode){const lk=pcProvLocked(),req=true;   /* mods198: obligatorio en compras y órdenes de compra */
   const ph=t('cp_provider')+' '+t(req?'required':'optional'),val=lk?(state.pprovShort?provName(lk):pcProvLabel(lk)):(state.pprovider||'');   /* puesto por la plantilla (P4, pprovShort): solo el nombre, como MN 07 */
   return `<div class="pvrow"><div class="cfld pvfld"><span class="pfico">${svg(S_PER)}</span><input class="inp${lk?' provlock':''}" id="pProvider" autocomplete="off" enterkeyhint="done" placeholder="${exEsc(ph)}" value="${exEsc(val)}"${lk?' readonly':''}><button class="pvclr" data-act="pcprovclr" aria-label="✕">✕</button><div class="cliac" id="provAC"></div></div><button class="pvadd" data-act="pcprovadd" aria-label="${exEsc(t('prv_add_t'))}" title="${exEsc(t('prv_add_t'))}">${svg(IC_PRV_ADD)}</button></div>`;}
 // sugerencias "NOMBRE(EMPRESA)" (MN 22b–22d): lo escrito en cualquier parte del NOMBRE (no de la empresa), de la A a la Z; un nombre repetido sale dos veces
@@ -6418,10 +6418,11 @@ function pcPayHTML(){if(!state.ppay&&!state.ppayCleared&&opts().payDefault)state
 // validaciones de Guardar que son del pie (D4): Por Pagar pide proveedor; el Pago Inicial debe ser menor que el total (como Ventas); los
 // pagos programados no pueden sumar más que la Deuda (el carrito pudo cambiar después de programarlos: se abre Programar Pagos).
 // Aviso en ventana (como los de las líneas, pcSaveBlock) y luego el foco en el campo
-function pcSaveCheck(){if((state.pstatus||'pagado')!=='porpagar')return false;
+function pcSaveCheck(){   /* mods198: el proveedor es obligatorio en TODA compra; lo demás de esta revisión sigue siendo solo de Por Pagar */
   const go2=id=>{const c=document.getElementById(id);if(c){try{c.scrollIntoView({block:'center'});}catch(_){}c.focus();}};
   const say=(k,id)=>{appAlert(t(k)).then(()=>go2(id));return true;};
   if(!(''+(state.pprovider||'')).trim())return say('prv_required','pProvider');
+  if((state.pstatus||'pagado')!=='porpagar')return false;
   const ini=pcInitAmt();if(ini>0&&ini>=pcartTotal()-0.005)return say('init_too_much','pInit');
   const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0),sm=ps.reduce((a,x)=>a+(+x.p||0),0);
   if(ps.length&&sm>pcDebt()+0.005){appAlert(t('sched_over')).then(()=>openSched('purch'));return true;}
@@ -9531,6 +9532,7 @@ document.getElementById('device').addEventListener('click',e=>{const i=e.target;
 async function savePO(){
   const m=state.poMode;if(!m)return;const de=document.getElementById('poDue');if(de&&(de.value||'')!==(m.due||''))poDueSet(de);
   if(pcSaveBlock())return;   // sin productos (cp_empty), Cantidad vacía o 0, Compra vacía: aviso y foco en la fila
+  if(!(''+(state.pprovider||'')).trim()){await appAlert(t('prv_required_po'));const c=document.getElementById('pProvider');if(c){try{c.scrollIntoView({block:'center'});}catch(_){}c.focus();}return;}   /* mods198 */
   if(!m.due){await appAlert(t('po_due_need'));poDueFocus();return;}
   const items=pcItemsRecent().filter(i=>i.q>0);if(!items.length){appAlert(t('cp_empty'));return;}
   let o=m.id?poById(m.id):null;if(o&&o.recvPurchase!=null){appAlert(ti('po_was_recv',{n:o.folio}));return;}   // otro equipo la recibió mientras se editaba
@@ -14293,7 +14295,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261019195118';
+const APP_VERSION='20261019204303';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

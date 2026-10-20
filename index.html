@@ -3109,9 +3109,9 @@ Object.assign(I18N.es,{sp_cnt_part:"{n} de {t} · ver todos",inv_flt_n:"{n} de {
 Object.assign(I18N.en,{sp_cnt_part:"{n} of {t} · see all",inv_flt_n:"{n} of {t} products"});
 Object.assign(I18N.en,{rsv_title:"Products in reserve",rsv_count1:"{n} product",rsv_cat:"Category: {c}",chips_more:"More options"});
 /* mods146b: textos del pie de la compra (P2 del plan de Compras) */
-Object.assign(I18N.es,{cp_abort_q:"¿Eliminar Compra?",prv_required:"El proveedor es obligatorio: elígelo de tu lista o escríbelo",prv_required_po:"El proveedor es obligatorio en la orden de compra",cp_info:"Información adicional",cp_payform:"Forma de Pago",prv_add_t:"Agregar Proveedor",prv_reg_new:"Registrar Nuevo",prv_imp_contacts:"Importar Contactos",ntf_pay_purch:"#Pago Compra",pp_ev:"Pago de compra #{f} · {c} · {m}",sched_rm_or_ed:"¿Eliminar o Editar?",sched_clr_q:"¿Eliminar Pagos?",
+Object.assign(I18N.es,{cp_abort_q:"¿Eliminar Compra?",prv_required:"Es necesario colocar un proveedor para generar tu compra",prv_required_po:"Es necesario colocar un proveedor para generar tu orden de compra",cfg_rc_moved:"Diseño, QR, formato normal o ticket y las demás opciones del recibo están en Recibo / Ticket.",cp_info:"Información adicional",cp_payform:"Forma de Pago",prv_add_t:"Agregar Proveedor",prv_reg_new:"Registrar Nuevo",prv_imp_contacts:"Importar Contactos",ntf_pay_purch:"#Pago Compra",pp_ev:"Pago de compra #{f} · {c} · {m}",sched_rm_or_ed:"¿Eliminar o Editar?",sched_clr_q:"¿Eliminar Pagos?",
   sched_help_p:"En esta sección puede programar fechas de pagos de una transacción. Puede programar parcial o totalmente los pagos.\n\n• Con el botón + puede programar un pago (día, hora y monto a pagar).\n• También puede programar los pagos de forma automática ingresando el número de pagos y días. La aplicación hace el cálculo automático con esta información.\n\nLos pagos programados se verán en Notificaciones, en la Agenda y en el detalle de la compra (Reportes → Compras por Pagar)."});
-Object.assign(I18N.en,{cp_abort_q:"Delete purchase?",prv_required:"A provider is required: pick one from your list or type it",prv_required_po:"A provider is required for the purchase order",cp_info:"Additional information",cp_payform:"Payment Method",prv_add_t:"Add Provider",prv_reg_new:"Register New",prv_imp_contacts:"Import Contacts",ntf_pay_purch:"#Purchase Payment",pp_ev:"Purchase payment #{f} · {c} · {m}",sched_rm_or_ed:"Delete or Edit?",sched_clr_q:"Delete payments?",
+Object.assign(I18N.en,{cp_abort_q:"Delete purchase?",prv_required:"You need to add a provider to create your purchase",prv_required_po:"You need to add a provider to create your purchase order",cfg_rc_moved:"Layout, QR, normal or ticket format and the other receipt options are in Receipt / Ticket.",cp_info:"Additional information",cp_payform:"Payment Method",prv_add_t:"Add Provider",prv_reg_new:"Register New",prv_imp_contacts:"Import Contacts",ntf_pay_purch:"#Purchase Payment",pp_ev:"Purchase payment #{f} · {c} · {m}",sched_rm_or_ed:"Delete or Edit?",sched_clr_q:"Delete payments?",
   sched_help_p:"Here you can schedule payment dates for a transaction, partially or fully.\n\n• With the + button you schedule one payment (day, time and amount).\n• You can also schedule payments automatically by entering the number of payments and days; the app calculates them.\n\nScheduled payments are shown in Notifications, in the Calendar and in the purchase detail (Reports → Purchases Payable)."});
 const L=(()=>{const q=new URLSearchParams(location.search).get("lang");if(q)return q.slice(0,2).toLowerCase();
   try{const sv=localStorage.getItem("abanico.lang");if(sv==="es"||sv==="en")return sv;}catch(_){}   // elegido a mano en Ajustes
@@ -5547,7 +5547,7 @@ function g3rdFolio(f){const n=+f;return isFinite(n)&&String(f).trim()!==''?n.toL
 async function openRecvDet(id){
   const s0=(state.sales||[]).find(x=>''+x.id===''+id);if(!s0)return;const tok=++G3RD_TOK;const sid=exEsc(s0.id),eid=encodeURIComponent(s0.id);
   document.getElementById('saleH').textContent=t('rep_sales_recv');
-  saleHActs(`<button class="sd-hb" data-act="saledel:${sid}" aria-label="${t('sd_delete')}">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>')}</button><button class="sd-hb" data-act="sharerec:${sid}" aria-label="PDF">${svg('<path d="M6 3h9l3 3v15H6z"/>')}<span class="sd-pdf">PDF</span></button>`);
+  saleHActs(imprDetBtn(s0)+`<button class="sd-hb" data-act="saledel:${sid}" aria-label="${t('sd_delete')}">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>')}</button><button class="sd-hb" data-act="sharerec:${sid}" aria-label="PDF">${svg('<path d="M6 3h9l3 3v15H6z"/>')}<span class="sd-pdf">PDF</span></button>`);
   const dlg=document.getElementById('saledlg');dlg.classList.add('on','full');
   const body=document.getElementById('saleBody');if(!body.querySelector('.g3pd'))body.innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];try{lines=await srLinesFor(s0,s0.items?null:await srRawIndex());}catch(_){lines=[];}
@@ -7634,10 +7634,7 @@ function scAjustes(){
     <button class="cfg-btn" data-act="cfgdl">${t('cfg_dlfolder').toUpperCase()}</button>
     ${(imprBoxInit(),imprBoxHtml())}   <!-- mods188: Impresión y ajustes -->
     <div class="cfg-h">${t('cfg_pdf_h')}</div>
-    ${rd(o.pdfDesign!=='extra',t('cfg_design_simple'),'pdfDesign','simple')}${rd(o.pdfDesign==='extra',t('cfg_design_extra'),'pdfDesign','extra')}${o.pdfDesign==='extra'?`<div class="cfg-sub">${cb(o.exQR,t('cfg_x_qr'),'exQR')}${cb(o.exSched,t('cfg_x_sched'),'exSched')}<div class="cfg-row cfg-xt" data-act="cfgxtext" role="button" style="cursor:pointer"><span>${t('cfg_x_text')}</span>${svg(ICO_PEN)}</div></div>`:''}
-    ${cb(o.pdfStatus,t('cfg_pdf_status'),'pdfStatus')}
-    ${rd(o.pdfFmt!=='ticket',t('cfg_fmt_normal'),'pdfFmt','normal')}${rd(o.pdfFmt==='ticket',t('cfg_fmt_ticket'),'pdfFmt','ticket')}${o.pdfFmt==='ticket'?`<div class="cfg-sub">${cb(o.tkLogo,t('cfg_tk_logo'),'tkLogo')}${o.tkLogo&&!rawLogo()?`<div class="cfg-hint">${t('cfg_tk_nologo')}</div>`:''}</div>`:''}
-    ${cb(o.cliInfo,t('cfg_o_client'),'cliInfo')}
+    <button class="cfg-btn" data-act="cfgrecibo">${t('m_recibo').toUpperCase()}</button><div class="cfg-note">${t('cfg_rc_moved')}</div>   <!-- mods203: las opciones del recibo están en Recibo / Ticket -->
     <div class="cfg-h">${t('cfg_scanner_h')}</div>
     <select class="cfg-sel" id="cfgScanner"><option value="1" ${o.scanner!==2?'selected':''}>${t('cfg_scanner1')}</option><option value="2" ${o.scanner===2?'selected':''}>${t('cfg_scanner2')}</option></select>
     <div class="cfg-h">${t('cfg_cam_h')}</div>
@@ -12263,7 +12260,7 @@ async function imprEnviar(sale,o){o=o||{};const ic=imprCfg();let bytes,tipo;   /
 // al guardar la venta (saveSale): aparte y sin esperar; un error solo avisa, la venta ya quedó guardada
 function imprAuto(sale){let m='no';try{m=imprCfg().modo;}catch(_){}if(m==='auto')setTimeout(()=>{imprEnviar(sale,{auto:true});},60);else if(m==='preguntar')imprPreguntar(sale);}   /* mods188: automático / preguntar / no */
 function imprVenta(id){const s=state.sales.find(x=>''+x.id===''+id);if(!s)return;return imprEnviar(s,{manual:true});}   // Imprimir del detalle (reimpresión)
-function imprDetBtn(s){if(!imprEsPC())return '';return `<button class="sd-hb" data-act="imprdet:${exEsc(s.id)}" aria-label="${exEsc(t('ip_print'))}" title="${exEsc(t('ip_print'))}">${svg(IMPR_ICO)}</button>`;}
+function imprDetBtn(s){/* mods203: también en el celular (por el PC de la tienda o el diálogo del teléfono) */return `<button class="sd-hb" data-act="imprdet:${exEsc(s.id)}" aria-label="${exEsc(t('ip_print'))}" title="${exEsc(t('ip_print'))}">${svg(IMPR_ICO)}</button>`;}
 
 /* ---- Ajustes → Impresora de recibos (ventana a pantalla completa, estilo .histdlg) ---- */
 function imprEl(){let d=document.getElementById('imprdlg');if(d)return d;
@@ -12470,7 +12467,8 @@ async function prnDo(j,E){let sale=null;
   if(!sale)return {st:'err',msg:t('ip_rm_nosale')};
   let bytes,tipo;LANG_IMP=(j.lang&&I18N[j.lang])?j.lang:null;   // el recibo sale en el idioma del celular que lo pidió (solo mientras se arma)
   try{if(j.fmt==='ticket'){bytes=await escposTicketRaster(sale,imprConAncho(j.printer||''));tipo='escpos';}   /* mods194: el ancho de ESA impresora del PC */
-    else{if(!E.pdf)return {st:'err',msg:t('ip_rm_nopdf')};const r=await prnFmtBlob(sale,'normal');if(!r||!r.blob)return {st:'err',msg:t('rc_none')};bytes=new Uint8Array(await r.blob.arrayBuffer());tipo='pdf';}}
+    else if(!E.pdf){bytes=await escposTicketRaster(sale,imprConAncho(j.printer||''));tipo='escpos';}   /* mods203: puente sin PDF → como ticket */
+    else{const r=await prnFmtBlob(sale,'normal');if(!r||!r.blob)return {st:'err',msg:t('rc_none')};bytes=new Uint8Array(await r.blob.arrayBuffer());tipo='pdf';}}
   catch(e){console.warn('impresion compartida: no se pudo armar',e);return {st:'err',msg:''+((e&&e.message)||e)};}
   finally{LANG_IMP=null;}
   try{const n=imprCfg().copias;for(let i=0;i<n;i++){const r=await puenteImprimir(bytes,j.printer||'',tipo);if(!r.ok)return {st:'err',msg:''+(r.error||'?')};}return {st:'ok'};}
@@ -13404,6 +13402,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="cfgv"){const q=el.dataset.act.split(":");setOpt(q[1],q[2]);return cfgRefresh();}
     if(a==="cfgxtext")return mniOpen('xtext');   /* mods181: ventana de MN */   /* mods162 */
     if(a==="cfgxtextok"){const e=document.getElementById('cfgXText');setOpt('exText',e?String(e.value||'').replace(/\s+$/,''):'');closeCfgDlg();toast(t('cfg_x_text_ok'));return cfgRefresh();}
+    if(a==="cfgrecibo")return go('recibo');   /* mods203 */
     if(a==="cfgcoin")return openCfgDlg('coin');
     if(a==="cfgnum")return openCfgDlg('num');
     if(a==="ipm"||a==="ipb")return imprBoxAct(a,el.dataset.act.split(":")[1]);   /* mods188 */
@@ -14343,7 +14342,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261019224039';
+const APP_VERSION='20261020053440';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

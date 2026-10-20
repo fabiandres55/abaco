@@ -10912,7 +10912,7 @@ async function bkSaveSaleLines(byId){
   }catch(e){}
 }
 async function bkLoadAllImages(){try{const db=await idbOpen();await new Promise(res=>{const tx=db.transaction('img','readonly');const cur=tx.objectStore('img').openCursor();cur.onsuccess=e=>{const c=e.target.result;if(c){IMGCACHE[c.key]=c.value;c.continue();}else res();};cur.onerror=()=>res();});}catch(e){}}
-let IMG_FETCHING=false;
+let IMG_FETCHING=false,IMG_FETCH_T=0,IMG_RETRY=null;   /* mods199 */
 function bkApplyInvImages(){
   const els=[...document.querySelectorAll('img[data-imgkey]')].filter(el=>!el.src);
   const missing=[];
@@ -10928,21 +10928,41 @@ function imgFileName(key){return (''+key).replace(/\//g,'%2F');}   /* como Mi Ne
 const IMG_WANT=new Set();const IMG_MISS={};
 async function sbFetchImages(keys){
   (keys||[]).forEach(k=>{if(k&&!IMGCACHE['img:'+k]&&!(IMG_MISS[k]&&Date.now()-IMG_MISS[k]<120000))IMG_WANT.add(k);});
-  if(IMG_FETCHING||!IMG_WANT.size)return;IMG_FETCHING=true;
+  if(IMG_FETCHING&&Date.now()-IMG_FETCH_T<45000)return;if(!IMG_WANT.size)return;IMG_FETCHING=true;IMG_FETCH_T=Date.now();let fallo=false;   /* mods199: una descarga trabada (>45 s) no bloquea las demás */
   try{
     const sb=await sbInit();const id=currentDataId();
     let guard=0;
     while(sb&&id&&IMG_WANT.size&&guard++<60){
       const batch=[...IMG_WANT].slice(0,100);batch.forEach(k=>IMG_WANT.delete(k));
-      const r=await sb.from('store_docs').select('doc_key,data').eq('store_id',id).in('doc_key',batch.map(k=>'img:'+k));
-      if(!r||r.error){batch.forEach(k=>IMG_MISS[k]=Date.now()-60000);break;}   // falló: reintentar en ~1 min
+      IMG_FETCH_T=Date.now();
+      const r=await Promise.race([sb.from('store_docs').select('doc_key,data').eq('store_id',id).in('doc_key',batch.map(k=>'img:'+k)),new Promise(res=>setTimeout(()=>res({error:{message:'timeout'}}),20000))]);   /* mods199: máx. 20 s por tanda */
+      if(!r||r.error){batch.forEach(k=>IMG_MISS[k]=Date.now()-60000);fallo=true;break;}   // falló: reintentar en ~1 min
       const got=new Set();(r.data||[]).forEach(row=>{const b=row.data&&row.data.b;if(b){IMGCACHE[row.doc_key]=b;idbPut(row.doc_key,b);got.add(row.doc_key.slice(4));}});
       batch.forEach(k=>{if(!got.has(k))IMG_MISS[k]=Date.now();});   // no está en la nube (aún)
       document.querySelectorAll('img[data-imgkey]').forEach(el=>{if(el.src)return;const u=IMGCACHE['img:'+el.getAttribute('data-imgkey')];if(u)el.src=u;});
     }
-  }catch(e){}
+  }catch(e){fallo=true;}
   IMG_FETCHING=false;
+  if(fallo&&!IMG_RETRY)IMG_RETRY=setTimeout(()=>{IMG_RETRY=null;try{bkApplyInvImages();}catch(_){}},65000);   /* mods199: reintento solo */
 }
+/* mods199: equipo nuevo → bajar en segundo plano todas las fotos de la tienda que no están en el equipo (tandas de 100, cuando no hay
+   otra descarga ni fotos pedidas en pantalla, con internet y la app a la vista). Termina cuando no queda ninguna o las que quedan no están
+   en la nube (IMG_MISS). Una sola a la vez por tienda. */
+let IMG_PRE=null;
+async function imgPrefetch(){const id=currentDataId();if(!id||IMG_PRE===id)return;IMG_PRE=id;
+  try{
+    let locales=new Set();try{const db=await idbOpen();locales=new Set(await new Promise(res=>{const q=db.transaction('img','readonly').objectStore('img').getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);}));}catch(_){}
+    const falta=()=>[...new Set((state.products||[]).map(p=>p&&p.imgKey).filter(Boolean))].filter(k=>!IMGCACHE['img:'+k]&&!locales.has('img:'+k)&&!(IMG_MISS[k]&&Date.now()-IMG_MISS[k]<120000));
+    let quedan=falta(),vueltas=0;
+    while(quedan.length&&currentDataId()===id&&vueltas++<400){
+      if(!navigator.onLine||document.hidden||IMG_FETCHING||IMG_WANT.size){await new Promise(r=>setTimeout(r,2000));quedan=falta();continue;}
+      await sbFetchImages(quedan.slice(0,100));
+      await new Promise(r=>setTimeout(r,800));quedan=falta();}
+  }catch(_){}
+  if(IMG_PRE===id)IMG_PRE=null;}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>{try{imgPrefetch();}catch(_){}},3000);});
+window.addEventListener('online',()=>{try{bkApplyInvImages();}catch(_){}setTimeout(()=>{try{imgPrefetch();}catch(_){}},3000);});
+setInterval(()=>{try{imgPrefetch();}catch(_){}},300000);   /* productos que llegan después (equipo nuevo sincronizando) */
 // Subida de miniaturas: solo las de los productos de esta tienda, revisando errores y reintentando
 async function sbUploadImages(onlyKeys,silent,extra){
   const sb=await sbInit();const id=currentDataId();if(!sb||!id)return {done:0,fail:0};
@@ -11503,7 +11523,7 @@ function render(){
   if(state.screen==='respaldo'&&state.bk&&BKZIP)bkLoadThumbs();
   if(state.screen==='respaldo'&&!state.bk)fillSnapList();
   bkDueBanner();
-  if(state.screen==='inventario'||state.screen==='nueva')bkApplyInvImages();
+  if(document.querySelector('img[data-imgkey]:not([src])'))bkApplyInvImages();   /* mods199: en cualquier pantalla (antes solo Inventario y Ventas: en Compras no salían) */
   // misma pantalla → se queda donde estaba; pantalla nueva (o posición pedida) → la indicada (arriba por defecto)
   if(state._keep!==undefined&&state._keep!==null)_sc.scrollTop=state._keep;else _sc.scrollTop=_same?_prevTop:0;
   state._keep=undefined;RENDER_LAST=state.screen;
@@ -11526,7 +11546,7 @@ function searchRefresh(){
   if(!tmp.querySelector('#searchInput')||!searchGraft(body,tmp,live))return full();
   try{saveCartDraft();}catch(_){}
   try{decorateSearches(body);}catch(_){}
-  if(state.screen==='inventario'||state.screen==='nueva')bkApplyInvImages();
+  if(document.querySelector('img[data-imgkey]:not([src])'))bkApplyInvImages();   /* mods199: en cualquier pantalla (antes solo Inventario y Ventas: en Compras no salían) */
   NAV_Q=state.q;NAV_LIM=state.invLimit;try{navSync(null);}catch(_){}
 }
 // cambia los nodos de liveEl por los de newEl, menos la rama que lleva a la cajita, que se conserva (y se repasa por dentro)
@@ -12847,7 +12867,7 @@ function enterFromBoot(p){
   renderDrawer();state.screen=_dr==='sale'?'nueva':'inventario';render();draftToast(_dr);
   watchKey('notif.'+p.id);watchKey('data.'+p.id);watchKey('bsales.'+p.id);
   Promise.resolve(_m).then(()=>{sbSyncBoot();return sbPullStore(p.id);}).then(ok=>{if(ok&&!document.getElementById('onbo').classList.contains('on')){renderDrawer();render();}sbRawHeal(p.id).then(()=>sbDetailHeal(p.id));});
-  bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();});
+  bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();setTimeout(()=>{try{imgPrefetch();}catch(_){}},8000);});   /* mods199: equipo nuevo → todas las fotos */
 }
 function boot(){
   sbDirtyBoot();   // recupera la cola de cambios pendientes por subir
@@ -14295,7 +14315,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261019204303';
+const APP_VERSION='20261019210515';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

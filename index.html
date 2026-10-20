@@ -12472,6 +12472,10 @@ async function prnSb(){try{const sb=await sbInit();const id=currentDataId();if(!
 function prnWakeSend(x){try{if(SB_CHAN&&SB_CHAN_ID===currentDataId()){const pl={keys:['prn']};if(x&&x.job)pl.job=x.job;if(x&&x.ack)pl.ack=x.ack;SB_CHAN.send({type:'broadcast',event:'changed',payload:pl});}}catch(_){}}
 /* mods204: el pedido llega dentro del aviso (el PC no consulta la nube) y la respuesta vuelve igual (el celular no espera la consulta de 2 s) */
 const PRN_JOBQ=[],PRN_ACKIN={},PRN_ACKW=new Set(),PRN_PRE={};
+/* mods208: la lista de pedidos de este equipo se sube de a una vez y en orden; cada subida lleva la lista COMPLETA de ese momento
+   (antes, varias subidas a la vez podían llegar desordenadas y la última en llegar borraba pedidos) */
+let PRN_MYJ_P=null,PRN_UPQ=Promise.resolve();
+function prnUpJobs(c,key){const p=PRN_UPQ.then(async()=>{try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:key,data:{dev:deviceId(),jobs:PRN_MYJOBS},updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;return true;}catch(_){return false;}});PRN_UPQ=p.catch(()=>false);return p;}
 function prnMkJob(sale,rm){const job={id:'J'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),sale:''+sale.id,folio:sale.folio||'',pc:rm.dev,printer:rm.printer,fmt:opts().pdfFmt==='ticket'?'ticket':'normal',lang:LANG,at:new Date().toISOString()};
   try{const sn=JSON.parse(JSON.stringify(sale));if(JSON.stringify(sn).length<60000)job.snap=sn;}catch(_){}   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
   return job;}
@@ -12501,14 +12505,14 @@ function prnSelStHtml(cur){const rm=prnParse(cur);if(!rm)return '';const p=PRN_P
 // imprimir una venta por el PC: deja el trabajo en la nube, avisa y espera la confirmación del PC (hasta 90 s)
 async function prnRemoto(sale,rm,o){o=o||{};const c=await prnSb();if(!c){toast(t('ip_rm_offline'));return false;}
   const key=PRN_JOB+deviceId();
-  if(PRN_MYJOBS===null){PRN_MYJOBS=[];try{const d=await sbPullDoc(c.id,key);if(d&&Array.isArray(d.jobs))PRN_MYJOBS=d.jobs;}catch(_){}}
+  if(PRN_MYJOBS===null){PRN_MYJOBS=[];PRN_MYJ_P=(async()=>{try{const d=await sbPullDoc(c.id,key);if(d&&Array.isArray(d.jobs)){const ya=new Set(PRN_MYJOBS.map(x=>x&&x.id));PRN_MYJOBS=d.jobs.filter(x=>x&&!ya.has(x.id)).concat(PRN_MYJOBS);}}catch(_){}})();}
+  if(PRN_MYJ_P)await PRN_MYJ_P;   /* mods208: todos los pedidos esperan la MISMA carga (antes, 4 a la vez se pisaban y quedaba 1) */
   let job,pre=PRN_PRE[''+sale.id];delete PRN_PRE[''+sale.id];if(!(pre&&Date.now()-pre.at<30000&&pre.job.pc===rm.dev&&pre.job.printer===rm.printer))pre=null;
   job=pre?pre.job:prnMkJob(sale,rm);   /* mods204: el mismo pedido que ya salió en prnPre (el PC no lo imprime dos veces: mismo id) */   /* mods202: la venta va con el trabajo: el PC imprime sin esperar la sincronización */   // el PC arma el recibo en el idioma de este equipo
-  PRN_MYJOBS=PRN_MYJOBS.filter(x=>x&&prnAge(x)<15*60000).map(x=>{if(x.snap){const y={...x};delete y.snap;return y;}return x;}).concat([job]).slice(-20);   /* mods202: solo el último lleva la venta */
+  PRN_MYJOBS=PRN_MYJOBS.filter(x=>x&&prnAge(x)<15*60000).map(x=>{if(x.snap&&prnAge(x)>120000){const y={...x};delete y.snap;return y;}return x;}).concat([job]).slice(-20);   /* mods202: la venta va con el pedido; mods208: la conservan los de los últimos 2 min (antes solo el último) */
   /* mods204: el pedido sale YA dentro del aviso (el PC empieza sin consultar la nube); la nube queda de respaldo (se guarda a la vez) */
   if(!pre)prnSendJob(job);
-  let upOk=true;try{const up=await c.sb.from('store_docs').upsert({store_id:c.id,doc_key:key,data:{dev:deviceId(),jobs:PRN_MYJOBS},updated_at:new Date().toISOString()},{onConflict:'store_id,doc_key'});if(up&&up.error)throw up.error;}
-  catch(e){upOk=false;}
+  const upOk=await prnUpJobs(c,key);   /* mods208: subidas en orden, siempre la lista completa */
   if(!upOk){await prnAckWait(6000);if(!PRN_ACKIN[job.id]){toast(t('ip_rm_offline'));return false;}}   /* sin nube pero el aviso pudo llegar: se espera la respuesta un momento */
   else prnWakeSend();   // aviso de respaldo (PC sin mods204: consulta la nube)
   const pc=PRN_PCS.find(x=>x.dev===rm.dev),pn=(pc&&pc.name)||'PC';if(!PRN_ACKIN[job.id])toast(ti('ip_rm_sent',{p:rm.printer||t('ip_default'),n:pn}));
@@ -12539,22 +12543,32 @@ async function prnDo1(j,E){let sale=null;
     else{const r=await prnFmtBlob(sale,'normal');if(!r||!r.blob)return {st:'err',msg:t('rc_none')};bytes=new Uint8Array(await r.blob.arrayBuffer());tipo='pdf';}}
   catch(e){console.warn('impresion compartida: no se pudo armar',e);return {st:'err',msg:''+((e&&e.message)||e)};}
   finally{LANG_IMP=null;}
-  try{const n=imprCfg().copias;for(let i=0;i<n;i++){const r=await puenteImprimir(bytes,j.printer||'',tipo);if(!r.ok)return {st:'err',msg:''+(r.error||'?')};}return {st:'ok'};}
-  catch(e){return {st:'err',msg:t('ip_nobridge')};}}
+  /* mods208: armado → se devuelve el envío para hacerlo después (mientras tanto se arma el siguiente ticket) */
+  return {st:'built',send:async()=>{try{const n=imprCfg().copias;for(let i=0;i<n;i++){const r=await puenteImprimir(bytes,j.printer||'',tipo);if(!r.ok)return {st:'err',msg:''+(r.error||'?')};}return {st:'ok'};}
+    catch(e){return {st:'err',msg:t('ip_nobridge')};}}};}
 let PRN_AGAIN=false;   /* mods202 */
 async function prnPcTick(force){if(PRN_BUSY){PRN_AGAIN=true;return;}if(!prnShareOn())return;PRN_BUSY=true;PRN_AGAIN=false;
   try{const c=await prnSb();if(!c)return;const E=await imprEstadoReciente();if(!E||!E.ok)return;
     const q=PRN_JOBQ.splice(0);   /* mods204: pedidos que llegaron dentro del aviso: primero se imprimen; la consulta a la nube va en la siguiente vuelta */
     if(!q.length&&(force||Date.now()-PRN_HB>55000||prnSig(E)!==PRN_SIG))await prnPublish(c,E);
     if(q.length)PRN_AGAIN=true;
-    await prnLock(async()=>{
+    const ran=await prnLock(async()=>{
     let rows=[];if(!q.length)try{const r=await c.sb.from('store_docs').select('doc_key,data').eq('store_id',c.id).like('doc_key',PRN_JOB+'%');if(r&&!r.error&&Array.isArray(r.data))rows=r.data;}catch(_){}
     const me=deviceId(),todo=q.filter(j=>j&&j.pc===me&&j.id);rows.forEach(x=>{const d=x&&x.data;(d&&Array.isArray(d.jobs)?d.jobs:[]).forEach(j=>{if(j&&j.pc===me&&j.id&&prnAge(j)<15*60000)todo.push(j);});});
     todo.sort((a,b)=>(a.at||'')<(b.at||'')?-1:1);
-    for(const j of todo){if(prnAcks()[j.id])continue;   // ya atendido (por esta u otra pestaña)
-      prnAckSet(j.id,{st:'busy',at:new Date().toISOString()});const r=await prnDo(j,E);const ak={st:r.st,msg:r.msg||'',at:new Date().toISOString()};prnAckSet(j.id,ak);
-      prnWakeSend({ack:{id:j.id,...ak}});await prnPublish(c,E);prnWakeSend();}   /* mods204: la respuesta sale por aviso antes de guardarla en la nube */
-    });
+    /* mods208: tubería — se arma el ticket N+1 mientras la impresora recibe el N (el envío sigue el orden); cada respuesta sale por aviso
+       al terminar su envío; el estado (acks) se guarda en la nube UNA vez al final (antes, después de cada ticket) */
+    let prev=null,hechos=0;
+    const fin=async(j,p)=>{const r=await p;const ak={st:r.st,msg:r.msg||'',at:new Date().toISOString()};prnAckSet(j.id,ak);prnWakeSend({ack:{id:j.id,...ak}});hechos++;};
+    const take=()=>{PRN_JOBQ.splice(0).forEach(j=>{if(j&&j.pc===me&&j.id&&!todo.some(x=>x.id===j.id))todo.push(j);});};   // los que llegan mientras se imprime entran a la misma tanda
+    for(let k=0;;){if(k>=todo.length){take();if(k>=todo.length)break;}const j=todo[k++];if(prnAcks()[j.id])continue;   // ya atendido (por esta u otra pestaña)
+      prnAckSet(j.id,{st:'busy',at:new Date().toISOString()});const b=await prnDo(j,E);
+      if(prev)await prev;
+      prev=fin(j,b&&b.st==='built'?b.send():Promise.resolve(b||{st:'err',msg:'?'}));}
+    if(prev)await prev;
+    if(hechos){await prnPublish(c,E);prnWakeSend();}
+    return true;});
+    if(ran!==true&&q.length){q.forEach(j=>{if(!PRN_JOBQ.some(x=>x.id===j.id))PRN_JOBQ.push(j);});}   /* mods208: otra pestaña tenía el turno: no se pierden (el reloj de 5 s reintenta) */
   }finally{PRN_BUSY=false;if(PRN_AGAIN){PRN_AGAIN=false;Promise.resolve().then(()=>prnPcTick(false));}}}   /* mods202: el aviso que llegó mientras tanto */
 // los acks viejos (de antes de recargar el PC) se leen de su propio documento para no imprimir dos veces
 let PRN_INIT=false;
@@ -14420,7 +14434,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261020075044';
+const APP_VERSION='20261020145155';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

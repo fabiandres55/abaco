@@ -1,8 +1,9 @@
 {
+  "id": "relax-online",
   "name": "Relax Online",
   "short_name": "Relax Online",
   "description": "Gestión de tu negocio: inventario, ventas y más.",
-  "start_url": "./index.html",
+  "start_url": "./index.html?app=online",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,8 +1,9 @@
 {
+  "id": "relax-tat",
   "name": "Relax TAT",
   "short_name": "Relax TAT",
   "description": "Gestión de tu negocio: inventario, ventas y más.",
-  "start_url": "./index.html",
+  "start_url": "./index.html?app=tat",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,8 +1,9 @@
 {
+  "id": "relax-vitrina",
   "name": "Relax Vitrina",
   "short_name": "Relax Vitrina",
   "description": "Gestión de tu negocio: inventario, ventas y más.",
-  "start_url": "./index.html",
+  "start_url": "./index.html?app=vitrina",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -57,6 +57,9 @@ function colApply(c,dark){const r=document.documentElement,v=c?colVariants(c,dar
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Relax · Bodega y Local</title>
+<script>/* mods213: celular de un vendedor → manifiesto, ícono y nombre de su perfil desde el primer instante */try{var _rp=JSON.parse(localStorage.getItem('abanico.profile')||'null'),_rk=localStorage.getItem('abanico.ptipo'),_rn={vitrina:'Relax Vitrina',tat:'Relax TAT',online:'Relax Online'}[_rk];
+if(_rp&&_rp.role==='seller'&&_rn){document.querySelector('link[rel="manifest"]').setAttribute('href','manifest-'+_rk+'.json');document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href','icon-'+_rk+'-180.png');
+var _m1=document.querySelector('meta[name="apple-mobile-web-app-title"]'),_m2=document.querySelector('meta[name="application-name"]');if(_m1)_m1.setAttribute('content',_rn);if(_m2)_m2.setAttribute('content',_rn);document.title=_rn;}}catch(_){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap">
@@ -3200,7 +3203,9 @@ function pfBrand(){try{const k=myTipo();if(PF_BR===(k||''))return;PF_BR=k||'';
   if(img)img.src=k?pfIcon(k,192):'relax-icon-256.png';if(nm)nm.textContent=k?PERF[k].n:'Relax';
   const mf=document.querySelector('link[rel="manifest"]');if(mf)mf.setAttribute('href',k?'manifest-'+k+'.json':'manifest.json');
   const ap=document.querySelector('link[rel="apple-touch-icon"]');if(ap)ap.setAttribute('href',k?pfIcon(k,180):'apple-touch-icon.png');
-  document.title=k?PERF[k].n:'Relax';}catch(_){}}
+  document.title=k?PERF[k].n:'Relax';
+  ['apple-mobile-web-app-title','application-name'].forEach(n=>{const m=document.querySelector('meta[name="'+n+'"]');if(m)m.setAttribute('content',k?PERF[k].n:'Relax');});
+  try{if(k)localStorage.setItem('abanico.ptipo',k);else localStorage.removeItem('abanico.ptipo');}catch(_){}   /* mods213: para el arranque */}catch(_){}}
 function sellerSign(){const v=isSeller()&&state.profile.seller;return v&&v.id?{vend:v.id,vendN:v.name||''}:{};}
 function sellerMine(s){const v=state.profile&&state.profile.seller;return !!s&&!!v&&s.vend===v.id;}
 const SELLER_OK=new Set(['nueva','ventas','inventario','catalogo','micaja','ajustes']);
@@ -10260,7 +10265,7 @@ async function vdQR(sid){const v=sellersLive().find(x=>x.id===sid);if(!v)return;
   if(typeof sbOnline==='function'&&!sbOnline())return toast(t('vd_need_net'));const sb=await sbInit();if(!sb||!id)return toast(t('vd_need_net'));
   const code=vdCode();let r=null;try{r=await sb.from('store_invites').insert({code,store_id:id,seller_id:v.id,seller_name:v.name});}catch(e){r={error:e};}
   if(!r||r.error){console.warn('vendedor: invitación',r&&r.error);return toast(t('vd_qr_err'));}
-  VD_URL=appUrl()+'?inv='+code;VD_ST[v.id]=VD_ST[v.id]||'wait';
+  VD_URL=appUrl()+'?inv='+code+'&p='+sellerTipo(v);   /* mods213: + perfil */VD_ST[v.id]=VD_ST[v.id]||'wait';
   state.cfgKind=null;document.getElementById('cfgH').textContent=ti('vd_qr_h',{n:v.name});
   document.getElementById('cfgBody').innerHTML=`<div class="vinc"><div class="pf-qrh"><img src="${pfIcon(sellerTipo(v),192)}" alt=""><b>${PERF[sellerTipo(v)].n}</b></div><div class="vin-qr" id="vdQR"></div><div class="osub" style="text-align:center">${ti('vd_qr_note',{n:exEsc(v.name)})}</div>${navigator.share?`<button class="btn" data-act="vendshare">${t('vd_share')}</button>`:''}</div>`;
   document.getElementById('cfgdlg').classList.add('on');
@@ -13126,9 +13131,9 @@ function enterFromBoot(p){
   bkLoadAllImages().then(()=>{if(state.screen==='inventario')render();const id=currentDataId();let up='0';try{up=localStorage.getItem('abanico.imgup.'+id)||'0';}catch(e){}if(id&&up!=='1'&&Object.keys(IMGCACHE).some(k=>k.indexOf('img:')===0))sbUploadImages();setTimeout(()=>{try{imgPrefetch();}catch(_){}},8000);});   /* mods199: equipo nuevo → todas las fotos */
 }
 function invFromUrl(){try{const v=new URLSearchParams(location.search).get('inv');return v&&/^[A-Za-z0-9]{12,40}$/.test(v)?v:null;}catch(_){return null;}}
-function invClearUrl(){try{const u=new URL(location.href);u.searchParams.delete('inv');history.replaceState(null,'',u.pathname+(u.search||'')+u.hash);}catch(_){}}
+function invClearUrl(){try{const u=new URL(location.href);u.searchParams.delete('inv');u.searchParams.delete('p');history.replaceState(null,'',u.pathname+(u.search||'')+u.hash);}catch(_){}}
 /* mods205: unirse a una tienda como vendedor con el código del QR */
-async function sellerJoin(code){
+async function sellerJoin(code,pt){if(!PERF[pt])pt=null;   /* mods213 */
   const onbo=document.getElementById('onbo');onbo.classList.add('on');try{toast(t('vd_joining'));}catch(_){}
   const fail=async k=>{await appAlert(t(k));return false;};
   const sb=await sbInit();if(!sb||(typeof sbOnline==='function'&&!sbOnline()))return fail('vd_join_err');
@@ -13140,7 +13145,7 @@ async function sellerJoin(code){
     return fail(/expired/.test(m)?'vd_inv_expired':/used/.test(m)?'vd_inv_used':/not_found/.test(m)?'vd_inv_bad':/is_owner/.test(m)?'vd_owner_dev':'vd_join_err');}
   const d=r.data;try{localStorage.setItem('abanico.authed','1');}catch(_){}
   const cur=safeLocalProfile();if(cur&&cur.id&&''+cur.id!==''+d.store_id)clearProfile();
-  enterProfile('tienda',{id:d.store_id,name:d.store_name||'Relax',role:'seller',seller:{id:d.seller_id,name:d.seller_name||''}});
+  enterProfile('tienda',{id:d.store_id,name:d.store_name||'Relax',role:'seller',seller:{id:d.seller_id,name:d.seller_name||'',...(pt?{tipo:pt}:{})}});PF_BR=null;pfBrand();   /* mods213: el perfil del QR, ya */
   try{toast(ti('vd_welcome',{n:d.seller_name||'',s:d.store_name||'Relax'}));}catch(_){}
   return true;}
 /* el dueño quitó al vendedor: su celular deja la tienda (se revisa como mucho cada minuto) */
@@ -13151,7 +13156,7 @@ async function sellerCheck(force){if(!isSeller()||!AUTH)return;if(!force&&Date.n
   try{clearStoreLocal(id);}catch(_){}try{clearStoreState();}catch(_){}clearProfile();state.profile=null;
   await appAlert(t('vd_removed'));appReload();}
 function boot(){
-  {const inv=invFromUrl();if(inv){invClearUrl();sellerJoin(inv).then(ok=>{if(!ok)boot();});return;}}   /* mods205: QR de vendedor */
+  {const inv=invFromUrl();if(inv){let pt=null;try{pt=new URLSearchParams(location.search).get('p');}catch(_){}invClearUrl();sellerJoin(inv,pt).then(ok=>{if(!ok)boot();});return;}}   /* mods213: + perfil del QR */   /* mods205: QR de vendedor */
   sbDirtyBoot();   // recupera la cola de cambios pendientes por subir
   const p=safeLocalProfile();
   // No se entra a la app sin sesión: primero validar login
@@ -14460,7 +14465,7 @@ window.addEventListener('pagehide',()=>{try{saveCartDraft();}catch(_){}});
 
 boot();
 // Textos fijos del HTML según el idioma del dispositivo
-try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=t('app_title');const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
+try{document.documentElement.lang=LANG;document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');document.title=(typeof _rn==='string'&&_rn&&_rp&&_rp.role==='seller')?_rn:t('app_title');   /* mods213: el del perfil del vendedor */const _sh=document.getElementById('shareTitle');if(_sh)_sh.textContent=t('m_recibo');}catch(_){}
 /* ---------------- Encabezado siempre a la vista ----------------
    Con dos dedos no se acerca ni se desplaza la página (las listas siguen bajando con un dedo).
    Si algo desplazara la página o el contenedor de la app (por ejemplo al enfocar un campo), vuelve a su lugar. */
@@ -14606,7 +14611,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261021174246';
+const APP_VERSION='20261021184125';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

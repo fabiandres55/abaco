@@ -1,0 +1,26 @@
+{
+  "name": "Relax TAT",
+  "short_name": "Relax TAT",
+  "description": "Gestión de tu negocio: inventario, ventas y más.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f4f5",
+  "theme_color": "#565b60",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-tat-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-tat-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

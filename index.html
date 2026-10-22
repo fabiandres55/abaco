@@ -5800,8 +5800,11 @@ function saleTagList(){
 function payOrder(list){return (list||[]).map((v,i)=>[v,i]).sort((a,b)=>ALPHA_COLL.compare(''+(payLbl(a[0])||''),''+(payLbl(b[0])||''))||a[1]-b[1]);}
 // listas fijas con '' (sin forma de pago) primero: el resto en orden alfabético (son copias locales, no se guardan)
 function pmSort(pm){const r=payOrder(pm.filter(v=>v)).map(x=>x[0]);pm.length=0;pm.push('',...r);return pm;}
+/* mods217: forma de pago por defecto = la que marcó la tienda; si nunca marcó ninguna, CONTADO (si está en su lista) */
+function payDef(){const o=opts();if(typeof o.payDefault==='string')return o.payDefault;
+  const prev=PICK_MODE;PICK_MODE='pay';let c='';try{c=payMethodList().find(v=>(''+(payLbl(v)||v)).trim().toUpperCase()==='CONTADO')||'';}finally{PICK_MODE=prev;}return c;}
 function fillPick(){
-  const pay=PICK_MODE==='pay';const list=pay?payMethodList():saleTagList();const def=opts().payDefault||'';
+  const pay=PICK_MODE==='pay';const list=pay?payMethodList():saleTagList();const def=pay?payDef():'';   /* mods217 */
   const ico=pay?svg(S_CASH):svg(S_FAN);const chk=svg('<path d="M5 12l5 5L20 7"/>');
   document.getElementById('payH').textContent=t(pay?'pay_pick_t':'tag_pick_t');
   const H=PICK_HIST;
@@ -5853,7 +5856,7 @@ function saleCartHTML(){
   const total=`<div class="ctotal"><span class="ctot-ico"><button class="cico tag" data-act="ttag" title="${t('ic_price')}">${svg(IC_TAG)}</button><button class="cico pct" data-act="tdisc" title="${t('ic_disc')}"><span class="ci-pct">+%</span></button></span><span class="l">${t('total')} ${moneySym()}</span><b class="num">${cartAnyEmpty()?'...':moneyNum(cartTotal())}</b></div>${state.cartAdj&&state.cartAdj['*']?`<div class="cpx adj tot">${adjLabel(state.cartAdj['*'])}</div>`:''}`;
   const opt=t('optional');const cob=st==='cobrar'&&!state.quoteMode;
   const chev=svg('<path d="M6 9l6 6 6-6"/>');
-  if(!state.salePay&&!state.salePayCleared&&opts().payDefault)state.salePay=opts().payDefault;   // forma de pago por defecto (Default)
+  if(!state.salePay&&!state.salePayCleared&&payDef())state.salePay=payDef();   /* mods217: CONTADO si la tienda no eligió */   // forma de pago por defecto (Default)
   const fields=`
     <div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${cob?t('required'):opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>
     <div class="cfld sellike" data-act="salepay"><span class="${state.salePay?'':'ph'}">${payLbl(state.salePay)||(t('sale_payform')+' '+opt)}</span>${state.salePay?`<button class="clrx" data-act="salepayclear">✕</button>`:chev}</div>
@@ -6478,7 +6481,7 @@ async function pcProvAdd(){const can=('contacts' in navigator)&&('ContactsManage
   if(k===1&&can){try{const r=await navigator.contacts.select(['name','tel','email'],{multiple:false});const c=r&&r[0];if(!c)return;
     openProvForm(null,{contact:((c.name||[])[0]||'').trim(),phone:((c.tel||[])[0]||'').trim(),phone2:((c.tel||[])[1]||'').trim(),email:((c.email||[])[0]||'').trim(),onSaved:pcProvPick});}catch(_){toast(t('prv_no_contacts'));}}}
 // Forma de Pago (MN 24): la lista de la tienda (la misma de Ventas); la Default se pone sola salvo que se haya quitado con ✕
-function pcPayHTML(){if(!state.ppay&&!state.ppayCleared&&opts().payDefault)state.ppay=opts().payDefault;const v=state.ppay||'';
+function pcPayHTML(){if(!state.ppay&&!state.ppayCleared&&payDef())state.ppay=payDef();   /* mods217 */const v=state.ppay||'';
   return `<div class="cfld sellike pcpay" data-act="pcpay"><span class="pfico">${svg(S_CASH)}</span><span class="pcpay-t${v?'':' ph'}">${exEsc(v?payLbl(v):t('cp_payform'))}</span><button class="clrx" data-act="pcpayclr" aria-label="✕">✕</button></div>`;}
 // validaciones de Guardar que son del pie (D4): Por Pagar pide proveedor; el Pago Inicial debe ser menor que el total (como Ventas); los
 // pagos programados no pueden sumar más que la Deuda (el carrito pudo cambiar después de programarlos: se abre Programar Pagos).
@@ -10206,7 +10209,7 @@ function empById(id){return (state.employees||[]).find(e=>''+e.id===''+id);}
 function empPays(id){return (state.payroll||[]).filter(p=>p&&!p.del&&''+p.emp===''+id).sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')));}
 function empAtt(id){return (state.attendance||[]).filter(a=>a&&!a.del&&''+a.emp===''+id);}
 /* ===== mods207: caja y comisiones por vendedor ===== */
-function mcIsCash(pay){if(!pay)return true;const l=(''+(payLbl(pay)||pay)).toLowerCase();return /efectivo|cash/.test(l);}
+function mcIsCash(pay){if(!pay)return true;const l=(''+(payLbl(pay)||pay)).toLowerCase();return /efectivo|cash|contado/.test(l);}   /* mods217: + contado */
 function mcNum(v){const x=(''+(v==null?'':v)).replace(/[^0-9.,-]/g,'');if(!x)return 0;const n=+(x.includes(',')&&!x.includes('.')?x.replace(',','.'):x.replace(/,/g,''));return isFinite(n)?n:0;}
 /* resumen de un vendedor entre dos fechas (YYYY-MM-DD, incluidas) */
 function vdSummary(vid,from,to){const inD=d=>!!d&&d>=from&&d<=to;const mine=(state.sales||[]).filter(x=>x&&x.vend===vid);
@@ -13579,7 +13582,8 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="pkset"&&PICK_SALE){const i=+el.dataset.act.split(":")[1];const v=(PICK_MODE==='pay'?payMethodList():saleTagList())[i];const s=state.sales.find(x=>''+x.id===''+PICK_SALE);PICK_SALE=null;closePay();if(s){if(PICK_MODE==='pay')s.pay=v;else s.tag=v;sdSaved(s);}return;}
     if(a==="pkset"&&PICK_TGT&&PICK_TGT.kind!=='sale')return pickSetTgt(+el.dataset.act.split(":")[1]);   /* mods146b: compra en curso o guardada */
     if(a==="pkset"){const i=+el.dataset.act.split(":")[1];const list=PICK_MODE==='pay'?payMethodList():saleTagList();if(PICK_MODE==='pay')state.salePay=list[i];else state.saleTag=list[i];closePay();return render();}
-    if(a==="pkdef"){const i=+el.dataset.act.split(":")[1];const v=payMethodList()[i];setOpt('payDefault',opts().payDefault===v?'':v);return fillPick();}
+    if(a==="pkdef"){const i=+el.dataset.act.split(":")[1];const v=payMethodList()[i];const on=payDef()!==v;setOpt('payDefault',on?v:'');   /* mods217 */
+      if(on){const b=document.querySelector('#payOptions [data-act="pkset:'+i+'"]');if(b)return b.click();}return fillPick();}
     if(a==="pkadd")return pickAdd();
     if(a==="pkmenu")return pickMenu(+el.dataset.act.split(":")[1]);
     if(a==="progpay")return openSched();
@@ -14642,7 +14646,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261021212156';
+const APP_VERSION='20261021220650';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

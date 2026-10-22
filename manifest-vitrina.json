@@ -1,7 +1,7 @@
 {
   "id": "relax-vitrina",
-  "name": "Relax Vitrina",
-  "short_name": "Relax Vitrina",
+  "name": "Relax Vendedor",
+  "short_name": "Relax Vendedor",
   "description": "Gestión de tu negocio: inventario, ventas y más.",
   "start_url": "./index.html?app=vitrina",
   "scope": "./",
@@ -12,13 +12,13 @@
   "lang": "es",
   "icons": [
     {
-      "src": "icon-vitrina-192.png",
+      "src": "icon-vendedor-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-vitrina-512.png",
+      "src": "icon-vendedor-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

@@ -1,7 +1,7 @@
 {
   "id": "relax-tat",
-  "name": "Relax TAT",
-  "short_name": "Relax TAT",
+  "name": "Relax Vendedor",
+  "short_name": "Relax Vendedor",
   "description": "Gestión de tu negocio: inventario, ventas y más.",
   "start_url": "./index.html?app=tat",
   "scope": "./",
@@ -12,13 +12,13 @@
   "lang": "es",
   "icons": [
     {
-      "src": "icon-tat-192.png",
+      "src": "icon-vendedor-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-tat-512.png",
+      "src": "icon-vendedor-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

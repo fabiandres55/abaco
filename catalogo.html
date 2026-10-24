@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- mods230 (2026-10-24): página de INSTALACIÓN de "Relax Catálogo" (app aparte para el equipo que sube productos al catálogo).
+     Manifiesto, ícono y nombre van FIJOS en esta página (no cambiados por código): así iPhone (Safari → Agregar a inicio) y Android
+     guardan la app correcta. Abierta como app instalada, salta directo al catálogo (index.html?app=catalogo). -->
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d4f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Relax Catálogo">
+<meta name="application-name" content="Relax Catálogo">
+<link rel="manifest" href="manifest-catalogo.json">
+<link rel="apple-touch-icon" href="icon-catalogo-180.png">
+<link rel="icon" type="image/png" href="icon-catalogo-192.png">
+<title>Relax Catálogo</title>
+<script>try{if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true)location.replace('index.html?app=catalogo');}catch(_){}</script>
+<style>
+:root{--bg:#f3f4f5;--card:#fff;--ink:#20232a;--muted:#5f656a;--line:#e3e5e8;--green:#2e7d4f}
+@media (prefers-color-scheme:dark){:root{--bg:#181a1d;--card:#24282d;--ink:#eef0f2;--muted:#b4b9bf;--line:#353a40}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Roboto,system-ui,-apple-system,sans-serif;display:flex;justify-content:center}
+main{width:100%;max-width:460px;padding:28px 18px 40px;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.top img{width:84px;height:84px;border-radius:22px;box-shadow:0 8px 22px -10px rgba(0,0,0,.45)}
+h1{margin:4px 0 0;font-size:24px}
+.sub{color:var(--muted);font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{margin:0 0 8px;font-size:17px}
+ol{margin:0;padding-left:22px}
+li{margin:6px 0}
+.btn{display:block;width:100%;border:none;border-radius:10px;padding:14px;font:600 16px Roboto,system-ui,sans-serif;text-align:center;text-decoration:none;cursor:pointer}
+.btn.pri{background:var(--green);color:#fff}
+.btn.sec{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.nota{font-size:13.5px;color:var(--muted)}
+[hidden]{display:none!important}
+</style></head>
+<body><main>
+<div class="top"><img src="icon-catalogo-192.png" alt=""><h1 id="t1">Relax Catálogo</h1><div class="sub" id="t2"></div></div>
+<button class="btn pri" id="instBtn" hidden></button>
+<div class="card" id="ios" hidden><h2 id="iosH"></h2><ol id="iosL"></ol></div>
+<div class="card" id="and" hidden><h2 id="andH"></h2><ol id="andL"></ol></div>
+<div class="card" id="pc" hidden><h2 id="pcH"></h2><ol id="pcL"></ol></div>
+<a class="btn sec" id="abrir" href="index.html?app=catalogo"></a>
+<div class="nota" id="nota"></div>
+</main>
+<script>
+(function(){
+  var en=!/^es/i.test(navigator.language||'es');
+  var T=en?{sub:'App for the Relax team that uploads products to the catalog. It is separate from Relax: install it as its own app.',
+      inst:'Install Relax Catalog',iosH:'iPhone / iPad (Safari)',ios:['Open this page in <b>Safari</b>.','Tap <b>Share</b> (square with an arrow).','Tap <b>Add to Home Screen</b> and then <b>Add</b>.','Open <b>Relax Catalog</b> from the green icon and sign in with your Relax username.'],
+      andH:'Android (Chrome)',and:['Tap the green button <b>Install Relax Catalog</b>.','If there is no button: menu <b>⋮</b> → <b>Install app</b> (or <b>Add to Home screen</b>).','Open <b>Relax Catalog</b> from the green icon and sign in with your Relax username.'],
+      pcH:'Computer',pc:['In Chrome or Edge, use the install icon in the address bar, or the button above.','Or just use it in the browser with "Open without installing".'],
+      open:'Open without installing',nota:'Your session in Relax Catalog is independent from Relax: signing in or out here does not change Relax.'}
+    :{sub:'App del equipo de Relax que sube productos al catálogo. Es aparte de Relax: instálala como una app propia.',
+      inst:'Instalar Relax Catálogo',iosH:'iPhone / iPad (Safari)',ios:['Abre esta página en <b>Safari</b>.','Toca <b>Compartir</b> (el cuadro con la flecha).','Toca <b>Agregar a inicio</b> y luego <b>Agregar</b>.','Abre <b>Relax Catálogo</b> desde el ícono verde y entra con tu usuario de Relax.'],
+      andH:'Android (Chrome)',and:['Toca el botón verde <b>Instalar Relax Catálogo</b>.','Si no aparece el botón: menú <b>⋮</b> → <b>Instalar app</b> (o <b>Agregar a la pantalla principal</b>).','Abre <b>Relax Catálogo</b> desde el ícono verde y entra con tu usuario de Relax.'],
+      pcH:'Computador',pc:['En Chrome o Edge, usa el ícono de instalar de la barra de direcciones, o el botón de arriba.','O úsala en el navegador con "Abrir sin instalar".'],
+      open:'Abrir sin instalar',nota:'Tu sesión en Relax Catálogo es independiente de Relax: entrar o salir aquí no cambia la de Relax.'};
+  if(en){document.documentElement.lang='en';document.getElementById('t1').textContent='Relax Catalog';document.title='Relax Catalog';}
+  var $=function(id){return document.getElementById(id);};
+  $('t2').textContent=T.sub;$('instBtn').textContent=T.inst;$('abrir').textContent=T.open;$('nota').textContent=T.nota;
+  var ua=navigator.userAgent||'',ios=/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1),and=/Android/.test(ua);
+  var lista=function(h,l,box,hh,ll){$(hh).textContent=h;$(ll).innerHTML=l.map(function(x){return '<li>'+x+'</li>';}).join('');$(box).hidden=false;};
+  if(ios)lista(T.iosH,T.ios,'ios','iosH','iosL');else if(and)lista(T.andH,T.and,'and','andH','andL');else lista(T.pcH,T.pc,'pc','pcH','pcL');
+  var dp=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;$('instBtn').hidden=false;});
+  $('instBtn').addEventListener('click',function(){if(!dp)return;dp.prompt();dp.userChoice.then(function(){dp=null;$('instBtn').hidden=true;});});
+  window.addEventListener('appinstalled',function(){$('instBtn').hidden=true;});
+  if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js');}catch(_){}}   // como Relax: abre sin internet y Chrome la deja instalar
+})();
+</script>
+</body></html>

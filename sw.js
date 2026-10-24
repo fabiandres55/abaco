@@ -1,7 +1,7 @@
 // sw.js — Relax abre sin internet: guarda la app (index.html), los íconos y las librerías.
 // Los datos de la tienda no pasan por aquí: siguen en el equipo (IndexedDB) y en la nube (Supabase).
 const CACHE='abanico-app-v4';
-const CORE=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./relax-icon-256.png']   /* mods184: logo de Relax */;
+const CORE=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./relax-icon-256.png','./catalogo.html','./manifest-catalogo.json','./icon-catalogo-192.png','./icon-catalogo-180.png']   /* mods184: logo de Relax · mods230: Relax Catálogo */;
 // librerías que se guardan desde el principio (PDF, copia .mn, QR, lector de códigos): así también sirven sin internet la primera vez
 const LIBS_PRE=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js','https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js','https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.wasm','https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js','https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js','https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js','https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js'];   // mods142d: + jsQR (QR en iPhone) · mods154: + pdf.js (visor de PDF)
 const LIBS=/^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
@@ -19,6 +19,14 @@ self.addEventListener('fetch',e=>{
   const req=e.request;if(req.method!=='GET')return;
   const url=new URL(req.url);
   // La app: primero la red (así llegan las actualizaciones); sin red o si tarda más de 6 s, la que está guardada
+  // mods230: la página de instalación de Relax Catálogo se guarda APARTE (antes, toda navegación se guardaba como la app: abrir
+  // catalogo.html habría reemplazado la copia de Relax para usar sin internet)
+  if(req.mode==='navigate'&&url.origin===location.origin&&/\/catalogo\.html$/.test(url.pathname)){
+    e.respondWith(caches.open(CACHE).then(async c=>{
+      try{const r=await Promise.race([fetch(req,{cache:'no-cache'}),wait(6000)]);if(r&&r.ok){c.put('./catalogo.html',r.clone());return r;}}catch(_){}
+      return (await c.match('./catalogo.html'))||Response.error();}));
+    return;
+  }
   if(req.mode==='navigate'||(url.origin===location.origin&&/\/(index\.html)?$/.test(url.pathname))){
     const net=fetch(req,{cache:'no-cache'});
     e.waitUntil(net.then(r=>{if(r&&r.ok){const cp=r.clone();return caches.open(CACHE).then(c=>c.put('./index.html',cp));}}).catch(()=>{}));   // aunque tarde más de 6 s, la descarga sigue y queda guardada para la próxima vez

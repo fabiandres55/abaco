@@ -2,6 +2,12 @@
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#565b60">
+<script>/* mods235: iPhone/iPad (también iPadOS, que se presenta como Mac con pantalla táctil): clase html.ios para respetar la barra de
+   estado en las ventanas a pantalla completa; --ios-sb sigue al theme-color (lo cambian el modo oscuro y el color de la app) */
+(function(){try{var ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(!ios)return;
+  var r=document.documentElement;r.classList.add('ios');var m=document.querySelector('meta[name="theme-color"]');if(!m)return;
+  var put=function(){r.style.setProperty('--ios-sb',m.getAttribute('content')||'#565b60');};put();
+  new MutationObserver(put).observe(m,{attributes:true,attributeFilter:['content']});}catch(_){}})();</script>
 <script>/* mods140: tonos del color de la app (Ajustes → Color de la app) para cada modo. Va en el <head>: se aplica antes de pintar (sin parpadeo).
    Claro: igual que antes (mods134). Oscuro (antes se ignoraba el color): tonos adaptados en OKLab (mismo tono a cualquier claridad; si no
    cabe en sRGB baja la saturación), buscando la claridad que da la luminancia, y así el contraste WCAG, que se pide:
@@ -3121,6 +3127,11 @@ html[data-theme="dark"]{--xup-pend-bg:#3a3115;--xup-pend-ink:#f3d58a;--xup-ok-bg
 .cadtabs:has(>button:nth-child(4))::-webkit-scrollbar{display:none}
 .cadtabs:has(>button:nth-child(4)) button{flex:1 0 auto;white-space:nowrap;padding-left:10px;padding-right:10px}
 .cadbody .xuprow,.cadbody .xuphead,.cadbody .chipsw{margin-left:0;margin-right:0}
+/* mods235: iPhone — las ventanas a pantalla completa empiezan debajo de la barra de estado / muesca / Dynamic Island (como .appbar) */
+html.ios .formbar{height:calc(56px + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px)}
+html.ios .histdlg:not(#pdfviewdlg):not(#colpickdlg)>.histbar:first-child,
+html.ios .sheetdlg>.sheetcard>.sheet-h:first-child{border-top:env(safe-area-inset-top,0px) solid var(--ios-sb,#565b60)}
+html.ios #saledlg>.sheetcard>.sheet-h:has(.g3pd-del){border-top-width:0}   /* "Compras por Pagar" ya lo resolvía con su relleno */
 </style>
 
 <div class="device" id="device">
@@ -15881,7 +15892,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261027063225';
+const APP_VERSION='20261027082831';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

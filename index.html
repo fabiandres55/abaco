@@ -5100,6 +5100,27 @@ window.addEventListener('online',()=>{if(window.__CATADM)return;xupFlush();xupRe
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const top=topLayer();if(!top)return;
   if(top.id==='xupdlg'){e.preventDefault();e.stopPropagation();xupClose();}else if(top.id==='xrvdlg'){e.preventDefault();e.stopPropagation();xupRevClose();}},true);   // Escape (PC)
 
+
+/* ===== mods232: nombre visible de la cuenta en Supabase ("Display name" en Authentication → Users) =====
+   Vendedor (QR): "Vendedor <NOMBRE> - <TIENDA>". Equipo del banco de pruebas de Claude ('relax.qa' = 'claude'): "Claude".
+   Solo para que Fabio sepa de quién es cada cuenta; nada de Relax lo lee y no da permisos. Una vez por cuenta (y si cambia el nombre). */
+function acctLabel(){let qa='';try{qa=localStorage.getItem('relax.qa')||'';}catch(_){}
+  if(qa==='claude')return 'Claude';
+  if(!isSeller()||!state.profile)return '';
+  const v=((state.profile.seller&&state.profile.seller.name)||'').trim(),n=(state.profile.name||'').trim();
+  return ('Vendedor '+(v?v+' ':'')+'- '+n).replace(/\s+/g,' ').trim().slice(0,120);}
+let ACCT_T=0,ACCT_BUSY=false;
+async function acctTick(force){
+  if(window.__CATADM||!AUTH||!AUTH.id||ACCT_BUSY)return;const want=acctLabel();if(!want)return;
+  let done='';try{done=localStorage.getItem('abanico.dname')||'';}catch(_){}
+  if(done===want+'|'+AUTH.id)return;   // ya quedó puesto en esta cuenta
+  if(!force&&Date.now()-ACCT_T<6e4)return;ACCT_T=Date.now();ACCT_BUSY=true;
+  try{if(navigator.onLine===false)return;const sb=await sbInit();if(!sb)return;
+    const g=await sb.auth.getSession();const u=g&&g.data&&g.data.session&&g.data.session.user;if(!u||u.id!==AUTH.id)return;
+    if(((u.user_metadata||{}).display_name||'')!==want){const r=await sb.auth.updateUser({data:{display_name:want,full_name:want,name:want}});if(!r||r.error)return;}
+    try{localStorage.setItem('abanico.dname',want+'|'+AUTH.id);}catch(_){}}
+  catch(_){}finally{ACCT_BUSY=false;}}
+
 /* ---------------- Escáner de código de barras ---------------- */
 let SCAN_STREAM=null,SCAN_DETECT=null,SCAN_TIMER=null,SCAN_Q=false,SCAN_TARGET='search',SCAN_BUSY=false;
 /* mods142d: lector de QR con jsQR (iPhone y equipos cuyo BarcodeDetector no lee QR) */
@@ -12631,6 +12652,7 @@ function renderDrawer(){
   document.getElementById('logoutLbl').textContent=t('au_logout');
   try{prepPdfLogo();}catch(_){}
   if(typeof refreshInstallBtn==='function')refreshInstallBtn();
+  try{acctTick();}catch(_){}   /* mods232: nombre visible de la cuenta en Supabase */
   try{xupTick();}catch(_){}   /* mods231: permiso de enviar al catálogo (como mucho cada minuto) y fila sin conexión */
   document.getElementById('drawerList').innerHTML=currentDrawer().map(d=>{
     if(d.sep)return '<div class="dsep"></div>';
@@ -14149,6 +14171,7 @@ async function sellerJoin(code,pt){if(!PERF[pt])pt=null;   /* mods213 */
   enterProfile('tienda',{id:d.store_id,name:d.store_name||'Relax',role:'seller',seller:{id:d.seller_id,name:d.seller_name||'',...(pt?{tipo:pt}:{})}});PF_BR=null;pfBrand();   /* mods213: el perfil del QR, ya */
   vbSet('abanico.vremoved',null);vbSet('abanico.vseller',{s:d.store_name||'',n:d.seller_name||'',k:pt||''});{const b=document.getElementById('vdblock');if(b)b.remove();}   /* mods214 */
   try{toast(ti('vd_welcome',{n:d.seller_name||'',s:d.store_name||'Relax'}));}catch(_){}
+  setTimeout(()=>{try{acctTick(true);}catch(_){}},0);   /* mods232: "Vendedor <NOMBRE> - <TIENDA>" en Supabase */
   return true;}
 /* ===== mods214: celular de vendedor bloqueado ===== */
 function vbGet(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;}}
@@ -15660,7 +15683,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261024125110';
+const APP_VERSION='20261026191533';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

@@ -3132,6 +3132,9 @@ html.ios .formbar{height:calc(56px + env(safe-area-inset-top,0px));padding-top:e
 html.ios .histdlg:not(#pdfviewdlg):not(#colpickdlg)>.histbar:first-child,
 html.ios .sheetdlg>.sheetcard>.sheet-h:first-child{border-top:env(safe-area-inset-top,0px) solid var(--ios-sb,#565b60)}
 html.ios #saledlg>.sheetcard>.sheet-h:has(.g3pd-del){border-top-width:0}   /* "Compras por Pagar" ya lo resolvía con su relleno */
+/* mods236: iPhone — la cabecera del menú lateral también empieza debajo de la barra de estado (su degradado llena la franja) */
+html.ios .dh{padding-top:calc(16px + env(safe-area-inset-top,0px))}
+html.ios .dh .illus{top:calc(8px + env(safe-area-inset-top,0px))}
 </style>
 
 <div class="device" id="device">
@@ -15892,7 +15895,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261027082831';
+const APP_VERSION='20261027093029';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

@@ -14162,9 +14162,12 @@ async function sellerJoin(code,pt){if(!PERF[pt])pt=null;   /* mods213 */
   const sb=await sbInit();if(!sb||(typeof sbOnline==='function'&&!sbOnline()))return fail('vd_join_err');
   let ses=await authGetSession();
   if(ses&&AUTH&&!AUTH.anon)return fail('vd_owner_dev');   // cuenta de dueño en este celular: no se mezcla
-  if(!ses){let r=null;try{r=await sb.auth.signInAnonymously();}catch(e){r={error:e};}if(!r||r.error)return fail('vd_anon_off');ses=await authGetSession();if(!AUTH)return fail('vd_anon_off');}
+  let fresh=false;   /* mods233 */
+  if(!ses){const pre=await invPrecheck(sb,code);if(pre)return fail(pre);   /* mods233: el QR se revisa ANTES de crear la cuenta (sin cuentas sobrantes) */
+    let r=null;try{r=await sb.auth.signInAnonymously();}catch(e){r={error:e};}if(!r||r.error)return fail('vd_anon_off');fresh=true;ses=await authGetSession();if(!AUTH){await invDiscard(sb);return fail('vd_anon_off');}}
   let r=null;try{r=await sb.rpc('join_store_with_invite',{p_code:code});}catch(e){r={error:e};}
   if(!r||r.error||!r.data||!r.data.store_id){const m=''+((r&&r.error&&r.error.message)||'');
+    if(fresh)await invDiscard(sb);   /* mods233: la cuenta recién creada no queda sobrando en Supabase */
     return fail(/expired/.test(m)?'vd_inv_expired':/used/.test(m)?'vd_inv_used':/not_found/.test(m)?'vd_inv_bad':/is_owner/.test(m)?'vd_owner_dev':'vd_join_err');}
   const d=r.data;try{localStorage.setItem('abanico.authed','1');}catch(_){}
   const cur=safeLocalProfile();if(cur&&cur.id&&''+cur.id!==''+d.store_id)clearProfile();
@@ -14173,6 +14176,14 @@ async function sellerJoin(code,pt){if(!PERF[pt])pt=null;   /* mods213 */
   try{toast(ti('vd_welcome',{n:d.seller_name||'',s:d.store_name||'Relax'}));}catch(_){}
   setTimeout(()=>{try{acctTick(true);}catch(_){}},0);   /* mods232: "Vendedor <NOMBRE> - <TIENDA>" en Supabase */
   return true;}
+/* ===== mods233: el QR se revisa antes de crear la cuenta anónima (vendedores_fase3_qr.sql) =====
+   invPrecheck: null = seguir (QR bueno, o la base todavía no tiene la función / no respondió: como antes); si no, el aviso de siempre.
+   invDiscard: la cuenta anónima RECIÉN creada se borra si entrar falló; solo entonces se cierra la sesión del equipo. */
+async function invPrecheck(sb,code){try{let tm;const r=await Promise.race([sb.rpc('check_store_invite',{p_code:code}),new Promise(res=>{tm=setTimeout(()=>res(null),8000);})]).finally(()=>clearTimeout(tm));
+  const st=r&&!r.error&&r.data&&r.data.status;if(!st||st==='ok')return null;
+  return st==='used'?'vd_inv_used':st==='expired'?'vd_inv_expired':st==='not_found'?'vd_inv_bad':null;}catch(_){return null;}}
+async function invDiscard(sb){try{const r=await sb.rpc('discard_own_anon_account');
+  if(r&&!r.error&&r.data===true){try{await sb.auth.signOut({scope:'local'});}catch(_){}AUTH=null;}}catch(_){}}
 /* ===== mods214: celular de vendedor bloqueado ===== */
 function vbGet(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;}}
 function vbSet(k,v){try{if(v)localStorage.setItem(k,JSON.stringify(v));else localStorage.removeItem(k);}catch(_){}}
@@ -15683,7 +15694,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261026191533';
+const APP_VERSION='20261026205816';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

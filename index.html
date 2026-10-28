@@ -367,6 +367,9 @@ var _m1=document.querySelector('meta[name="apple-mobile-web-app-title"]'),_m2=do
   .cico{border:none;background:transparent;cursor:pointer;padding:4px;display:grid;place-items:center}
   .cico svg{width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:1.8}
   .segrow{display:flex;gap:10px}
+  /* mods237: tipo de medida (los botones del selector son los .seg de siempre, con su alto normal) */
+  .fmed-note{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+  .cfl .pm-u{font-weight:600}
   .seg{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-weight:600;font-size:14px;cursor:pointer}
   .seg svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
   .seg.on{color:var(--pri);border-color:var(--pri)}
@@ -3319,7 +3322,7 @@ const I18N={
     cashBal:"Saldo en caja",base:"Base",movement:"Movimiento",closeReg:"Cerrar caja",movesToday:"Movimientos de hoy",
     salesPerDay:"Ventas por día · 7 días",week:"Semana",profitToday:"Ganancia hoy",avgTicket:"Ticket prom.",numSales:"# Ventas",topToday:"Más vendidos hoy",sold:"vendidos",
     newProduct:"Nuevo producto",addProduct:"Agregar Producto",f_copy:"Copiar otro producto",pv_unit:"Debe seleccionar alguna unidad",pv_key:"Este campo es obligatorio (solo se permiten valores alfanuméricos, espacio y los caracteres - _ . + $ / %) y debe tener entre 3 y 18 caracteres.",pv_name:"Este campo es obligatorio y debe tener entre 3 y 50 caracteres.",u_def:"Unidad predeterminada",u_del:"Eliminar unidad",u_del_q:"¿Eliminar la unidad {u}?",u_in_use:"No se puede eliminar la unidad {u}: la usan {n} productos.",u_in_use1:"No se puede eliminar la unidad {u}: la usa 1 producto.",u_deleted:"Unidad eliminada",u_def_on:"Unidad predeterminada: {u}",u_def_off:"Sin unidad predeterminada",xp_del_q:"¿Eliminar el precio?",copy_noimg:"No se pudo copiar la foto",f_key:"Clave",f_generate:"Generar",f_name:"Nombre del producto",f_unit:"Unidad",
-    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",c_edit:"Editar",c_del:"Eliminar",c_rename:"Renombrar categoría:",c_saved:"Categoría actualizada",c_deleted:"Categoría eliminada",c_del_confirm:'¿Eliminar la categoría "{c}"? Los productos quedarán sin categoría.',
+    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",f_med:"Tipo de medida",med_u:"Unidad",med_m:"Distancia",med_m_note:"Se maneja en metros: admite decimales, por ejemplo {a} o {b}.",f_qty_m:"Cantidad en metros",f_reserve_m:"Cantidad reservada (m)",f_purchase_m:"Precio de compra por metro",f_sale_m:"Precio de venta por metro",cx_qty_m:"Metros",med_fixed:"El tipo de medida queda fijo una vez registrado el producto, para no cambiar el sentido de sus existencias ni de sus ventas.",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",c_edit:"Editar",c_del:"Eliminar",c_rename:"Renombrar categoría:",c_saved:"Categoría actualizada",c_deleted:"Categoría eliminada",c_del_confirm:'¿Eliminar la categoría "{c}"? Los productos quedarán sin categoría.',
     f_purchase:"Precio de compra",f_sale:"Precio de venta",f_addsale:"Precio de venta adicional",f_image:"Imagen del producto",f_upload:"Toca para cargar una imagen",
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
@@ -3338,7 +3341,7 @@ const I18N={
     cashBal:"Cash balance",base:"Base",movement:"Movement",closeReg:"Close register",movesToday:"Today's movements",
     salesPerDay:"Sales per day · 7 days",week:"Week",profitToday:"Profit today",avgTicket:"Avg ticket",numSales:"# Sales",topToday:"Top sellers today",sold:"sold",
     newProduct:"New product",addProduct:"Add Product",f_copy:"Copy another product",pv_unit:"You must select a unit",pv_key:"This field is required (only letters, numbers, spaces and the characters - _ . + $ / % are allowed) and must have between 3 and 18 characters.",pv_name:"This field is required and must have between 3 and 50 characters.",u_def:"Default unit",u_del:"Delete unit",u_del_q:"Delete the unit {u}?",u_in_use:"The unit {u} can't be deleted: {n} products use it.",u_in_use1:"The unit {u} can't be deleted: 1 product uses it.",u_deleted:"Unit deleted",u_def_on:"Default unit: {u}",u_def_off:"No default unit",xp_del_q:"Delete this price?",copy_noimg:"The photo couldn't be copied",f_key:"Key",f_generate:"Generate",f_name:"Product name",f_unit:"Unit",
-    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",c_edit:"Edit",c_del:"Delete",c_rename:"Rename category:",c_saved:"Category updated",c_deleted:"Category deleted",c_del_confirm:'Delete category "{c}"? Products will be left without a category.',
+    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",f_med:"Measure type",med_u:"Unit",med_m:"Distance",med_m_note:"Handled in meters: decimals allowed, for example {a} or {b}.",f_qty_m:"Quantity in meters",f_reserve_m:"Reserved quantity (m)",f_purchase_m:"Purchase price per meter",f_sale_m:"Sale price per meter",cx_qty_m:"Meters",med_fixed:"The measure type stays fixed once the product is registered, so its stock and sales keep their meaning.",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",c_edit:"Edit",c_del:"Delete",c_rename:"Rename category:",c_saved:"Category updated",c_deleted:"Category deleted",c_del_confirm:'Delete category "{c}"? Products will be left without a category.',
     f_purchase:"Purchase price",f_sale:"Sale price",f_addsale:"Additional sale price",f_image:"Product image",f_upload:"Tap to upload an image",
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
@@ -3595,7 +3598,7 @@ document.addEventListener('contextmenu',e=>{if(PC_TOUCH&&e.target&&e.target.clos
 function scStockV(){const q=fold((state.q||'').toLowerCase());let items=state.products.filter(p=>prodHit(p,q));items.sort(invCmp);if(q)items=prodKeyFirst(items,q);
   const lim=state.invLimit||INV_PAGE,shown=items.slice(0,lim);
   return `<div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('vd_stock_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div></div>
-    <div style="margin-top:8px">${shown.map(p=>`<div class="empcard" data-act="vdinfo:${p.id}"><div class="emp-top"><div class="emp-n">${exEsc(p.name)}</div><b class="num emp-sal">${money(+p.price||0)}</b></div><div class="emp-r">${t('f_qty')}: <b class="num">${fmtQty(p.stock)}</b>${p.key?' · '+exEsc(p.key):''}</div></div>`).join('')||`<div class="empty">${t('noResults')}</div>`}</div>
+    <div style="margin-top:8px">${shown.map(p=>`<div class="empcard" data-act="vdinfo:${p.id}"><div class="emp-top"><div class="emp-n">${exEsc(p.name)}</div><b class="num emp-sal">${money(+p.price||0)}</b></div><div class="emp-r">${t('f_qty')}: <b class="num">${fmtQty(p.stock)}${mSuf(isDist(p))}</b>${p.key?' · '+exEsc(p.key):''}</div></div>`).join('')||`<div class="empty">${t('noResults')}</div>`}</div>
     ${items.length>lim?`<div class="loadmore" data-act="vdmore">${ti('inv_more',{n:items.length-lim})}</div>`:''}`;}
 function scInventario(){   /* mods209: el vendedor ve este mismo inventario, en solo lectura */
   if(!state.products.length){
@@ -3622,7 +3625,7 @@ function scInventario(){   /* mods209: el vendedor ve este mismo inventario, en 
       ?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`
       :`<span class="origchip own">${t('own_product')}</span>`):'';
     const warnHtml=lvl==='ok'?`<div class="pc-warn pc-ok">${svg(ICO_OK)}</div>`:`<div class="pc-warn">${warnTri(lvl==='red'?'#c8452f':'#f0b90b')}</div>`;
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${exEsc(p.key||'—')}</div><div class="pc-name">${exEsc(mnName(p))}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${qtyLoc(p.stock)}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}</div></div></div></div>`;
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${exEsc(p.key||'—')}</div><div class="pc-name">${exEsc(mnName(p))}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}${isDist(p)?'/m':''}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t((q||state.filterUnit||state.filterInfo)?'noResults':'noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
@@ -3726,7 +3729,7 @@ function mermaCardHTML(m){
     <div class="scard-row">${svg(S_CAL)}<span>${exEsc(dt)}</span></div>
     <div class="scard-row">${svg(S_BOX2)}<span>${exEsc(m.name||t('sin_info'))}</span></div>
     <div class="scard-row">${svg(S_INFO)}<span>${exEsc(m.note||t('me_lost'))}</span></div>
-    <div class="scard-bot"><span class="scard-tot" style="text-align:left"><span class="scard-tl">${t('me_qty')}</span><b class="num">${exEsc(m.qty)}</b></span><span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(mermaTotal(m))}</b></span></div>
+    <div class="scard-bot"><span class="scard-tot" style="text-align:left"><span class="scard-tl">${t('me_qty')}</span><b class="num">${(m.m!=null?m.m:isDist(P(+m.pid)))?qtyLoc(m.qty)+' m':exEsc(m.qty)}</b></span><span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(mermaTotal(m))}</b></span></div>
   </div>`;
 }
 function fillMerma(){
@@ -3824,8 +3827,8 @@ function mermaAddHTML(){
     <div class="fld"><span class="fl">${t('me_product')}</span>
       <div class="me-prow"><div class="inp sellike" data-act="mermapick"><span class="${f.pid?'':'ph'}">${exEsc(f.name||t('me_product'))}</span>${chev}</div><button class="round" data-act="mermascan" aria-label="${t('scan_title')}">${svg(ICO_SCAN)}</button></div></div>
     <div class="two">
-      <div class="fld"><span class="fl">${t('me_qty')}</span><input autocomplete="off" class="inp num" id="me_qty" type="text" inputmode="decimal" enterkeyhint="next" value="${exEsc(unsignedTxt(f.qty??''))}" placeholder="0"></div>
-      <div class="fld"><span class="fl">${t('me_cost')}</span><input autocomplete="off" class="inp num" id="me_cost" type="text" inputmode="decimal" enterkeyhint="next" value="${exEsc(unsignedTxt(f.cost??''))}" placeholder="0"></div>
+      <div class="fld"><span class="fl">${t('me_qty')}${isDist(P(+f.pid))?' (m)':''}</span><input autocomplete="off" class="inp num" id="me_qty" type="text" inputmode="decimal" enterkeyhint="next" value="${exEsc(unsignedTxt(f.qty??''))}" placeholder="0"></div>
+      <div class="fld"><span class="fl">${t('me_cost')}${isDist(P(+f.pid))?' /m':''}</span><input autocomplete="off" class="inp num" id="me_cost" type="text" inputmode="decimal" enterkeyhint="next" value="${exEsc(unsignedTxt(f.cost??''))}" placeholder="0"></div>
     </div>
     <div class="fld"><span class="fl">${t('me_note')}</span><input autocomplete="off" class="inp" id="me_note" value="${(f.note||'').replace(/"/g,'&quot;')}" placeholder="${t('me_lost')}"></div>
     <div class="two">
@@ -5296,7 +5299,7 @@ function saveMerma(){
   const qty=qtyVal(unsignedTxt(f.qty));   // mods143b: el campo es texto ("2,5" vale 2.5)
   if(!f.pid||qty<=0){toast(t('me_need'));return;}
   const p=P(f.pid);
-  const m={id:'ME'+uidPart(),pid:f.pid,name:f.name||(p?p.name:''),key:p?p.key:'',qty,cost:qtyVal(unsignedTxt(f.cost)),note:(f.note||'').trim(),date:f.date||todayISO(),time:f.time||''};
+  const m={id:'ME'+uidPart(),pid:f.pid,name:f.name||(p?p.name:''),key:p?p.key:'',qty,...(isDist(p)?{m:1}:{}),cost:qtyVal(unsignedTxt(f.cost)),note:(f.note||'').trim(),date:f.date||todayISO(),time:f.time||''};
   state.mermas=[m,...(state.mermas||[])];
   if(p){const o=invSnap(p);stockAdd(p,-qty);invLogAdd(2,p,o);}   // la merma descuenta del inventario
   closeMermaAdd();persist();fillMerma();if(state.screen==='inventario')render();toast(t('me_saved'));
@@ -5323,7 +5326,7 @@ async function openSaleDet(id){
   document.getElementById('saledlg').classList.add('on','full');
   const body=document.getElementById('saleBody');if(!body.querySelector('.sd'))body.innerHTML=`<div class="bkload" style="padding:36px 0"><div class="bks">…</div></div>`;
   let lines=[];
-  if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q};});
+  if(s.items)lines=s.items.map(i=>{const p=P(i.id);const pr=i.price!=null?+i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price:pr,subtotal:pr*i.q,...(lineIsM(i)?{m:true}:{})};});
   else{const L=await idbGetSaleFor(s);if(L)lines=L;else lines=await srLinesFor({folio:s.folio,id:s.id,n:s.n,cost:s.cost},await srRawIndex());}   /* importada sin detalle en este equipo: del archivo crudo */
   if(tok!==SD_TOK||!document.getElementById('saledlg').classList.contains('on'))return;
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
@@ -5332,7 +5335,7 @@ async function openSaleDet(id){
   const si=t('sin_info');const esc=x=>exEsc(x).replace(/\n/g,'<br>');
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const info=s.note||s.addr||'';const dir=(cli&&cli.address)||'';const phone=(cli&&(cli.phone||cli.phone2))||'';
-  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${svg(S_BOX2)} ${esc(l.name)}</div><div class="sd-pg"><span class="num">${l.qty}</span><span class="num">${money(l.price).replace('$','')}</span><span class="num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty).replace('$','')}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${svg(S_BOX2)} ${esc(l.name)}</div><div class="sd-pg"><span class="num">${l.m?qtyLoc(l.qty)+' m':l.qty}</span><span class="num">${money(l.price).replace('$','')}</span><span class="num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty).replace('$','')}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   const sched=(s.sched||[]).length?`<div class="sd-card"><div class="sd-l">${t('sched_btn')}</div><div class="sched-grid">${s.sched.map(p=>`<div class="sched-it"><span>${exEsc(p.f)} ${exEsc(p.h||'00:00')}</span><b class="num">${money(p.p)}</b></div>`).join('')}</div></div>`:'';
   body.innerHTML=`<div class="sd">
     <div class="sd-card">
@@ -5377,13 +5380,14 @@ function openItemsEdit(id,kind){
     .concat((s.svcs||[]).map(x=>({kind:'s',id:x.id,name:x.name||'—',q:+x.q||0,price:+x.price||0,orig:x})));
   ITEMS_ED={id:s.id,lines:alphaLines(lines)};itemsEl();document.getElementById('itemsH').textContent=t('sd_items');fillItemsEdit();document.getElementById('itemsdlg').classList.add('on');
 }
-function itemsTotal(){return (ITEMS_ED?ITEMS_ED.lines:[]).reduce((a,l)=>a+(+l.q||0)*(+l.price||0),0);}
+function ieQ(l){return l&&l.kind==='p'&&lineIsM(l.orig)?qtyVal(unsignedTxt(l.q)):(+l.q||0);}   /* mods237: en metros "0,5" vale 0.5 */
+function itemsTotal(){return (ITEMS_ED?ITEMS_ED.lines:[]).reduce((a,l)=>a+ieQ(l)*(+l.price||0),0);}
 function fillItemsEdit(){
   if(!ITEMS_ED)return;if(ITEMS_ED.kind==='purch')return purIeFill();   /* mods146c */const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>');
   document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${t('total')}</span><b class="num" id="ieTot">${money(itemsTotal()).replace('$','')}</b></div>`+
     (ITEMS_ED.lines.length?ITEMS_ED.lines.map((l,k)=>`<div class="ie-row"><div class="ie-n">${svg(l.kind==='s'?SVC_ICO:S_BOX2)} ${exEsc(l.name)}</div>
-      <div class="ie-g"><span class="cfl">${t('cx_qty')}</span><span class="cfl">${t('cx_sale_s')} $</span><span class="cfl">${t('sale_subtotal')} $</span>
-      <input autocomplete="off" class="cinp num" id="ieq_${k}" type="number" inputmode="decimal" value="${l.q}"><input autocomplete="off" class="cinp num" id="iep_${k}" type="number" min="0" inputmode="decimal" value="${l.price}"><span class="ie-sub num" id="ies_${k}">${money((+l.q||0)*(+l.price||0)).replace('$','')}</span></div>
+      <div class="ie-g"><span class="cfl">${t('cx_qty')}${l.kind==='p'&&lineIsM(l.orig)?' (m)':''}</span><span class="cfl">${t('cx_sale_s')} $${l.kind==='p'&&lineIsM(l.orig)?'/m':''}</span><span class="cfl">${t('sale_subtotal')} $</span>
+      ${l.kind==='p'&&lineIsM(l.orig)?`<input autocomplete="off" class="cinp num" id="ieq_${k}" type="text" inputmode="decimal" data-uns="3" value="${exEsc(typeof l.q==='string'?l.q:fTxt(+l.q||0))}">`:`<input autocomplete="off" class="cinp num" id="ieq_${k}" type="number" inputmode="decimal" value="${l.q}">`}<input autocomplete="off" class="cinp num" id="iep_${k}" type="number" min="0" inputmode="decimal" value="${l.price}"><span class="ie-sub num" id="ies_${k}">${money(ieQ(l)*(+l.price||0)).replace('$','')}</span></div>
       <div class="ie-del"><button class="cico del" data-act="iedel:${k}" aria-label="${t('remove')||'Quitar'}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:30px">${t('ie_empty')}</div>`);
 }
 function closeItemsEdit(save){
@@ -5515,7 +5519,7 @@ async function openPurchaseDet(id){
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),xx=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const pv=purProv(r),name=r.provider||(pv?provName(pv):''),comp=pv&&pv.company?pv.company:'';
   const due=recDue('purch',r),pg=recPaid('purch',r),cred=purchaseIsCredit(r);
-  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${esc(l.name)}</div><div class="sd-pg"><span class="num">${qtyLoc(l.qty)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${esc(l.name)}</div><div class="sd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   const sched=(r.sched||[]).length?`<div class="sd-card"><div class="sd-l">${t('sched_btn')}</div><div class="sched-grid">${r.sched.map(x=>`<div class="sched-it"><span>${exEsc(x.f)} ${exEsc(x.h||'00:00')}</span><b class="num">${money(x.p)}</b></div>`).join('')}</div></div>`:'';
   const cobro=cred?`<div class="sd-tot cp-pg"><span>${t('sr_pagos_lbl')} ${sym}</span><b class="num">${moneyNum(pg)}</b></div><div class="cp-sep"></div><div class="sd-tot"><span>${t('ttx_deuda')} ${sym}</span><b class="num">${moneyNum(due)}</b></div>`+
     (due>0.5?`<div class="cp-repnote">${exEsc(t('cp_rep_note'))}<button data-act="cpgorep">${t('cp_go_rep')}</button></div>`:''):'';   /* D7: los abonos se hacen en Compras por Pagar */
@@ -5673,7 +5677,7 @@ async function purchPDF(x,ret){   /* mods163: ret → devuelve {blob,name} para 
     const due=recDue('purch',p),pg=recPaid('purch',p),cred=purchaseIsCredit(p),status=due>0.5?t('cp_topay'):t('cp_paid');
     if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+status.toUpperCase(),y,15,15);}else y+=2;   /* mods181: sin status como MN */
     y=Math.max(220,y);if(p.note)y=mnNativeParagraph(doc,p.note,y,12,350,10);
-    y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(l.name||''),qtyLoc(l.qty),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);   /* mods161: con "... " como MN */
+    y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(l.name||''),qtyLoc(l.qty)+mSuf(l.m),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);   /* mods161: con "... " como MN */
     const totals=[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred)totals.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)],[t('sr_total_pay')+' '+sym,moneyNum(due)]);
     mnNativeTotal(doc,y+20,totals);if(ret)return {blob:doc.output('blob'),name:mnFile('purchase')};mnPdfDone(doc,mnFile('purchase'));   /* mods161: "Compra.pdf" en la ventana de exportar */
   }catch(e){if(ret)throw e;console.error('PDF compra',e);toast(t('cp_pdf_err'));}
@@ -5695,7 +5699,7 @@ function scReciboOld(){
 }
 async function saleLines(s){
   let lines=[];
-  if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price,subtotal:price*i.q};});
+  if(s.items&&s.items.length)lines=s.items.map(i=>{const p=P(i.id);const price=i.price!=null?i.price:(p?p.price:0);return {name:p?p.name:(i.name||'—'),qty:i.q,price,subtotal:price*i.q,...(lineIsM(i)?{m:true}:{})};});
   else{const L=await idbGetSaleFor(s);if(L)lines=L.map(l=>({name:l.name,qty:l.qty,price:l.price,subtotal:l.subtotal!=null?l.subtotal:l.price*l.qty}));}
   if(s.svcs)lines=lines.concat(svcSaleLines(s));
   lines=alphaLines(lines);
@@ -5787,7 +5791,7 @@ async function buildSaleReceiptBlob(sale){
   {const vl=saleVendLbl(sale);if(vl){y+=18;y=mnNativeLine(doc,t('vd_seller')+': '+vl,y,13,18)-18;}}   /* mods211 */
   const total=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,total-paid),pending=due>0.5;
   if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+(pending?t('rc_pending'):t('sale_paid').toUpperCase()),y,13,18)-18;}
-  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(180,y+23),40),lines.map(l=>[l.name,fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]));
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(180,y+23),40),lines.map(l=>[l.name,fmtQty(l.qty)+mSuf(l.m),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]));
   const totals=[[(t('total')+' '+moneySym()).toUpperCase(),mnAmount(total)]];
   if(pending)totals.push([(t('sr_pagos_lbl')+' '+moneySym()).toUpperCase(),mnAmount(paid)],[t('sr_total_pay')+' '+moneySym(),mnAmount(due)]);
   mnNativeTotal(doc,y+20,totals);return {blob:doc.output('blob'),name:mnFile('sale'),folio};   /* mods161: "Venta.pdf" */
@@ -5816,7 +5820,7 @@ async function saleReceiptText(sale){
   L.push(t('sale_folio')+': '+(sale.folio||sale.id)+'   '+t('sale_date')+': '+(sale.date||todayISO()));
   if(opts().pdfStatus)L.push(t('rc_status')+': '+(recv?t('rc_pending'):t('sale_paid').toUpperCase()));
   L.push('');
-  (lines||[]).forEach(l=>L.push(`${l.qty} x ${l.name} = ${fmtN(l.subtotal!=null?l.subtotal:l.price*l.qty)}`));
+  (lines||[]).forEach(l=>L.push(`${l.m?qtyLoc(l.qty)+' m':l.qty} x ${l.name} = ${fmtN(l.subtotal!=null?l.subtotal:l.price*l.qty)}`));
   L.push('');
   L.push(t('total').toUpperCase()+' '+moneySym()+' '+fmtN(tot));
   if(recv)L.push(t('sr_pagos_lbl').toUpperCase()+' '+moneySym()+' '+fmtN(paid));
@@ -5923,7 +5927,7 @@ async function purReceiptText(p){if(!p)return '';const cfg=receiptCfg(),lines=aw
   const due=recDue('purch',p),pg=recPaid('purch',p),cred=purchaseIsCredit(p);
   if(opts().pdfStatus)L.push(t('rc_status')+': '+(due>0.5?t('cp_topay'):t('cp_paid')).toUpperCase());
   if(p.note)L.push('',p.note);
-  L.push('');(lines||[]).forEach(l=>L.push(`${qtyLoc(l.qty)} x ${l.name} = ${f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}`));
+  L.push('');(lines||[]).forEach(l=>L.push(`${qtyLoc(l.qty)}${mSuf(l.m)} x ${l.name} = ${f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}`));
   L.push('',(t('total')+' '+sym).toUpperCase()+' '+f(p.total||0));
   if(cred){L.push((t('sr_pagos_lbl')+' '+sym).toUpperCase()+' '+f(pg));L.push(t('sr_total_pay')+' '+sym+' '+f(due));}
   return L.join('\n');}
@@ -6185,7 +6189,7 @@ async function openPayDet(id){
   const box=(l,v,c)=>`<div class="g3pd-box${c?' '+c:''}"><span>${l} ${exEsc(moneySym())}</span><b class="num">${moneyNum(v)}</b></div>`;
   const prow=(x,i)=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}${x.h?'  '+exEsc(x.h):''}</span><b class="num">${moneyNum(+x.p||0)}</b><button class="g3pd-ib" data-act="paydel:purch:${eid}:${i}:${encodeURIComponent(x.id||'')}" aria-label="${exEsc(t('remove'))}">${ic(MN_IC.del)}</button></div>`;
   const srow=x=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}  ${exEsc(x.h||'00:00')}</span><b class="num">${moneyNum(+x.p||0)}</b></div>`;
-  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   body.innerHTML=`<div class="g3pd">
     <div class="g3pd-card">
       <div class="g3pd-t">${t('sale_folio')}: ${exEsc(r.folio||r.id)}</div>
@@ -6389,7 +6393,7 @@ function qtQRText(q){return '#'+String(q.date||todayISO()).replace(/\D/g,'')+'&c
 async function qtQR(q){try{if(!await qrLib())return null;const M=qrMatrixMN(qrMakeMN(qtQRText(q))),n=M.length,W=90,cell=Math.max(1,Math.floor(W/(n+8))),off=Math.floor((W-n*cell)/2);
   const c=document.createElement('canvas');c.width=c.height=W;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,W);x.fillStyle='#000';
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(M[r][k])x.fillRect(off+k*cell,off+r*cell,cell,cell);return c.toDataURL('image/png');}catch(e){console.error('QR cotización',e);return null;}}
-function qtLines(q){return alphaLines(q.lines||[]).map(l=>({name:l.name||'',qty:l.q,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0)}));}
+function qtLines(q){return alphaLines(q.lines||[]).map(l=>({...(lineIsM(l)?{m:true}:{}),name:l.name||'',qty:l.q,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0)}));}
 function qtCliInfo(q){return saleReceiptClientInfo(q);}   // teléfono / dirección / email con rótulo (como la cotización normal)
 // la cotización con los ajustes del recibo → {blob,name}
 async function qtBlob(q){const o=opts();
@@ -6426,7 +6430,7 @@ async function qtExtraBlob(q){
   for(const ln of lines){const dl=catLines(ln.name||'',210,12),h=Math.max(30,dl.length*14+2);
     if(y+h>802){doc.addPage();y=30;}
     const b1=dl.length>1?y+14:y+20;dl.forEach((s,j)=>T(s,138,b1+j*14,12));
-    const qq=fmtQty(ln.qty),pr=mnAmount(ln.price),sb=mnAmount(ln.subtotal);
+    const qq=fmtQty(ln.qty)+mSuf(ln.m),pr=mnAmount(ln.price),sb=mnAmount(ln.subtotal);
     T(qq,mnCX(qq,40,98,13),y+20,13);T(pr,mnRX(pr,446,13),y+20,13);T(sb,mnRX(sb,549,13),y+20,13);y+=h;}
   const X=mnExtraTotals([[t('total'),+q.total||0]],MN_RX_TOT);
   if(y+120+X.extra>802){doc.addPage();y=30;}else y+=30;
@@ -6456,7 +6460,7 @@ async function qtTicketBlob(q){
   y+=8;
   const row=(values,size,step)=>{const start=y;let end=y;values.forEach((v,i)=>{y=start;add(v,size,step,null,'center',M+34+69*i,65);end=Math.max(end,y);});y=end;};
   row([t('cx_qty').toUpperCase(),t('rc_price').toUpperCase()+'('+moneySym()+')',t('sale_subtotal').toUpperCase()+'('+moneySym()+')'],7,8);y+=10;
-  for(const l of lines){const start=y;add(l.name,String(l.name||'').length>38?7:9,10);y=Math.max(start+16,y+4);row([fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal)],9,14);y+=5;}
+  for(const l of lines){const start=y;add(l.name,String(l.name||'').length>38?7:9,10);y=Math.max(start+16,y+4);row([fmtQty(l.qty)+mSuf(l.m),mnAmount(l.price),mnAmount(l.subtotal)],9,14);y+=5;}
   y+=20;const tStart=y;add(t('total').toUpperCase()+' '+moneySym(),9,12,null,'right',109,103);const tl=C.length-1;y=tStart-1;add(mnAmount(+q.total||0),10,12,'bold','left',114,100);C[tl].y+=1;C[C.length-1].y+=1;
   const lastBase=tStart+1+9,height=Math.max(200,Math.min(14000,lastBase+45));
   const doc=new JS({unit:'pt',format:[W,height],compress:true,putOnlyUsedFonts:true});let shift=0;
@@ -6488,7 +6492,7 @@ async function qtTkExtraBlob(q){
   let s=catTx(t('rx_qty'));T(s,mnCX(s,0,80,11),f+30,11);s=catTx(t('rx_price'));T(s,mnRX(s,136,11),f+30,11);s=catTx(t('rx_sub'));T(s,mnRX(s,210,11),f+30,11);R2.push(f+34);
   let nb=null;
   for(const ln of lines){const dl=catLines(ln.name||'',200,11),d=(nb==null?f+37:nb)+(dl.length>1?16:21);dl.forEach((x,j)=>T(x,10,d+j*13,11));nb=d+Math.max(21,dl.length*13);
-    const qq=catTx(fmtQty(ln.qty)),pr=catTx(mnAmount(ln.price)),sb=catTx(mnAmount(ln.subtotal));T(qq,mnCX(qq,0,80,11),nb,11);T(pr,mnRX(pr,136,11),nb,11);T(sb,mnRX(sb,210,11),nb,11);}
+    const qq=catTx(fmtQty(ln.qty)+mSuf(ln.m)),pr=catTx(mnAmount(ln.price)),sb=catTx(mnAmount(ln.subtotal));T(qq,mnCX(qq,0,80,11),nb,11);T(pr,mnRX(pr,136,11),nb,11);T(sb,mnRX(sb,210,11),nb,11);}
   const rt=(nb==null?f+37:nb)+24;R2.push(rt);const tb0=rt+26;
   const X=mnExtraTotals([[t('total'),total]],MN_TX_TOT);X.draw(tb0,T,()=>{});
   let full=tb0+44+X.extra;
@@ -6568,7 +6572,7 @@ async function openRecvDet(id){
   const box=(l,v,c)=>`<div class="g3pd-box${c?' '+c:''}"><span>${l} ${exEsc(moneySym())}</span><b class="num">${moneyNum(v)}</b></div>`;
   const prow=(x,i)=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}${x.h?'  '+exEsc(x.h):''}</span><b class="num">${moneyNum(+x.p||0)}</b><button class="g3pd-ib" data-act="paydel:sale:${eid}:${i}:${encodeURIComponent(x.id||'')}" aria-label="${exEsc(t('remove'))}">${ic(MN_IC.del)}</button></div>`;
   const srow=x=>`<div class="g3pd-pr"><span class="g3pd-prd">${ic(MN_IC.event)}${exEsc(x.f||'')}  ${exEsc(x.h||'00:00')}</span><b class="num">${moneyNum(+x.p||0)}</b></div>`;
-  const rows=lines.length?alphaLines(lines).map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?alphaLines(lines).map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   body.innerHTML=`<div class="g3pd g3rd">
     <div class="g3pd-card">
       <div class="g3rd-fd"><span class="g3pd-t">${t('sale_folio')}: ${exEsc(g3rdFolio(s.folio||s.id))}</span><span class="g3pd-t g3rd-dt">${ic(MN_IC.event)}<span>${exEsc([s.date,s.time].filter(Boolean).join('  '))||si}</span></span></div>
@@ -6656,7 +6660,7 @@ function openPriceList(id){
   PL_CUR={id,list};
   document.getElementById('plistH').textContent=t('pl_title');
   document.getElementById('plistBody').innerHTML=`<div class="pl-prod">${e(p.name)}</div>`+
-    list.map((x,i)=>`<button class="pl-item ${Math.abs(x.p-cur)<0.005?'on':''}" data-act="plpick:${id}:${i}"><span class="pl-n">${e(x.name)}</span><span class="pl-p num">${xpMoney(x.p)}</span></button>`).join('')+
+    list.map((x,i)=>`<button class="pl-item ${Math.abs(x.p-cur)<0.005?'on':''}" data-act="plpick:${id}:${i}"><span class="pl-n">${e(x.name)}</span><span class="pl-p num">${xpMoney(x.p)}${isDist(p)?'/m':''}</span></button>`).join('')+
     (list.length<2?`<div class="empty" style="margin-top:18px">${t('pl_none')}</div>`:'');
   document.getElementById('plistdlg').classList.add('on');
 }
@@ -6786,8 +6790,8 @@ function saleCartHTML(){
     return `<div class="crow${over?' over':''}" data-crow="${i.id}">
       <div class="crow-name">${p?exEsc(p.name):exEsc((state.editSale&&(state.editSale.names||{})[i.id])||'—')}</div>
       <div class="crow-grid">
-        <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${t('me_qty')}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="text" inputmode="decimal" enterkeyhint="done" value="${exEsc(tx)}"></div>
-        <div class="cfield"><span class="cfl">${t('cx_sale_s')} ${moneySym()}</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"${isSeller()?` readonly tabindex="-1" title="${t('vd_price_lock')}"`:''}>   <!-- mods224 --></div>
+        <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${isDist(p)?t('cx_qty_m'):t('me_qty')}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="text" inputmode="decimal" enterkeyhint="done" value="${exEsc(tx)}"></div>
+        <div class="cfield"><span class="cfl">${t('cx_sale_s')} ${moneySym()}${isDist(p)?'<span class="pm-u">/m</span>':''}</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"${isSeller()?` readonly tabindex="-1" title="${t('vd_price_lock')}"`:''}>   <!-- mods224 --></div>
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} ${moneySym()}</span><span class="csub num">${emp?'...':moneyNum(sub)}</span></div>
       </div>
       ${pn?`<div class="cpx">${svg(IC_TAG)}<span>${(''+pn).replace(/</g,'&lt;')}</span></div>`:''}${adjCap(i.id)}
@@ -6960,7 +6964,7 @@ function pickRowHTML(p,inCart,addAttr,rmAct,price,box,o){   /* mods146a: o={stB:
   const chk=svg('<path d="M5 12l5 5L20 7"/>'),rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');   // el nombre de Mi Negocio ya trae "... ": no repetirlo
   /* mods197: como Mi Negocio: foto redonda, clave, descripción COMPLETA (sin cortar) y #existencia / precio en dos celdas */
-  return `<div class="row saleprow mnpr" ${addAttr}="${p.id}"><div class="mnpr-img">${saleProdImg(p,box)}</div><div class="spmid mnpr-mid"><div class="spkey mnpr-key"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="mnpr-nm">${exEsc(mnName(p)).replace(/(\S+-\S+)/g,'<span class="nobr">$1</span>')}</div><div class="mnpr-tb"><span class="mnpr-q num">#${qtyLoc(p.stock)}</span><span class="mnpr-p num">${money(price)}</span></div></div><div class="r">${(inCart>0||(o&&o.has))?`<span class="salechk">${chk}<span class="num">${inCart>0?(o?qtyLoc(inCart):inCart):''}</span></span><button class="salerm" data-act="${rmAct}:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;
+  return `<div class="row saleprow mnpr" ${addAttr}="${p.id}"><div class="mnpr-img">${saleProdImg(p,box)}</div><div class="spmid mnpr-mid"><div class="spkey mnpr-key"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="mnpr-nm">${exEsc(mnName(p)).replace(/(\S+-\S+)/g,'<span class="nobr">$1</span>')}</div><div class="mnpr-tb"><span class="mnpr-q num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span><span class="mnpr-p num">${money(price)}${isDist(p)?'/m':''}</span></div></div><div class="r">${(inCart>0||(o&&o.has))?`<span class="salechk">${chk}<span class="num">${inCart>0?(o?qtyLoc(inCart):inCart):''}</span></span><button class="salerm" data-act="${rmAct}:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;
 }
 function saleProdImg(p,box){const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);return cached?`<img src="${/[&<"]/.test(cached)?exEsc(cached):cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${exEsc(p.imgKey)}" style="width:100%;height:100%;object-fit:cover">`:box);}   /* mods153: escapadas */
 function fillSaleProd(){
@@ -7263,7 +7267,7 @@ function pcSaleShow(id){return pcNumShow('pcSaleTxt',id,pLineSale(id));}
 const pcDig=x=>/\d/.test(''+(x==null?'':x));
 // Cantidad Total y Subtotal de una línea (MN 12, 14, 28): "..." si falta Agregar o Precio de Compra; la recién agregada muestra el stock
 function pcCells(id){const p=P(id),q=+(state.pcart||{})[id]||0,qe=!pcDig(pcQtyShow(id)),ce=!pcDig(pcCostShow(id));
-  return {tot:(ce||(qe&&!pcQtyFresh(id)))?'...':qtyLoc((+(p&&p.stock)||0)+(qe?0:q)),sub:(qe||ce)?'...':moneyNum(q*pLineCost(id)),inc:qe||ce};}
+  return {tot:(ce||(qe&&!pcQtyFresh(id)))?'...':qtyLoc((+(p&&p.stock)||0)+(qe?0:q))+mSuf(isDist(p)),sub:(qe||ce)?'...':moneyNum(q*pLineCost(id)),inc:qe||ce};}
 function pcAnyEmpty(){return pcartRows().some(i=>pcCells(i.id).inc);}
 function pcTotalTxt(){return pcAnyEmpty()?'...':moneyNum(pcartTotal());}
 // actualiza en su lugar Cantidad Total, Subtotal, Total y la Deuda (si P2 puso #pDebt y pcDebt): sin render, el teclado sigue abierto
@@ -7403,11 +7407,11 @@ function pcRowsHTML(){
     return `<div class="crow pcrow" data-pcrow="${i.id}">
       <div class="crow-name">${exEsc(mnName(p))}</div>
       <div class="pcgrid">
-        <div class="pccell"><span class="cfl">${t('cp_cur_qty')}</span><span class="pcv num">${qtyLoc(p.stock)}</span></div>
+        <div class="pccell"><span class="cfl">${t('cp_cur_qty')}</span><span class="pcv num">${qtyLoc(p.stock)}${mSuf(isDist(p))}</span></div>
         <div class="pccell"><span class="cfl">${t('cp_add_qty')}</span>${f('data-pqty',i.id,pcQtyShow(i.id),t('cp_qty_ph'),'3','next')}</div>
         <div class="pccell"><span class="cfl">${t('cp_tot_qty')}</span><b class="pcv num pctot">${c.tot}</b></div>
-        <div class="pccell"><span class="cfl">${t('cp_buy_price')}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('cp_qty_ph'),'1','next')}</div>
-        <div class="pccell"><span class="cfl">${t('cp_sale_price')}</span>${f('data-pprice',i.id,pcSaleShow(i.id),t('cp_sub_ph'),'1',k===last?'done':'next')}</div>
+        <div class="pccell"><span class="cfl">${t('cp_buy_price')}${isDist(p)?'<span class="pm-u">/m</span>':''}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('cp_qty_ph'),'1','next')}</div>
+        <div class="pccell"><span class="cfl">${t('cp_sale_price')}${isDist(p)?'<span class="pm-u">/m</span>':''}</span>${f('data-pprice',i.id,pcSaleShow(i.id),t('cp_sub_ph'),'1',k===last?'done':'next')}</div>
         <div class="pccell"><span class="cfl">${t('sale_subtotal')} ${exEsc(moneySym())}</span><b class="pcv num csub">${c.sub}</b></div>
       </div>
       <div class="crow-ico pcico"><span class="pcic-l">${cal}</span><span class="pcic-m">${tag}</span><span class="pcic-r"><button class="cico del" data-pcdel="${i.id}" title="${t('remove')}">${trash}</button></span></div>
@@ -7640,7 +7644,7 @@ function saveCompra(){
   const fol=nextPurchFolio();const id='K'+uidPart();
   items.forEach(i=>{const p=P(i.id);if(p){const o=invSnap(p);stockAdd(p,i.q);const c=pLineCost(i.id);if(c>0)p.cost=c;const s=pLineSale(i.id);if(s>0)p.price=s;invLogAdd(2,p,o);}});
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=pcartTotal();
-  const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>{const p=P(i.id);return {id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id),name:p?p.name:undefined};}),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=pcProvLocked()||provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.ppay)purchase.pay=state.ppay;if(purchase.status==='porpagar'){const ini=pcInitAmt();if(ini>0)purchase.pays=[{f:purchase.date,h:tm,p:ini,id:'Y'+uidPart()}];const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0);if(ps.length)purchase.sched=ps.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}/* mods146b: provId del bloqueo, forma de pago (clave de la lista), Pago Inicial = primer abono y pagos programados, como Ventas */if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo&&!oo.del&&oo.recvPurchase==null){oo.recvPurchase=fol;oo.recvId=id;/* mods147e: id de la compra (folio actual, §18.19) */oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
+  const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>{const p=P(i.id);return {id:i.id,q:i.q,cost:pLineCost(i.id),price:pLineSale(i.id),name:p?p.name:undefined,...(isDist(p)?{m:1}:{})};}),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=pcProvLocked()||provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.ppay)purchase.pay=state.ppay;if(purchase.status==='porpagar'){const ini=pcInitAmt();if(ini>0)purchase.pays=[{f:purchase.date,h:tm,p:ini,id:'Y'+uidPart()}];const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0);if(ps.length)purchase.sched=ps.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}/* mods146b: provId del bloqueo, forma de pago (clave de la lista), Pago Inicial = primer abono y pagos programados, como Ventas */if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo&&!oo.del&&oo.recvPurchase==null){oo.recvPurchase=fol;oo.recvId=id;/* mods147e: id de la compra (folio actual, §18.19) */oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
   state.purchases.unshift(purchase);
   pcReset();state.q='';   /* mods145: carrito vacío = PC_DEF */
   persist();render();toast(`${t('cp_saved')} #${fol} · ${money(tot)}`);
@@ -7995,12 +7999,12 @@ function g6EmpRow(o){const c=(l,v)=>'<div><span>'+l+'</span><b class="num">'+v+'
 // Fila de producto de Mi Negocio (cotización y orden de compra): foto redonda, clave, nombre y abajo #cantidad y $total
 function g6BoxQ(){return '<svg viewBox="0 0 48 48" class="g6boxq" aria-hidden="true"><path d="M8 16l16-8 16 8-16 8z" fill="currentColor" opacity=".55"/><path d="M8 16v17l16 8V24z" fill="currentColor" opacity=".8"/><path d="M40 16v17l-16 8V24z" fill="currentColor"/><text x="32" y="36" font-size="11" font-weight="700" text-anchor="middle" style="font-family:Roboto,Arial,sans-serif">?</text></svg>';}
 function g6ProdRow(o){const p=o.p||{};
-  return '<div class="mnrow g6prow"><div class="mnph g6ph">'+saleProdImg(p,g6BoxQ())+'</div><div class="g6p-t"><div class="g6p-k">'+exEsc(o.key||'')+'</div><div class="g6p-n">'+exEsc(o.name||'')+'</div><div class="g6p-b"><b class="num">#'+mnNum(o.q)+'</b><b class="num">'+rmoney(o.tot)+'</b></div></div></div>';}
+  return '<div class="mnrow g6prow"><div class="mnph g6ph">'+saleProdImg(p,g6BoxQ())+'</div><div class="g6p-t"><div class="g6p-k">'+exEsc(o.key||'')+'</div><div class="g6p-n">'+exEsc(o.name||'')+'</div><div class="g6p-b"><b class="num">#'+mnNum(o.q)+repMS(o)+'</b><b class="num">'+rmoney(o.tot)+'</b></div></div></div>';}
 function g6Strip(list){return '<div class="g6strip">'+mnStrip(list)+'</div>';}
 // 10) Orden de compra: todas las órdenes vigentes (Mi Negocio no usa rango de fechas aquí)
 async function g6PoPdf(JS){
   const a=repPOData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('purch_order',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date:todayISO(),title:t('rep_purch_order')});
-  y=mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0});
+  y=mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_purch')],rows.map(o=>[o.name,o.key||'',mnNum(o.q)+repMS(o),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0});
   mnRepBlock(doc,y+20,t('rep_purch_order'),[t('me_qty'),t('total')],[mnNum(repTotals(a).q),mnMon(repTotals(a).tot)]);await mnRepSave(doc,'purch_order',todayISO());
 }
 // Reporte cotización: franja Cantidad / Total / Ganancia y la lista completa de productos con su foto
@@ -8095,7 +8099,7 @@ function g8PurchCard(p){const due=purchaseIsCredit(p)&&purchDueAmt(p)>0.5;const 
 /* tarjeta de producto: caja con "?", nombre en 2 renglones, #cantidad y total. Mi Negocio muestra siempre la caja aquí,
    aunque el producto tenga foto (ej. FOAMI MOLDEABLE X12 en cli_03, que sí tiene foto en Top productos) */
 function g8ProdCard(o){
-  return '<div class="mncard g8p"><div class="g8pi">'+G8_BOXQ+'</div><div class="g8pn"><span>'+g7NoHyBr(exEsc(o.name))+'</span></div><div class="g8r3"><b class="g8q num">#'+mnNum(o.q)+'</b><b class="amt num">'+rmoney(o.tot)+'</b></div></div>';}
+  return '<div class="mncard g8p"><div class="g8pi">'+G8_BOXQ+'</div><div class="g8pn"><span>'+g7NoHyBr(exEsc(o.name))+'</span></div><div class="g8r3"><b class="g8q num">#'+mnNum(o.q)+repMS(o)+'</b><b class="amt num">'+rmoney(o.tot)+'</b></div></div>';}
 function g8Who(n,s){   /* persona + nombre y 2.º renglón (alias / empresa) de Top clientes y Top proveedores */
   return '<div class="g8who">'+svgF(MN_IC.person)+'<div><div class="g8n">'+exEsc((''+(n||'')).trim())+'</div><div class="g8a">'+exEsc(s)+'</div></div></div>';}
 function scRepView(){
@@ -8570,7 +8574,7 @@ async function openPayDetOld(id){   /* mods172: reemplazada (detalle como MN s26
   const lines=((Array.isArray(p.items)&&p.items.length)||(Array.isArray(p.lines)&&p.lines.length))?await pcLinesFor(p,null):await pcLinesFor(p,await pcRawIndex());   /* mods146c: items primero */
   const tot=(+p.total||0),pg=pcPaid(p),dd=Math.max(0,tot-pg);
   const esc=x=>(''+(x||'')).replace(/</g,'&lt;').replace(/\n/g,'<br>');
-  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="rd-prow"><div class="rd-pn">${esc(l.name)}</div><div class="rd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:l.price*l.qty)}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   document.getElementById('saleBody').innerHTML=`<div class="rd">
     <div class="rd-head"><span class="rd-fol">${t('sale_folio')}: ${p.folio||p.id}</span><span class="rd-date">${svg(S_CAL)} ${p.date||''} ${p.time||''}</span></div>
     <div class="rd-card">
@@ -8588,7 +8592,7 @@ async function openPayDetOld(id){   /* mods172: reemplazada (detalle como MN s26
 async function pcRawIndex(){return await rawFolioIndex('compra_producto');}
 async function pcLinesFor(p,rawIdx){
   // En compras el PRECIO mostrado es el de COMPRA (p_compra/cost)
-  if(Array.isArray(p.items)&&p.items.length)return alphaLines(p.items.map(i=>{const pr=P(i.id);const c=+i.cost||0,q=+i.q||0;return {pid:i.id,name:pr?pr.name:(i.name||'—'),qty:q,price:c,subtotal:c*q};}));   /* mods146c: compra hecha en Relax */
+  if(Array.isArray(p.items)&&p.items.length)return alphaLines(p.items.map(i=>{const pr=P(i.id);const c=+i.cost||0,q=+i.q||0;return {pid:i.id,name:pr?pr.name:(i.name||'—'),qty:q,price:c,subtotal:c*q,...(lineIsM(i)?{m:true}:{})};}));   /* mods146c: compra hecha en Relax */
   if(Array.isArray(p.lines)&&p.lines.length)return alphaLines(p.lines.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:(+c||0)*(+l.qty||0)};}));   /* en orden alfabético, como las ventas */
   let lines=[];const L=await idbGetSaleFor(p);
   if(L&&L.length)lines=L.map(l=>{const c=l.cost!=null?l.cost:l.price;return {name:l.name,qty:l.qty,price:c,subtotal:l.subtotal!=null?l.subtotal:((+c||0)*(+l.qty||0))};});
@@ -8818,7 +8822,7 @@ function fillReserva(){
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
     const col=(+p.stock||0)<=0?'var(--red)':'#c98a12';
-    return `<div class="row rsvrow" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0;flex:1"><div class="s" style="font-size:11.5px;margin:0">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(mnName(p))}</div></div><div class="rsvq"><span>${t('f_qty')}</span><b class="num" style="color:${col}">${qtyLoc(p.stock)}</b></div><div class="rsvq"><span>${t('pd_reserve')}</span><b class="num">${qtyLoc(p.reserve)}</b></div></div>`;
+    return `<div class="row rsvrow" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0;flex:1"><div class="s" style="font-size:11.5px;margin:0">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(mnName(p))}</div></div><div class="rsvq"><span>${t('f_qty')}</span><b class="num" style="color:${col}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</b></div><div class="rsvq"><span>${t('pd_reserve')}</span><b class="num">${qtyLoc(p.reserve)}${mSuf(isDist(p))}</b></div></div>`;
   }).join('')+`</div>`:`<div class="empty" style="padding:26px 12px">${t('rsv_empty')}</div>`;
   const catLbl=`<div class="rsvcat" data-act="rsvcatpick">${svg(ICO_CAT)}<span>${exEsc(state.rsvCat?ti('rsv_cat',{c:state.rsvCat==='__none__'?t('cat_none'):state.rsvCat}):t('flt_all'))}</span></div>`;
   document.getElementById('rsvOptions').innerHTML=bar+catLbl+rows;
@@ -9150,7 +9154,7 @@ async function buildSaleTicketBlob(sale){
   y+=opts().pdfStatus?18:15;   /* mods181 */
   const row=(values,size,step)=>{const start=y;let end=y;values.forEach((v,i)=>{y=start;add(v,size,step,null,'center',M+34+69*i,65);end=Math.max(end,y);});y=end;};
   row([t('cx_qty').toUpperCase(),t('rc_price').toUpperCase()+'('+moneySym()+')',t('sale_subtotal').toUpperCase()+'('+moneySym()+')'],7,8);y+=10;
-  for(const l of lines){const start=y;add(l.name,String(l.name||'').length>38?7:9,10);y=Math.max(start+16,y+4);row([fmtQty(l.qty),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))],9,14);y+=5;}
+  for(const l of lines){const start=y;add(l.name,String(l.name||'').length>38?7:9,10);y=Math.max(start+16,y+4);row([fmtQty(l.qty)+mSuf(l.m),mnAmount(l.price),mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))],9,14);y+=5;}
   y+=20;
   const totalRow=(label,value)=>{const start=y;const first=commands.length;add(label+' '+moneySym(),9,12,null,'right',109,103);const end=y;y=start-1;add(mnAmount(value),10,12,'bold','left',114,100);for(let i=first;i<commands.length;i++)commands[i].y+=1;y=Math.max(start+12,end,y);};
   totalRow(t('total').toUpperCase(),total);
@@ -9625,7 +9629,7 @@ async function mnNativeOrder(record,purchase,ret){   /* mods169: ret = devolver 
   y=mnNativeLine(doc,t('po_issue')+':  '+(purchase?record.issue||'':record.date||''),y,13,18);
   y=mnNativeLine(doc,t('po_due')+':  '+(record.due||''),y,13,23);
   /* mods169: sin el folio a la derecha (MN no lo imprime) */
-  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(record.lines||[]).map(l=>{const price=purchase?l.cost:l.price;return [String(l.name||''),fmtQty(l.q),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(record.lines||[]).map(l=>{const price=purchase?l.cost:l.price;return [String(l.name||''),fmtQty(l.q)+mSuf(lineIsM(l)),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
   mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(record.total)]]);const fname=purchase?title+' '+record.folio+'.pdf':'cotizacion.pdf';   /* mods169: nombre de MN */
   if(ret)return {blob:doc.output('blob'),name:fname};mnPdfDone(doc,fname);
 }
@@ -9803,7 +9807,7 @@ async function rcExtraBlob(sale,lines){
   for(const ln of lines){const dl=catLines(ln.name||'',210,12),h=Math.max(30,dl.length*14+2);
     if(y+h>802){doc.addPage();y=30;}
     const b1=dl.length>1?y+14:y+20;dl.forEach((s,j)=>T(s,138,b1+j*14,12));
-    const q=fmtQty(ln.qty),pr=mnAmount(ln.price),sb=mnAmount(ln.subtotal!=null?ln.subtotal:(+ln.price||0)*(+ln.qty||0));
+    const q=fmtQty(ln.qty)+mSuf(ln.m),pr=mnAmount(ln.price),sb=mnAmount(ln.subtotal!=null?ln.subtotal:(+ln.price||0)*(+ln.qty||0));
     T(q,mnCX(q,40,98,13),y+20,13);T(pr,mnRX(pr,446,13),y+20,13);T(sb,mnRX(sb,549,13),y+20,13);y+=h;}
   const tot=[[t('total'),total]];if(pending)tot.push([t('sr_pagos_lbl'),paid],[t('rx_to_pay'),due]);
   const X=mnExtraTotals(tot,MN_RX_TOT);
@@ -9859,7 +9863,7 @@ async function tkExtraBlob(sale,lines){
   let s=catTx(t('rx_qty'));T(s,mnCX(s,0,80,11),f+30,11);s=catTx(t('rx_price'));T(s,mnRX(s,136,11),f+30,11);s=catTx(t('rx_sub'));T(s,mnRX(s,210,11),f+30,11);R2.push(f+34);
   let nb=null;
   for(const ln of lines){const dl=catLines(ln.name||'',200,11),d=(nb==null?f+37:nb)+(dl.length>1?16:21);dl.forEach((x,j)=>T(x,10,d+j*13,11));nb=d+Math.max(21,dl.length*13);
-    const q=catTx(fmtQty(ln.qty)),pr=catTx(mnAmount(ln.price)),sb=catTx(mnAmount(ln.subtotal!=null?ln.subtotal:(+ln.price||0)*(+ln.qty||0)));
+    const q=catTx(fmtQty(ln.qty)+mSuf(ln.m)),pr=catTx(mnAmount(ln.price)),sb=catTx(mnAmount(ln.subtotal!=null?ln.subtotal:(+ln.price||0)*(+ln.qty||0)));
     T(q,mnCX(q,0,80,11),nb,11);T(pr,mnRX(pr,136,11),nb,11);T(sb,mnRX(sb,210,11),nb,11);}
   const rt=nb+24;R2.push(rt);const tb0=rt+26;
   const tot=[[t('total'),total]];if(pending)tot.push([t('sr_pagos_lbl'),paid],[t('rx_to_pay'),due]);
@@ -9897,7 +9901,7 @@ async function mnNativeDebt(JS,purchase){
     y=mnRepTable(doc,y,null,[[t('sale_folio')+':'+(r.folio||r.id),t('sale_date')+':'+(r.date||'')]],{w:[267,267],fs:10,al:['left','left'],bold:()=>B});
     if(purchase&&r.note)y=mnNativeParagraph(doc,r.note,y,12,535,4);   /* mods167: Ventas por Cobrar sin la nota, como MN */
     y=mnRepTable(doc,y,[t('rc_product').toUpperCase(),t('cx_qty').toUpperCase(),t('rc_price').toUpperCase(),t('sale_subtotal').toUpperCase()],
-      (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).map(l=>[l.name||'',l.qty===''?'':fmtQty(l.qty),l.price===''?'':mnAmount(l.price),l.subtotal===''?'':mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]),
+      (lines.length?lines:[{name:t('sale_noitems'),qty:'',price:'',subtotal:''}]).map(l=>[l.name||'',l.qty===''?'':fmtQty(l.qty)+mSuf(l.m),l.price===''?'':mnAmount(l.price),l.subtotal===''?'':mnAmount(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]),
       {w:[214,107,107,107],fs:13,hfs:10,nameCol:0,product:true,bold:(row,c,sec)=>B&&(sec==='head'||c>0)});
     y=mnRepTable(doc,y,null,[[(t('sr_total_lbl')+' '+moneySym()).toUpperCase(),mnAmount(total)],[(t('sr_pagos_lbl')+' '+moneySym()).toUpperCase(),mnAmount(paid)],[t('sr_total_pay')+' '+moneySym(),mnAmount(due)]],
       {w:[267,268],fs:13,al:['right','center'],bold:(row,c)=>c===1||(B&&row===0)});
@@ -10004,18 +10008,18 @@ const MN_PDF={
     if(sections.every(([,a])=>!a.length))return toast(t('mr_empty'));
     const doc=await mnRepDoc(JS);if(currentDataId()!==store)return;let y=mnRepHead(doc,{from:r.from,to:r.to});
     for(const [title,a] of sections){y=mnNativeNeed(doc,y,82);mnNativeText(doc,title,30,y,12);y+=22;
-      if(a.length){y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],a.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+      if(a.length){y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],a.map(o=>[o.name,mnNum(o.q)+repMS(o),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
         y=mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTxProdTotal(a))]])+40;}}
     await mnRepSave(doc,'tx_prod',r.from+' a '+r.to);
   },
   async tx_serv(JS){const r=repEnsureRange(),a=repTxServData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));
     const rows=repSorted('tx_serv',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_serv_sales')});
-    y=mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+    y=mnRepTable(doc,y,[t('mr_h_service'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q)+repMS(o),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
     mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTotals(a).tot)]]);await mnRepSave(doc,'tx_serv',repRangeTxt());
   },
   async merma(JS){const r=repEnsureRange(),a=repMermaData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('merma',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
     const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_merma')});
-    y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
+    y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('mr_h_subtotal')],rows.map(o=>[o.name,mnNum(o.q)+repMS(o),mnAmount(o.tot)]),{w:[321,107,107],fs:13,hfs:10,nameCol:0,product:true});
     mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(repTotals(a).tot)]]);await mnRepSave(doc,'merma',repRangeTxt());
   },
   async top_prod(JS){const r=repEnsureRange();const a=repTopProdData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_prod',a,{name:o=>o.name,profit:o=>o.gan,sales:o=>o.tot});
@@ -10052,7 +10056,7 @@ const MN_PDF={
   async quote(JS){const a=repQuoteData();if(!a.length)return toast(t('mr_empty'));const rows=repSorted('quote',a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
     const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{date:todayISO(),dateTxt:t('mr_date')+': '+todayISO(),title:t('rep_quote')});
     
-    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnNum(o.q),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0,cell:a=>a.section==='body'&&a.col===1?{pad:1}:null});await mnRepSave(doc,'quote',todayISO());},   /* mods161: clave en 119 de ancho; sin pie */
+    mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_qty'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnNum(o.q)+repMS(o),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0,cell:a=>a.section==='body'&&a.col===1?{pad:1}:null});await mnRepSave(doc,'quote',todayISO());},   /* mods161: clave en 119 de ancho; sin pie */
   async purch_order(JS){await g6PoPdf(JS);},
   async abc(JS){const a=repABCData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{title:t('rep_abc')});
     mnRepTable(doc,y,[t('mr_h_class'),t('mr_h_prodname'),t('mr_h_pval'),t('mr_h_pacc')],a.map(o=>[o.cls,o.name,''+o.pv,''+o.acc]),{w:[35,240,130,130],fs:8,hfs:8,nameCol:1,al:['center','left','center','center']});await mnRepSave(doc,'abc',todayISO());},
@@ -10067,7 +10071,7 @@ const MN_PDF={
     y=mnRepBlock(doc,y,t('mr_sale_tx'),[t('mr_paid'),mnToCollect(),t('total')],[mnMon(D.tP),mnMon(D.tC),mnMon(D.tP+D.tC)]);
     y=mnRepBlock(doc,y,t('mr_sale_credit'),[mnToCollect(),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);mnRepRule(doc,y);y+=10;
     if(D.S.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('m_ventas'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.S.map(s=>[''+(s.folio||s.id),saleDate(s),payLbl(s.pay)||'...',(s.tag||'...'),mnMon(saleTotal(s)),saleIsCredit(s)&&saleDueAmt(s)>0.5?mnToCollect():t('mr_paid')]),{w:Array(6).fill(535/6),al:Array(6).fill('center'),plain:true,fs:11});y+=10;mnRepRule(doc,y);y+=10;}
-    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_sales'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
+    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_sales'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)+repMS(o)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
     await mnRepSave(doc,'clients',(c.name||'')+' '+repRangeTxt());
   },
   async top_clients(JS){const r=repEnsureRange(),a=repTopCliData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_clients',a,{name:o=>o.name,sales:o=>o.tot,profit:o=>o.gan}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('mr_clients')});mnRepRule(doc,y-10);
@@ -10079,7 +10083,7 @@ const MN_PDF={
     y=mnRepBlock(doc,y,t('mr_purch_tx'),[t('mr_paid'),mnToPay(),t('total')],[mnMon(D.tP),mnMon(D.tC),mnMon(D.tP+D.tC)]);
     y=mnRepBlock(doc,y,t('mr_purch_credit_pdf'),[mnToPay(),t('ttx_pagos'),t('ttx_deuda')],[mnMon(D.tC),mnMon(D.pays),mnMon(D.due)]);mnRepRule(doc,y);y+=10;
     if(D.C.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('m_compras'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.C.map(p=>[''+(p.folio||p.id),p.date||'',payLbl(p.pay)||'...',mnMon(+p.total||0),purchaseIsCredit(p)&&purchDueAmt(p)>0.5?'P':'']),{w:[107,107,107,107,107],al:Array(5).fill('center'),plain:true,fs:11});y+=10;mnRepRule(doc,y);y+=10;}
-    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_purch'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
+    if(D.prods.length){y=mnNativeNeed(doc,y,40,60);y+=mnNativeLayout(doc,t('mr_prod_purch'),30,y,535,12.5,'center')+1;y=mnRepTable(doc,y,null,D.prods.map(o=>[o.name,mnMon(o.tot),'#'+mnNum(o.q)+repMS(o)]),{w:[321,107,107],plain:true,fs:11});mnRepRule(doc,y+10);}
     await mnRepSave(doc,'provider',(v.contact||v.company||'')+' '+repRangeTxt());
   },
   async top_providers(JS){const r=repEnsureRange(),a=repTopProvData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('top_providers',a,{name:o=>o.name,purch:o=>o.tot}),doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('cp_provider')});mnRepRule(doc,y-10);
@@ -10155,7 +10159,7 @@ function repTxProd(){
   if(!D.a.length)return head+tabs+mnEmpty(t('sin_info'),true);
   const rows=repSorted('tx_prod',D.a,{name:o=>o.name,qty:o=>o.q,total:o=>o.tot});
   repCsv('tx_prod',[[t('me_qty')],[t('total')]],rows.map(o=>({t:o.name,c:[[null,o.q,'n'],[null,o.tot,'m']]})),{first:t('rc_product')});
-  const list=mnList('tx_prod',rows.map(o=>mnRow({cls:'w tp-r',lines:[g4fBoxIc()+'<span>'+exEsc(o.name)+'</span>'],cols:[[t('me_qty'),g4fNum(o.q)],[t('total'),rmoney(o.tot)]]})));
+  const list=mnList('tx_prod',rows.map(o=>mnRow({cls:'w tp-r',lines:[g4fBoxIc()+'<span>'+exEsc(o.name)+'</span>'],cols:[[t('me_qty'),g4fNum(o.q)+repMS(o)],[t('total'),rmoney(o.tot)]]})));
   setTimeout(m173Fit,0);   /* mods173: auto-tamaño de los nombres */
   return head+tabs+'<div class="tp-l">'+list+'</div>';
 }
@@ -11089,6 +11093,16 @@ function invLogAdd(tipo,p,old){try{if(!p)return;const now=invSnap(p);old=old||no
   state.invLog=[e,...(state.invLog||[]).filter(x=>x&&(''+x.fecha).slice(0,10)>=lf)].slice(0,1500);}catch(_){}}   /* ~2 meses y como mucho 1.500 */
 var INV_SEQ=0;
 function stockAdd(p,delta){if(!p)return;p.stock=Math.round(((+p.stock||0)+(+delta||0))*1000)/1000;}
+/* mods237: tipo de medida. Sin p.med = Unidad (como siempre); p.med==='m' = Distancia, en metros con hasta 3 decimales */
+function isDist(p){return !!p&&p.med==='m';}
+function lineIsM(l){if(!l)return false;if(l.m!=null)return !!l.m;const p=l.id!=null?P(+l.id):null;return isDist(p);}   /* la línea guardada manda; si no lo dice, el producto */
+function mSuf(on){return on?' m':'';}
+function qtyM(q,on){return on?qtyLoc(q)+' m':null;}
+function q3(v){return Math.round((+v||0)*1000)/1000;}
+function repMS(o){return mSuf(!!o&&o.pid!=null&&isDist(P(+o.pid)));}   /* fila de reporte agrupada por producto */
+function fmedHTML(f){const m=!!f&&f.med==='m';const on=svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'),off=svg('<circle cx="12" cy="12" r="9"/>');
+  const b=(k,lbl)=>{const sel=(k==='m')===m;return `<button type="button" class="seg${sel?' on':''}" role="radio" aria-checked="${sel}" data-act="fmed:${k}">${sel?on:off} ${t(lbl)}</button>`;};
+  return `<div class="fld"><span class="fl">${t('f_med')}</span><div class="segrow fmed" role="radiogroup" aria-label="${t('f_med')}">${b('u','med_u')}${b('m','med_m')}</div>${m?`<div class="fmed-note">${ti('med_m_note',{a:qtyLoc(0.25)+' m',b:qtyLoc(1.5)+' m'})}</div>`:''}</div>`;}
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
   const q=fold((state.q||'').toLowerCase().trim());
@@ -11496,12 +11510,13 @@ function formHTML(){
   <div class="fld"><span class="fl">${t('f_key')} <span class="req">*</span></span>
     <div class="keyrow"><input autocomplete="off" class="inp" id="f_key" maxlength="18" spellcheck="false" value="${exEsc(f.key||'')}" placeholder="${exEsc(t('f_key'))}"><button class="genbtn" data-act="scan:key" title="${t('scan_title')}" style="flex:none;padding:0 11px">${svg(ICO_SCAN)}</button><button class="genbtn" data-act="genkey">${svg('<path d="M4 4v6h6M20 20v-6h-6M20 4l-7 7M4 20l7-7"/>')}${t('f_generate')}</button></div></div><div id="ctgHint">${ctgHintHTML(f)}</div>
   <div class="fld"><span class="fl">${t('f_name')} <span class="req">*</span></span><input autocomplete="off" class="inp" id="f_name" maxlength="50" value="${exEsc(f.name||'')}" placeholder="${t('namePh')}"></div>
-  <div class="fld"><span class="fl">${t('f_unit')} <span class="req">*</span></span>
+  ${fmedHTML(f)}
+  <div class="fld funit" style="display:none"><span class="fl">${t('f_unit')} <span class="req">*</span></span>
     <div class="inp sellike" data-act="openunit">${(f.uOk||f.unit)?`<span class="uval">${exEsc(f.unit?unitLabel(f.unit):'...')}</span><button type="button" class="uclr" data-act="unitclr" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:`<span class="ph">${t('f_unit_ph')}</span>${svg('<path d="M6 9l6 6 6-6"/>')}`}</div>
     <input autocomplete="off" type="hidden" id="f_unit" value="${(f.unit||'').replace(/"/g,'&quot;')}"></div>
   <div class="two">
-    <div class="fld"><span class="fl">${t('f_purchase')}</span><input autocomplete="off" class="inp num" id="f_purchase" type="text" inputmode="decimal" data-uns="1" value="${exEsc(fTxt(f.purchase))}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_sale')}</span><input autocomplete="off" class="inp num" id="f_sale" type="text" inputmode="decimal" data-uns="1" value="${exEsc(fTxt(f.sale))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t(f.med==='m'?'f_purchase_m':'f_purchase')}</span><input autocomplete="off" class="inp num" id="f_purchase" type="text" inputmode="decimal" data-uns="1" value="${exEsc(fTxt(f.purchase))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t(f.med==='m'?'f_sale_m':'f_sale')}</span><input autocomplete="off" class="inp num" id="f_sale" type="text" inputmode="decimal" data-uns="1" value="${exEsc(fTxt(f.sale))}" placeholder="0"></div>
   </div>
   <div class="freq">${t('opt_fields')}</div>
   <div class="fld"><span class="fl">${t('f_image')} <span class="opt">${t('optional')}</span></span>${img}${acts}</div>
@@ -11509,12 +11524,12 @@ function formHTML(){
     <div class="inp sellike" data-act="opencat"><span class="${f.cat?'':'ph'}">${exEsc(f.cat||t('f_category_ph'))}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</div>
     <input autocomplete="off" type="hidden" id="f_cat" value="${(f.cat||'').replace(/"/g,'&quot;')}"></div>
   <div class="two">
-    <div class="fld"><span class="fl">${t('f_qty')}</span><input autocomplete="off" class="inp num" id="f_qty" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.qty))}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_qtyreserve')}<span class="fhelp" data-act="rsvhelp">?</span></span><input autocomplete="off" class="inp num" id="f_reserve" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.reserve))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t(f.med==='m'?'f_qty_m':'f_qty')}</span><input autocomplete="off" class="inp num" id="f_qty" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.qty))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t(f.med==='m'?'f_reserve_m':'f_qtyreserve')}<span class="fhelp" data-act="rsvhelp">?</span></span><input autocomplete="off" class="inp num" id="f_reserve" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.reserve))}" placeholder="0"></div>
   </div>
   ${bod?`<div class="two">
-    <div class="fld"><span class="fl">${t('f_stockmin')}</span><input autocomplete="off" class="inp num" id="f_min" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.min))}" placeholder="0"></div>
-    <div class="fld"><span class="fl">${t('f_stockmax')}</span><input autocomplete="off" class="inp num" id="f_max" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.max))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_stockmin')}${f.med==='m'?' (m)':''}</span><input autocomplete="off" class="inp num" id="f_min" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.min))}" placeholder="0"></div>
+    <div class="fld"><span class="fl">${t('f_stockmax')}${f.med==='m'?' (m)':''}</span><input autocomplete="off" class="inp num" id="f_max" type="text" inputmode="decimal" data-uns="3" value="${exEsc(fTxt(f.max))}" placeholder="0"></div>
   </div>
   <div class="two">
     <div class="fld"><span class="fl">${t('f_location')}</span><input autocomplete="off" class="inp" id="f_loc" value="${exEsc(f.loc||'')}" placeholder="A-01"></div>
@@ -11529,7 +11544,7 @@ async function fExpAdd(){readForm();const f0=state.form;const r=await expAsk(d=>
 function fExpDel(i){readForm();const a=(state.form.exps||[]).slice();const d=a[i];a.splice(i,1);state.form.exps=a;if(state.form.expEv&&d)delete state.form.expEv[d];refreshForm();}
 async function fImgRot(){readForm();const f=state.form;const src=f.img||(f.imgKey?(await imgBest(f.imgKey)||IMGCACHE['img:'+f.imgKey]):null);f._imgFrom=null;/* mods234: la mejor copia; girada ya no es copia exacta */if(!src){toast(t('pd_noimg'));return;}const r=await imgRotate(src);if(r){f.img=r;refreshForm();}}
 function pfNorm(f){const tr=v=>(''+(v==null?'':v)).trim(),ex=[...new Set(f.exps||[])].filter(Boolean).sort(),xp=xpClean(f.xprices);   /* los valores del formulario como se guardan (para saber qué cambió el usuario) */
-  return {key:tr(f.key),name:tr(f.name),cat:tr(f.cat),unit:canonUnit(tr(f.unit)),cost:fNum(f.purchase),price:fNum(f.sale),addSale:(xp[0]||{}).p||0,xprices:xp,stock:fNum(f.qty),reserve:fNum(f.reserve),img:f.img||null,imgKey:f.imgKey||null,exps:ex,expiry:ex[0]||null,desc:tr(f.desc),min:fNum(f.min),max:fNum(f.max),loc:tr(f.loc),lot:tr(f.lot)};}
+  return {key:tr(f.key),name:tr(f.name),cat:tr(f.cat),unit:canonUnit(tr(f.unit)),cost:fNum(f.purchase),price:fNum(f.sale),addSale:(xp[0]||{}).p||0,xprices:xp,stock:fNum(f.qty),reserve:fNum(f.reserve),img:f.img||null,imgKey:f.imgKey||null,exps:ex,expiry:ex[0]||null,desc:tr(f.desc),min:fNum(f.min),max:fNum(f.max),loc:tr(f.loc),lot:tr(f.lot),med:f.med==='m'?'m':''};}
 function openForm(editId,prefillKey){
   if(editId){const p=P(editId);state.form={editId,uOk:true,key:p.key,name:p.name,cat:p.cat,unit:canonUnit(p.unit||''),purchase:p.cost,sale:p.price,xprices:xPrices(p).map(x=>({n:x.n||'',p:+x.p})),qty:p.stock,reserve:p.reserve,img:p.img,imgKey:p.imgKey||null,expiry:p.expiry||'',expiryOn:!!p.expiry,exps:prodExps(p),desc:p.desc||p.info||'',min:p.min,max:p.max,loc:p.loc,lot:p.lot};state.form._n0=pfNorm(state.form);}   /* lo que mostraba al abrir */
   else{state.form={unit:'',key:prefillKey||'',exps:[],desc:''};unitDefApply(state.form);state.form._n0=pfNorm(state.form);}   /* mods143a: con 📌 empieza con la unidad predeterminada */   /* como Mi Negocio: la unidad empieza vacía */
@@ -11554,7 +11569,7 @@ function xpSectionHTML(f){
   const e=x=>(''+(x==null?'':x)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>');
-  const chips=xs.map((x,i)=>`<div class="xp-chip"><div class="xp-n">${e(xpName(x,i))}</div><div class="xp-p num">${xpMoney(x.p)}</div><div class="xp-a"><button type="button" class="cico del" data-act="xpdel:${i}" title="${t('remove')}">${trash}</button><button type="button" class="cico ed" data-act="xpedit:${i}" title="${t('xp_edit')}">${pen}</button></div></div>`).join('');
+  const chips=xs.map((x,i)=>`<div class="xp-chip"><div class="xp-n">${e(xpName(x,i))}</div><div class="xp-p num">${xpMoney(x.p)}${f&&f.med==='m'?'/m':''}</div><div class="xp-a"><button type="button" class="cico del" data-act="xpdel:${i}" title="${t('remove')}">${trash}</button><button type="button" class="cico ed" data-act="xpedit:${i}" title="${t('xp_edit')}">${pen}</button></div></div>`).join('');
   return `<div class="fld xpsec"><div class="xp-h">${svg('<path d="M3 12V4a1 1 0 011-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>')}<span>${t('xp_title')} <span class="opt">${t('optional')}</span></span></div><div class="xp-list">${chips}<button type="button" class="xp-add" data-act="xpadd" title="${t('xp_add')}">${svg('<path d="M12 5v14M5 12h14"/>')}</button></div></div>`;
 }
 // Ventana para agregar o editar un precio adicional (nombre opcional + precio)
@@ -11669,7 +11684,7 @@ async function formCopyPick(id){const d=document.getElementById('saleproddlg');d
   const mn=isMnName(p.name),sp=mn?mnSplit(p):null;
   const unit=mn?(sp.unit==='...'?'':canonUnit(sp.unit)):canonUnit((''+(p.unit||'')).trim());
   const nf={key:(''+(p.key||''))+'_',name:(mn?sp.name:''+(p.name||''))+'_',unit,uOk:true,purchase:+p.cost||0,sale:+p.price||0,cat:p.cat||'',qty:+p.stock||0,reserve:+p.reserve||0,
-    xprices:xPrices(p).map(x=>({n:x.n||'',p:+x.p})),exps:[],desc:p.desc||p.info||'',img:null,imgKey:null,_n0:state.form._n0};
+    xprices:xPrices(p).map(x=>({n:x.n||'',p:+x.p})),exps:[],desc:p.desc||p.info||'',img:null,imgKey:null,med:isDist(p)?'m':'',_n0:state.form._n0};
   ['min','max','loc','lot'].forEach(k=>{if(p[k]!=null&&p[k]!=='')nf[k]=p[k];});
   state.form=nf;const b=document.getElementById('formBody');b.innerHTML=formHTML();attachForm();b.scrollTop=0;
   const hasImg=!!(p.img||p.imgKey);nf._imgFrom=p.imgKey||null;/* mods234 */nf._imgP=hasImg?prodImgData(p):null;const src=nf._imgP?await nf._imgP:null;nf._imgP=null;   /* ✓ antes de que llegue la foto la espera (saveProduct) */
@@ -11710,7 +11725,8 @@ function permResult(ok){document.getElementById('permdlg').classList.remove('on'
   else{state.form.expiryOn=false;if(chk)chk.checked=false;}}
 async function saveProduct(){
   readForm();const f=state.form;
-  if(!await pvCheck(f))return;   // mods143a: validaciones de MN (unidad → clave → nombre → repetidos) con ACEPTAR y el cursor en el campo
+  const _dm=f.med==='m'&&!f.editId,_u0=f.unit,_k0=f.uOk;if(_dm){f.unit='u_meter';f.uOk=true;}else if(!f.editId)f.uOk=true;   /* mods237: Distancia = metros; Unidad = la etiqueta que traiga (o "...", sin unidad), ya no se pide */
+  if(!await pvCheck(f)){if(_dm){f.unit=_u0;f.uOk=_k0;}return;}   // mods143a: validaciones de MN (unidad → clave → nombre → repetidos) con ACEPTAR y el cursor en el campo
   if(f._imgP){const _s=await f._imgP;if(_s&&!f.img&&!f.imgKey)f.img=_s;else if(!_s)toast(t('copy_noimg'));}   // ⧉ copia cuya foto aún viene de la nube: se espera (máx. 3 s)
   const cat=(f.cat||'').trim(); if(cat&&!state.cats.includes(cat))state.cats.push(cat);
   const unit=canonUnit((f.unit||'').trim());
@@ -11723,7 +11739,7 @@ async function saveProduct(){
     const thumb=await imgStoreAll(img,ik,f._imgFrom)||await dataUrlToThumb(img,256);   /* mods234: miniatura + detalle + maestra, de una vez */
     if(thumb){if(!IMGCACHE['img:'+ik]){IMGCACHE['img:'+ik]=thumb;try{await idbPut('img:'+ik,thumb);}catch(e){}}imgKey=ik;img=null;imgNew=true;sbUploadOne(ik);}
   }
-  const data={key,name:f.name.trim(),cat,unit,cost:fNum(f.purchase),price:fNum(f.sale),addSale:(xpClean(f.xprices)[0]||{}).p||0,xprices:xpClean(f.xprices),stock:fNum(f.qty),reserve:fNum(f.reserve),img,imgKey,exps:[...new Set(f.exps||[])].filter(Boolean).sort(),expiry:[...new Set(f.exps||[])].filter(Boolean).sort()[0]||null,desc:(f.desc||'').trim(),min:fNum(f.min),max:fNum(f.max),loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};
+  const data={key,name:f.name.trim(),cat,unit,cost:fNum(f.purchase),price:fNum(f.sale),addSale:(xpClean(f.xprices)[0]||{}).p||0,xprices:xpClean(f.xprices),stock:fNum(f.qty),reserve:fNum(f.reserve),img,imgKey,exps:[...new Set(f.exps||[])].filter(Boolean).sort(),expiry:[...new Set(f.exps||[])].filter(Boolean).sort()[0]||null,desc:(f.desc||'').trim(),min:fNum(f.min),max:fNum(f.max),loc:(f.loc||'').trim(),lot:(f.lot||'').trim()};if(f.med==='m')data.med='m';else if(f.editId)data.med='';   /* mods237 */
   if(f.editId){const p=P(f.editId);if(p){const o=invSnap(p);const n0=f._n0,n=n0&&pfNorm(f);   /* solo se escribe lo que el usuario cambió: lo demás (p. ej. el stock que bajó por ventas de otro equipo) se respeta */
     if(n0)Object.keys(data).forEach(k=>{const im=k==='img'||k==='imgKey';if(im?(imgNew||n.img!==n0.img||n.imgKey!==n0.imgKey):(!(k in n0)||JSON.stringify(n[k])!==JSON.stringify(n0[k])))p[k]=data[k];});else Object.assign(p,data);
     invLogAdd(2,p,o);expEvCommit(p,state.form);}closeForm();state.screen='inventario';persist();render();toast(t('updated'));}
@@ -12987,7 +13003,7 @@ function sbIsDirty(id,key){return !!SB_DIRTY[id+'|'+key];}
 function sbOnline(){return !(typeof navigator!=='undefined'&&navigator.onLine===false);}
 function sbDocData(key){switch(key){case 'sales':return state.sales;case 'products':return state.products;case 'clients':return state.clients;case 'mermas':return state.mermas;case 'purchases':return state.purchases;case 'porders':return state.porders;case 'receipt':return state.receipt;}const md=modDoc(key);if(md)return state[md.st]||[];return undefined;}
 /* ---- Fusión de 3 vías por registro (base = última versión vista de la nube) ---- */
-function itemSnap(id,q,price){const p=P(id);const o={id,q,price};if(p){o.name=p.name;o.cost=+p.cost||0;}else if(state.editSale&&state.editSale.names&&state.editSale.names[id]){o.name=state.editSale.names[id];const c=(state.editSale.costs||{})[id];if(c!=null)o.cost=c;}return o;}
+function itemSnap(id,q,price){const p=P(id);const o={id,q,price};if(p){o.name=p.name;o.cost=+p.cost||0;if(isDist(p)){o.q=q3(q);o.m=1;const pl=+p.price||0;if(Math.abs(pl-(+price||0))>0.004)o.pl=pl;}}else if(state.editSale&&state.editSale.names&&state.editSale.names[id]){o.name=state.editSale.names[id];const c=(state.editSale.costs||{})[id];if(c!=null)o.cost=c;}return o;}
 function uidPart(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 let _DEVID=null;function deviceId(){if(_DEVID)return _DEVID;try{_DEVID=localStorage.getItem('abanico.devid');if(!_DEVID){_DEVID=Math.random().toString(36).slice(2,10);localStorage.setItem('abanico.devid',_DEVID);}}catch(_){_DEVID='x'+Math.random().toString(36).slice(2,8);}return _DEVID;}
 function syncKeys(){return ['products','clients','sales','mermas','purchases','porders','receipt',...MOD_DOCS.map(m=>m.key)];}
@@ -13622,7 +13638,7 @@ async function escposRecibo(sale,o){o=o||{};const ic=imprCfg(),cols=o.cols||impr
     if(opts().cliInfo){const c=cliByName(sale.client);if(c)[c.phone&&(t('cli_phone')+': '+c.phone),c.address&&(t('cli_address')+': '+c.address),c.email&&(t('cli_email')+': '+c.email)].filter(Boolean).forEach(x=>b.lines(x));}}
   if(sale.addr)b.lines(sale.addr);   // información adicional (como el PDF; conserva sus saltos de línea)
   b.sep();
-  (lines||[]).forEach(l=>{const sub=l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0);b.lines(l.name||'—');b.lr('  '+fmtQty(l.qty)+' x '+moneyNum(l.price),moneyNum(sub));});
+  (lines||[]).forEach(l=>{const sub=l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0);b.lines(l.name||'—');b.lr('  '+fmtQty(l.qty)+mSuf(l.m)+' x '+moneyNum(l.price),moneyNum(sub));});
   b.sep();
   b.bold(true).size(0x01).lr(t('total').toUpperCase(),money(tot)).size(0).bold(false);
   if(sale.pay)b.lines(t('sale_payform')+': '+payLbl(sale.pay));
@@ -14541,7 +14557,7 @@ function addFromCatalog(bid,pid){
   if(dl){dl.qty+=1;dl.name=bp.name;}else d.dispatches.push({tid:state.profile.id,tname:state.profile.name,pid,name:bp.name,qty:1});
   saveDataOf(bid,d);
   let mine=state.products.find(p=>p.origin&&p.origin.bid===bid&&p.origin.pid===pid);
-  if(mine)mine.stock+=1;else state.products.push({id:state.seq++,key:bp.key,name:bp.name,cat:bp.cat,unit:bp.unit,cost:bp.price,price:bp.price,addSale:0,stock:1,reserve:0,img:bp.img||null,expiry:null,origin:{bid,pid}});
+  if(mine)mine.stock+=1;else state.products.push({id:state.seq++,key:bp.key,name:bp.name,cat:bp.cat,unit:bp.unit,...(isDist(bp)?{med:'m'}:{}),cost:bp.price,price:bp.price,addSale:0,stock:1,reserve:0,img:bp.img||null,expiry:null,origin:{bid,pid}});
   persist();pushNotif(bid,{kind:'dispatch',...nt('n_dispatch',{t:state.profile.name,n:1,p:bp.name})});
   render();toast(t('added_to_inv'));
 }
@@ -14721,6 +14737,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="save-product")return saveProduct();
     if(a==="genkey")return genKey();
     if(a==="formcopy")return formCopy();   // mods143a
+    if(a==="fmed"){readForm();state.form.med=act2==='m'?'m':'';const fb=document.getElementById('formBody'),st=fb.scrollTop;fb.innerHTML=formHTML();attachForm();fb.scrollTop=st;return;}   /* mods237 */
     if(a==="unitclr"){readForm();state.form.unit='';state.form.uOk=false;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="unitdef")return unitDefToggle(act2);
     if(a==="unitdel")return unitDelAsk(act2);
@@ -14825,8 +14842,8 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="setpay"){state.salePay='pm_'+el.dataset.act.split(":")[1];closePay();return render();}
     if(a==="savesale")return saveSale();
     if(a==="srdec"){const id=+el.dataset.act.split(":")[1];delete state.cart[id];if(state.cartPrice)delete state.cartPrice[id];return render();}   // ✕ en la búsqueda: quita el producto y sigue buscando
-    if(a==="cqp"){const id=+el.dataset.act.split(":")[1];state.cart[id]=(+state.cart[id]||0)+1;if(state.cartTxt)delete state.cartTxt[id];return render();}   // (+) cantidad
-    if(a==="cqm"){const id=+el.dataset.act.split(":")[1];const q=+state.cart[id]||0,nq=Math.max(1,q-1);if(nq!==q||cqtyEmpty(cqtyTxt(id,q))){state.cart[id]=nq;if(state.cartTxt)delete state.cartTxt[id];render();}return;}   /* mods142a: desde 0 o vacío pasa a 1 */   // (−) no baja de 1 (para quitar está la papelera)
+    if(a==="cqp"){const id=+el.dataset.act.split(":")[1];state.cart[id]=isDist(P(id))?q3((+state.cart[id]||0)+1):(+state.cart[id]||0)+1;if(state.cartTxt)delete state.cartTxt[id];return render();}   // (+) cantidad
+    if(a==="cqm"){const id=+el.dataset.act.split(":")[1];const q=+state.cart[id]||0,nq=isDist(P(id))?(q>1?q3(q-1):(q>0?q:1)):Math.max(1,q-1);if(nq!==q||cqtyEmpty(cqtyTxt(id,q))){state.cart[id]=nq;if(state.cartTxt)delete state.cartTxt[id];render();}return;}   /* mods142a: desde 0 o vacío pasa a 1 */   // (−) no baja de 1 (para quitar está la papelera)
     if(a==="salecancel")return saleCancel();
     if(a==="provnew")return openProvForm(null);
     if(a==="provedit")return openProvForm(el.dataset.act.slice(9));
@@ -15117,7 +15134,7 @@ document.getElementById("device").addEventListener("input",e=>{
   else if(el.id==='poDue')poDueSet(el);   /* mods147e: también el rótulo */
   else if(el.id==='qtSearch'){state.qtQ=el.value;const p=el.selectionStart;render();const s2=document.getElementById('qtSearch');if(s2){s2.focus();try{s2.setSelectionRange(p,p);}catch(_){}}}
   else if(el.id==='saleTag')state.saleTag=el.value;
-  else if(/^ie[qp]_\d+$/.test(el.id)&&ITEMS_ED){const k=+el.id.slice(4),l=ITEMS_ED.lines[k];if(l){const bad=!!(el.validity&&el.validity.badInput);/* número mal escrito: no se guarda */if(el.id[2]==='q'){l.q=el.value;l.qBad=bad;}else{l.price=el.value;l.pBad=bad;}const sb=document.getElementById('ies_'+k);if(sb)sb.textContent=money((+l.q||0)*(+l.price||0)).replace('$','');const tt=document.getElementById('ieTot');if(tt)tt.textContent=money(itemsTotal()).replace('$','');}}
+  else if(/^ie[qp]_\d+$/.test(el.id)&&ITEMS_ED){const k=+el.id.slice(4),l=ITEMS_ED.lines[k];if(l){const bad=!!(el.validity&&el.validity.badInput);/* número mal escrito: no se guarda */if(el.id[2]==='q'){l.q=el.value;l.qBad=bad;}else{l.price=el.value;l.pBad=bad;}const sb=document.getElementById('ies_'+k);if(sb)sb.textContent=money(ieQ(l)*(+l.price||0)).replace('$','');const tt=document.getElementById('ieTot');if(tt)tt.textContent=money(itemsTotal()).replace('$','');}}
   else if(el.id==='saleInit'){state.saleInit=el.value;const d=document.getElementById('saleDebt');if(d)d.textContent=money(Math.max(0,cartTotal()-(+el.value||0)));}
   else if(el.id==='saleNote')state.saleNote=el.value;
   else if(el.id==='pProvider'){state.pprovider=el.value;if(!state.poMode)state.pprovId=null;pcProvAC();}   /* mods146b: escrito a mano = sin bloqueo; sugerencias de MN */
@@ -15303,8 +15320,8 @@ function fillPDet(){
   const ed=act=>`<button class="pd-ed" data-act="${act}" aria-label="${t('xp_edit')}">${svg(ICO_PEN)}</button>`;
   const src=pdImgSrc(p);
   const img=src?`<img src="${src}" ${p.imgKey?`data-imgd="${exEsc(p.imgKey)}"`:''} alt="">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" data-imgd="${exEsc(p.imgKey)}" alt="">`:svg(ICO_BOX));   /* mods234: data-imgd */
-  const unit=p.unit?unitLabel(p.unit):'';
-  const xchips=xPrices(p).map((x,i)=>`<div class="xp-chip"><div class="xp-n">${exEsc(xpName(x,i))}</div><div class="xp-p num">${xpMoney(x.p)}</div><div class="xp-a"><button type="button" class="cico del" data-act="pdxpdel:${i}">${svg(ICO_TRASH)}</button><button type="button" class="cico ed" data-act="pdxpedit:${i}">${svg(ICO_PEN)}</button></div></div>`).join('');
+  const unit=isDist(p)?t('med_m')+' (m)':(p.unit?unitLabel(p.unit):'');const dm=isDist(p);   /* mods237 */
+  const xchips=xPrices(p).map((x,i)=>`<div class="xp-chip"><div class="xp-n">${exEsc(xpName(x,i))}</div><div class="xp-p num">${xpMoney(x.p)}${isDist(p)?'/m':''}</div><div class="xp-a"><button type="button" class="cico del" data-act="pdxpdel:${i}">${svg(ICO_TRASH)}</button><button type="button" class="cico ed" data-act="pdxpedit:${i}">${svg(ICO_PEN)}</button></div></div>`).join('');
   const expChips=prodExps(p).map((d,i)=>`<span class="pd-exp ${expDaysAgo(d)>0?'old':''}">${svg(ICO_CAL)} ${expChipTxt(d,expEvOf(p.id,d))}<button data-act="pdexpdel:${i}" aria-label="${t('remove')}">${svg(ICO_X)}</button></span>`).join('');
   const info=(''+(p.desc||p.info||'')).trim();
   const orig=(state.profile&&state.profile.kind==='tienda'&&p.origin)?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`:'';
@@ -15318,10 +15335,10 @@ function fillPDet(){
   <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('pd_product')}</div><div class="pd-v">${svg(ICO_BOX)}<span>${exEsc(p.name||'')}${unit?` <span class="pd-u">· ${exEsc(unit)}</span>`:''}</span></div></div>${ed('pdedit:name')}</div>
   <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('f_category')}</div><div class="pd-v">${svg(ICO_CAT)}<span>${exEsc(p.cat||t('cat_none'))}</span></div></div>${p.cat?`<button class="pd-ed" data-act="pdcatclr" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}${ed('pdcat')}</div>
   <div class="pd-two">
-    <div class="pd-cell"><div class="pd-l">${t('f_qty')}</div><div class="pd-v num">${p.stock}</div>${ed('pdedit:qty')}</div>
-    <div class="pd-cell"><div class="pd-l">${t('pd_reserve')}</div><div class="pd-v num">${p.reserve||0}</div>${ed('pdedit:reserve')}</div>
-    <div class="pd-cell"><div class="pd-l">${t('pd_cost')}</div><div class="pd-v num">${money(p.cost||0)}</div>${ed('pdedit:cost')}</div>
-    <div class="pd-cell"><div class="pd-l">${t('pd_sale')}</div><div class="pd-v num">${money(p.price||0)}</div>${ed('pdedit:price')}</div>
+    <div class="pd-cell"><div class="pd-l">${t(dm?'f_qty_m':'f_qty')}</div><div class="pd-v num">${dm?qtyLoc(p.stock)+' m':p.stock}</div>${ed('pdedit:qty')}</div>
+    <div class="pd-cell"><div class="pd-l">${t(dm?'f_reserve_m':'pd_reserve')}</div><div class="pd-v num">${dm?qtyLoc(p.reserve||0)+' m':(p.reserve||0)}</div>${ed('pdedit:reserve')}</div>
+    <div class="pd-cell"><div class="pd-l">${t(dm?'f_purchase_m':'pd_cost')}</div><div class="pd-v num">${money(p.cost||0)}</div>${ed('pdedit:cost')}</div>
+    <div class="pd-cell"><div class="pd-l">${t(dm?'f_sale_m':'pd_sale')}</div><div class="pd-v num">${money(p.price||0)}</div>${ed('pdedit:price')}</div>
   </div>
   <div class="pd-box"><div class="pd-bh">${svg(ICO_TAG)}<span>${t('xp_title')} <span class="opt">${t('optional')}</span></span></div><div class="xp-list">${xchips}<button type="button" class="xp-add" data-act="pdxpadd" aria-label="${t('xp_add')}">${svg(ICO_PLUS)}</button></div></div>
   <div class="pd-box"><div class="pd-bh">${svg(ICO_CAL)}<span>${t('exp_title')}</span><button class="pd-help" data-act="exphelp">?</button></div><div class="pd-exps">${expChips}<button class="pd-add" data-act="pdexpadd" aria-label="${t('f_expiry')}">${svg(ICO_PLUS)}</button></div></div>
@@ -15367,15 +15384,15 @@ function pfOpen(kind){
   else if(kind==='name'&&isMnName(p.name)){
     /* nombre de Mi Negocio: se edita sin la unidad y la unidad se elige aparte (se guarda "UNIDAD nombre", como Mi Negocio) */
     const sp=mnSplit(p);PF.mn=true;const us=['...',...new Set([...(state.units||[]).filter(u=>u&&u!=='...'),...state.products.map(q=>{const tk=isMnName(q.name)?mnTok(q.name):'';return tk&&tk!=='...'?tk:'';}).filter(Boolean)])];if(!us.includes(sp.unit))us.push(sp.unit);
-    h=`<div class="pf-t">${t('f_name')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" maxlength="50" value="${exEsc(sp.name)}">${ok}</div><select class="inp" id="pf_u" aria-label="${t('f_unit')}">${us.map(u=>`<option value="${exEsc(u)}" ${u===sp.unit?'selected':''}>${exEsc(u)}</option>`).join('')}</select>`;
+    h=`<div class="pf-t">${t('f_name')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" maxlength="50" value="${exEsc(sp.name)}">${ok}</div><select class="inp" id="pf_u" aria-label="${t('f_unit')}"${isDist(p)?' disabled style="display:none"':''}>${us.map(u=>`<option value="${exEsc(u)}" ${u===sp.unit?'selected':''}>${exEsc(u)}</option>`).join('')}</select>`;
   }
   else if(kind==='name'){
     const cur=canonUnit(p.unit||'');const ents=unitCatalogEntries();
     const os=[`<option value="">...</option>`].concat(ents.map(e=>`<option value="${exEsc(e.canon)}" ${e.canon===cur?'selected':''}>${exEsc(e.label)}</option>`));
     if(cur&&!ents.some(e=>e.canon===cur))os.push(`<option value="${exEsc(cur)}" selected>${exEsc(unitLabel(cur))}</option>`);
-    h=`<div class="pf-t">${t('f_name')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" maxlength="50" value="${exEsc(p.name||'')}">${ok}</div><select class="inp" id="pf_u" aria-label="${t('f_unit')}">${os.join('')}</select>`;
+    h=`<div class="pf-t">${t('f_name')}</div><div class="pf-r"><input class="inp" id="pf_v" autocomplete="off" maxlength="50" value="${exEsc(p.name||'')}">${ok}</div><select class="inp" id="pf_u" aria-label="${t('f_unit')}"${isDist(p)?' disabled style="display:none"':''}>${os.join('')}</select>`;
   }
-  else if(kind==='qty')h=`<div class="pf-t">${t('f_qty')}</div>${num(p.stock)}<div class="pf-r"><input class="inp num" id="pf_add" type="text" inputmode="decimal" autocomplete="off" data-uns="3" placeholder="${t('pd_add')}"><button class="pf-ok pf-plus" data-act="pfadd" aria-label="${t('pd_add')}">${svg(ICO_PLUS)}</button></div>`;
+  else if(kind==='qty')h=`<div class="pf-t">${t(isDist(p)?'f_qty_m':'f_qty')}</div>${num(p.stock)}<div class="pf-r"><input class="inp num" id="pf_add" type="text" inputmode="decimal" autocomplete="off" data-uns="3" placeholder="${t('pd_add')}"><button class="pf-ok pf-plus" data-act="pfadd" aria-label="${t('pd_add')}">${svg(ICO_PLUS)}</button></div>`;
   else if(kind==='reserve')h=`<div class="pf-t">${t('pd_reserve')}</div>${num(p.reserve||0)}`;
   else if(kind==='cost')h=`<div class="pf-t">${t('f_purchase')}</div>${num(p.cost||0,'$')}`;
   else if(kind==='price')h=`<div class="pf-t">${t('f_sale')}</div>${num(p.price||0,'$')}`;
@@ -15512,7 +15529,7 @@ function spTilesHTML(q,box){
   const list=prodKeyFirst(state.products.filter(p=>!q||prodHit(p,q)).sort(prodCmp),q);
   const lim=state.spLimit||SP_PAGE;
   const tiles=list.slice(0,lim).map(p=>{const n=pc[p.id]||0;const price=p.price;/* mods146a: también Compras (precio de venta) */const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');
-    return `<div class="sptile ${n||pcIn(p.id)?'on':''}" data-saleadd="${p.id}">${n||pcIn(p.id)?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box).replace('<img ',p.imgKey?`<img data-imgd="${exEsc(p.imgKey)}" `:'<img ')}</div><div class="k"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="n">${exEsc(mnName(p))}</div><div class="f">${state.pickMode==='compra'?`<b class="num">#${qtyLoc(p.stock)}</b>`:`<span class="num">#${qtyLoc(p.stock)}</span>`}<b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${state.pickMode==='compra'?qtyLoc(n):n}</span>`:''}</div>`;}).join('');
+    return `<div class="sptile ${n||pcIn(p.id)?'on':''}" data-saleadd="${p.id}">${n||pcIn(p.id)?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box).replace('<img ',p.imgKey?`<img data-imgd="${exEsc(p.imgKey)}" `:'<img ')}</div><div class="k"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="n">${exEsc(mnName(p))}</div><div class="f">${state.pickMode==='compra'?`<b class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</b>`:`<span class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span>`}<b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${state.pickMode==='compra'?qtyLoc(n):n}</span>`:''}</div>`;}).join('');
   return list.length?`<div class="sptiles">${tiles}</div>${list.length>lim?`<div class="loadmore" data-act="spmore">${ti('inv_more',{n:list.length-lim})}</div>`:''}`:'';
 }
 // Merma elige su producto con el mismo selector de la venta
@@ -15895,7 +15912,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261027093029';
+const APP_VERSION='20261027223430';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

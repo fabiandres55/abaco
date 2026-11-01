@@ -356,7 +356,7 @@ var _m1=document.querySelector('meta[name="apple-mobile-web-app-title"]'),_m2=do
   .salechk svg{width:18px;height:18px;stroke:var(--green);fill:none;stroke-width:2.6}
   .cartwrap{display:flex;flex-direction:column;gap:12px;padding-bottom:24px}
   .crow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-  .crow-name{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .crow-name{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:8px;overflow-wrap:anywhere}   /* mods241: el nombre completo, sin «…» */
   .crow-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end}
   .cfield{display:flex;flex-direction:column;gap:3px;min-width:0}
   .cfl{font-size:10.5px;color:var(--muted)}
@@ -369,6 +369,21 @@ var _m1=document.querySelector('meta[name="apple-mobile-web-app-title"]'),_m2=do
   .segrow{display:flex;gap:10px}
   /* mods237: tipo de medida (los botones del selector son los .seg de siempre, con su alto normal) */
   .fmed-note{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+  /* mods241: tipo de medida en un campo desplegable; la lista va en una capa sobre el formulario */
+  button.fmeddd{width:100%;font:inherit;color:var(--ink);text-align:left;cursor:pointer;-webkit-appearance:none;appearance:none;margin:0}
+  .fmeddd .uval{font-weight:600}
+  .fmeddd>svg{transition:transform .15s}
+  .fmeddd[aria-expanded="true"]>svg{transform:rotate(180deg)}
+  .fmeddd:focus-visible{outline:2px solid var(--pri-d);outline-offset:2px}
+  .permdlg.medd241{background:transparent;padding:0;display:none}
+  .permdlg.medd241.on{display:block}
+  .medd-lb{position:absolute;box-sizing:border-box;max-height:calc(100% - 8px);overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 0;box-shadow:0 10px 28px -8px rgba(0,0,0,.4);outline:none}
+  .medd-o{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;font-size:15px;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+  .medd-o>svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--pri-d);stroke-width:2.4;visibility:hidden}
+  .medd-o.act{background:var(--line2)}
+  .medd-o.on{font-weight:700;background:var(--sel)}
+  .medd-o.on>svg{visibility:visible}
+  .medd-lb.kb .medd-o.act{outline:2px solid var(--pri-d);outline-offset:-3px}
   .cfl .pm-u{font-weight:600}
   /* mods239: presentaciones, desglose de la línea, borradores y "confirmando" */
   .pkchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
@@ -952,6 +967,7 @@ var _m1=document.querySelector('meta[name="apple-mobile-web-app-title"]'),_m2=do
   .pcsug-k,.pcsug-n{display:flex;align-items:center;gap:8px;min-width:0;font-size:14px;line-height:1.25;color:var(--ink)}
   .pcsug-k{color:var(--muted);font-size:13px}
   .pcsug-k span,.pcsug-n span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcsug-n span{overflow:visible;white-space:normal;overflow-wrap:anywhere}   /* mods241: el nombre completo; la clave sigue en una línea */
   .pcsug-k svg,.pcsug-n svg{width:17px;height:17px;flex:none;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .pcsug>.sti{align-self:flex-start;margin-top:2px}
   .sti{display:inline-flex;flex:none;line-height:0}.sti svg{width:16px;height:16px}
@@ -2322,7 +2338,7 @@ body.seller #invChips [data-act="goexplore"]{display:none!important}   /* el ven
   .pocards{padding-bottom:96px}   /* el + flotante no tapa la última tarjeta */
   .poempty{display:flex;align-items:center;justify-content:center;min-height:62vh;padding:0 24px;text-align:center;color:var(--muted);font-size:15px;line-height:1.5}
   .poname{display:flex;align-items:center;gap:6px;min-width:0}
-  .poname span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .poname span{min-width:0;overflow-wrap:anywhere}   /* mods241 */
   .poname svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .podrow{display:flex;align-items:center;gap:8px}
   .podue{flex:1;min-width:0;display:flex;align-items:center;box-sizing:border-box;min-height:46px;padding:11px 12px 11px 38px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer}
@@ -2541,7 +2557,7 @@ body.seller #invChips [data-act="goexplore"]{display:none!important}   /* el ven
   .sptile .spimg img{width:100%;height:100%;object-fit:contain}
   .sptile .spimg svg{width:44px;height:44px;stroke:var(--faint);fill:none;stroke-width:1.4}
   .sptile .k{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sptile .n{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sptile .n{font-size:12.5px;color:var(--ink);overflow-wrap:anywhere}   /* mods241 */
   .sptile .f{display:flex;justify-content:space-between;gap:6px;font-size:13px;color:var(--muted)}
   .sptile .f b{color:var(--ink)}
   .sptile .badge{position:absolute;top:6px;right:6px;background:var(--green);color:#fff;border-radius:12px;padding:2px 8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:2px}
@@ -3429,7 +3445,7 @@ const I18N={
     cashBal:"Saldo en caja",base:"Base",movement:"Movimiento",closeReg:"Cerrar caja",movesToday:"Movimientos de hoy",
     salesPerDay:"Ventas por día · 7 días",week:"Semana",profitToday:"Ganancia hoy",avgTicket:"Ticket prom.",numSales:"# Ventas",topToday:"Más vendidos hoy",sold:"vendidos",
     newProduct:"Nuevo producto",addProduct:"Agregar Producto",f_copy:"Copiar otro producto",pv_unit:"Debe seleccionar alguna unidad",pv_key:"Este campo es obligatorio (solo se permiten valores alfanuméricos, espacio y los caracteres - _ . + $ / %) y debe tener entre 3 y 18 caracteres.",pv_name:"Este campo es obligatorio y debe tener entre 3 y 50 caracteres.",u_def:"Unidad predeterminada",u_del:"Eliminar unidad",u_del_q:"¿Eliminar la unidad {u}?",u_in_use:"No se puede eliminar la unidad {u}: la usan {n} productos.",u_in_use1:"No se puede eliminar la unidad {u}: la usa 1 producto.",u_deleted:"Unidad eliminada",u_def_on:"Unidad predeterminada: {u}",u_def_off:"Sin unidad predeterminada",xp_del_q:"¿Eliminar el precio?",copy_noimg:"No se pudo copiar la foto",f_key:"Clave",f_generate:"Generar",f_name:"Nombre del producto",f_unit:"Unidad",
-    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",f_med:"Tipo de medida",med_u:"Unidad",med_m:"Distancia",med_m_note:"Se maneja en metros: admite decimales, por ejemplo {a} o {b}.",f_qty_m:"Cantidad en metros",f_reserve_m:"Cantidad reservada (m)",f_purchase_m:"Precio de compra por metro",f_sale_m:"Precio de venta por metro",cx_qty_m:"Metros",med_fixed:"El tipo de medida queda fijo una vez registrado el producto, para no cambiar el sentido de sus existencias ni de sus ventas.",base_u:"UNIDAD",base_m:"METRO",pr_title:"Presentaciones",pr_sub:"Opcional. Cada presentación dice cuánto contiene, directamente en {b}. No hay contenidos universales: cada producto tiene los suyos.",pr_add:"Agregar presentación",pr_name:"Nombre de la presentación",pr_f:"Contiene ({b})",pr_buy:"Compra",pr_sell:"Venta",pr_auto:"auto",pr_xp_add:"Precio especial",pr_xp_name:"Nombre del precio especial (feria, cliente…)",pr_xp_price:"Precio especial por 1 {n}",pr_other:"Otra…",pr_other_ask:"Nombre de la presentación",pr_err_name:"Cada presentación necesita un nombre distinto (y distinto de {b}).",pr_err_f:"El contenido de {n} debe ser mayor que cero{x}.",pr_err_int:" y entero (unidades completas)",pr_err_dec:" y con máximo 3 decimales",pr_sum:"1 {n} = {f} {b}",pr_edit:"Presentaciones",pr_none:"Sin presentaciones",pr_saved:"Presentaciones guardadas",int_qty:"Las unidades se cuentan completas: usa un número entero ({n}).",int_pack:"Los empaques van completos: usa un número entero ({n}). Para una parte de un rollo elige METRO.",int_form:"Este producto se cuenta por unidades completas: la cantidad y la reservada van en números enteros.",int_line:"Las unidades y los empaques van completos: revisa las cantidades.",brk_inv:"Inventario",brk_money:"Dinero",brk_half:"medio metro",brk_saldo:"saldo",lg_busy:"Confirmando la venta en el servidor…",lg_busy_e:"Guardando el cambio en el servidor…",lg_ok:"Venta {n} confirmada",lg_draft:"Sin conexión: la venta quedó como BORRADOR PENDIENTE. No está confirmada, no descontó inventario y no tiene comprobante. Confírmala desde Ventas cuando vuelva la conexión.",lg_unknown:"No sabemos si la venta llegó al servidor. Quedó como PENDIENTE: al reintentar se usa el mismo intento, sin duplicar.",lg_unknown_e:"No sabemos si el cambio llegó al servidor. Revisa la venta antes de repetirlo.",lg_offline_e:"Sin conexión: este cambio necesita el servidor. Inténtalo cuando vuelva la conexión.",lg_rej_t:"NO se confirmó",lg_rej_keep:"El pedido sigue en el carrito, sin confirmar y sin descontar inventario.",lg_rej_draft:"El borrador sigue pendiente; ábrelo en el carrito para corregirlo.",lg_e_stock:"{n}: pides {need}, hay {have}",lg_e_config:"{n}: la presentación cambió (ahora contiene {f}). Vuelve a elegirla.",lg_e_price:"{n}: ese precio no está permitido para tu usuario.",lg_e_int:"{n}: solo unidades completas.",lg_e_pack:"{n}: los empaques van completos.",lg_e_missing:"{n}: el producto o la presentación ya no existe.",lg_e_total:"El total no cuadra con el servidor ({t}).",lg_e_other:"{n}: dato inválido ({c}).",lg_err:"No se pudo confirmar: {m}",lg_off:"El servidor no tiene activa la confirmación para esta tienda. Intenta de nuevo.",lg_forbidden:"Tu usuario no tiene permiso para esta operación.",lg_consent:"Primero acepta los Términos y privacidad.",lg_missing:"Esa venta ya no está (pudo anularse en otro equipo).",lg_conflict:"Ese intento ya se usó con otros datos. Vuelve a guardar.",lg_pend_t:"Ventas pendientes de confirmar",lg_pend_b:"{n} venta(s) PENDIENTE(S) de confirmar: no descontaron inventario",lg_pend_note:"Un borrador NO es una venta: no descontó inventario, no está cobrado y no tiene comprobante. Al confirmarlo, el servidor revisa de nuevo precios, permisos y existencias.",lg_pend_none:"No hay ventas pendientes.",lg_pend_conf:"Confirmar ahora",lg_pend_cart:"Abrir en el carrito",lg_pend_del:"Descartar",lg_pend_del_q:"¿Descartar este borrador? No es una venta y no se guarda nada.",lg_pend_offline:"Sin conexión. Conéctate para confirmar.",lg_pend_busy:"Termina o vacía el carrito actual antes de abrir un borrador.",lg_st_draft:"BORRADOR",lg_st_unknown:"SIN RESPUESTA",lg_st_rej:"RECHAZADA",lg_void_ok:"Venta {n} anulada en el servidor",lg_neg:"No alcanza el inventario de {n}: quedaría en {s}.",brk_eq:"Equivalencia",qt_hab:"habitual",qt_chg:"Cambió la presentación desde que se cotizó. Estas líneas pasan en la unidad base con la MISMA cantidad y el MISMO dinero; revísalas antes de guardar:",qt_chg_now:"(ahora ×{f})",qt_chg_gone:"(ya no existe)",qt_chg_apr:"¿Aprobar así?",qt_pend_dup:"La cotización #{n} ya tiene una venta PENDIENTE de confirmar. Confírmala o descártala en Ventas antes de pasarla otra vez.",qt_sold_again:"La cotización #{n} ya se convirtió en la venta #{s}. ¿Registrar esta venta de todos modos? Quedará aparte, sin enlazar a la cotización.",qt_pend_again:"La cotización #{n} ya tiene una venta pendiente de confirmar. ¿Registrar esta venta de todos modos? Quedará aparte, sin enlazar a la cotización.",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",c_edit:"Editar",c_del:"Eliminar",c_rename:"Renombrar categoría:",c_saved:"Categoría actualizada",c_deleted:"Categoría eliminada",c_del_confirm:'¿Eliminar la categoría "{c}"? Los productos quedarán sin categoría.',
+    u_cubic:"Metro cúbico",u_gram:"Gramo",u_kg:"Kilogramo",u_liter:"Litro",u_meter:"Metro",u_piece:"Pieza",f_unit_ph:"Selecciona una unidad",f_med:"Tipo de medida",med_u:"Unidad",med_m:"Metro lineal",med_m_note:"Se maneja en metros: admite decimales, por ejemplo {a} o {b}.",f_qty_m:"Cantidad en metros",f_reserve_m:"Cantidad reservada (m)",f_purchase_m:"Precio de compra por metro",f_sale_m:"Precio de venta por metro",cx_qty_m:"Metros",med_fixed:"El tipo de medida queda fijo una vez registrado el producto, para no cambiar el sentido de sus existencias ni de sus ventas.",base_u:"UNIDAD",base_m:"METRO",pr_title:"Presentaciones",pr_sub:"Opcional. Cada presentación dice cuánto contiene, directamente en {b}. No hay contenidos universales: cada producto tiene los suyos.",pr_add:"Agregar presentación",pr_name:"Nombre de la presentación",pr_f:"Contiene ({b})",pr_buy:"Compra",pr_sell:"Venta",pr_auto:"auto",pr_xp_add:"Precio especial",pr_xp_name:"Nombre del precio especial (feria, cliente…)",pr_xp_price:"Precio especial por 1 {n}",pr_other:"Otra…",pr_other_ask:"Nombre de la presentación",pr_err_name:"Cada presentación necesita un nombre distinto (y distinto de {b}).",pr_err_f:"El contenido de {n} debe ser mayor que cero{x}.",pr_err_int:" y entero (unidades completas)",pr_err_dec:" y con máximo 3 decimales",pr_sum:"1 {n} = {f} {b}",pr_edit:"Presentaciones",pr_none:"Sin presentaciones",pr_saved:"Presentaciones guardadas",int_qty:"Las unidades se cuentan completas: usa un número entero ({n}).",int_pack:"Los empaques van completos: usa un número entero ({n}). Para una parte de un rollo elige METRO.",int_form:"Este producto se cuenta por unidades completas: la cantidad y la reservada van en números enteros.",int_line:"Las unidades y los empaques van completos: revisa las cantidades.",brk_inv:"Inventario",brk_money:"Dinero",brk_half:"medio metro",brk_saldo:"saldo",lg_busy:"Confirmando la venta en el servidor…",lg_busy_e:"Guardando el cambio en el servidor…",lg_ok:"Venta {n} confirmada",lg_draft:"Sin conexión: la venta quedó como BORRADOR PENDIENTE. No está confirmada, no descontó inventario y no tiene comprobante. Confírmala desde Ventas cuando vuelva la conexión.",lg_unknown:"No sabemos si la venta llegó al servidor. Quedó como PENDIENTE: al reintentar se usa el mismo intento, sin duplicar.",lg_unknown_e:"No sabemos si el cambio llegó al servidor. Revisa la venta antes de repetirlo.",lg_offline_e:"Sin conexión: este cambio necesita el servidor. Inténtalo cuando vuelva la conexión.",lg_rej_t:"NO se confirmó",lg_rej_keep:"El pedido sigue en el carrito, sin confirmar y sin descontar inventario.",lg_rej_draft:"El borrador sigue pendiente; ábrelo en el carrito para corregirlo.",lg_e_stock:"{n}: pides {need}, hay {have}",lg_e_config:"{n}: la presentación cambió (ahora contiene {f}). Vuelve a elegirla.",lg_e_price:"{n}: ese precio no está permitido para tu usuario.",lg_e_int:"{n}: solo unidades completas.",lg_e_pack:"{n}: los empaques van completos.",lg_e_missing:"{n}: el producto o la presentación ya no existe.",lg_e_total:"El total no cuadra con el servidor ({t}).",lg_e_other:"{n}: dato inválido ({c}).",lg_err:"No se pudo confirmar: {m}",lg_off:"El servidor no tiene activa la confirmación para esta tienda. Intenta de nuevo.",lg_forbidden:"Tu usuario no tiene permiso para esta operación.",lg_consent:"Primero acepta los Términos y privacidad.",lg_missing:"Esa venta ya no está (pudo anularse en otro equipo).",lg_conflict:"Ese intento ya se usó con otros datos. Vuelve a guardar.",lg_pend_t:"Ventas pendientes de confirmar",lg_pend_b:"{n} venta(s) PENDIENTE(S) de confirmar: no descontaron inventario",lg_pend_note:"Un borrador NO es una venta: no descontó inventario, no está cobrado y no tiene comprobante. Al confirmarlo, el servidor revisa de nuevo precios, permisos y existencias.",lg_pend_none:"No hay ventas pendientes.",lg_pend_conf:"Confirmar ahora",lg_pend_cart:"Abrir en el carrito",lg_pend_del:"Descartar",lg_pend_del_q:"¿Descartar este borrador? No es una venta y no se guarda nada.",lg_pend_offline:"Sin conexión. Conéctate para confirmar.",lg_pend_busy:"Termina o vacía el carrito actual antes de abrir un borrador.",lg_st_draft:"BORRADOR",lg_st_unknown:"SIN RESPUESTA",lg_st_rej:"RECHAZADA",lg_void_ok:"Venta {n} anulada en el servidor",lg_neg:"No alcanza el inventario de {n}: quedaría en {s}.",brk_eq:"Equivalencia",qt_hab:"habitual",qt_chg:"Cambió la presentación desde que se cotizó. Estas líneas pasan en la unidad base con la MISMA cantidad y el MISMO dinero; revísalas antes de guardar:",qt_chg_now:"(ahora ×{f})",qt_chg_gone:"(ya no existe)",qt_chg_apr:"¿Aprobar así?",qt_pend_dup:"La cotización #{n} ya tiene una venta PENDIENTE de confirmar. Confírmala o descártala en Ventas antes de pasarla otra vez.",qt_sold_again:"La cotización #{n} ya se convirtió en la venta #{s}. ¿Registrar esta venta de todos modos? Quedará aparte, sin enlazar a la cotización.",qt_pend_again:"La cotización #{n} ya tiene una venta pendiente de confirmar. ¿Registrar esta venta de todos modos? Quedará aparte, sin enlazar a la cotización.",u_select:"Seleccione una unidad",u_add:"Agregar unidad",u_new:"Nueva unidad:",c_select:"Seleccione Categoría",c_add:"Agregar categoría",c_new:"Nueva categoría:",c_edit:"Editar",c_del:"Eliminar",c_rename:"Renombrar categoría:",c_saved:"Categoría actualizada",c_deleted:"Categoría eliminada",c_del_confirm:'¿Eliminar la categoría "{c}"? Los productos quedarán sin categoría.',
     f_purchase:"Precio de compra",f_sale:"Precio de venta",f_addsale:"Precio de venta adicional",f_image:"Imagen del producto",f_upload:"Toca para cargar una imagen",
     f_category:"Categoría",f_category_ph:"Escribe o elige una categoría",f_qty:"Cantidad",f_qtyreserve:"Cantidad reservada",
     f_expiry:"Fecha de vencimiento",f_expiry_sub:"Te avisamos antes de que el producto venza",optional:"(opcional)",
@@ -3448,7 +3464,7 @@ const I18N={
     cashBal:"Cash balance",base:"Base",movement:"Movement",closeReg:"Close register",movesToday:"Today's movements",
     salesPerDay:"Sales per day · 7 days",week:"Week",profitToday:"Profit today",avgTicket:"Avg ticket",numSales:"# Sales",topToday:"Top sellers today",sold:"sold",
     newProduct:"New product",addProduct:"Add Product",f_copy:"Copy another product",pv_unit:"You must select a unit",pv_key:"This field is required (only letters, numbers, spaces and the characters - _ . + $ / % are allowed) and must have between 3 and 18 characters.",pv_name:"This field is required and must have between 3 and 50 characters.",u_def:"Default unit",u_del:"Delete unit",u_del_q:"Delete the unit {u}?",u_in_use:"The unit {u} can't be deleted: {n} products use it.",u_in_use1:"The unit {u} can't be deleted: 1 product uses it.",u_deleted:"Unit deleted",u_def_on:"Default unit: {u}",u_def_off:"No default unit",xp_del_q:"Delete this price?",copy_noimg:"The photo couldn't be copied",f_key:"Key",f_generate:"Generate",f_name:"Product name",f_unit:"Unit",
-    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",f_med:"Measure type",med_u:"Unit",med_m:"Distance",med_m_note:"Handled in meters: decimals allowed, for example {a} or {b}.",f_qty_m:"Quantity in meters",f_reserve_m:"Reserved quantity (m)",f_purchase_m:"Purchase price per meter",f_sale_m:"Sale price per meter",cx_qty_m:"Meters",med_fixed:"The measure type stays fixed once the product is registered, so its stock and sales keep their meaning.",base_u:"UNIT",base_m:"METER",pr_title:"Packages",pr_sub:"Optional. Each package says how much it contains, directly in {b}. Contents are not universal: each product has its own.",pr_add:"Add package",pr_name:"Package name",pr_f:"Contains ({b})",pr_buy:"Purchase",pr_sell:"Sale",pr_auto:"auto",pr_xp_add:"Special price",pr_xp_name:"Special price name (fair, customer…)",pr_xp_price:"Special price for 1 {n}",pr_other:"Other…",pr_other_ask:"Package name",pr_err_name:"Each package needs a different name (and different from {b}).",pr_err_f:"The content of {n} must be greater than zero{x}.",pr_err_int:" and a whole number",pr_err_dec:" with at most 3 decimals",pr_sum:"1 {n} = {f} {b}",pr_edit:"Packages",pr_none:"No packages",pr_saved:"Packages saved",int_qty:"Units are counted whole: use a whole number ({n}).",int_pack:"Packages go whole: use a whole number ({n}). For part of a roll choose METER.",int_form:"This product is counted in whole units: quantity and reserved go in whole numbers.",int_line:"Units and packages go whole: check the quantities.",brk_inv:"Stock",brk_money:"Money",brk_half:"half a meter",brk_saldo:"stock",lg_busy:"Confirming the sale on the server…",lg_busy_e:"Saving the change on the server…",lg_ok:"Sale {n} confirmed",lg_draft:"Offline: the sale was saved as a PENDING DRAFT. It is not confirmed, did not reduce stock and has no receipt. Confirm it from Sales when you are back online.",lg_unknown:"We don't know if the sale reached the server. It stays PENDING: retrying uses the same attempt, without duplicates.",lg_unknown_e:"We don't know if the change reached the server. Check the sale before repeating it.",lg_offline_e:"Offline: this change needs the server. Try again when you are back online.",lg_rej_t:"NOT confirmed",lg_rej_keep:"The order stays in the cart, unconfirmed and without reducing stock.",lg_rej_draft:"The draft stays pending; open it in the cart to fix it.",lg_e_stock:"{n}: you ask for {need}, there is {have}",lg_e_config:"{n}: the package changed (now contains {f}). Choose it again.",lg_e_price:"{n}: that price is not allowed for your user.",lg_e_int:"{n}: whole units only.",lg_e_pack:"{n}: packages go whole.",lg_e_missing:"{n}: the product or package no longer exists.",lg_e_total:"The total does not match the server ({t}).",lg_e_other:"{n}: invalid data ({c}).",lg_err:"Could not confirm: {m}",lg_off:"Server confirmation is not active for this store. Try again.",lg_forbidden:"Your user is not allowed to do this.",lg_consent:"First accept the Terms and privacy.",lg_missing:"That sale is no longer there (it may have been voided on another device).",lg_conflict:"That attempt was already used with other data. Save again.",lg_pend_t:"Sales pending confirmation",lg_pend_b:"{n} sale(s) PENDING confirmation: stock was not reduced",lg_pend_note:"A draft is NOT a sale: it did not reduce stock, is not paid and has no receipt. When confirmed, the server checks prices, permissions and stock again.",lg_pend_none:"No pending sales.",lg_pend_conf:"Confirm now",lg_pend_cart:"Open in the cart",lg_pend_del:"Discard",lg_pend_del_q:"Discard this draft? It is not a sale and nothing is saved.",lg_pend_offline:"Offline. Connect to confirm.",lg_pend_busy:"Finish or clear the current cart before opening a draft.",lg_st_draft:"DRAFT",lg_st_unknown:"NO ANSWER",lg_st_rej:"REJECTED",lg_void_ok:"Sale {n} voided on the server",lg_neg:"Not enough stock of {n}: it would be {s}.",brk_eq:"Equivalent",qt_hab:"regular",qt_chg:"The package changed since this quote was made. These lines go in the base unit with the SAME quantity and the SAME money; check them before saving:",qt_chg_now:"(now ×{f})",qt_chg_gone:"(no longer exists)",qt_chg_apr:"Approve like this?",qt_pend_dup:"Quote #{n} already has a sale PENDING confirmation. Confirm or discard it in Sales before converting it again.",qt_sold_again:"Quote #{n} was already converted into sale #{s}. Save this sale anyway? It will be separate, not linked to the quote.",qt_pend_again:"Quote #{n} already has a sale pending confirmation. Save this sale anyway? It will be separate, not linked to the quote.",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",c_edit:"Edit",c_del:"Delete",c_rename:"Rename category:",c_saved:"Category updated",c_deleted:"Category deleted",c_del_confirm:'Delete category "{c}"? Products will be left without a category.',
+    u_cubic:"Cubic meter",u_gram:"Gram",u_kg:"Kilogram",u_liter:"Liter",u_meter:"Meter",u_piece:"Piece",f_unit_ph:"Select a unit",f_med:"Measure type",med_u:"Unit",med_m:"Linear meter",med_m_note:"Handled in meters: decimals allowed, for example {a} or {b}.",f_qty_m:"Quantity in meters",f_reserve_m:"Reserved quantity (m)",f_purchase_m:"Purchase price per meter",f_sale_m:"Sale price per meter",cx_qty_m:"Meters",med_fixed:"The measure type stays fixed once the product is registered, so its stock and sales keep their meaning.",base_u:"UNIT",base_m:"METER",pr_title:"Packages",pr_sub:"Optional. Each package says how much it contains, directly in {b}. Contents are not universal: each product has its own.",pr_add:"Add package",pr_name:"Package name",pr_f:"Contains ({b})",pr_buy:"Purchase",pr_sell:"Sale",pr_auto:"auto",pr_xp_add:"Special price",pr_xp_name:"Special price name (fair, customer…)",pr_xp_price:"Special price for 1 {n}",pr_other:"Other…",pr_other_ask:"Package name",pr_err_name:"Each package needs a different name (and different from {b}).",pr_err_f:"The content of {n} must be greater than zero{x}.",pr_err_int:" and a whole number",pr_err_dec:" with at most 3 decimals",pr_sum:"1 {n} = {f} {b}",pr_edit:"Packages",pr_none:"No packages",pr_saved:"Packages saved",int_qty:"Units are counted whole: use a whole number ({n}).",int_pack:"Packages go whole: use a whole number ({n}). For part of a roll choose METER.",int_form:"This product is counted in whole units: quantity and reserved go in whole numbers.",int_line:"Units and packages go whole: check the quantities.",brk_inv:"Stock",brk_money:"Money",brk_half:"half a meter",brk_saldo:"stock",lg_busy:"Confirming the sale on the server…",lg_busy_e:"Saving the change on the server…",lg_ok:"Sale {n} confirmed",lg_draft:"Offline: the sale was saved as a PENDING DRAFT. It is not confirmed, did not reduce stock and has no receipt. Confirm it from Sales when you are back online.",lg_unknown:"We don't know if the sale reached the server. It stays PENDING: retrying uses the same attempt, without duplicates.",lg_unknown_e:"We don't know if the change reached the server. Check the sale before repeating it.",lg_offline_e:"Offline: this change needs the server. Try again when you are back online.",lg_rej_t:"NOT confirmed",lg_rej_keep:"The order stays in the cart, unconfirmed and without reducing stock.",lg_rej_draft:"The draft stays pending; open it in the cart to fix it.",lg_e_stock:"{n}: you ask for {need}, there is {have}",lg_e_config:"{n}: the package changed (now contains {f}). Choose it again.",lg_e_price:"{n}: that price is not allowed for your user.",lg_e_int:"{n}: whole units only.",lg_e_pack:"{n}: packages go whole.",lg_e_missing:"{n}: the product or package no longer exists.",lg_e_total:"The total does not match the server ({t}).",lg_e_other:"{n}: invalid data ({c}).",lg_err:"Could not confirm: {m}",lg_off:"Server confirmation is not active for this store. Try again.",lg_forbidden:"Your user is not allowed to do this.",lg_consent:"First accept the Terms and privacy.",lg_missing:"That sale is no longer there (it may have been voided on another device).",lg_conflict:"That attempt was already used with other data. Save again.",lg_pend_t:"Sales pending confirmation",lg_pend_b:"{n} sale(s) PENDING confirmation: stock was not reduced",lg_pend_note:"A draft is NOT a sale: it did not reduce stock, is not paid and has no receipt. When confirmed, the server checks prices, permissions and stock again.",lg_pend_none:"No pending sales.",lg_pend_conf:"Confirm now",lg_pend_cart:"Open in the cart",lg_pend_del:"Discard",lg_pend_del_q:"Discard this draft? It is not a sale and nothing is saved.",lg_pend_offline:"Offline. Connect to confirm.",lg_pend_busy:"Finish or clear the current cart before opening a draft.",lg_st_draft:"DRAFT",lg_st_unknown:"NO ANSWER",lg_st_rej:"REJECTED",lg_void_ok:"Sale {n} voided on the server",lg_neg:"Not enough stock of {n}: it would be {s}.",brk_eq:"Equivalent",qt_hab:"regular",qt_chg:"The package changed since this quote was made. These lines go in the base unit with the SAME quantity and the SAME money; check them before saving:",qt_chg_now:"(now ×{f})",qt_chg_gone:"(no longer exists)",qt_chg_apr:"Approve like this?",qt_pend_dup:"Quote #{n} already has a sale PENDING confirmation. Confirm or discard it in Sales before converting it again.",qt_sold_again:"Quote #{n} was already converted into sale #{s}. Save this sale anyway? It will be separate, not linked to the quote.",qt_pend_again:"Quote #{n} already has a sale pending confirmation. Save this sale anyway? It will be separate, not linked to the quote.",u_select:"Select a unit",u_add:"Add unit",u_new:"New unit:",c_select:"Select category",c_add:"Add category",c_new:"New category:",c_edit:"Edit",c_del:"Delete",c_rename:"Rename category:",c_saved:"Category updated",c_deleted:"Category deleted",c_del_confirm:'Delete category "{c}"? Products will be left without a category.',
     f_purchase:"Purchase price",f_sale:"Sale price",f_addsale:"Additional sale price",f_image:"Product image",f_upload:"Tap to upload an image",
     f_category:"Category",f_category_ph:"Type or choose a category",f_qty:"Quantity",f_qtyreserve:"Quantity reserve",
     f_expiry:"Product expiration date",f_expiry_sub:"We'll remind you before it expires",optional:"(optional)",
@@ -3705,7 +3721,7 @@ document.addEventListener('contextmenu',e=>{if(PC_TOUCH&&e.target&&e.target.clos
 function scStockV(){const q=fold((state.q||'').toLowerCase());let items=state.products.filter(p=>prodHit(p,q));items.sort(invCmp);if(q)items=prodKeyFirst(items,q);
   const lim=state.invLimit||INV_PAGE,shown=items.slice(0,lim);
   return `<div class="invhead"><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="searchInput" placeholder="${t('vd_stock_search')}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div></div>
-    <div style="margin-top:8px">${shown.map(p=>`<div class="empcard" data-act="vdinfo:${p.id}"><div class="emp-top"><div class="emp-n">${exEsc(p.name)}</div><b class="num emp-sal">${money(+p.price||0)}</b></div><div class="emp-r">${t('f_qty')}: <b class="num">${fmtQty(p.stock)}${mSuf(isDist(p))}</b>${p.key?' · '+exEsc(p.key):''}</div></div>`).join('')||`<div class="empty">${t('noResults')}</div>`}</div>
+    <div style="margin-top:8px">${shown.map(p=>`<div class="empcard" data-act="vdinfo:${p.id}"><div class="emp-top"><div class="emp-n">${exEsc(nmV(p.name))}</div><b class="num emp-sal">${money(+p.price||0)}</b></div><div class="emp-r">${t('f_qty')}: <b class="num">${fmtQty(p.stock)}${mSuf(isDist(p))}</b>${p.key?' · '+exEsc(p.key):''}</div></div>`).join('')||`<div class="empty">${t('noResults')}</div>`}</div>
     ${items.length>lim?`<div class="loadmore" data-act="vdmore">${ti('inv_more',{n:items.length-lim})}</div>`:''}`;}
 function scInventario(){   /* mods209: el vendedor ve este mismo inventario, en solo lectura */
   if(!state.products.length){
@@ -3732,7 +3748,7 @@ function scInventario(){   /* mods209: el vendedor ve este mismo inventario, en 
       ?`<span class="origchip">${svg(ROLE_ICON.bodega)}${ti('from_bodega',{b:(getEntity('bodega',p.origin.bid)||{}).name||p.origin.bid})}</span>`
       :`<span class="origchip own">${t('own_product')}</span>`):'';
     const warnHtml=lvl==='ok'?`<div class="pc-warn pc-ok">${svg(ICO_OK)}</div>`:`<div class="pc-warn">${warnTri(lvl==='red'?'#c8452f':'#f0b90b')}</div>`;
-    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${exEsc(p.key||'—')}</div><div class="pc-name">${exEsc(mnName(p))}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}${isDist(p)?'/m':''}</div></div></div></div>`;
+    return `<div class="pcard" data-edit="${p.id}"><div class="pc-top"><div class="pc-img">${img}</div><div class="pc-id"><div class="pc-key">${exEsc(p.key||'—')}</div><div class="pc-name">${exEsc(pNmV(p))}</div>${det}${orig}</div>${warnHtml}</div><div class="pc-metrics"><div class="pc-m"><div class="pc-ml">${t('f_qty')}</div><div class="pc-mv num ${lvl==='red'?'warnv':(lvl==='orange'?'warno':'')}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</div></div><div class="pc-m"><div class="pc-ml">${t('f_sale')}</div><div class="pc-mv num">${money(p.price)}${isDist(p)?'/m':''}</div></div></div></div>`;
   }).join("")||`<div class="empty">${t((q||state.filterUnit||state.filterInfo)?'noResults':'noCatResults')}</div>`;
   const more=total>limit?`<div class="loadmore" data-act="invmore">${ti('inv_more',{n:total-limit})}</div>`:'';
   const val=state.products.reduce((t,p)=>t+p.price*p.stock,0);
@@ -3968,7 +3984,7 @@ function fillMermaPick(){
   const rows=list.length?`<div class="list">`+list.map(p=>{
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
-    return `<div class="row" data-mermapick="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(p.name)}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><div class="r"><span class="price num" style="font-weight:700">${money(p.cost||p.price||0)}</span></div></div>`;
+    return `<div class="row" data-mermapick="${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc(nmV(p.name))}</div><div class="s">${exEsc(p.key||'—')} · ${p.stock} ${t('inStock')}</div></div><div class="r"><span class="price num" style="font-weight:700">${money(p.cost||p.price||0)}</span></div></div>`;
   }).join('')+`</div>`:`<div class="empty">${t('noResults')}</div>`;
   document.getElementById('mermaPickBody').innerHTML=`<div class="hb-stick"><div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="mermaSearch" placeholder="${t('me_search')}" value="${MERMA_Q.replace(/"/g,'&quot;')}"></div></div>${rows}`;
   const s=document.getElementById('mermaSearch');if(s)s.addEventListener('input',e=>{MERMA_Q=e.target.value;const p=document.getElementById('mermaPickBody').scrollTop;fillMermaPick();document.getElementById('mermaPickBody').scrollTop=p;const ns=document.getElementById('mermaSearch');if(ns){ns.focus();ns.setSelectionRange(ns.value.length,ns.value.length);}});
@@ -4012,7 +4028,7 @@ function catCustomRows(o,ids){o=o||state.catOpts||{};const sel=ids?new Set(ids.m
     if(o.cost)v.push({k:'cost',l:t('cx_cost'),v:catMoney(p.cost)});
     if(o.sale)v.push({k:'sale',l:t('cx_sale'),v:catMoney(p.price)});
     if(o.wholesale)v.push({k:'wholesale',l:t('cx_wholesale'),v:catMoney(catWholesale(p))});
-    return {p,key:''+(p.key||''),name:mnName(p),info:o.info?(''+(p.desc||p.info||'')).trim():'',cat:(p.cat&&(''+p.cat).trim())||'',vals:v};});}
+    return {p,key:''+(p.key||''),name:pNmV(p),info:o.info?(''+(p.desc||p.info||'')).trim():'',cat:(p.cat&&(''+p.cat).trim())||'',vals:v};});}
 const CAT_PDF_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 2.5h8.3L19 7v13.3a1.2 1.2 0 0 1-1.2 1.2H6.2A1.2 1.2 0 0 1 5 20.3V3.7a1.2 1.2 0 0 1 1.2-1.2z"/><path d="M14.5 2.5V7H19"/><text x="12" y="16.6" text-anchor="middle" font-size="5.9" font-weight="700" font-family="Roboto,Arial,sans-serif" fill="currentColor" stroke="none">PDF</text></svg>';
 function catalogBodyHTML(){
   const o=state.catOpts;const ck=svg('<path d="M5 12l5 5L20 7"/>');
@@ -4135,7 +4151,7 @@ async function catSimpleDraw(doc,list,logo){
     const k=catTx(p.key||'');
     if(k.length<=15&&catRW(k,8)<=105)catText(doc,k,xs[0]+5,y+14,8,{raw:1});
     else{const ls=catSplit(k,105,8);catText(doc,ls[0]||'',xs[0]+5,y+9,8,{raw:1,max:105});if(ls[1])catText(doc,ls[1],xs[0]+5,y+18,8,{raw:1,max:105});}
-    const nm=mnName(p);
+    const nm=pNmV(p);
     if(nm.length<=34)catText(doc,nm,xs[1]+5,y+15,8,{max:172});
     else{let ls=catLines(nm,172,7);
       if(ls.length<=2)ls.forEach((s,j)=>catText(doc,s,xs[1]+5,y+8+j*8,7,{raw:1,max:172}));
@@ -4298,7 +4314,7 @@ function catSelCatN(ci){const S=CATSEL;let n=0;for(const p of S.g[S.cats[ci]])if
 const CS_BOX='<svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>';
 // fila como MN 08: foto redonda; 🔑 clave; nombre; abajo #cantidad y $precio (el precio debajo de la casilla, que va arriba a la derecha)
 function catSelRowHTML(p){const S=CATSEL;
-  return `<div class="cs-p" data-act="csp:${exEsc(p.id)}" data-pid="${exEsc(p.id)}"><div class="av">${saleProdImg(p,CS_BOX)}</div><div class="k">${svg(ICO_KEY)}<span>${exEsc(p.key||'')}</span></div><div class="n">${exEsc(mnName(p))}</div>${massBox(S.sel.has(''+p.id)?'on':'')}<div class="v"><span class="q num">#${catSelQty(p.stock)}</span><span class="pr num">${money(p.price||0)}</span></div></div>`;}
+  return `<div class="cs-p" data-act="csp:${exEsc(p.id)}" data-pid="${exEsc(p.id)}"><div class="av">${saleProdImg(p,CS_BOX)}</div><div class="k">${svg(ICO_KEY)}<span>${exEsc(p.key||'')}</span></div><div class="n">${exEsc(pNmV(p))}</div>${massBox(S.sel.has(''+p.id)?'on':'')}<div class="v"><span class="q num">#${catSelQty(p.stock)}</span><span class="pr num">${money(p.price||0)}</span></div></div>`;}
 function catSelCatHTML(ci,n){const S=CATSEL,c=S.cats[ci],ps=S.g[c],open=!!S.open[c],chev=svg('<path d="M6 9l6 6 6-6"/>');
   return `<div class="cs-grp" data-ci="${ci}"><div class="ms-cat cs-cat"><span class="chev ${open?'op':''}" data-act="csopen:${ci}">${chev}</span><span class="nm" data-act="csopen:${ci}">${exEsc(c)}</span><span class="ms-ck" data-act="cscat:${ci}">${massBox(catSelBoxSt(catSelCatN(ci),ps.length))}</span></div>${open?`<div class="cs-ps">${ps.slice(0,n==null?CS_FIRST:n).map(catSelRowHTML).join('')}</div>`:''}</div>`;}
 // full = todas las filas abiertas de una; si no, solo las primeras 60 en total (lo demás por tandas, en orden)
@@ -5103,7 +5119,7 @@ function xupUpListHTML(){const q=fold(XUP.q||'').trim(),all=state.products||[];
   const m=xupStMap(),lab={pending:'xup_s_pend',approved:'xup_s_ok',rejected:'xup_s_rej',queued:'xup_s_q',failed:'xup_s_fail'},cls={pending:'pend',approved:'ok',rejected:'rej',queued:'q',failed:'rej'};
   return `<div class="xupprods">${hits.slice(0,XUP.lim).map(p=>{const g=gtinManual(p.key||''),st=g&&m.get(g),src=pdImgSrc(p);
     return `<div class="xupprod" data-act="xupopen" data-id="${p.id}"><div class="xplc-img">${svg(XPL_IC_BOX)}${src?`<img alt="" src="${exEsc(src)}">`:(p.imgKey?`<img alt="" data-imgkey="${exEsc(p.imgKey)}">`:'')}</div>
-      <div class="xupprod-m"><b>${exEsc(p.name)}</b><span class="num">${exEsc(p.key||'')}</span>${g?'':`<span class="osub">${t('xup_nocode')}</span>`}</div>
+      <div class="xupprod-m"><b>${exEsc(nmV(p.name))}</b><span class="num">${exEsc(p.key||'')}</span>${g?'':`<span class="osub">${t('xup_nocode')}</span>`}</div>
       ${st?`<span class="xupchip ${cls[st]}">${t(lab[st])}</span>`:`<span class="xplc-add">${svg(XUP_IC_UP)}</span>`}</div>`;}).join('')}</div>`
     +(hits.length>XUP.lim?`<div class="loadmore" data-act="xupmore">${t('xp_more')}</div>`:'');}
 async function xupImgOf(p){try{let d=p.img||(p.imgKey&&IMGCACHE['img:'+p.imgKey])||null;
@@ -5443,7 +5459,7 @@ async function openSaleDet(id){
   const si=t('sin_info');const esc=x=>exEsc(x).replace(/\n/g,'<br>');
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),x=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const info=s.note||s.addr||'';const dir=(cli&&cli.address)||'';const phone=(cli&&(cli.phone||cli.phone2))||'';
-  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${svg(S_BOX2)} ${esc(l.name)}</div><div class="sd-pg"><span class="num">${l.m?qtyLoc(l.qty)+' m':l.qty}</span><span class="num">${money(l.price).replace('$','')}</span><span class="num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty).replace('$','')}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${svg(S_BOX2)} ${esc(nmV(l.name))}</div><div class="sd-pg"><span class="num">${l.m?qtyLoc(l.qty)+' m':l.qty}</span><span class="num">${money(l.price).replace('$','')}</span><span class="num">${money(l.subtotal!=null?l.subtotal:l.price*l.qty).replace('$','')}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   const sched=(s.sched||[]).length?`<div class="sd-card"><div class="sd-l">${t('sched_btn')}</div><div class="sched-grid">${s.sched.map(p=>`<div class="sched-it"><span>${exEsc(p.f)} ${exEsc(p.h||'00:00')}</span><b class="num">${money(p.p)}</b></div>`).join('')}</div></div>`:'';
   body.innerHTML=`<div class="sd">
     <div class="sd-card">
@@ -5493,7 +5509,7 @@ function itemsTotal(){return (ITEMS_ED?ITEMS_ED.lines:[]).reduce((a,l)=>a+ieQ(l)
 function fillItemsEdit(){
   if(!ITEMS_ED)return;if(ITEMS_ED.kind==='purch')return purIeFill();   /* mods146c */const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>');
   document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${t('total')}</span><b class="num" id="ieTot">${money(itemsTotal()).replace('$','')}</b></div>`+
-    (ITEMS_ED.lines.length?ITEMS_ED.lines.map((l,k)=>`<div class="ie-row"><div class="ie-n">${svg(l.kind==='s'?SVC_ICO:S_BOX2)} ${exEsc(l.name)}</div>
+    (ITEMS_ED.lines.length?ITEMS_ED.lines.map((l,k)=>`<div class="ie-row"><div class="ie-n">${svg(l.kind==='s'?SVC_ICO:S_BOX2)} ${exEsc(nmV(l.name))}</div>
       <div class="ie-g"><span class="cfl">${t('cx_qty')}${l.kind==='p'&&l.orig&&l.orig.pk?' ('+exEsc(l.orig.pk.n)+')':(l.kind==='p'&&lineIsM(l.orig)?' (m)':'')}</span><span class="cfl">${t('cx_sale_s')} $${l.kind==='p'&&lineIsM(l.orig)?'/m':''}</span><span class="cfl">${t('sale_subtotal')} $</span>
       ${l.kind==='p'&&lineIsM(l.orig)?`<input autocomplete="off" class="cinp num" id="ieq_${k}" type="text" inputmode="decimal" data-uns="3" value="${exEsc(typeof l.q==='string'?l.q:fTxt(+l.q||0))}">`:`<input autocomplete="off" class="cinp num" id="ieq_${k}" type="number" inputmode="decimal" value="${l.q}">`}<input autocomplete="off" class="cinp num" id="iep_${k}" type="number" min="0" inputmode="decimal" value="${l.price}"><span class="ie-sub num" id="ies_${k}">${money(ieQ(l)*(+l.price||0)).replace('$','')}</span></div>
       <div class="ie-del"><button class="cico del" data-act="iedel:${k}" aria-label="${t('remove')||'Quitar'}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:30px">${t('ie_empty')}</div>`);
@@ -5630,7 +5646,7 @@ async function openPurchaseDet(id){
   const pen=svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),xx=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const pv=purProv(r),name=r.provider||(pv?provName(pv):''),comp=pv&&pv.company?pv.company:'';
   const due=recDue('purch',r),pg=recPaid('purch',r),cred=purchaseIsCredit(r);
-  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${esc(l.name)}</div><div class="sd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
+  const rows=lines.length?lines.map(l=>`<div class="sd-pr"><div class="sd-pn">${esc(nmV(l.name))}</div><div class="sd-pg"><span class="num">${qtyLoc(l.qty)}${mSuf(l.m)}</span><span class="num">${moneyNum(l.price)}</span><span class="num">${moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}</span></div></div>`).join(''):`<div class="empty">${t('sale_noitems')}</div>`;
   const sched=(r.sched||[]).length?`<div class="sd-card"><div class="sd-l">${t('sched_btn')}</div><div class="sched-grid">${r.sched.map(x=>`<div class="sched-it"><span>${exEsc(x.f)} ${exEsc(x.h||'00:00')}</span><b class="num">${money(x.p)}</b></div>`).join('')}</div></div>`:'';
   const cobro=cred?`<div class="sd-tot cp-pg"><span>${t('sr_pagos_lbl')} ${sym}</span><b class="num">${moneyNum(pg)}</b></div><div class="cp-sep"></div><div class="sd-tot"><span>${t('ttx_deuda')} ${sym}</span><b class="num">${moneyNum(due)}</b></div>`+
     (due>0.5?`<div class="cp-repnote">${exEsc(t('cp_rep_note'))}<button data-act="cpgorep">${t('cp_go_rep')}</button></div>`:''):'';   /* D7: los abonos se hacen en Compras por Pagar */
@@ -5701,7 +5717,7 @@ function purIeTotTxt(){const L=ITEMS_ED?ITEMS_ED.lines:[];return L.some(purIeEmp
 function purIeFill(){
   const ed=ITEMS_ED;if(!ed)return;const sym=moneySym(),trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>');
   document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${t('total')}</span><b class="num" id="ieTot">${purIeTotTxt()}</b></div>`+
-    (ed.lines.length?ed.lines.map((l,k)=>`<div class="ie-row ie-purch"><div class="ie-n">${svg(S_BOX2)} ${exEsc(l.name)}</div>
+    (ed.lines.length?ed.lines.map((l,k)=>`<div class="ie-row ie-purch"><div class="ie-n">${svg(S_BOX2)} ${exEsc(nmV(l.name))}</div>
       <div class="ie-g"><span class="cfl">${t('cx_qty')}</span><span class="cfl">${t('cp_ie_cost')} ${sym}</span><span class="cfl">${t('sale_subtotal')} ${sym}</span>
       <input autocomplete="off" class="cinp num" id="iepq_${k}" type="text" inputmode="decimal" enterkeyhint="next" data-uns="3" value="${exEsc(l.qt)}"><input autocomplete="off" class="cinp num" id="iepc_${k}" type="text" inputmode="decimal" enterkeyhint="done" data-uns="1" value="${exEsc(l.pt)}"><span class="ie-sub num" id="ies_${k}">${purIeEmpty(l)?'...':moneyNum((+l.q||0)*(+l.price||0))}</span></div>
       <div class="ie-del"><button class="cico del" data-act="iedel:${k}" aria-label="${t('remove')}">${trash}</button></div></div>`).join(''):`<div class="empty" style="margin-top:30px">${t('cp_ie_empty')}</div>`);
@@ -5791,7 +5807,7 @@ async function purchPDF(x,ret){   /* mods163: ret → devuelve {blob,name} para 
     const due=recDue('purch',p),pg=recPaid('purch',p),cred=purchaseIsCredit(p),status=due>0.5?t('cp_topay'):t('cp_paid');
     if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+status.toUpperCase(),y,15,15);}else y+=2;   /* mods181: sin status como MN */
     y=Math.max(220,y);if(p.note)y=mnNativeParagraph(doc,p.note,y,12,350,10);
-    y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(l.name||''),qtyLoc(l.qty)+mSuf(l.m),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);   /* mods161: con "... " como MN */
+    y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(nmV(l.name)),qtyLoc(l.qty)+mSuf(l.m),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);   /* mods161: con "... " como MN */
     const totals=[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred)totals.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)],[t('sr_total_pay')+' '+sym,moneyNum(due)]);
     mnNativeTotal(doc,y+20,totals);if(ret)return {blob:doc.output('blob'),name:mnFile('purchase')};mnPdfDone(doc,mnFile('purchase'));   /* mods161: "Compra.pdf" en la ventana de exportar */
   }catch(e){if(ret)throw e;console.error('PDF compra',e);toast(t('cp_pdf_err'));}
@@ -5889,7 +5905,7 @@ async function ensurePdfLibs(){
 // Construye el recibo PDF y devuelve {blob,name,folio}; null si no hay líneas.
 async function buildSaleReceiptBlob(sale){
   if(opts().pdfFmt==='ticket')return buildSaleTicketBlob(sale);
-  const JS=await ensurePdfLibs(),lines=await srLinesFor(sale);if(!lines.length)return null;
+  const JS=await ensurePdfLibs(),lines=docNm(await srLinesFor(sale));if(!lines.length)return null;
   if(opts().pdfDesign==='extra')return rcExtraBlob(sale,lines);   /* mods161: Diseño Extra de MN */
   const cfg=receiptCfg(),folio=sale.folio||sale.id,doc=await mnRepDoc(JS,true);
   mnNativeText(doc,t('rc_receipt'),30,60,12);let y=mnNativeBusiness(doc,92);
@@ -5918,7 +5934,7 @@ async function genSaleReceiptPDF(sale){
 async function genReceiptById(id){const s=state.sales.find(x=>''+x.id===''+id);if(s)await genSaleReceiptPDF(s);}
 /* ---------------- Compartir recibo (PDF / JPG / Texto) ---------------- */
 async function saleReceiptText(sale){
-  const cfg=receiptCfg();const lines=await srLinesFor(sale);
+  const cfg=receiptCfg();const lines=docNm(await srLinesFor(sale));
   const fmtN=mnAmount;
   const tot=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,tot-paid),recv=due>0.5;
   const L=[];
@@ -5945,7 +5961,7 @@ async function saleReceiptText(sale){
 async function buildSaleReceiptJPG(sale){
   if(!window.html2canvas)await sbScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   if(!window.html2canvas)return null;
-  const cfg=receiptCfg();const lines=await srLinesFor(sale);
+  const cfg=receiptCfg();const lines=docNm(await srLinesFor(sale));
   if(!lines.length)return null;
   const fmtN=mnAmount;
   const tot=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,tot-paid),recv=due>0.5;
@@ -6507,7 +6523,7 @@ function qtQRText(q){return '#'+String(q.date||todayISO()).replace(/\D/g,'')+'&c
 async function qtQR(q){try{if(!await qrLib())return null;const M=qrMatrixMN(qrMakeMN(qtQRText(q))),n=M.length,W=90,cell=Math.max(1,Math.floor(W/(n+8))),off=Math.floor((W-n*cell)/2);
   const c=document.createElement('canvas');c.width=c.height=W;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,W);x.fillStyle='#000';
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(M[r][k])x.fillRect(off+k*cell,off+r*cell,cell,cell);return c.toDataURL('image/png');}catch(e){console.error('QR cotización',e);return null;}}
-function qtLines(q){return alphaLines((q.lines||[]).map(qtShowLine)).map(l=>({...(lineIsM(l)?{m:true}:{}),name:l.name||'',qty:l.q,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0)}));}
+function qtLines(q){return alphaLines((q.lines||[]).map(qtShowLine)).map(l=>({...(lineIsM(l)?{m:true}:{}),name:nmV(l.name),qty:l.q,price:l.price,subtotal:l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0)}));}
 function qtCliInfo(q){return saleReceiptClientInfo(q);}   // teléfono / dirección / email con rótulo (como la cotización normal)
 // la cotización con los ajustes del recibo → {blob,name}
 async function qtBlob(q){const o=opts();
@@ -6753,7 +6769,7 @@ function openProdInfo(id){
   document.getElementById('pinfoH').textContent=t('ic_info');
   document.getElementById('pinfoBody').innerHTML=`<div class="pinfo">${img}
     ${row('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',t('f_key'),e(p.key||'—'))}
-    ${row('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',t('rc_product'),e(p.name))}
+    ${row('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',t('rc_product'),e(nmV(p.name)))}
     ${row('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',t('f_category'),e(p.cat||t('cx_uncat')))}
     <div class="pinfo-grid"><div><span>${t('f_qty')}</span><b class="num">${nq(p.stock)}</b></div><div><span>${t('rsv_label')}</span><b class="num">${nq(p.reserve)}</b></div>${isSeller()?'':`<div><span>${t('pi_buy')}</span><b class="num">${n(p.cost)}</b></div>`}<div><span>${t('pi_sale')}</span><b class="num">${n(p.price)}</b></div></div>
     ${extra}
@@ -6902,7 +6918,7 @@ function saleCartHTML(){
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const rows=items.map(i=>{const p=P(i.id);if(!p&&!state.editSale)return '';const price=linePrice(i.id);const sub=price*i.q;const pn=pkLineName(p,i.id,price);const tx=cqtyTxt(i.id,i.q),emp=cqtyEmpty(tx),over=cartOver(p,i.id,i.q);   /* mods142a */
     return `<div class="crow${over?' over':''}" data-crow="${i.id}">
-      <div class="crow-name">${p?exEsc(p.name):exEsc((state.editSale&&(state.editSale.names||{})[i.id])||'—')}</div>${p?cPkChips(p,i.id):''}
+      <div class="crow-name">${p?exEsc(nmV(p.name)):exEsc(nmV((state.editSale&&(state.editSale.names||{})[i.id])||'—'))}</div>${p?cPkChips(p,i.id):''}
       <div class="crow-grid">
         <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${cQtyLbl(p,i.id)}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="text" inputmode="${cNeedInt(i.id)?'numeric':'decimal'}" enterkeyhint="done" value="${exEsc(tx)}"></div>
         <div class="cfield"><span class="cfl">${t('cx_sale_s')} ${moneySym()}${cPriceSuf(p,i.id)}</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"${isSeller()?` readonly tabindex="-1" title="${t('vd_price_lock')}"`:''}>   <!-- mods224 --></div>
@@ -7086,7 +7102,7 @@ function pickRowHTML(p,inCart,addAttr,rmAct,price,box,o){   /* mods146a: o={stB:
   const chk=svg('<path d="M5 12l5 5L20 7"/>'),rmv=svg('<path d="M6 6l12 12M18 6L6 18"/>');
   const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');   // el nombre de Mi Negocio ya trae "... ": no repetirlo
   /* mods197: como Mi Negocio: foto redonda, clave, descripción COMPLETA (sin cortar) y #existencia / precio en dos celdas */
-  return `<div class="row saleprow mnpr" ${addAttr}="${p.id}"><div class="mnpr-img">${saleProdImg(p,box)}</div><div class="spmid mnpr-mid"><div class="spkey mnpr-key"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="mnpr-nm">${exEsc(mnName(p)).replace(/(\S+-\S+)/g,'<span class="nobr">$1</span>')}</div><div class="mnpr-tb"><span class="mnpr-q num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span><span class="mnpr-p num">${money(price)}${isDist(p)?'/m':''}</span></div></div><div class="r">${(inCart>0||(o&&o.has))?`<span class="salechk">${chk}<span class="num">${inCart>0?(o?qtyLoc(inCart):inCart):''}</span></span><button class="salerm" data-act="${rmAct}:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;
+  return `<div class="row saleprow mnpr" ${addAttr}="${p.id}"><div class="mnpr-img">${saleProdImg(p,box)}</div><div class="spmid mnpr-mid"><div class="spkey mnpr-key"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="mnpr-nm">${exEsc(pNmV(p)).replace(/(\S+-\S+)/g,'<span class="nobr">$1</span>')}</div><div class="mnpr-tb"><span class="mnpr-q num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span><span class="mnpr-p num">${money(price)}${isDist(p)?'/m':''}</span></div></div><div class="r">${(inCart>0||(o&&o.has))?`<span class="salechk">${chk}<span class="num">${inCart>0?(o?qtyLoc(inCart):inCart):''}</span></span><button class="salerm" data-act="${rmAct}:${p.id}" title="${t('remove')||'Quitar'}">${rmv}</button>`:''}</div></div>`;
 }
 function saleProdImg(p,box){const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);return cached?`<img src="${/[&<"]/.test(cached)?exEsc(cached):cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${exEsc(p.imgKey)}" style="width:100%;height:100%;object-fit:cover">`:box);}   /* mods153: escapadas */
 function fillSaleProd(){
@@ -7460,7 +7476,7 @@ function pcSaveBlock(){
   return false;}
 // sugerencia del buscador de Compras (MN 27c): foto, 🔑 clave, caja + "<unidad> <nombre>" e ícono de estado; sin stock ni precio
 function pcSuggestRow(p,box){
-  return `<div class="row pcsug" data-pcadd="${p.id}"><div class="av">${saleProdImg(p,box)}</div><div class="pcsug-mid"><div class="pcsug-k">${svg(PC_KEY_IC)}<span>${exEsc(p.key||'')}</span></div><div class="pcsug-n">${svg(PC_BOX_IC)}<span>${exEsc(mnName(p))}</span></div></div>${stockIcon(p)}</div>`;
+  return `<div class="row pcsug" data-pcadd="${p.id}"><div class="av">${saleProdImg(p,box)}</div><div class="pcsug-mid"><div class="pcsug-k">${svg(PC_KEY_IC)}<span>${exEsc(p.key||'')}</span></div><div class="pcsug-n">${svg(PC_BOX_IC)}<span>${exEsc(pNmV(p))}</span></div></div>${stockIcon(p)}</div>`;
 }
 // buscador "Nombre/Clave" con la lista desplegable (B01–B03; el motor de búsqueda es el de Relax, D1); el carrito sigue a la vista debajo
 function pcSearchHTML(){
@@ -7516,7 +7532,7 @@ function pcRowsHTML(){
   const f=(at,id,val,ph,uns,hint)=>`<input autocomplete="off" class="cinp num" ${at}="${id}" type="text" inputmode="decimal" enterkeyhint="${hint}" data-uns="${uns}" placeholder="${exEsc(ph)}" value="${exEsc(val)}">`;
   const rows=items.map((i,k)=>{const p=P(i.id);if(!p)return '';const c=pcCells(i.id);
     if(state.poMode)return `<div class="crow pcrow po" data-pcrow="${i.id}">
-      <div class="crow-name">${exEsc(p.name)}</div>
+      <div class="crow-name">${exEsc(nmV(p.name))}</div>
       <div class="crow-grid">
         <div class="cfield"><span class="cfl">${t('me_qty')}</span>${f('data-pqty',i.id,pcQtyShow(i.id),t('cp_qty_ph'),'3','next')}</div>
         <div class="cfield"><span class="cfl">${t('cp_pcost')}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('cp_qty_ph'),'1',k===last?'done':'next')}</div>
@@ -7527,7 +7543,7 @@ function pcRowsHTML(){
     const cal=typeof pcExpOpen==='function'?`<button class="cico cal" data-pcico="exp:${i.id}" title="${t('f_expiry')}">${svg(PC_CAL_IC)}</button>`:'';
     const tag=(typeof pcXpOpen==='function'&&xPrices(p).length)?`<button class="cico tag" data-pcico="xp:${i.id}" title="${t('ic_price')}">${svg(IC_TAG)}</button>`:'';
     return `<div class="crow pcrow" data-pcrow="${i.id}">
-      <div class="crow-name">${exEsc(mnName(p))}</div>${pcPkChips(p,i.id)}
+      <div class="crow-name">${exEsc(pNmV(p))}</div>${pcPkChips(p,i.id)}
       <div class="pcgrid">
         <div class="pccell"><span class="cfl">${t('cp_cur_qty')}</span><span class="pcv num">${qtyLoc(p.stock)}${mSuf(isDist(p))}</span></div>
         <div class="pccell"><span class="cfl">${t('cp_add_qty')}${pcPkOf(i.id)?' ('+exEsc(pcPkOf(i.id).n)+')':''}</span>${f('data-pqty',i.id,pcQtyShow(i.id),t('cp_qty_ph'),'3','next')}</div>
@@ -7620,7 +7636,7 @@ function poRowsHTML(){
   const f=(at,id,val,ph,uns,hint)=>`<input autocomplete="off" class="cinp num" ${at}="${id}" type="text" inputmode="decimal" enterkeyhint="${hint}" data-uns="${uns}" placeholder="${exEsc(ph)}" value="${exEsc(val)}">`;
   return items.map((i,k)=>{const p=P(i.id);if(!p)return '';const c=pcCells(i.id);
     return `<div class="crow pcrow po" data-pcrow="${i.id}">
-      <div class="crow-name poname">${box}<span>${exEsc(mnName(p))}</span></div>
+      <div class="crow-name poname">${box}<span>${exEsc(pNmV(p))}</span></div>
       <div class="pcgrid">
         <div class="pccell"><span class="cfl">${t('me_qty')}</span>${f('data-pqty',i.id,pcQtyShow(i.id),t('cp_qty_ph'),'3','next')}</div>
         <div class="pccell"><span class="cfl">${t('po_buy')} ${sym}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('po_buy'),'1',k===last?'done':'next')}</div>
@@ -8156,7 +8172,7 @@ function g7PlHist(h,byKey){const f=v=>mnNum(v);const tipo=+h.tipo||2;const p=h.k
   return `<div class="g7h g7h${tipo}"><div class="g7h-ph"><div class="g7h-pi">${p?saleProdImg(p,G8_BOXQ):G8_BOXQ}</div></div><div class="g7h-t"><div>${g7Tx('h'+tipo)}</div><div>&nbsp;${exEsc(h.fecha||'')}</div><div>${exEsc(h.key||'')}</div><div class="g7h-n">${g7NoHyBr(exEsc(h.nombre||''))}</div>${body}</div></div>`;}
 // tarjeta de "Por Compra": folio, proveedor, fecha y total; productos con nombre arriba y cantidad / compra / subtotal abajo (tocar abre la compra)
 function g7PlPurch(p,ls){
-  const it=ls.map(x=>`<div class="g7pc-it"><div class="g7pc-n">${g7NoHyBr(exEsc(x.name))}</div><div class="g7pc-3"><span class="num">${mnNum(x.qty)}</span><span class="num">${mnNum(x.price)}</span><span class="num">${mnNum((+x.price||0)*(+x.qty||0))}</span></div></div>`).join('');
+  const it=ls.map(x=>`<div class="g7pc-it"><div class="g7pc-n">${g7NoHyBr(exEsc(nmV(x.name)))}</div><div class="g7pc-3"><span class="num">${mnNum(x.qty)}</span><span class="num">${mnNum(x.price)}</span><span class="num">${mnNum((+x.price||0)*(+x.qty||0))}</span></div></div>`).join('');
   return `<div class="g7pc" data-act="purdet:${exEsc(p.id)}"><div>${t('mr_folio')}: ${exEsc(p.folio||p.id)}</div><div>${t('cp_provider')}: ${exEsc(p.provider||t('sin_info'))}</div>`
     +`<div class="g7pc-g"><div>${t('sale_date')}:</div><div>${t('total')} $</div><div>${exEsc((p.date||'')+(p.time?' '+(''+p.time).slice(0,5):''))}</div><div class="num">${mnNum(p.total)}</div></div>`
     +`<div class="g7pc-3"><span>${t('me_qty')}</span><span>${t('pi_buy')}</span><span>${t('mr_subtotal')} $</span></div><div class="g7pc-its">${it}</div></div>`;}
@@ -8791,7 +8807,7 @@ function scProveedores(){
 }
 function scCatalogo(){
   const bid=state.catBodega;const b=getEntity('bodega',bid);const d=loadDataOf(bid);
-  const rows=(d.products||[]).length?(d.products).slice().sort(prodCmp).map(p=>`<div class="pick"><div class="info"><div class="t">${exEsc(p.name)}</div><div class="s">${exEsc(p.cat||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
+  const rows=(d.products||[]).length?(d.products).slice().sort(prodCmp).map(p=>`<div class="pick"><div class="info"><div class="t">${exEsc(nmV(p.name))}</div><div class="s">${exEsc(p.cat||'—')} · ${p.stock} ${t('inStock')}</div></div><span class="price num">${money(p.price)}</span><button class="add-btn" data-addcat="${bid}:${p.id}">${t('cat_add')}</button></div>`).join(''):`<div class="empty">${t('noResults')}</div>`;
   return `<div class="backrow" data-nav="bodegalinks">${svg('<path d="M15 6l-6 6 6 6"/>')} ${b?b.name:bid}</div><div class="pad" style="padding-top:8px"><div class="osub" style="font-size:12px;color:var(--muted);margin-bottom:8px">${t('cat_visible')}</div><div class="list">${rows}</div></div>`;
 }
 function scAjustes(){
@@ -8949,7 +8965,7 @@ function fillReserva(){
     const cached=p.img||(p.imgKey?IMGCACHE['img:'+p.imgKey]:null);
     const av=cached?`<img src="${cached}" style="width:100%;height:100%;object-fit:cover">`:(p.imgKey?`<img data-imgkey="${p.imgKey}" style="width:100%;height:100%;object-fit:cover">`:box);
     const col=(+p.stock||0)<=0?'var(--red)':'#c98a12';
-    return `<div class="row rsvrow" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0;flex:1"><div class="s" style="font-size:11.5px;margin:0">${exEsc(p.key||'')}</div><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc(mnName(p))}</div></div><div class="rsvq"><span>${t('f_qty')}</span><b class="num" style="color:${col}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</b></div><div class="rsvq"><span>${t('pd_reserve')}</span><b class="num">${qtyLoc(p.reserve)}${mSuf(isDist(p))}</b></div></div>`;
+    return `<div class="row rsvrow" data-act="rsvedit:${p.id}"><div class="av" style="overflow:hidden;background:var(--sel)">${av}</div><div style="min-width:0;flex:1"><div class="s" style="font-size:11.5px;margin:0">${exEsc(p.key||'')}</div><div class="t" style="overflow-wrap:anywhere">${exEsc(pNmV(p))}</div></div><div class="rsvq"><span>${t('f_qty')}</span><b class="num" style="color:${col}">${qtyLoc(p.stock)}${mSuf(isDist(p))}</b></div><div class="rsvq"><span>${t('pd_reserve')}</span><b class="num">${qtyLoc(p.reserve)}${mSuf(isDist(p))}</b></div></div>`;
   }).join('')+`</div>`:`<div class="empty" style="padding:26px 12px">${t('rsv_empty')}</div>`;
   const catLbl=`<div class="rsvcat" data-act="rsvcatpick">${svg(ICO_CAT)}<span>${exEsc(state.rsvCat?ti('rsv_cat',{c:state.rsvCat==='__none__'?t('cat_none'):state.rsvCat}):t('flt_all'))}</span></div>`;
   document.getElementById('rsvOptions').innerHTML=bar+catLbl+rows;
@@ -8996,7 +9012,7 @@ async function rsvExportPDF(){
     const doc=mnPdfDoc(JS,{unit:'pt',format:[595,842],compress:true});
     const fmt=n=>mnNum2(n);   /* mods161: hasta 2 decimales como MN (11,405.07), redondeo exacto (sin Math.fround) y el separador de la tienda */
     await catRmReady();   /* mods168: la reserva sin logo, como MN */
-    const body=l.map(p=>[p.key||'',mnName(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
+    const body=l.map(p=>[p.key||'',pNmV(p),fmt(p.stock),fmt(p.cost),fmt(p.price),fmt(p.reserve)]);
     mnInvTable(doc,rsvFileBase(),body);
     const blob=doc.output('blob');
     mnPdfDone(blob,mnFile('reserve'));   /* mods161 */
@@ -9257,7 +9273,7 @@ function exportSalesFull(list){
 }
 // Recibo en formato ticket (80 mm)
 async function buildSaleTicketBlob(sale){
-  const JS=await ensurePdfLibs();mnPdfFonts(JS);const lines=await srLinesFor(sale);if(!lines.length)return null;
+  const JS=await ensurePdfLibs();mnPdfFonts(JS);const lines=docNm(await srLinesFor(sale));if(!lines.length)return null;
   if(opts().pdfDesign==='extra')return tkExtraBlob(sale,lines);   /* mods161: Diseño Extra de MN */
   await catRmReady();const cfg=receiptCfg(),W=219,M=5,folio=sale.folio||sale.id,total=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,total-paid);
   const probe=new JS({unit:'pt',format:[W,400],compress:true}),commands=[];let y=7;
@@ -9756,7 +9772,7 @@ async function mnNativeOrder(record,purchase,ret){   /* mods169: ret = devolver 
   y=mnNativeLine(doc,t('po_issue')+':  '+(purchase?record.issue||'':record.date||''),y,13,18);
   y=mnNativeLine(doc,t('po_due')+':  '+(record.due||''),y,13,23);
   /* mods169: sin el folio a la derecha (MN no lo imprime) */
-  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(purchase?(record.lines||[]):(record.lines||[]).map(qtShowLine)).map(l=>{const price=purchase?l.cost:l.price;return [String(l.name||''),fmtQty(l.q)+mSuf(lineIsM(l)),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(purchase?(record.lines||[]):(record.lines||[]).map(qtShowLine)).map(l=>{const price=purchase?l.cost:l.price;return [String(nmV(l.name)),fmtQty(l.q)+mSuf(lineIsM(l)),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
   mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(record.total)]]);const fname=purchase?title+' '+record.folio+'.pdf':'cotizacion.pdf';   /* mods169: nombre de MN */
   if(ret)return {blob:doc.output('blob'),name:fname};mnPdfDone(doc,fname);
 }
@@ -10022,7 +10038,7 @@ async function mnNativeDebt(JS,purchase){
   y=mnRepTable(doc,y,[t('sr_total_lbl').toUpperCase(),t('sr_pagos_lbl').toUpperCase(),t('ttx_deuda').toUpperCase()],[[mnMon(D.total),mnMon(D.pagos),mnMon(D.deuda)]],{w:[178,178,178],fs:14,hfs:12,al:['center','center','center']});
   let i=0;
   for(const r of D.list){
-    const lines=purchase?await pcLinesFor(r,raw):await srLinesFor(r,raw),total=purchase?(+r.total||0):saleTotal(r),paid=purchase?pcPaid(r):srPaid(r),due=Math.max(0,total-paid),B=i>0;
+    const lines=docNm(purchase?await pcLinesFor(r,raw):await srLinesFor(r,raw)),total=purchase?(+r.total||0):saleTotal(r),paid=purchase?pcPaid(r):srPaid(r),due=Math.max(0,total-paid),B=i>0;
     y=mnNativeNeed(doc,y+(i?20:40),80);
     y=mnRepTable(doc,y,null,[[t(purchase?'cp_provider':'sale_client')+':'+(purchase?r.provider||'':r.client||'')]],{w:[534],fs:10,bold:()=>B});
     y=mnRepTable(doc,y,null,[[t('sale_folio')+':'+(r.folio||r.id),t('sale_date')+':'+(r.date||'')]],{w:[267,267],fs:10,al:['left','left'],bold:()=>B});
@@ -10070,7 +10086,7 @@ async function massQRPdf(ids){
       const slot=i%15;if(i&&!slot)doc.addPage();const p=list[i],x=(slot%3)*198,y=(i>=15?30:0)+Math.floor(slot/3)*160,key=String(p.key).trim();
       doc.addImage(qrCanvasMN(qrMakeMN(key)).toDataURL('image/png'),'PNG',x+49,y+10,100,100);
       {const kt=catTx(key);mnNativeText(doc,kt,qrMnLeft(x,kt,9),y+120,9,'left',false,162.5);}   /* mods164: centrado de Android (x entero, ancho par) como MN */
-      let size=9,lines=catLines(p.name||'',162.5,size);while(lines.length>2&&size>5){size-=.5;lines=catLines(p.name||'',162.5,size);}   /* mods164: MN corta entre 162.44 y 162.8 */
+      let size=9,lines=catLines(nmV(p.name),162.5,size);while(lines.length>2&&size>5){size-=.5;lines=catLines(nmV(p.name),162.5,size);}   /* mods164: MN corta entre 162.44 y 162.8 */
       const step=size+1,top=y+125+Math.floor(Math.max(0,(25-lines.length*step)/2));
       lines.forEach((s,j)=>mnNativeText(doc,s,qrMnLeft(x,s,size),top+size+j*step,size,'left',false,162.5));
       if(i%60===59)await catYield();
@@ -10095,7 +10111,7 @@ function repPickerHTML(id,ph){const q=(state.repQ&&typeof state.repQ==='object'&
   const ic=svgF(id==='clients'?MN_IC.person:id==='provider'?MN_IC.contacts:MN_IC.search);
   return `<div class="rpick"><div class="rpbox">${ic}<input autocomplete="off" id="rpSearch_${id}" data-rp="${id}" class="inp rpsearch" placeholder="${exEsc(ph)}" value="${exEsc(q)}">${id==='prod_detail'&&q?`<button class="rpclr" data-act="mrep:clear:prod_detail" aria-label="${t('remove')}">${svgF(MN_IC.close)}</button>`:''}</div><div id="rpSugg_${id}" class="rpsugg"></div></div>`;}
 function repPickList(id,q){const q0=q;q=qtNorm(q||'');if(!q)return [];
-  if(id==='prod_detail'){const f=fold((''+(q0||'')).replace(/^\.{3}\s*/,'').toLowerCase()).trim();return repSugCut(id,f,prodKeyFirst((state.products||[]).filter(p=>p&&!p.del&&prodHit(p,f,true)).sort(prodCmp),f)).map(/* mods150: sin el tope mudo de 30 */p=>({v:'p'+p.id,t:mnName(p),s:p.key||''}));}
+  if(id==='prod_detail'){const f=fold((''+(q0||'')).replace(/^\.{3}\s*/,'').toLowerCase()).trim();return repSugCut(id,f,prodKeyFirst((state.products||[]).filter(p=>p&&!p.del&&prodHit(p,f,true)).sort(prodCmp),f)).map(/* mods150: sin el tope mudo de 30 */p=>({v:'p'+p.id,t:pNmV(p),s:p.key||''}));}
   if(id==='clients')return (state.clients||[]).filter(c=>c&&!c.del&&(qtNorm(c.name).includes(q)||qtNorm(c.alias||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.name||'',b.name||'')).slice(0,30).map(c=>({v:c.id,t:(c.name||'')+(c.alias?' ('+c.alias+')':''),s:c.phone||''}));
   if(id==='provider')return (state.providers||[]).filter(v=>v&&!v.del&&(qtNorm(v.contact||'').includes(q)||qtNorm(v.company||'').includes(q))).sort((a,b)=>BIN_COLL.compare(a.contact||a.company||'',b.contact||b.company||'')).slice(0,30).map(v=>({v:v.id,t:(v.contact||v.company||'')+(v.contact&&v.company?' ('+v.company+')':''),s:v.phone||''}));
   return [];}
@@ -10130,7 +10146,7 @@ const MN_PDF={
     let sales=repLinesFor(r),purchases=repPLinesFor(r);
     for(let i=0;(!sales||!purchases)&&i<100;i++){await new Promise(resolve=>setTimeout(resolve,300));if(currentDataId()!==store)return;sales=repLinesFor(r);purchases=repPLinesFor(r);}
     if(!sales||!purchases)return toast(t('rp_loading'));
-    const select=ls=>repAggBy(cat==null?ls:ls.filter(l=>(l.cat||'')===cat),lineProdKey,l=>l.name).sort((a,b)=>(sort==='name'?0:(sort==='qty'?b.q-a.q:b.tot-a.tot))||BIN_COLL.compare(a.name,b.name));
+    const select=ls=>repAggBy(cat==null?ls:ls.filter(l=>(l.cat||'')===cat),lineProdKey,l=>nmV(l.name)).sort((a,b)=>(sort==='name'?0:(sort==='qty'?b.q-a.q:b.tot-a.tot))||BIN_COLL.compare(a.name,b.name));
     const sections=[[t('mr_prod_sales'),select(sales.filter(l=>!l.svc))],[t('mr_prod_purch'),select(purchases)]];
     if(sections.every(([,a])=>!a.length))return toast(t('mr_empty'));
     const doc=await mnRepDoc(JS);if(currentDataId()!==store)return;let y=mnRepHead(doc,{from:r.from,to:r.to});
@@ -10153,7 +10169,7 @@ const MN_PDF={
     const doc=await mnRepDoc(JS);const y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_top_prod')});
     mnRepTable(doc,y,[t('mr_h_name'),t('mr_h_key'),t('mr_h_profit'),t('mr_h_sales')],rows.map(o=>[o.name,o.key||'',mnAmount(o.gan),mnAmount(o.tot)]),{w:[210,125,100,100],fs:8,hfs:8,nameCol:0});await mnRepSave(doc,'top_prod',repRangeTxt());},
   async prod_detail(JS){const D=repProdDetailData();if(!D)return toast(t('rp_loading'));if(!D.p)return toast(t('mr_pick_prod_hint'));const r=repEnsureRange(),p=D.p,doc=await mnRepDoc(JS);let y=mnRepHead(doc,{})+90;
-    y+=mnNativeLayout(doc,mnName(p),30,y,535,15)+1;y+=mnNativeLayout(doc,p.key||'',30,y,535,13);y+=mnNativeLayout(doc,catName(p.cat),30,y,535,13);y+=30;
+    y+=mnNativeLayout(doc,pNmV(p),30,y,535,15)+1;y+=mnNativeLayout(doc,p.key||'',30,y,535,13);y+=mnNativeLayout(doc,catName(p.cat),30,y,535,13);y+=30;
     y+=mnNativeLayout(doc,t('mr_from')+': '+r.from+'       '+t('mr_to')+': '+r.to,30,y,535,13);y+=10;
     y=mnRepBlock(doc,y,t('mr_sum_sales'),[t('me_qty'),t('mr_sales'),t('svc_profit')],[mnNum(D.sv.q),mnMon(D.sv.tot),mnMon(D.sv.tot-D.sv.cost)]);
     y=mnRepBlock(doc,y,t('mr_sum_purch'),[t('me_qty'),t('mr_purchases')],[mnNum(D.pu.q),mnMon(D.pu.tot)]);
@@ -10172,7 +10188,7 @@ const MN_PDF={
     cells.forEach((s,i)=>height=Math.max(height,mnNativeLayout(doc,s,30+107*i,y,107,11,'center')));y+=height+10;mnRepRule(doc,y);y+=10;
     for(const o of D.units){y=mnNativeNeed(doc,y,14,60);const h=mnNativeLayout(doc,o.u,30,y,321,11);mnNativeLayout(doc,'#'+mnNum(o.q),351,y,107,12,'center');mnNativeLayout(doc,mnMon(o.inv),458,y,107,12,'center');y+=Math.max(h,14);}
     y+=10;mnRepRule(doc,y);y+=10;
-    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales').replace(/\s+/,'\n'),t('mr_h_posprofit').replace(/\s+/,'\n')],D.l.map(p=>{const q=+p.stock||0,iv=q*(+p.cost||0),pv=q*(+p.price||0);return [(p.key||'')+'/'+mnName(p),mnNum(q),mnAmount(iv),mnAmount(pv),mnAmount(pv-iv)];}),{w:[535/3,535/6,535/6,535/6,535/6],plain:true,fs:10,hfs:11});
+    mnRepTable(doc,y,[t('mr_h_keyname'),t('mr_h_qty2'),t('mr_h_inv'),t('mr_h_possales').replace(/\s+/,'\n'),t('mr_h_posprofit').replace(/\s+/,'\n')],D.l.map(p=>{const q=+p.stock||0,iv=q*(+p.cost||0),pv=q*(+p.price||0);return [(p.key||'')+'/'+pNmV(p),mnNum(q),mnAmount(iv),mnAmount(pv),mnAmount(pv-iv)];}),{w:[535/3,535/6,535/6,535/6,535/6],plain:true,fs:10,hfs:11});
     await mnRepSave(doc,'inventory',todayISO());
   },
   async tags(JS){const r=repEnsureRange();const a=repTagsData();if(!a)return toast(t('rp_loading'));if(!a.length)return toast(t('mr_empty'));const rows=repSorted('tags',a,{name:o=>o.name,qty:o=>o.n,sales:o=>o.tot,profit:o=>o.gan});
@@ -10259,7 +10275,7 @@ function repPayForms(){
 }
 // Merma: tarjeta con fechas, Total y el gráfico (ícono "event"); la lista sigue como hoy hasta tener una captura de Mi Negocio con merma
 // 2) Merma
-function repMermaData(){const l=(state.mermas||[]).filter(m=>m&&!m.del&&inR(m.date));const by={};l.forEach(m=>{const k=m.pid!=null?'p'+m.pid:(''+m.name).trim().toUpperCase();const pr=m.pid!=null?P(m.pid):null;const o=by[k]||(by[k]={name:pr?pr.name:m.name,key:(pr&&pr.key)||m.key||'',q:0,tot:0,n:0});o.q+=+m.qty||0;o.tot+=(+m.qty||0)*(+m.cost||0);o.n++;});return Object.values(by);}
+function repMermaData(){const l=(state.mermas||[]).filter(m=>m&&!m.del&&inR(m.date));const by={};l.forEach(m=>{const k=m.pid!=null?'p'+m.pid:(''+m.name).trim().toUpperCase();const pr=m.pid!=null?P(m.pid):null;const o=by[k]||(by[k]={name:nmV(pr?pr.name:m.name),key:(pr&&pr.key)||m.key||'',q:0,tot:0,n:0});o.q+=+m.qty||0;o.tot+=(+m.qty||0)*(+m.cost||0);o.n++;});return Object.values(by);}
 function repMerma(){const a=repMermaData();const tot=repTotals(a).tot;
   const ch=state.repCharts!==false?mpcCard(a.length?mpcBars('merma',a.slice().sort((x,y)=>y.tot-x.tot).slice(0,30).reverse().map(o=>({v:[o.tot],tip:[o.name,'#'+(o.key||''),money(o.tot)]})),mpcSig(a,o=>o.tot)):mpcEmpty()):'';
   const head=repDateHead({event:true,cls:'m10 me-h',total:a.length?rmoney(tot):'$...',inner:ch});
@@ -10272,15 +10288,15 @@ function repMerma(){const a=repMermaData();const tot=repTotals(a).tot;
 // Pantalla y PDF suman los mismos subtotales por producto, redondeados a centavos como mnNum.
 function repTxProdTotal(rows){return rows.reduce((sum,o)=>sum+(+o.tot||0),0);}   /* mods186 */
 function repTxProdData(){const tab=(state.repTab&&state.repTab.tx_prod)||'sales';const cat=g4fTxCat();const f=L=>cat==null?L:L.filter(l=>(l.cat||'')===cat);
-  if(tab==='purch'){const L0=repPLinesFor(repEnsureRange());if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>l.name)};}
-  const L0=repLines();if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>l.name)};}
+  if(tab==='purch'){const L0=repPLinesFor(repEnsureRange());if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>nmV(l.name))};}
+  const L0=repLines();if(!L0)return null;const L=f(L0);return {tab,L,a:repAggBy(L,lineProdKey,l=>nmV(l.name))};}
 function repTxProd(){
   const cat=g4fTxCat();
   const crow='<div class="tp-cat"'+(REP_SINGLE?'':' data-g4fcat="__open__" style="cursor:pointer"')+'>'+svgF(MN_IC.category)+'<span>'+exEsc(cat==null?t('flt_all'):cat)+'</span></div>';
   const head=REP_SINGLE?repDateHead({cls:'tp-h',inner:crow}):'<div class="mnhead tp-h tp-m">'+crow+'</div>';
   const D=repTxProdData();if(!D)return head+repLoading();
   const fc=L=>cat==null?L:L.filter(l=>(l.cat||'')===cat);
-  const sum=L=>L?repTxProdTotal(repAggBy(fc(L),lineProdKey,l=>l.name)):0;
+  const sum=L=>L?repTxProdTotal(repAggBy(fc(L),lineProdKey,l=>nmV(l.name))):0;
   const ts=D.tab==='sales'?repTxProdTotal(D.a):sum(repLines()),tp=D.tab==='purch'?repTxProdTotal(D.a):sum(repPLinesFor(repEnsureRange()));
   const tabs='<div class="rtabs mn tp-t"><button class="'+(D.tab==='sales'?'on':'')+'" data-act="mrep:tab:tx_prod:sales">'+t('mr_prod_sales')+'<b class="num">'+rmoney(ts)+'</b></button><button class="'+(D.tab==='purch'?'on':'')+'" data-act="mrep:tab:tx_prod:purch">'+t('mr_prod_purch')+'<b class="num">'+rmoney(tp)+'</b></button></div>';
   if(!D.a.length)return head+tabs+mnEmpty(t('sin_info'),true);
@@ -10294,7 +10310,7 @@ function repTxProd(){
 // Transacciones por servicio: cantidad y total por servicio del rango; Total del rango a la derecha de las fechas (como Mi Negocio)
 // 4) Top productos (por cantidad y por monto)
 // Top productos: los 50 con más ganancia del rango (clave, ganancia y ventas)
-function repTopProdData(){let L=repLines();if(!L)return null;const cat=g5TopCat();if(cat)L=L.filter(l=>catName(l.cat)===cat);return repAggBy(L,lineProdKey,l=>l.name).map(o=>Object.assign(o,{gan:o.tot-o.cost})).sort((a,b)=>b.gan-a.gan).slice(0,50);}
+function repTopProdData(){let L=repLines();if(!L)return null;const cat=g5TopCat();if(cat)L=L.filter(l=>catName(l.cat)===cat);return repAggBy(L,lineProdKey,l=>nmV(l.name)).map(o=>Object.assign(o,{gan:o.tot-o.cost})).sort((a,b)=>b.gan-a.gan).slice(0,50);}
 function repTopProd(){const a=repTopProdData();if(!a)return repLoading();const cat=g5TopCat();
   /* gráfico como Mi Negocio: de los 50 de la lista, los 30 que más venden, de menor a mayor (no cambia con Ordenar) */
   const ch=state.repCharts!==false?mpcCard(a.length?mpcBars('top_prod',a.slice().sort((x,y)=>y.tot-x.tot).slice(0,30).reverse().map(o=>({v:[o.tot,o.gan],tip:[o.name,'#'+(o.key||''),money(o.tot),money(o.gan)]})),mpcSig(a,o=>o.tot)):mpcEmpty()):'';
@@ -10333,7 +10349,7 @@ function repProdDetail(){
   const sec=s=>'<div class="g5sec">'+exEsc(s)+'</div>';
   const card=(ic,n,s,cols)=>'<div class="mncard g5mc">'+svgF(ic)+'<div class="g5mc-n">'+exEsc(n)+'</div><div class="g5mc-s">'+(exEsc(s)||'&nbsp;')+'</div><div class="g5kv c'+cols.length+'">'+cols.map(c=>kv(c[0],c[1])).join('')+'</div></div>';
   const pch=state.repCharts!==false?mpcCard(D.days.length?mpcLine('prod_detail',D.days.map(o=>({v:[o.v,o.g],tip:[o.d,money(o.v),money(o.g)]})),'p'+p.id+'|'+mpcSig(D.days,o=>o.v)):mpcEmpty()):'';
-  const head='<div class="g5ph"><div class="g5ph-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5ph-t"><div class="g5ph-k">'+exEsc(p.key||'')+'</div><div class="g5ph-n">'+exEsc(mnName(p))+'</div><div class="g5ph-cl">'+exEsc(t('f_category'))+'</div><div class="g5ph-cv">'+svgF(MN_IC.category)+'<b>'+exEsc(catName(p.cat))+'</b></div></div></div>';
+  const head='<div class="g5ph"><div class="g5ph-i">'+saleProdImg(p,G5_BOXQ)+'</div><div class="g5ph-t"><div class="g5ph-k">'+exEsc(p.key||'')+'</div><div class="g5ph-n">'+exEsc(pNmV(p))+'</div><div class="g5ph-cl">'+exEsc(t('f_category'))+'</div><div class="g5ph-cv">'+svgF(MN_IC.category)+'<b>'+exEsc(catName(p.cat))+'</b></div></div></div>';
   return pk+repDateHead({cls:'r8 m10 g5pdh',inner:pch})+'<div class="g5pcard">'+head+'<div class="g5div"></div>'
     +sec(t('mr_sum_sales'))+'<div class="g5kv c3">'+kv(t('me_qty'),mnNum(D.sv.q))+kv(t('mr_sales'),rmoney(D.sv.tot))+kv(t('svc_profit'),rmoney(D.sv.tot-D.sv.cost))+'</div>'
     +(D.cl.length?sec(t('mr_top_cli_prod'))+'<div class="mnscroll g5scr">'+D.cl.map(o=>card(MN_IC.person,o.c.name||'',(''+(o.c.alias||'')).trim()||t('mr_no_alias'),[[t('me_qty'),mnNum(o.q)],[t('mr_sales'),mnAmount(o.tot)],[t('svc_profit'),mnAmount(o.tot-o.cost)]])).join('')+'</div>':'')
@@ -10371,7 +10387,7 @@ function repInventory(){const D=repInvData();if(!(state.products||[]).length)ret
   const un='<div class="g5units"><div class="g5units-s">'+D.units.map(o=>'<div class="g5unit"><div class="g5unit-u">'+svgF(MN_IC.ruler)+'<span>'+exEsc(o.u)+'</span></div><div class="g5unit-v num"><span>#'+mnNum(o.q)+'</span><span>'+rmoney(o.inv)+'</span></div></div>').join('')+'</div></div>';
   repCsv('inventory',[[t('me_qty')],[t('mr_investment_s')],[t('mr_pos_sales_s')],[t('mr_pos_profit_s')]],D.l.map(p=>({t:mnName(p),c:[[null,+p.stock||0,'n'],[null,D.inv(p),'m'],[null,D.pv(p),'m'],[null,D.pv(p)-D.inv(p),'m']]})),{first:t('rc_product')});
   const lim=(state.repMore&&state.repMore.inventory)||60;   /* solo se arman las filas que se dibujan (de a 60, la lista corrida pide más) */
-  const rows={n:D.l.length,at:i=>{const p=D.l[i];return mnRow({img:saleProdImg(p,G5_BOXQ),lines:['<span class="g5kl"><span class="g5k">'+exEsc(p.key||'')+'</span>'+g5StockIcon(p)+'</span>','<span class="g5nm">'+exEsc(mnName(p))+'</span>'],   /* mods174: ✓/⚠ en la línea de la clave */
+  const rows={n:D.l.length,at:i=>{const p=D.l[i];return mnRow({img:saleProdImg(p,G5_BOXQ),lines:['<span class="g5kl"><span class="g5k">'+exEsc(p.key||'')+'</span>'+g5StockIcon(p)+'</span>','<span class="g5nm">'+exEsc(pNmV(p))+'</span>'],   /* mods174: ✓/⚠ en la línea de la clave */
     cols:[[exEsc(t('me_qty')),mnNum(+p.stock||0)],[exEsc(t('mr_investment_s')),mnAmount(D.inv(p))],[exEsc(t('g5_pos_sales')),mnAmount(D.pv(p))],[exEsc(t('g5_pos_profit')),mnAmount(D.pv(p)-D.inv(p))]],cls:'g5inv'});}};   /* se arman solo las filas que se van mostrando */
   return sel+sum+un+(D.l.length?mnList('inventory',rows):repEmpty());}
 // 8) Etiquetas
@@ -10399,7 +10415,7 @@ function repEmployees(){const a=repEmpData();if(!a.length)return repDateHead({cl
   return repDateHead({cls:'flush'})+mnList('employees',a.map(g6EmpRow));}
 // 10) Orden de compra
 // Reporte orden de compra: los productos de las órdenes del rango (cantidad y total)
-function repPOData(){const by={};(state.porders||[]).filter(o=>o&&!o.del).forEach(o=>(o.lines||[]).forEach(l=>{const pr=(l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const g=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0});const qq=+l.q||0;g.q+=qq;g.tot+=l.subtotal!=null?+l.subtotal:(+l.cost||0)*qq;}));return Object.values(by);}
+function repPOData(){const by={};(state.porders||[]).filter(o=>o&&!o.del).forEach(o=>(o.lines||[]).forEach(l=>{const pr=(l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const g=by[k]||(by[k]={name:nmV(pr?pr.name:l.name),key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0});const qq=+l.q||0;g.q+=qq;g.tot+=l.subtotal!=null?+l.subtotal:(+l.cost||0)*qq;}));return Object.values(by);}
 function repPurchOrder(){const a=repPOData();const T=repTotals(a);
   const strip=g6Strip([[t('me_qty'),'#'+mnNum(T.q)],[t('total'),rmoney(T.tot)]]);   /* siempre visible, también sin órdenes */
   if(!a.length)return strip+mnEmpty(t('sin_info'),REP_SINGLE);
@@ -10410,7 +10426,7 @@ function repPurchOrder(){const a=repPOData();const T=repTotals(a);
 // 11) Análisis ABC (80 / 15 / 5 % de lo vendido)
 // Análisis ABC de todo el historial (como Mi Negocio): A hasta el 60 % acumulado de lo vendido, B hasta el 80 %, C el resto
 function repABCData(){const L=repLinesFor({from:'0000-01-01',to:'9999-12-31'});if(!L)return null;
-  const a=repAggBy(L.filter(l=>!l.svc),lineProdKey,l=>l.name).sort((x,y)=>Math.round(y.tot*100)-Math.round(x.tot*100)||BIN_COLL.compare(''+(x.key||''),''+(y.key||''))||BIN_COLL.compare(x.name,y.name));   /* empates: por clave, como Mi Negocio (agrupa por clave) */const tot=a.reduce((s,o)=>s+o.tot,0)||1;let acc=0;
+  const a=repAggBy(L.filter(l=>!l.svc),lineProdKey,l=>nmV(l.name)).sort((x,y)=>Math.round(y.tot*100)-Math.round(x.tot*100)||BIN_COLL.compare(''+(x.key||''),''+(y.key||''))||BIN_COLL.compare(x.name,y.name));   /* empates: por clave, como Mi Negocio (agrupa por clave) */const tot=a.reduce((s,o)=>s+o.tot,0)||1;let acc=0;
   a.forEach(o=>{const pv=o.tot*100/tot;o.pv=mnRoundHE(pv,100);acc=Math.fround(acc+pv);o.acc=Math.min(100,mnRoundHE(acc,100));   /* mods186 */o.cls=(o.acc<=60||o===a[0])?'A':(o.acc<=80?'B':'C');});
   return a;}
 // Gráficos de reportes como Mi Negocio (2026-10-06): números completos en los ejes, recuadro gris al tocar
@@ -10639,7 +10655,7 @@ function repProvAgg(){return aggByName(repPurchR(),p=>p.provider,(o,p)=>{o.n++;o
 // Reporte proveedor: se busca un proveedor registrado y se ve su resumen del rango
 function repProvDetail(v){const r=repEnsureRange();const C=(state.purchases||[]).filter(p=>p&&!p.del&&inR(p.date)&&purProv(p)&&purProv(p).id===v.id);
   const open=p=>purchaseIsCredit(p)&&purchDueAmt(p)>0.5;const cred=C.filter(open),paid=C.filter(p=>!open(p));const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
-  const LP=repPLinesFor(r);let prods=null;if(LP){const ids=new Set(C.map(p=>''+p.id));prods=repAggBy(LP.filter(l=>ids.has(''+l.purId)),lineProdKey,l=>l.name).sort(g8ProdOrd);}
+  const LP=repPLinesFor(r);let prods=null;if(LP){const ids=new Set(C.map(p=>''+p.id));prods=repAggBy(LP.filter(l=>ids.has(''+l.purId)),lineProdKey,l=>nmV(l.name)).sort(g8ProdOrd);}
   return {C:C.slice().sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''))||((+b.folio||0)-(+a.folio||0))),nP:paid.length,nC:cred.length,tP:sum(paid,p=>+p.total||0),tC:sum(cred,p=>+p.total||0),pays:sum(cred,purchasePaidSum),due:sum(cred,purchDueAmt),prods};}
 function repProvider(){   /* igual que Reporte clientes, sin gráfica (como Mi Negocio); el buscador no toma el foco solo */
   const id=state.repPick&&state.repPick.provider;const v=id&&(state.providers||[]).find(x=>x&&''+x.id===''+id);
@@ -10765,7 +10781,7 @@ function openPO(id){
   const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   const mt=(x,cls)=>`<div class="pometa${cls?' '+cls:''}">${exEsc(x)}</div>`;
   const meta=(o.issue?mt(t('po_issue')+': '+o.issue):'')+(o.due?mt(t('po_due')+': '+o.due,exp?'neg':''):'')+(o.provider?mt(t('cp_provider')+': '+o.provider):'')+(o.note?mt(t('cp_info')+': '+o.note):'');
-  const lines=alphaLines(o.lines||[]).map(l=>`<div class="row"><div class="av num">${qtyLoc(+l.q||0)}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines(o.lines||[]).map(l=>`<div class="row"><div class="av num">${qtyLoc(+l.q||0)}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}
     ${ph?`<div class="qt-tel" style="margin:8px 0"><a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a></div>`:''}
     <div style="margin:8px 0"><span class="qt-st ${poStateCls(o)}">${exEsc(poStateTxt(o))}</span></div>
@@ -10975,7 +10991,7 @@ function openQuote(id){
   document.getElementById('quoteH').textContent=t('sales_quote')+' #'+q.folio;
   const cl=cliByName(q.client);const cinfo=cl&&(cl.address||cl.phone)?`<div class="qt-cli">${cl.address?`<div class="qt-addr">${svg(IC_PIN)}<span>${exEsc(cl.address)}</span></div>`:''}${cl.phone?`<div class="qt-tel"><a class="prv-q" href="${telHref(cl.phone)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(cl.phone)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a></div>`:''}</div>`:'';
   const meta=[q.date&&(t('qt_emit')+': '+q.date),q.due&&(t('qt_exp')+': '+q.due),q.client&&(t('sale_client')+': '+q.client),q.note&&(t('sale_note')+': '+q.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
-  const lines=alphaLines(q.lines||[]).map(l=>qtRowHTML(l)||   /* mods240 */`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines(q.lines||[]).map(l=>qtRowHTML(l)||   /* mods240 */`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
   const st=quoteStatus(q);
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}${cinfo}<div style="margin:8px 0">${quoteStLbl(q)}</div>
     <div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(q.total||0)}</div></div></div>
@@ -11009,7 +11025,7 @@ function quoteText(q){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLoca
     ...alphaLines((q.lines||[]).map(qtShowLine)).map(l=>qtTxtQty(l)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')+' — $'+f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.q||0))),'',t('total').toUpperCase()+': $'+f(q.total),q.note?'\n'+q.note:'',cfg.msg?'\n'+cfg.msg:''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 async function quotePDF(){const q=quoteById(state.qtOpen);if(!q)return;openShareRecibo(q.id,'quote');}   /* mods169: "Cotización Registrada" como MN */
 // Reporte cotización: los productos de las cotizaciones (cantidad, total y ganancia), como Mi Negocio
-function repQuoteData(){const by={};quotesLive().filter(q=>!MN_QT_VIGENTES||quoteStatus(q)==='open').forEach(   /* mods174: solo vigentes, como MN */q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:pr?pr.name:l.name,key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
+function repQuoteData(){const by={};quotesLive().filter(q=>!MN_QT_VIGENTES||quoteStatus(q)==='open').forEach(   /* mods174: solo vigentes, como MN */q=>(q.lines||[]).forEach(l=>{if(l.svc)return;const pr=(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||null;const k=pr?'p'+pr.id:(''+(l.name||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:nmV(pr?pr.name:l.name),key:pr?(pr.key||''):(l.key||''),p:pr,q:0,tot:0,cost:0});const qq=+l.q||+l.qty||0;o.q+=qq;o.tot+=l.subtotal!=null?+l.subtotal:(+l.price||0)*qq;o.cost+=(+l.cost||0)*qq;}));return Object.values(by);}
 function repQuote(){const a=repQuoteData();
   const T=repTotals(a);
   const strip=g6Strip([[t('me_qty'),'#'+mnNum(a.length)],[t('total'),rmoney(T.tot)],[t('svc_profit'),rmoney(T.tot-T.cost)]]);
@@ -11457,7 +11473,7 @@ function lgPendOpen(){lgPendEl();document.getElementById('lgpH').textContent=t('
 function lgPendClose(){const d=document.getElementById('lgpdlg');if(d)d.classList.remove('on');}
 function lgPendFill(){const b=document.getElementById('lgpBody');if(!b)return;const L=lgPend().filter(x=>x.kind==='sale'&&x.st!=='enviando');
   if(!L.length){b.innerHTML=`<div class="empty" style="margin-top:24px">${t('lg_pend_none')}</div>`;return;}
-  b.innerHTML=`<div class="lgp-note">${t('lg_pend_note')}</div>`+L.map(x=>{const s=x.sale||{};const ls=(s.items||[]).map(i=>{const p=P(+i.id);const nm=p?p.name:(i.name||'—');return i.pk?`${qtyLoc(i.pk.c)} ${exEsc(i.pk.n)} · ${exEsc(nm)}`:`${qtyLoc(i.q)}${i.m?' m':''} · ${exEsc(nm)}`;}).join('<br>');
+  b.innerHTML=`<div class="lgp-note">${t('lg_pend_note')}</div>`+L.map(x=>{const s=x.sale||{};const ls=(s.items||[]).map(i=>{const p=P(+i.id);const nm=nmV(p?p.name:(i.name||'—'));return i.pk?`${qtyLoc(i.pk.c)} ${exEsc(i.pk.n)} · ${exEsc(nm)}`:`${qtyLoc(i.q)}${i.m?' m':''} · ${exEsc(nm)}`;}).join('<br>');
     const st=x.st==='sin_respuesta'?t('lg_st_unknown'):(x.st==='rechazada'?t('lg_st_rej'):t('lg_st_draft'));
     return `<div class="lgp-card"><div class="lgp-h"><b>#${exEsc(s.folio||'')}</b><span class="lgp-st">${st}</span><b class="num">${money(+s.total||0)}</b></div><div class="lgp-ls">${ls}</div>
       ${x.why?`<div class="lgp-why">${lgErrList(x.why).map(exEsc).join('<br>')}</div>`:''}
@@ -11518,7 +11534,7 @@ function qtRowHTML(l){if(!l||l.svc)return '';const k=l.pk,isM=!k&&qtIsM(l),pl=+(
   const ds=pl>0&&pp<pl-0.004?` · <span class="qt-ds">${t('qt_hab')} ${money(pl)} − ${qtyLoc(Math.round((1-pp/pl)*1000)/10)} %</span>`:'';
   const xn=l.xn?` <span class="qt-xn">${svg(IC_TAG)}${exEsc(l.xn)}</span>`:'';
   const top=k?`<b class="qt-pk">${exEsc(qtPkTxt(l))}</b><br>`:(isM?`<b class="qt-pk">${qtyLoc(+l.q||0)} m</b><br>`:'');
-  return `<div class="row"><div class="av num">${av}</div><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</div><div class="s">${top}${pr}${ds}${xn}</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}
+  return `<div class="row"><div class="av num">${av}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${nm}</div><div class="s">${top}${pr}${ds}${xn}</div></div><div class="r"><div class="amt num">${money(sub)}</div></div></div>`;}
 // línea guardada → carrito (editar, pasar a venta, aprobar TAT). true = quedó en su presentación
 function qtPkToCart(p,l,cart,cp,pkm,chg){
   if(pkm[p.id]){const k=pkm[p.id];cart[p.id]=q3((+cart[p.id]||0)*k.f);cp[p.id]=Math.round((+cp[p.id]||0)/k.f*1e6)/1e6;delete pkm[p.id];}   /* mismo producto dos veces: se suman en la base */
@@ -11539,9 +11555,60 @@ function qtMarkSold(sale,sv){try{const f=sale&&sale.fromQuote;if(f==null)return;
 function qtFromDraft(s){const f=s&&s.fromQuote;if(f==null)return null;const q=quotesLive().find(y=>''+y.folio===''+f);return q&&q.soldSale==null?q.id:null;}
 
 
-function fmedHTML(f){const m=!!f&&f.med==='m';const on=svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'),off=svg('<circle cx="12" cy="12" r="9"/>');
-  const b=(k,lbl)=>{const sel=(k==='m')===m;return `<button type="button" class="seg${sel?' on':''}" role="radio" aria-checked="${sel}" data-act="fmed:${k}">${sel?on:off} ${t(lbl)}</button>`;};
-  return `<div class="fld"><span class="fl">${t('f_med')}</span><div class="segrow fmed" role="radiogroup" aria-label="${t('f_med')}">${b('u','med_u')}${b('m','med_m')}</div>${m?`<div class="fmed-note">${ti('med_m_note',{a:qtyLoc(0.25)+' m',b:qtyLoc(1.5)+' m'})}</div>`:''}</div>`;}
+/* ===== mods241 (2026-10-31): «Metro lineal», tipo de medida en un campo desplegable y nombres sin el «... » de Mi Negocio ===== */
+/* Nombre en pantalla: sin el «... » del comienzo. En Mi Negocio el nombre es «UNIDAD nombre» y «...» quiere decir «sin unidad»: lo traen
+   los nombres guardados (copias de MN) y lo agrega mnName al dibujar los que no tienen unidad. Solo se quita ese prefijo exacto (tres
+   puntos y espacio, al comienzo); los demás puntos del nombre se quedan («. ARCO», «METRO ... CINTA», «P.V.C»). El dato guardado, la
+   búsqueda, el orden, la asociación, los PDF, el CSV y el .mn no cambian. */
+function nmV(n){return (''+(n==null?'':n)).replace(/^\.\.\.\s+(?=\S)/,'');}
+function pNmV(p){return nmV(mnName(p));}
+function docNm(L){return (L||[]).map(l=>l&&l.name!=null?{...l,name:nmV(l.name)}:l);}   /* líneas de un DOCUMENTO (recibo, ticket, texto): copia con el nombre a mostrar */
+/* Tipo de medida: un campo desplegable con «Unidad» y «Metro lineal» en vez de los dos botones. Mismo valor de siempre (f.med: '' o sin
+   valor = Unidad, 'm' = Metro lineal) y mismo camino: elegir otro tipo hace lo que hacía el botón (fmedSet: readForm y volver a dibujar el
+   formulario; nada se guarda hasta ✓). Abrir, cerrar o elegir el mismo no cambia nada. La lista va en una capa sobre el formulario (el
+   scroll no la recorta), debajo del campo o encima si no cabe; toque, ratón y teclado (flechas, Inicio/Fin, Enter/Espacio, Escape, Tab,
+   letra inicial); tocar fuera o Atrás de Android la cierran. Un producto ya registrado no pasa por aquí: su tipo queda fijo (mods237). */
+const MED_OPTS=[['u','med_u'],['m','med_m']];
+let MEDDD=null;   /* lista abierta: {btn, i = opción activa} */
+function fmedHTML(f){const m=!!f&&f.med==='m';
+  return `<div class="fld"><span class="fl" id="f_med_l">${t('f_med')}</span><button type="button" class="inp sellike fmeddd" id="f_med" data-med="${m?'m':'u'}" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="f_med_l f_med"><span class="uval">${exEsc(t(m?'med_m':'med_u'))}</span>${svg('<path d="M6 9l6 6 6-6"/>')}</button>${m?`<div class="fmed-note">${ti('med_m_note',{a:qtyLoc(0.25)+' m',b:qtyLoc(1.5)+' m'})}</div>`:''}</div>`;}
+function fmedSet(k){if(!state.form)return false;readForm();const v=k==='m'?'m':'';if((state.form.med==='m'?'m':'')===v)return false;
+  state.form.med=v;const fb=document.getElementById('formBody'),st=fb.scrollTop;fb.innerHTML=formHTML();attachForm();fb.scrollTop=st;return true;}   /* = el botón de mods237 */
+function meddEl(){let d=document.getElementById('medd241dlg');if(d)return d;d=document.createElement('div');d.id='medd241dlg';d.className='permdlg medd241';
+  (document.getElementById('device')||document.body).appendChild(d);
+  d.addEventListener('click',e=>{e.stopPropagation();const o=e.target.closest('[data-medo]');if(o&&MEDDD){meddPick(o.dataset.medo);return;}if(!e.target.closest('.medd-lb'))meddClose(true);});
+  d.addEventListener('pointermove',e=>{const o=e.target.closest('[data-medo]');if(o&&MEDDD&&e.pointerType==='mouse')meddAct(MED_OPTS.findIndex(x=>x[0]===o.dataset.medo),false);});
+  return d;}
+function meddOpen(btn,kb){const d=meddEl();try{BACK_CLOSE.medd241dlg=()=>meddClose(true);}catch(_){}
+  const cur=btn.dataset.med==='m'?'m':'u',ck=svg('<path d="M5 12l5 5L20 7"/>');
+  d.innerHTML=`<div class="medd-lb" role="listbox" id="f_med_lb" tabindex="-1" aria-labelledby="f_med_l">${MED_OPTS.map(([k,l])=>`<div class="medd-o${k===cur?' on':''}" role="option" id="f_med_o${k}" data-medo="${k}" aria-selected="${k===cur}"><span>${exEsc(t(l))}</span>${ck}</div>`).join('')}</div>`;
+  d.classList.add('on');MEDDD={btn,i:0};btn.setAttribute('aria-expanded','true');btn.setAttribute('aria-controls','f_med_lb');
+  meddPlace();meddAct(MED_OPTS.findIndex(x=>x[0]===cur),!!kb);const lb=d.firstChild;try{lb.focus({preventScroll:true});}catch(_){lb.focus();}
+  try{navSync();}catch(_){}}   /* como las otras ventanas: Atrás cierra solo la lista */
+function meddPlace(){const d=document.getElementById('medd241dlg');if(!d||!MEDDD)return;const b=MEDDD.btn;if(!b.isConnected||!b.offsetParent){meddClose(false);return;}
+  const lb=d.firstChild,dv=d.getBoundingClientRect(),r=b.getBoundingClientRect(),vv=window.visualViewport;
+  const bot=Math.min(dv.bottom,vv?vv.offsetTop+vv.height:innerHeight)-dv.top,w=Math.min(r.width,dv.width-8);
+  lb.style.width=w+'px';lb.style.left=Math.max(4,Math.min(r.left-dv.left,dv.width-4-w))+'px';
+  const h=lb.offsetHeight;let y=r.bottom-dv.top+4;if(y+h>bot-4&&r.top-dv.top-4-h>=4)y=r.top-dv.top-4-h;lb.style.top=Math.max(4,y)+'px';}
+function meddAct(i,kb){const d=document.getElementById('medd241dlg');if(!d||!MEDDD)return;i=Math.max(0,Math.min(MED_OPTS.length-1,i<0?0:i));MEDDD.i=i;
+  d.querySelectorAll('[data-medo]').forEach((o,j)=>o.classList.toggle('act',j===i));const lb=d.firstChild;lb.setAttribute('aria-activedescendant','f_med_o'+MED_OPTS[i][0]);lb.classList.toggle('kb',!!kb);}
+function meddClose(back){const d=document.getElementById('medd241dlg'),b=MEDDD&&MEDDD.btn;MEDDD=null;if(d&&d.classList.contains('on')){d.classList.remove('on');d.innerHTML='';try{navSync();}catch(_){}}
+  if(b&&b.isConnected){b.setAttribute('aria-expanded','false');b.removeAttribute('aria-controls');if(back)try{b.focus({preventScroll:true});}catch(_){}}}
+let MEDD_T=0;   /* elegido con el teclado: el Espacio que se suelta sobre el campo no lo vuelve a abrir */
+function meddPick(k,kb){meddClose(false);fmedSet(k);if(kb)MEDD_T=Date.now();const nb=document.getElementById('f_med');if(nb)try{nb.focus({preventScroll:true});}catch(_){}}
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('.fmeddd');if(!b||MEDDD)return;e.preventDefault();e.stopPropagation();
+  if(e.detail===0&&Date.now()-MEDD_T<600)return;meddOpen(b,e.detail===0);},true);   /* e.detail 0 = Enter/Espacio */
+document.addEventListener('keydown',e=>{const k=e.key;
+  if(MEDDD){const stop=()=>{e.preventDefault();e.stopPropagation();};
+    if(k==='Escape'||k==='Tab'){stop();meddClose(true);return;}
+    if(k==='ArrowDown'||k==='ArrowUp'){stop();if(e.altKey){meddPick(MED_OPTS[MEDDD.i][0],true);return;}meddAct(MEDDD.i+(k==='ArrowDown'?1:-1),true);return;}
+    if(k==='Home'||k==='End'||k==='PageUp'||k==='PageDown'){stop();meddAct(k==='Home'||k==='PageUp'?0:MED_OPTS.length-1,true);return;}
+    if(k==='Enter'||k===' '){stop();meddPick(MED_OPTS[MEDDD.i][0],true);return;}
+    if(k&&k.length===1&&k!==' '){const c=fold(k.toLowerCase()),j=MED_OPTS.findIndex(x=>fold(t(x[1]).toLowerCase()).startsWith(c));if(j>=0){stop();meddAct(j,true);}}
+    return;}
+  const b=e.target&&e.target.closest&&e.target.closest('.fmeddd');if(!b)return;
+  if(k==='ArrowDown'||k==='ArrowUp'||k==='F4'){e.preventDefault();e.stopPropagation();meddOpen(b,true);}},true);
+(()=>{const re=()=>{if(MEDDD)requestAnimationFrame(meddPlace);};addEventListener('resize',re);document.addEventListener('scroll',re,true);try{visualViewport.addEventListener('resize',re);visualViewport.addEventListener('scroll',re);}catch(_){}})();   /* teclado del celular o scroll: la lista sigue al campo */
 function svcSaleLines(s){return (s.svcs||[]).map(x=>({name:x.name,qty:+x.q||0,price:+x.price||0,subtotal:(+x.price||0)*(+x.q||0),svc:true}));}
 function scServicios(){
   const q=fold((state.q||'').toLowerCase().trim());
@@ -14068,7 +14135,7 @@ function imprBuilder(cols){const B=[],ESC=0x1B,GS=0x1D;const push=(...x)=>{x.for
    TOTAL, forma de pago, pagos y POR COBRAR si queda deuda, el mensaje del recibo, código EAN-13 del folio si está activado) + corte.
    o.cols fuerza las columnas (pruebas); o.lines evita leer el detalle. Devuelve Uint8Array (asíncrono: el detalle puede estar en IndexedDB). */
 async function escposRecibo(sale,o){o=o||{};const ic=imprCfg(),cols=o.cols||imprCols(ic),cfg=receiptCfg();
-  const lines=o.lines||await srLinesFor(sale);
+  const lines=docNm(o.lines||await srLinesFor(sale));
   const tot=saleTotal(sale),paid=srPaid(sale),due=Math.max(0,tot-paid),recv=due>0.5;
   const b=imprBuilder(cols).init();
   const nm=imprLimpia((cfg.name||'').toUpperCase()).replace(/\s+/g,' ').trim();
@@ -15263,10 +15330,10 @@ function ntfItems(){
   const today=todayISO(),from=isoAdd(today,-7),out=[],evs=evLive(),seen=new Set(),byPD=new Map();
   evs.forEach(e=>{if(e.kind==='exp'&&e.pid!=null){const k=e.pid+'|'+e.date;if(!byPD.has(k))byPD.set(k,e);}});
   (state.products||[]).forEach(p=>{if(!p)return;prodExps(p).forEach(d=>{if(d<from)return;const e=byPD.get(p.id+'|'+d);if(e)seen.add(e.id);
-    out.push({k:'exp',date:d,time:e?(e.time||''):'',key:''+(p.key||''),desc:mnName(p),extra:e?(e.msg||''):'',go:'exp:'+p.id});});});
+    out.push({k:'exp',date:d,time:e?(e.time||''):'',key:''+(p.key||''),desc:pNmV(p),extra:e?(e.msg||''):'',go:'exp:'+p.id});});});
   evs.forEach(e=>{if(seen.has(e.id)||!e.date||e.date<from)return;
     if(expEvKind(e)){const p=e.kind==='exp'?P(e.pid):findByKey(e.key);if(e.kind==='exp'&&(!p||expEvOrphan(e)))return;   /* producto borrado o fecha quitada (mods144) */
-      out.push({k:'exp',date:e.date,time:e.allDay?'':(e.time||''),key:p?''+(p.key||''):''+(e.key||''),desc:p?mnName(p):(e.desc||''),extra:e.kind==='exp'?(e.msg||''):(p?(e.desc||''):''),go:p?'exp:'+p.id:'ev:'+e.id});return;}
+      out.push({k:'exp',date:e.date,time:e.allDay?'':(e.time||''),key:p?''+(p.key||''):''+(e.key||''),desc:p?pNmV(p):(e.desc||''),extra:e.kind==='exp'?(e.msg||''):(p?(e.desc||''):''),go:p?'exp:'+p.id:'ev:'+e.id});return;}
     if(e.done)return;out.push({k:'ag',date:e.date,time:e.allDay?'':(e.time||''),allDay:!!e.allDay,desc:e.desc||'',go:'ev:'+e.id});});
   try{spEvents().forEach(e=>{if(e.done||!e.date||e.date<from)return;out.push({k:'pay',date:e.date,time:e.time||'',desc:e.desc||'',go:'sale:'+e.saleId});});}catch(_){}
   try{ppEvents().forEach(e=>{if(e.done||!e.date||e.date<from)return;out.push({k:'ppay',date:e.date,time:e.time||'',desc:e.desc||'',go:'purch:'+e.purchId});});}catch(_){}   /* mods146b: "#Pago Compra" */
@@ -15418,7 +15485,7 @@ document.getElementById("device").addEventListener("click",e=>{
     if(a==="save-product")return saveProduct();
     if(a==="genkey")return genKey();
     if(a==="formcopy")return formCopy();   // mods143a
-    if(a==="fmed"){readForm();state.form.med=act2==='m'?'m':'';const fb=document.getElementById('formBody'),st=fb.scrollTop;fb.innerHTML=formHTML();attachForm();fb.scrollTop=st;return;}   /* mods237 */
+    if(a==="fmed"){fmedSet(act2);return;}   /* mods237 */
     if(a==="unitclr"){readForm();state.form.unit='';state.form.uOk=false;document.getElementById('formBody').innerHTML=formHTML();return attachForm();}
     if(a==="unitdef")return unitDefToggle(act2);
     if(a==="unitdel")return unitDelAsk(act2);
@@ -16016,7 +16083,7 @@ function fillPDet(){
     <button class="pd-ib" data-act="pdimgrm" aria-label="${t('remove')}">${svg(ICO_X)}</button>
     <button class="pd-ib" data-act="pdimgrot" aria-label="${t('pd_rotate')}">${svg(ICO_ROT)}</button></div>${orig}</div>
   <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('f_key')}</div><div class="pd-v">${svg(ICO_KEY)}<span>${exEsc(p.key||'—')}</span></div></div><button class="pd-ed" data-act="pdqr" aria-label="QR">${svg(ICO_QR)}</button>${ed('pdedit:key')}</div>
-  <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('pd_product')}</div><div class="pd-v">${svg(ICO_BOX)}<span>${exEsc(p.name||'')}${unit?` <span class="pd-u">· ${exEsc(unit)}</span>`:''}</span></div></div>${ed('pdedit:name')}</div>
+  <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('pd_product')}</div><div class="pd-v">${svg(ICO_BOX)}<span>${exEsc(nmV(p.name))}${unit?` <span class="pd-u">· ${exEsc(unit)}</span>`:''}</span></div></div>${ed('pdedit:name')}</div>
   <div class="pd-row"><div class="pd-tx"><div class="pd-l">${t('f_category')}</div><div class="pd-v">${svg(ICO_CAT)}<span>${exEsc(p.cat||t('cat_none'))}</span></div></div>${p.cat?`<button class="pd-ed" data-act="pdcatclr" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}${ed('pdcat')}</div>
   <div class="pd-two">
     <div class="pd-cell"><div class="pd-l">${t(dm?'f_qty_m':'f_qty')}</div><div class="pd-v num">${dm?qtyLoc(p.stock)+' m':p.stock}</div>${ed('pdedit:qty')}</div>
@@ -16154,7 +16221,7 @@ function fillMass(){
   cats.forEach((c,ci)=>{
     const ps=g[c];const n=ps.filter(p=>sel.has(p.id)).length;const st=n&&n===ps.length?'on':(n?'part':'');const open=!!MASS.open[c];
     h+=`<div class="ms-cat"><span class="chev ${open?'op':''}" data-act="massopen:${ci}">${chev}</span><span class="nm" data-act="massopen:${ci}">${exEsc(c)}${n?` <span class="ms-n num">${n}</span>`:''}</span><span class="ms-ck" data-act="masscat:${ci}">${massBox(st)}</span></div>`;
-    if(open)h+=ps.map(p=>`<div class="ms-p" data-act="massp:${p.id}"><div class="tx"><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(p.name||'')}</div><div class="pr"><span>${t('pd_cost')} <b class="num">${money(p.cost||0)}</b></span><span>${t('pd_sale')} <b class="num">${money(p.price||0)}</b></span></div></div>${massBox(sel.has(p.id)?'on':'')}</div>`).join('');
+    if(open)h+=ps.map(p=>`<div class="ms-p" data-act="massp:${p.id}"><div class="tx"><div class="k">${exEsc(p.key||'')}</div><div class="n">${exEsc(nmV(p.name))}</div><div class="pr"><span>${t('pd_cost')} <b class="num">${money(p.cost||0)}</b></span><span>${t('pd_sale')} <b class="num">${money(p.price||0)}</b></span></div></div>${massBox(sel.has(p.id)?'on':'')}</div>`).join('');
   });
   const body=document.getElementById('massBody');const y=body.scrollTop;
   body.innerHTML=h+(cats.length?'':`<div class="empty">${t('io_empty')}</div>`);body.scrollTop=y;
@@ -16213,7 +16280,7 @@ function spTilesHTML(q,box){
   const list=prodKeyFirst(state.products.filter(p=>!q||prodHit(p,q)).sort(prodCmp),q);
   const lim=state.spLimit||SP_PAGE;
   const tiles=list.slice(0,lim).map(p=>{const n=pc[p.id]||0;const price=p.price;/* mods146a: también Compras (precio de venta) */const nm=(''+(p.name||'')).replace(/^\.{3}\s*/,'');
-    return `<div class="sptile ${n||pcIn(p.id)?'on':''}" data-saleadd="${p.id}">${n||pcIn(p.id)?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box).replace('<img ',p.imgKey?`<img data-imgd="${exEsc(p.imgKey)}" `:'<img ')}</div><div class="k"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="n">${exEsc(mnName(p))}</div><div class="f">${state.pickMode==='compra'?`<b class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</b>`:`<span class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span>`}<b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${state.pickMode==='compra'?qtyLoc(n):n}</span>`:''}</div>`;}).join('');
+    return `<div class="sptile ${n||pcIn(p.id)?'on':''}" data-saleadd="${p.id}">${n||pcIn(p.id)?`<button class="salerm sprm" data-act="saledec:${p.id}" aria-label="${t('remove')}">${svg(ICO_X)}</button>`:''}<div class="spimg">${saleProdImg(p,box).replace('<img ',p.imgKey?`<img data-imgd="${exEsc(p.imgKey)}" `:'<img ')}</div><div class="k"><span>${exEsc(p.key||'')}</span>${stockIcon(p)}</div><div class="n">${exEsc(pNmV(p))}</div><div class="f">${state.pickMode==='compra'?`<b class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</b>`:`<span class="num">#${qtyLoc(p.stock)}${mSuf(isDist(p))}</span>`}<b class="num">${money(price)}</b></div>${n?`<span class="badge num">${svg(ICO_OK)}${state.pickMode==='compra'?qtyLoc(n):n}</span>`:''}</div>`;}).join('');
   return list.length?`<div class="sptiles">${tiles}</div>${list.length>lim?`<div class="loadmore" data-act="spmore">${ti('inv_more',{n:list.length-lim})}</div>`:''}`:'';
 }
 // Merma elige su producto con el mismo selector de la venta
@@ -16597,7 +16664,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261030181933';
+const APP_VERSION='20261101073600';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */

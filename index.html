@@ -11696,7 +11696,7 @@ async function lgConfirm(sale,ctx){if(LG_BUSY)return;const id=currentDataId();if
     if(r.net&&r.sent){const s2=await lgCall('relax_op_status',{p_store:id,p_op:pend.op});if(s2.data&&s2.data.found)r={data:s2.data.result};}}   /* respuesta perdida: ¿llegó? */
   finally{if(!(r&&r.data&&r.data.ok))lgBusy(false);}
   /* confirmada: sigue "ocupado" hasta bajar la venta y vaciar el carrito (un toque en medio no arma otra venta con el mismo carrito) */
-  if(r.data&&r.data.ok){try{lgPendDel(id,pend.op);await lgApply(id);const sv=state.sales.find(x=>''+x.id===''+pend.sale.id)||r.data.sale;if(ctx.after)ctx.after(sv);else{render();toast(ti('lg_ok',{n:sv.folio||sv.id}));}}finally{lgBusy(false);}return true;}
+  if(r.data&&r.data.ok){try{lgPendDel(id,pend.op);if(lgFast(id,r.data))lgApplyBg(id);else await lgApply(id);   /* mods250: sin esperar la bajada completa */const sv=state.sales.find(x=>''+x.id===''+pend.sale.id)||r.data.sale;if(ctx.after)ctx.after(sv);else{render();toast(ti('lg_ok',{n:sv.folio||sv.id}));}}finally{lgBusy(false);}return true;}
   if(r.data&&r.data.ok===false){lgPendDel(id,pend.op);if(r.data.errors&&r.data.errors.some(e=>e.code==='config_changed'))lgApply(id);
     await appAlert(t('lg_rej_t')+'\n\n'+lgErrList(r.data.errors).join('\n')+'\n\n'+(ctx.pend?t('lg_rej_draft'):t('lg_rej_keep')));if(ctx.pend){pend.st='rechazada';pend.why=r.data.errors;lgPendPut(id,pend);}render();return false;}
   if(r.error){lgPendDel(id,pend.op);if(/relax_ledger_off/.test(r.error.message||''))lgRefresh();await appAlert(lgErrMsg(r.error));render();return false;}
@@ -14316,7 +14316,7 @@ async function sbSyncWriteOne(sb,id,key){
     const t0=Date.now();const local=sbDocData(key);if(local===undefined)return {ok:true};
     if(Array.isArray(local)&&local.length)sbIntentClear(id,key,t0);   /* la lista ya no está vacía: la nota de "vaciada a propósito" ya no vale */
     const lj=JSON.stringify(local);const b=baseOf(id,key);
-    if(b&&b.json===lj&&!wtokGet(id,key)){sbIntentClear(id,key,t0);return {ok:true,skip:!landed};}   // sin cambios locales respecto a la nube (con una subida sin confirmar, antes se mira la nube); nada que subir: la nota se borra
+    if(b&&(b.json===lj||lgSameSet(key,local,b))&&!wtokGet(id,key)){sbIntentClear(id,key,t0);return {ok:true,skip:!landed};}   /* mods250: + mismos registros en otro orden */   // sin cambios locales respecto a la nube (con una subida sin confirmar, antes se mira la nube); nada que subir: la nota se borra
     /* mods204: subida directa — la base es la versión de la nube con hora BASE_TS: se sube sin bajarla (la condición updated_at la protege) */
     const bts=BASE_TS[id+'|'+key],fast=attempt===0&&!landed&&!!b&&!!bts&&!wtokGet(id,key)&&!restoreOw(id).has(key);
     if(!fast&&FASTMISS[key]){delete FASTMISS[key];if(await sbCheckWipe(id,sb,true))return {ok:true,skip:true};}   /* la subida directa no entró: ¿se vació la tienda? (la pregunta que se saltó) */
@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261110044050';
+const APP_VERSION='20261110093123';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -17973,5 +17973,76 @@ function mxLivePaint(){try{const el=document.getElementById('mxLive');if(!el||!M
   if(b&&k&&MX&&!document.getElementById('mxLive')){k.insertAdjacentHTML('afterend','<div id="mxLive" style="position:sticky;top:0;z-index:3;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 12px;box-shadow:0 2px 6px rgba(0,0,0,.12);display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;font-size:13.5px;line-height:1.3"></div>');
     b.style.scrollPaddingTop='64px';mxLivePaint();}}catch(_){}return r;};}
 {const _mp=mxPaint;mxPaint=function(){const r=_mp.apply(this,arguments);mxLivePaint();return r;};}
+
+
+/* ==== mods250 (2026-11-10): la venta se confirma rápido ====
+   Antes: el servidor confirmaba la venta y, con el letrero «Confirmando la venta en el servidor…» todavía puesto, la app volvía a BAJAR
+   enteros los documentos de productos y de ventas (en una tienda grande, unos 3 MB por la red del celular) y los fusionaba; solo entonces
+   mostraba el recibo. Ahora: el servidor ya devuelve la venta tal como la guardó y los saldos nuevos de lo vendido (r.data.sale y
+   r.data.stocks); eso se pone de una vez en lo local y en la copia base (lo mismo que dejaría la bajada), se muestra el recibo, y la bajada
+   completa se hace igual, DESPUÉS y sin letrero (trae lo que otros equipos hayan cambiado; nunca se salta).
+   La venta sigue confirmándose en el servidor ANTES de mostrarse: nada se da por guardado sin su respuesta.
+   Si algo no está como se espera (bases sin cargar, una subida en curso, el producto con un saldo propio sin subir, la venta ya está…),
+   lgFast devuelve false y se hace exactamente lo de antes (bajar y esperar). Apagarlo en un equipo: localStorage 'abanico.lgfast'='0'. */
+var LG_FAST_N=0,LG_SLOW_N=0,LG_FAST_WHY='';
+function lgFastOn(){try{return localStorage.getItem('abanico.lgfast')!=='0';}catch(_){return true;}}
+function lgFast(id,res){
+  const no=w=>{LG_SLOW_N++;LG_FAST_WHY=w;return false;};
+  try{
+    if(!lgFastOn())return no('apagado');
+    if(!res||res.repeat||!res.sale||typeof res.sale!=='object'||res.sale.id==null||!res.stocks||typeof res.stocks!=='object')return no('respuesta');
+    if(id!==currentDataId())return no('tienda');
+    if(!BASES_LOADED[id]||(SALES_LOADING[id]&&!SALES_DONE[id]))return no('cargando');
+    if(SYNC_APPLYING||BK_RESTORING===id||sbHoldApply())return no('ocupado');
+    for(const k of ['products','sales']){if(FLUSHING_KEY===k||sbBusyKey(k)||wtokGet(id,k)||sbProvHold(id,k))return no('subiendo '+k);}
+    const bp=baseOf(id,'products'),bs=baseOf(id,'sales');if(!bp||!bp.arr||!bs||!bs.arr)return no('sin base');
+    if(!Array.isArray(state.products)||!Array.isArray(state.sales))return no('estado');
+    const sid=''+res.sale.id;if(bs.map.has(sid)||state.sales.some(x=>x&&''+x.id===sid))return no('ya está');
+    const pa=JSON.parse(bp.json),sa=JSON.parse(bs.json);if(!Array.isArray(pa)||!Array.isArray(sa))return no('base');
+    const idx=new Map();pa.forEach((x,i)=>{if(x&&x.id!=null&&!idx.has(''+x.id))idx.set(''+x.id,i);});
+    const ch=[];
+    for(const k of Object.keys(res.stocks)){const n=res.stocks[k]&&res.stocks[k].stock;if(typeof n!=='number'||!isFinite(n))return no('saldo');
+      const p=state.products.find(x=>x&&''+x.id===k),i=idx.get(k);if(!p||i===undefined)return no('producto');
+      const b=pa[i];if(typeof p.stock!=='number'||typeof b.stock!=='number'||p.stock!==b.stock)return no('saldo propio sin subir');   /* un cambio de saldo de este equipo aún sin subir: lo fusiona la bajada, como antes */
+      ch.push([p,b,n]);}
+    /* de aquí en adelante nada falla a medias: base y local reciben lo mismo, en el mismo instante (como al aplicar lo bajado) */
+    ch.forEach(([p,b,n])=>{b.stock=n;p.stock=n;});
+    sa.unshift(JSON.parse(JSON.stringify(res.sale)));   /* el servidor la pone de primera */
+    setBase(id,'products',pa);setBase(id,'sales',sa);
+    setStateDoc('sales',[res.sale].concat(state.sales),id);
+    for(const k of ['products','sales'])WRITE_SEQ[k]=(WRITE_SEQ[k]||0)+1;   /* una bajada que venía en camino leyó lo de ANTES de esta venta: se descarta y se vuelve a leer (igual que tras una subida propia) */
+    persistLocal();
+    LG_FAST_N++;LG_FAST_WHY='';return true;
+  }catch(e){return no('error '+(e&&e.message||e));}
+}
+/* la bajada completa de siempre, sin tener a nadie esperando; el aviso a los otros equipos sale ya (no espera la bajada).
+   Varias ventas seguidas NO lanzan una bajada cada una (se estorbaban entre sí y con la venta siguiente por la red del celular):
+   se espera a que pase 1,5 s sin ventas y corre UNA; si llega otra venta mientras baja, al terminar corre una más. */
+var LG_BG_T=null,LG_BG_RUN=false,LG_BG_AGAIN=false,LG_BG_N=0;
+function lgApplyBg(id){
+  try{if(SB_CHAN&&SB_CHAN_ID===id)SB_CHAN.send({type:'broadcast',event:'changed',payload:{keys:['products','sales']}});}catch(_){}
+  lgBgSoon(id);
+}
+function lgBgSoon(id){try{clearTimeout(LG_BG_T);}catch(_){}LG_BG_T=setTimeout(()=>{LG_BG_T=null;lgBgRun(id);},1500);}
+async function lgBgRun(id){
+  if(LG_BG_RUN){LG_BG_AGAIN=true;return;}
+  if(id!==currentDataId())return;
+  LG_BG_RUN=true;LG_BG_N++;
+  try{await sbPullAndApply(id,['products','sales']);}catch(_){}
+  finally{LG_BG_RUN=false;if(LG_BG_AGAIN){LG_BG_AGAIN=false;if(!LG_BG_T)lgBgSoon(id);}}
+}
+/* Lo que hacía lenta la venta SIGUIENTE: la pantalla tiene los productos en orden alfabético (ensureProdOrder) y la nube puede tenerlos en otro
+   orden; con eso, cada guardado («persist») veía el documento "distinto" y lo subía ENTERO sin que hubiera cambiado ningún producto (la fusión
+   adopta el orden de la nube, así que se escribía lo mismo que ya había). Si los registros son exactamente los mismos y solo cambia el orden,
+   no hay nada que subir. Solo productos; se apaga con el mismo interruptor ('abanico.lgfast'='0'). */
+var LG_SAME_N=0;
+function lgSameSet(key,local,b){
+  try{
+    if(key!=='products'||!lgFastOn()||!b||!b.arr||!b.map||!Array.isArray(local)||local.length!==b.map.size)return false;
+    const seen=new Set();
+    for(const x of local){const k=recKey(key,x);if(k==null||seen.has(k))return false;seen.add(k);if(b.map.get(k)!==JSON.stringify(x))return false;}
+    LG_SAME_N++;return true;
+  }catch(_){return false;}
+}
 
 </script>

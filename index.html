@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261110194218';
+const APP_VERSION='20261111100309';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18125,5 +18125,284 @@ function lgRejDiff(id,errs){
     return L.length?'\n\n'+L.join('\n'):'';
   }catch(_){return '';}
 }
+
+
+/* ==== mods252 (2026-11-11): ORDEN DE COMPRA POR PROVEEDOR ====
+   Pedido de Fabio (11-nov): cada orden empieza eligiendo UN proveedor y muestra sus productos para pedirlos sin recordarlos de memoria.
+   - Arriba, en vez de «Nombre/Clave», el campo «Proveedor»: al escribir salen los proveedores cuyo nombre (o empresa) EMPIEZA por lo
+     escrito; se elige uno.
+   - Productos «del proveedor» = los que de verdad se le compraron o se le pidieron: compras (por su proveedor registrado o, si no tiene,
+     por el nombre, la misma regla de «Proveedor Plantilla») y órdenes de compra. No se inventan asociaciones: Relax no guarda un
+     proveedor en la ficha del producto.
+   - Se toca un producto para pedirlo y se escribe la cantidad (la fila de siempre de la orden: Cantidad · Compra $ · Subtotal).
+   - Una orden = un proveedor: un producto que solo se le ha comprado a OTRO proveedor no entra (lista, lector o selector). Cambiar de
+     proveedor con productos elegidos pregunta antes de quitarlos; CANCELAR deja todo como estaba.
+   - Guardar (abajo, como en Ventas) revisa proveedor, al menos un producto y cantidades válidas. «Orden de compra registrada» sale
+     SOLO cuando la nube confirmó la orden (la misma pregunta a la nube de mods246). Si no se pudo confirmar: se dice por qué, la
+     selección se queda y «Guardar» reintenta sobre la MISMA orden (mismo id y folio: no se duplica).
+   - Con la orden confirmada se abre la ventana «Recibo / Ticket» de Ventas (franja «Orden de compra Registrada», PDF/JPG/Texto,
+     compartir, WhatsApp, Telegram, correo, descargar). Cerrarla o que falle un envío no borra ni crea órdenes.
+   - Crear la orden no toca inventario ni registra compras (igual que antes).
+   Apagarlo en un equipo: localStorage 'abanico.po2'='0' (queda exactamente lo de antes). */
+var PO2_IDX=null,PO2_RAW=new Map(),PO2_RAWBUSY=false,PO2_SUG=[],PO2_SAVING=false,PO2_MORE_T=0;
+/* (11-nov, velocidad) la lista del proveedor muestra 60 como Inventario (INV_PAGE) y carga 120 más al bajar; al escribir vuelve a 60 */
+const PO2_PAGE=(typeof INV_PAGE==='number'&&INV_PAGE>0)?INV_PAGE:60;
+(function(){try{
+  Object.assign(I18N.es,{po2_prov_ph:'Proveedor',po2_prov_hint:'Escribe el nombre del proveedor y elígelo de la lista. Verás todos los productos que le has comprado o pedido.',
+    po2_prov_none:'Ningún proveedor empieza por «{q}».',po2_prov_more:'… y {n} más: sigue escribiendo.',po2_unreg:'sin registrar',po2_n_prods:'{n} producto(s)',po2_no_link:'sin productos vinculados',
+    po2_prods_h:'Productos de {p}',po2_filter_ph:'Buscar en sus productos',po2_filter_none:'Ningún producto de este proveedor coincide con «{q}».',
+    po2_no_prods:'{p} todavía no tiene productos vinculados: no hay compras ni órdenes de compra a este proveedor.',po2_pick_other:'Elegir otro proveedor',
+    po2_others_h:'Otros productos de esta orden',po2_last:'Última compra {d}',po2_more:'Ver {n} más',po2_sel_n:'{n} elegido(s)',
+    po2_change_q:'Si cambias de proveedor se quitarán los {n} producto(s) elegidos de esta orden.\n\n¿Cambiar de proveedor?',
+    po2_other:'«{n}» se le compra a {p}, no a {q}.\n\nCada orden de compra es de un solo proveedor: pídelo en una orden para ese proveedor.',
+    po2_first:'Primero elige el proveedor.',po2_need_items:'Elige al menos un producto y escribe la cantidad.',
+    po2_qty_bad:'La cantidad de «{n}» no es válida: escribe un número mayor que 0.',po2_qty_big:'La cantidad de «{n}» es demasiado grande.',
+    po2_saving:'Guardando la orden de compra…',po2_ok:'Orden de compra Registrada',
+    po2_fail:'La orden de compra #{n} NO quedó confirmada.\n\n{why}\n\nQuedó guardada en este equipo y se enviará sola cuando haya conexión. Tu selección sigue aquí: toca «Guardar» para reintentar (no se crea otra orden).',
+    po2_why_off:'No hay conexión a internet.',po2_why_slow:'La nube no respondió a tiempo.',
+    po2_share_cancel:'Compartir cancelado. La orden #{n} quedó guardada.',
+    po2_share_fail:'No se pudo abrir «Compartir» ({why}). La orden #{n} quedó guardada: puedes enviarla desde la orden con «Enviar al proveedor».',
+    po2_loading:'Buscando más productos de este proveedor en las compras importadas…'});
+  Object.assign(I18N.en,{po2_prov_ph:'Provider',po2_prov_hint:'Type the provider name and pick it from the list. You will see every product you have bought from or ordered to them.',
+    po2_prov_none:'No provider starts with «{q}».',po2_prov_more:'… and {n} more: keep typing.',po2_unreg:'not registered',po2_n_prods:'{n} product(s)',po2_no_link:'no linked products',
+    po2_prods_h:'Products of {p}',po2_filter_ph:'Search their products',po2_filter_none:'No product of this provider matches «{q}».',
+    po2_no_prods:'{p} has no linked products yet: there are no purchases or purchase orders to this provider.',po2_pick_other:'Pick another provider',
+    po2_others_h:'Other products in this order',po2_last:'Last purchase {d}',po2_more:'See {n} more',po2_sel_n:'{n} selected',
+    po2_change_q:'If you change the provider, the {n} selected product(s) will be removed from this order.\n\nChange provider?',
+    po2_other:'«{n}» is bought from {p}, not from {q}.\n\nEach purchase order has a single provider: order it in an order for that provider.',
+    po2_first:'Pick the provider first.',po2_need_items:'Pick at least one product and type the quantity.',
+    po2_qty_bad:'The quantity of «{n}» is not valid: type a number greater than 0.',po2_qty_big:'The quantity of «{n}» is too large.',
+    po2_saving:'Saving the purchase order…',po2_ok:'Purchase Order Registered',
+    po2_fail:'Purchase order #{n} was NOT confirmed.\n\n{why}\n\nIt is saved on this device and will upload by itself when there is a connection. Your selection is still here: tap «Save» to retry (no other order is created).',
+    po2_why_off:'There is no internet connection.',po2_why_slow:'The cloud did not answer in time.',
+    po2_share_cancel:'Sharing cancelled. Order #{n} is saved.',
+    po2_share_fail:'Could not open «Share» ({why}). Order #{n} is saved: you can send it from the order with «Send to provider».',
+    po2_loading:'Looking for more products of this provider in the imported purchases…'});
+}catch(_){}})();
+function po2On(){try{return localStorage.getItem('abanico.po2')!=='0';}catch(_){return true;}}
+function po2Act(){return !!state.poMode&&po2On();}
+function po2Norm(s){return fold((''+(s==null?'':s)).trim());}
+/* proveedor de una compra u orden: el registrado (si existe) o el nombre escrito; una importada sin proveedor registrado no cuenta (como tplPurchases) */
+function po2KeyOf(c){if(!c)return null;const has=c.provId!=null&&c.provId!=='';if(has&&provById(c.provId))return 'id:'+c.provId;if(c.imported&&!has)return null;const n=po2Norm(c.provider);return n?'n:'+n:null;}
+/* índice proveedor → productos (con la última compra) y producto → proveedores; se rehace solo si cambian los datos */
+function po2Index(){const sid=currentDataId(),sig=sid+'|'+DATA_VER+'|'+PO2_RAW.size;if(PO2_IDX&&PO2_IDX.sig===sig)return PO2_IDX;
+  const X={sig,by:new Map(),rev:new Map(),names:new Map(),need:0};
+  /* (11-nov, velocidad) productos por id y por clave en mapas: antes P() recorría el catálogo por cada línea (≈3 s en un celular lento) */
+  const byName=new Map(),byId=new Map(),byKey=new Map();(state.products||[]).forEach(p=>{if(!p)return;byId.set(p.id,p);if(p.name)byName.set(po2Norm(p.name),p);const kk=(''+(p.key||'')).trim();if(kk&&!byKey.has(kk))byKey.set(kk,p);});
+  const add=(k,pid,c,d)=>{if(pid==null||!byId.get(+pid))return;pid=+pid;let m=X.by.get(k);if(!m){m=new Map();X.by.set(k,m);}const o=m.get(pid);
+    if(!o)m.set(pid,{c:+c||0,d:d||'',n:1});else{o.n++;if((d||'')>=o.d){o.c=+c||0;o.d=d||'';}}
+    let r=X.rev.get(pid);if(!r){r=new Set();X.rev.set(pid,r);}r.add(k);};
+  const nm=(k,c)=>{if(k&&k.startsWith('n:')&&!X.names.has(k))X.names.set(k,(''+c.provider).trim());};
+  (state.purchases||[]).forEach(c=>{if(!c||c.del)return;const k=po2KeyOf(c);if(!k)return;nm(k,c);const d=c.date||'';
+    if(Array.isArray(c.items)&&c.items.length){c.items.forEach(i=>{if(i)add(k,i.id,i.cost,d);});return;}
+    if(Array.isArray(c.lines)&&c.lines.length){c.lines.forEach(l=>{if(!l)return;const p=l.pid!=null?byId.get(+l.pid):byName.get(po2Norm(l.name));if(p)add(k,p.id,l.cost!=null?l.cost:l.price,d);});return;}
+    const raw=PO2_RAW.get(''+c.id);if(raw){raw.forEach(l=>{const p=byName.get(po2Norm(l.name));if(p)add(k,p.id,l.price,d);});return;}
+    X.need++;});
+  (state.porders||[]).forEach(o=>{if(!o||o.del)return;const k=po2KeyOf(o);if(!k)return;nm(k,o);
+    (o.lines||[]).forEach(l=>{if(!l)return;const p=(l.pid!=null&&byId.get(+l.pid))||(l.key&&byKey.get((''+l.key).trim()))||byName.get(po2Norm(l.name));if(p)add(k,p.id,l.cost,o.issue||'');});});
+  PO2_IDX=X;if(X.need&&!PO2_RAWBUSY)po2LoadRaw();return X;}
+/* compras importadas cuyas líneas están en el archivo crudo (una sola vez por compra; luego se redibuja si sigue la orden abierta) */
+async function po2LoadRaw(){PO2_RAWBUSY=true;let n=0;
+  try{let idx=null;try{idx=await pcRawIndex();}catch(_){idx=null;}
+    for(const c of (state.purchases||[]).slice()){if(!c||c.del||PO2_RAW.has(''+c.id)||!po2KeyOf(c))continue;if((Array.isArray(c.items)&&c.items.length)||(Array.isArray(c.lines)&&c.lines.length))continue;
+      let ls=[];try{ls=(await pcLinesFor(c,idx))||[];}catch(_){ls=[];}PO2_RAW.set(''+c.id,ls.map(l=>({name:l.name,price:+l.price||0})));n++;}}
+  finally{PO2_RAWBUSY=false;}
+  if(n&&po2Act()&&state.screen==='compras'&&!po2Typing())render();}
+function po2Typing(){const a=document.activeElement;return !!a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&!!a.closest&&!!a.closest('#body');}
+/* proveedor puesto en la orden: {id (o null si no está registrado), name} */
+function po2Sel(){const n=(''+(state.pprovider||'')).trim();if(!n)return null;const id=state.pprovId;const pv=id!=null&&id!==''?provById(id):null;
+  return {id:pv&&provName(pv).toLowerCase()===n.toLowerCase()?pv.id:null,name:n};}
+function po2Keys(sel){const k=[];if(!sel)return k;if(sel.id!=null)k.push('id:'+sel.id);const n=po2Norm(sel.name);if(n)k.push('n:'+n);
+  if(sel.id==null){const pv=provByName(sel.name);if(pv)k.push('id:'+pv.id);}return k;}
+function po2KeyName(k){if(k.startsWith('id:')){const pv=provById(k.slice(3));return pv?pcProvLabel(pv):'';}return (PO2_IDX&&PO2_IDX.names.get(k))||k.slice(2);}
+/* productos del proveedor: id → {c costo de la última compra, d fecha, n veces} */
+function po2Prods(sel){const X=po2Index(),out=new Map();po2Keys(sel).forEach(k=>{const m=X.by.get(k);if(m)m.forEach((o,pid)=>{const a=out.get(pid);if(!a||o.d>=a.d)out.set(pid,{...o,n:(a?a.n:0)+o.n});else a.n+=o.n;});});return out;}
+/* ¿el producto solo se le ha comprado a OTRO proveedor? → el nombre de ese proveedor; si no, '' */
+function po2Other(pid,sel){const X=po2Index(),r=X.rev.get(+pid);if(!r||!r.size||!sel)return '';const ks=new Set(po2Keys(sel));for(const k of r)if(ks.has(k))return '';
+  const names=[...r].map(po2KeyName).filter(Boolean);return names.slice(0,2).join(', ')||'—';}
+function po2SelLabel(sel){const pv=sel&&sel.id!=null?provById(sel.id):null;return pv?pcProvLabel(pv):(sel?sel.name:'');}
+function po2Gate(id){if(!po2Act())return true;const sel=po2Sel();
+  if(!sel){appAlert(t('po2_first')).then(()=>{const s=document.getElementById('searchInput');if(s)try{s.focus();}catch(_){}});return false;}
+  const o=po2Other(id,sel);if(o){const p=P(+id);appAlert(ti('po2_other',{n:p?pNmV(p):'',p:o,q:po2SelLabel(sel)}));return false;}return true;}
+/* sugerencias: registrados cuyo nombre o empresa EMPIEZA por lo escrito + nombres de compras/órdenes sin proveedor registrado */
+function po2ProvList(q){const X=po2Index(),out=[],seen=new Set();
+  provLive().forEach(p=>{const n=provName(p);if(!n)return;const nf=po2Norm(n),cf=po2Norm(p.company);seen.add(nf);
+    if(nf.startsWith(q)||(cf&&cf.startsWith(q)))out.push({id:p.id,name:n,label:pcProvLabel(p),phone:(p.phone||p.phone2||''),reg:true});});
+  X.names.forEach((v,k)=>{const nf=k.slice(2);if(seen.has(nf)||!nf.startsWith(q))return;seen.add(nf);out.push({id:null,name:v,label:v,phone:'',reg:false});});
+  const C=prodColl();return out.sort((a,b)=>C.compare(a.label.toUpperCase(),b.label.toUpperCase()));}
+const PO2_PLUS='<path d="M12 5v14M5 12h14"/>';
+function po2SugHTML(){const q=po2Norm(state.q);if(!q){PO2_SUG=[];return `<div class="salehelp po2help">${t('po2_prov_hint')}</div>`;}
+  const all=po2ProvList(q),L=all.slice(0,60);PO2_SUG=L;
+  if(!L.length)return `<div class="empty po2none">${exEsc(ti('po2_prov_none',{q:(''+state.q).trim()}))}</div><div class="po2c"><button class="btn ghost po2addp" data-act="pcprovadd">${svg(IC_PRV_ADD)} ${t('prv_add_t')}</button></div>`;
+  const rows=L.map((s,i)=>{const n=po2Prods(s).size;const sub=[s.phone,n?ti('po2_n_prods',{n}):t('po2_no_link'),s.reg?'':t('po2_unreg')].filter(Boolean).join(' · ');
+    return `<div class="row po2sug" data-act="po2prov:${i}"><div class="av">${svg(S_PER)}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(s.label)}</div><div class="s">${exEsc(sub)}</div></div></div>`;}).join('');
+  return `<div class="list po2sugs">${rows}</div>`+(all.length>L.length?`<div class="salehelp">${exEsc(ti('po2_prov_more',{n:all.length-L.length}))}</div>`:'');}
+/* fila de un producto elegido = la fila de siempre de la orden (mismos campos: el teclado, Enter y los totales funcionan igual) */
+function po2OnRow(p,i,last,meta){const c=pcCells(i.id),sym=exEsc(moneySym()),box=svg(PC_BOX_IC),trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
+  const f=(at,id,val,ph,uns,hint)=>`<input autocomplete="off" class="cinp num" ${at}="${id}" type="text" inputmode="decimal" enterkeyhint="${hint}" data-uns="${uns}" placeholder="${exEsc(ph)}" value="${exEsc(val)}">`;
+  return `<div class="crow pcrow po po2on" data-pcrow="${i.id}">
+      <div class="crow-name poname">${box}<span>${exEsc(pNmV(p))}</span></div>${meta?`<div class="po2meta">${meta}</div>`:''}
+      <div class="pcgrid">
+        <div class="pccell"><span class="cfl">${t('me_qty')}</span>${f('data-pqty',i.id,pcQtyShow(i.id),t('cp_qty_ph'),'3','next')}</div>
+        <div class="pccell"><span class="cfl">${t('po_buy')} ${sym}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('po_buy'),'1',last?'done':'next')}</div>
+        <div class="pccell"><span class="cfl">${t('sale_subtotal')} ${sym}</span><b class="pcv num csub">${c.sub}</b></div>
+      </div>
+      <div class="crow-ico pcico"><span class="pcic-l"></span><span class="pcic-m"></span><span class="pcic-r"><button class="cico del" data-pcdel="${i.id}" title="${t('remove')}">${trash}</button></span></div>
+    </div>`;}
+function po2Meta(p,o){const a=[];if(p.key)a.push(exEsc(p.key));if(o&&o.d)a.push(exEsc(ti('po2_last',{d:o.d}))+' · '+money(o.c));a.push(t('f_qty')+' '+qtyLoc(p.stock)+mSuf(isDist(p)));return a.join(' · ');}
+function po2OffRow(p,o){return `<div class="row po2row" data-act="po2add:${p.id}"><div class="av">${saleProdImg(p,svg(PC_BOX_IC))}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(pNmV(p))}</div><div class="s">${po2Meta(p,o)}</div></div><button class="po2plus" data-act="po2add:${p.id}" aria-label="+">${svg(PO2_PLUS)}</button></div>`;}
+/* pie: Fecha de vencimiento e Información (los de siempre) y, abajo y fijos, Total y ✕ / Guardar (como Ventas). Sin el campo de proveedor de abajo: va arriba */
+function po2FootHTML(n){const f=poFootHTML(),pv=pcProvFieldHTML('po'),tot=pcTotalHTML();let g=f.split(pv).join('');const i=g.indexOf('<div class="saveact">');
+  const acts=i>=0?g.slice(i):'';g=(i>=0?g.slice(0,i):g).split(tot).join('');
+  return g+`<div class="po2bot">${tot.replace('<div class="ctotal">','<div class="ctotal po2tot"><span class="po2n">'+exEsc(ti('po2_sel_n',{n}))+'</span>')}${acts}</div>`;}
+function po2Screen(){
+  const sel=po2Sel(),ic=svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>');
+  if(!sel){   /* 1) primero el proveedor */
+    const fld=`<div class="invhead po2ph"><div class="isearch po2prov">${svg(S_PER)}<input autocomplete="off" id="searchInput" enterkeyhint="search" aria-label="${exEsc(t('po2_prov_ph'))}" placeholder="${exEsc(t('po2_prov_ph'))}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div><button class="round" data-act="pcprovadd" aria-label="${exEsc(t('prv_add_t'))}" title="${exEsc(t('prv_add_t'))}">${svg(IC_PRV_ADD)}</button></div>`;
+    const rows=pcItemsRecent();   /* una orden vieja sin proveedor: sus productos siguen a la vista */
+    return '<div class="stickhead">'+poHeadHTML()+fld+'</div>'+po2SugHTML()+(rows.length?'<div class="cartwrap pocart po2">'+poRowsHTML()+'</div>':'');}
+  /* 2) el proveedor elegido y sus productos */
+  const lk=sel.id!=null?provById(sel.id):null,label=lk?pcProvLabel(lk):sel.name;
+  const chip=`<div class="po2sel"><span class="pfico">${svg(S_PER)}</span><div class="po2selt"><span class="po2l">${exEsc(t('po2_prov_ph'))}</span><b>${exEsc(label)}</b></div><button class="pvclr po2x" data-act="po2provclr" aria-label="✕">✕</button></div>`;
+  const filt=`<div class="invhead po2fh"><div class="isearch">${ic}<input autocomplete="off" id="searchInput" enterkeyhint="search" placeholder="${exEsc(t('po2_filter_ph'))}" value="${exEsc(state.q)}">${state.q?`<span class="clr" data-act="clearq">✕</span>`:''}</div>
+    <button class="round" data-act="compraprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
+    <button class="round" data-act="scan:purchase">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button></div>`;
+  const PM=po2Prods(sel),q=fold((state.q||'').toLowerCase().trim()),inC=new Set(pcItemsRecent().map(i=>i.id)),items=new Map(pcItemsRecent().map(i=>[i.id,i]));
+  const pm=new Map();(state.products||[]).forEach(p=>{if(p)pm.set(p.id,p);});
+  let mine=[...PM.keys()].map(id=>pm.get(id)).filter(Boolean).sort(prodCmp);const total=mine.length;
+  if(state.po2LimQ!==q){state.po2LimQ=q;state.po2Lim=0;}   /* al escribir en el buscador vuelve a la primera página */
+  if(q)mine=prodKeyFirst(mine.filter(p=>prodHit(p,q)),q);
+  const lim=state.po2Lim||PO2_PAGE,shown=mine.filter((p,k)=>k<lim||inC.has(p.id));
+  const lastId=(()=>{const a=[...items.keys()];return a[a.length-1];})();
+  const rowOf=p=>inC.has(p.id)?po2OnRow(p,items.get(p.id),p.id===lastId,po2Meta(p,PM.get(p.id))):po2OffRow(p,PM.get(p.id));
+  const others=pcItemsRecent().filter(i=>!PM.has(i.id)).map(i=>{const p=P(i.id);return p?po2OnRow(p,i,i.id===lastId,po2Meta(p,null)):'';}).join('');
+  let list;
+  if(!total)list=`<div class="po2empty"><div class="salehelp">${exEsc(ti('po2_no_prods',{p:label}))}</div><div class="po2c"><button class="btn ghost" data-act="po2provclr">${t('po2_pick_other')}</button></div></div>`;
+  else if(!mine.length)list=`<div class="empty">${exEsc(ti('po2_filter_none',{q:(''+state.q).trim()}))}</div>`;
+  else list=shown.map(rowOf).join('')+(mine.length>shown.length?`<div class="loadmore" data-act="po2more">${exEsc(ti('po2_more',{n:mine.length-shown.length}))}</div>`:'');
+  const head=`<div class="section-h po2h"><h2>${exEsc(ti('po2_prods_h',{p:sel.name}))} · ${total}</h2></div>`;
+  const loading=PO2_IDX&&PO2_IDX.need&&PO2_RAWBUSY?`<div class="salehelp po2load">${t('po2_loading')}</div>`:'';
+  return '<div class="stickhead">'+poHeadHTML()+chip+filt+'</div>'+`<div class="cartwrap pocart po2">${head}${loading}${list}${others?`<div class="section-h po2h"><h2>${t('po2_others_h')}</h2></div>`+others:''}${po2FootHTML(inC.size)}</div>`;}
+/* elegir proveedor */
+function po2PickProv(i){const s=PO2_SUG[+i];if(!s||!po2Act())return;state.pprovider=s.name;state.pprovId=s.id;state.pprovShort=false;state.q='';state.po2Lim=0;
+  try{const a=document.activeElement;if(a&&a.blur)a.blur();}catch(_){}render();try{document.getElementById('screen').scrollTop=0;}catch(_){}}
+/* cambiar de proveedor: con productos elegidos pregunta; CANCELAR deja todo igual */
+async function po2ProvClr(){if(!po2Act())return;const n=pcartRows().length;
+  if(n&&!await appConfirmL(ti('po2_change_q',{n}),t('ask_cancel'),t('ask_ok')))return;if(!po2Act())return;
+  ['pcart','pcost','pprice','pcTxt','pcCostTxt','pcSaleTxt','pcartAt','pcPk'].forEach(k=>{state[k]={};});
+  state.pprovider='';state.pprovId=null;state.pprovShort=false;state.q='';state.po2Lim=0;render();
+  setTimeout(()=>{const s=document.getElementById('searchInput');if(s)try{s.focus();}catch(_){}},30);}
+function po2Add(id){id=+id;if(!P(id)||!po2Gate(id))return;if(state.pcart&&state.pcart[id]!=null)return pcFocus(id);
+  const o=po2Prods(po2Sel()).get(id);pcAddLine(id,o&&o.c>0?{cost:o.c}:{});}
+/* ¿la nube tiene ESTA versión de la orden? (misma pregunta que mods246: store_docs.data @> [{id, folio, edited}]) */
+async function po2Confirm(o){const sid=currentDataId();if(!ccOn())return {ok:true,local:true};   /* tienda solo en este equipo: persist() ya la guardó */
+  const m={id:o.id,folio:o.folio};if(o.edited)m.edited=o.edited;const t0=Date.now();
+  for(;;){if(!sbOnline())return {ok:false,why:t('po2_why_off')};
+    if(ccSettled(sid,'porders')){let bad;try{bad=await ccCloud(sid,[{key:'porders',m}]);}catch(e){return {ok:false,why:ccWhy(e)};}
+      if(!bad.length)return {ok:true};if(Date.now()-t0>20000)return {ok:false,why:t('po2_why_slow')};await ccSl(1000);continue;}
+    const er=CC_ERR&&CC_ERR[sid+'|porders'];if(er&&er.at>=t0&&sbIsDirty(sid,'porders'))return {ok:false,why:er.msg};
+    if(Date.now()-t0>20000)return {ok:false,why:t('po2_why_slow')};await ccSl(300);}}
+/* Guardar */
+async function po2Save(){const m=state.poMode;if(!m||PO2_SAVING)return;
+  try{const a=document.activeElement;if(a&&pcFieldOf(a))pcFieldCommit(a);}catch(_){}
+  const de=document.getElementById('poDue');if(de&&(de.value||'')!==(m.due||''))poDueSet(de);
+  const sel=po2Sel();if(!sel){await appAlert(t('prv_required_po'));const s=document.getElementById('searchInput');if(s)try{s.focus();}catch(_){}return;}
+  const rows=pcItemsRecent();if(!rows.length){await appAlert(t('po2_need_items'));return;}
+  for(const i of rows){const p=P(i.id),nm=p?pNmV(p):'';
+    if(!(i.q>0)||!isFinite(i.q)||!pcDig(pcQtyShow(i.id))){await appAlert(ti('po2_qty_bad',{n:nm}));pcFocus(i.id,'q');return;}
+    if(i.q>1e6){await appAlert(ti('po2_qty_big',{n:nm}));pcFocus(i.id,'q');return;}
+    if(!pcDig(pcCostShow(i.id))){await appAlert(ti('cp_cost_empty',{n:nm}));pcFocus(i.id,'c');return;}
+    const ot=po2Other(i.id,sel);if(ot){await appAlert(ti('po2_other',{n:nm,p:ot,q:po2SelLabel(sel)}));return;}}
+  if(!m.due){await appAlert(t('po_due_need'));poDueFocus();return;}
+  let o=m.id?poById(m.id):null;if(o&&o.recvPurchase!=null){appAlert(ti('po_was_recv',{n:o.folio}));return;}
+  const lines=rows.map(i=>{const p=P(i.id);const c=pLineCost(i.id);return {pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};});
+  const pv=(sel.id!=null&&provById(sel.id))||provByName(sel.name);
+  const data={lines,total:pcartTotal(),provider:sel.name,provId:pv?pv.id:undefined,note:(''+(state.pnote||'')).trim(),due:m.due};
+  state.porders=state.porders||[];
+  if(o){Object.assign(o,data);o.edited=Date.now();}
+  else{const folio=state.porders.reduce((a,x)=>Math.max(a,+x.folio||0),500)+1;o={id:'O'+Date.now().toString(36)+Math.floor(Math.random()*1e3),folio,issue:todayISO(),...data};state.porders.unshift(o);}
+  m.id=o.id;   /* desde aquí, Guardar (también un reintento) actualiza ESTA orden: mismo id y folio, nunca otra */
+  const id=o.id,fol=o.folio;PO2_SAVING=true;let r;
+  try{lgBusy(true,t('po2_saving'));persist();r=await po2Confirm(o);}catch(e){r={ok:false,why:ccWhy(e)};}finally{PO2_SAVING=false;lgBusy(false);}
+  if(r.ok){if(state.poMode===m){poEnd();go('porders');openPO(id);}
+    return po2Done(id);}
+  if(state.poMode===m){m.sig=poSig();render();}
+  try{if(ccOn()){const it={uid:'cc'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),store:currentDataId(),what:t('po_title')+' #'+fol,del:false,checks:[{key:'porders',m:{id,folio:fol,...(o.edited?{edited:o.edited}:{})}}],at:Date.now(),told:1};ccPend(it);}}catch(_){}   /* cuando suba: «ya quedó en la nube» (mods246) */
+  await appAlert(ti('po2_fail',{n:fol,why:r.why||t('cc_why_net')}));}
+/* compartir: el menú nativo (WhatsApp u otras apps); sin él, WhatsApp como «Enviar al proveedor». Nada de esto toca la orden */
+async function po2Share(id){const o=poById(id);if(!o)return;const text=poText(o),title=t('po_title')+' #'+o.folio;
+  if(navigator.share){try{await navigator.share({title,text});return;}
+    catch(e){if(e&&e.name==='AbortError'){toast(ti('po2_share_cancel',{n:o.folio}));return;}appAlert(ti('po2_share_fail',{n:o.folio,why:(e&&(e.name||e.message))||'error'}));return;}}
+  try{state.poOpen=o.id;poWhatsApp();}catch(e){appAlert(ti('po2_share_fail',{n:o.folio,why:(e&&(e.name||e.message))||'error'}));}}
+/* (11-nov, pedido de Fabio con la captura de Ventas) al registrar la orden se abre la MISMA ventana «Recibo / Ticket» de Ventas:
+   franja verde «Orden de compra Registrada», PDF · JPG · Texto y la fila abrir · compartir · WhatsApp · Telegram · correo · descargar.
+   Se abre SOLO con la nube confirmada (po2Save). PDF = el de la orden (mnNativeOrder), JPG = sus hojas, Texto = poText. Cerrarla o
+   que falle un envío no toca la orden. Sin esa ventana (no debería pasar): el aviso y el menú nativo de antes. */
+function po2Done(id){const o=poById(id);if(!o)return;
+  if(!document.getElementById('sharedlg')||!document.getElementById('shareBody')){return appAlert(t('po2_ok')).then(()=>po2Share(id));}
+  const S={kind:'porder',id,files:{},pend:{},err:{},txt:null,tp:null};S.txt=poText(o);S.tp=Promise.resolve(S.txt);
+  state.shareFmt=state.shareFmt||'pdf';SH=S;const h=document.getElementById('shareTitle');if(h)h.textContent=t('m_recibo');
+  renderShareBody();document.getElementById('sharedlg').classList.add('on');shPrep();}
+{const _sd=shDoc;shDoc=function(S){S=S||SH;if(S&&S.kind==='porder')return poById(S.id);return _sd.apply(this,arguments);};}
+{const _sb=shBuild;shBuild=async function(S,fmt){if(!S||S.kind!=='porder')return _sb.apply(this,arguments);const d=shDoc(S);if(!d)return null;
+  const r=await mnNativeOrder(d,true,true);if(!r||!r.blob)return null;if(fmt==='pdf')return r;return shPdfToJpg(r,'img_orden_1.jpg');};}
+{const _sn=shTxtName;shTxtName=function(S){if(S&&S.kind==='porder'){const d=shDoc(S);return t('po_title')+' '+((d&&d.folio)||'')+'.txt';}return _sn.apply(this,arguments);};}
+{const _sj=shSubject;shSubject=function(S){if(S&&S.kind==='porder'){const d=shDoc(S);return t('po_title')+' #'+((d&&d.folio)||'');}return _sj.apply(this,arguments);};}
+{const _rb=renderShareBody;renderShareBody=function(){const r=_rb.apply(this,arguments);try{if(SH&&SH.kind==='porder'){const e=document.querySelector('#shareBody .shok-t');if(e)e.textContent=t('po2_ok');}}catch(_){}return r;};}
+/* enganches (envolver lo de antes; con 'abanico.po2'='0' todo sigue igual) */
+SCREENS.compras=function(){return po2Act()?po2Screen():scCompras();};
+{const _s=savePO;savePO=function(){return po2Act()?po2Save():_s.apply(this,arguments);};}
+{const _a=pcSuggestPick;pcSuggestPick=function(id){if(!po2Gate(id))return;return _a.apply(this,arguments);};}
+{const _b=pcScanAdd;pcScanAdd=function(p){if(p&&!po2Gate(p.id))return;return _b.apply(this,arguments);};}
+{const _c=pcPickAdd;pcPickAdd=function(id){if(!po2Gate(id))return;return _c.apply(this,arguments);};}
+{const _d=startPO;startPO=function(){state.po2Lim=0;return _d.apply(this,arguments);};}
+document.getElementById('device').addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act^="po2"]');if(!el||!po2Act())return;
+  const a=el.dataset.act,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);e.preventDefault();e.stopPropagation();
+  if(k==='po2prov')return po2PickProv(v);if(k==='po2provclr')return po2ProvClr();if(k==='po2add')return po2Add(v);
+  if(k==='po2more')return po2More();},true);
+/* «Ver N más» (y solo al acercarse al final, como Inventario): sin volver arriba; si el cursor está en el buscador, no se cierra el teclado. Con el cursor en una cantidad no carga solo (no se cierra el teclado) */
+function po2More(){if(!po2Act())return;const sc=document.getElementById('screen'),ys=sc?sc.scrollTop:0,live=document.getElementById('searchInput');
+  state.po2Lim=(state.po2Lim||PO2_PAGE)+PO2_PAGE*2;
+  if(live&&document.activeElement===live&&(live.value||'')===(state.q||''))searchRefresh();else{state._keep=ys;render();}
+  if(sc&&sc.scrollTop!==ys)sc.scrollTop=ys;}
+document.addEventListener('scroll',e=>{const el=e.target;if(PO2_MORE_T||!el||el.id!=='screen'||!po2Act()||state.screen!=='compras')return;
+  if(el.scrollHeight-el.scrollTop-el.clientHeight>600||!document.querySelector('#body [data-act="po2more"]'))return;
+  const a=document.activeElement;if(a&&a.id!=='searchInput'&&po2Typing())return;
+  PO2_MORE_T=1;requestAnimationFrame(()=>{PO2_MORE_T=0;});po2More();},true);
+/* Enter en el campo Proveedor: un solo proveedor (o uno con ese nombre exacto) → se elige; si no, se cierra el teclado. No busca un código de producto */
+document.getElementById('device').addEventListener('keydown',e=>{const el=e.target;if(e.key!=='Enter'||!el||el.id!=='searchInput'||!po2Act()||state.screen!=='compras')return;
+  e.preventDefault();e.stopPropagation();if(po2Sel()){try{el.blur();}catch(_){}return;}
+  const q=po2Norm(el.value);state.q=el.value;po2SugHTML();const ex=PO2_SUG.findIndex(s=>po2Norm(s.name)===q);
+  if(PO2_SUG.length===1)return po2PickProv(0);if(ex>=0)return po2PickProv(ex);try{el.blur();}catch(_){}},true);
+/* con el teclado abierto, Total y Guardar dejan de estar fijos abajo (no tapan el campo que se escribe) */
+document.getElementById('device').addEventListener('focusin',()=>{const d=document.getElementById('device');if(d&&po2Act())d.classList.toggle('po2typing',po2Typing());});
+document.getElementById('device').addEventListener('focusout',()=>{setTimeout(()=>{const d=document.getElementById('device');if(d)d.classList.toggle('po2typing',po2Act()&&po2Typing());},120);});
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .po2ph{margin-top:10px}
+  .po2prov svg{width:20px;height:20px}
+  .po2help{margin-top:26px}
+  .po2c{display:flex;justify-content:center;margin-top:14px}
+  .po2c .btn{width:auto;padding:11px 20px}
+  .po2sugs .row{cursor:pointer}
+  .po2sel{display:flex;align-items:center;gap:10px;margin:10px 0 8px;padding:9px 10px 9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  .po2sel .pfico{position:static;transform:none;flex:none}
+  .po2sel .pfico svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:2}
+  .po2selt{flex:1;min-width:0}
+  .po2l{display:block;font-size:12px;color:var(--muted)}
+  .po2selt b{display:block;font-size:16px;overflow-wrap:anywhere}
+  .po2sel .po2x{position:static;transform:none;flex:none;width:40px;height:40px;font-size:18px}
+  .po2h{margin-top:4px}
+  .po2row{cursor:pointer;align-items:center}
+  .po2plus{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer}
+  .po2plus svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:2.6}
+  .po2on{border-left:3px solid var(--green)}
+  .po2meta{font-size:12px;color:var(--muted);margin:2px 0 4px}
+  .po2empty{padding:10px 0 4px}
+  .po2bot{position:sticky;bottom:0;z-index:4;background:var(--bg);padding:6px 0 calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);margin-top:8px}
+  .po2bot .ctotal{margin:2px 0 8px}
+  .po2n{font-size:12.5px;color:var(--muted);font-weight:500;margin-right:auto;padding-right:10px}
+  #device.po2typing .po2bot{position:static}
+  .po2load{margin:6px 0}
+`;document.head.appendChild(s);}catch(_){}})();
 
 </script>

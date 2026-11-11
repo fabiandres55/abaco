@@ -11692,13 +11692,13 @@ function lgErrMsg(err){const m=''+((err&&err.message)||err||'');if(/relax_ledger
 // confirmar una venta nueva (del carrito o de un borrador). ctx.after(saleDelServidor) hace lo de siempre al guardar
 async function lgConfirm(sale,ctx){if(LG_BUSY)return;const id=currentDataId();if(!id)return;ctx=ctx||{};
   const pend=ctx.pend||{op:lgOp(),kind:'sale',sale,at:Date.now(),st:'enviando'};pend.st='enviando';lgPendPut(id,pend);   /* la clave queda guardada ANTES de enviar */
-  lgBusy(true);let r=null;try{r=await lgCall('relax_sale_confirm',{p_store:id,p_op:pend.op,p_sale:pend.sale});
+  lgBusy(true);let r=null;try{await lgPreFlush(id);   /* mods251 */r=await lgCall('relax_sale_confirm',{p_store:id,p_op:pend.op,p_sale:pend.sale});
     if(r.net&&r.sent){const s2=await lgCall('relax_op_status',{p_store:id,p_op:pend.op});if(s2.data&&s2.data.found)r={data:s2.data.result};}}   /* respuesta perdida: ¿llegó? */
   finally{if(!(r&&r.data&&r.data.ok))lgBusy(false);}
   /* confirmada: sigue "ocupado" hasta bajar la venta y vaciar el carrito (un toque en medio no arma otra venta con el mismo carrito) */
   if(r.data&&r.data.ok){try{lgPendDel(id,pend.op);if(lgFast(id,r.data))lgApplyBg(id);else await lgApply(id);   /* mods250: sin esperar la bajada completa */const sv=state.sales.find(x=>''+x.id===''+pend.sale.id)||r.data.sale;if(ctx.after)ctx.after(sv);else{render();toast(ti('lg_ok',{n:sv.folio||sv.id}));}}finally{lgBusy(false);}return true;}
-  if(r.data&&r.data.ok===false){lgPendDel(id,pend.op);if(r.data.errors&&r.data.errors.some(e=>e.code==='config_changed'))lgApply(id);
-    await appAlert(t('lg_rej_t')+'\n\n'+lgErrList(r.data.errors).join('\n')+'\n\n'+(ctx.pend?t('lg_rej_draft'):t('lg_rej_keep')));if(ctx.pend){pend.st='rechazada';pend.why=r.data.errors;lgPendPut(id,pend);}render();return false;}
+  if(r.data&&r.data.ok===false){lgPendDel(id,pend.op);const _df=lgRejDiff(id,r.data.errors);   /* mods251 */if(r.data.errors&&r.data.errors.some(e=>e.code==='config_changed'))lgApply(id);
+    await appAlert(t('lg_rej_t')+'\n\n'+lgErrList(r.data.errors).join('\n')+_df+'\n\n'+(ctx.pend?t('lg_rej_draft'):t('lg_rej_keep')));if(ctx.pend){pend.st='rechazada';pend.why=r.data.errors;lgPendPut(id,pend);}render();return false;}
   if(r.error){lgPendDel(id,pend.op);if(/relax_ledger_off/.test(r.error.message||''))lgRefresh();await appAlert(lgErrMsg(r.error));render();return false;}
   // sin conexión (o no se sabe si llegó): BORRADOR PENDIENTE con la MISMA clave (al reintentar no se duplica)
   pend.st=r.sent?'sin_respuesta':'borrador';lgPendPut(id,pend);if(ctx.draft)ctx.draft(pend);
@@ -14339,7 +14339,7 @@ async function sbSyncWriteOne(sb,id,key){
       wtokClear(id,key,ot);}}   /* sin la copia de lo subido: se sigue como antes */
     const loc=JSON.parse(lj);   /* copia de lo local al empezar: lo que cambie durante la subida se concilia al final */
     const ow=restoreOw(id).has(key);   /* primera subida tras restaurar: lo de la nube se reemplaza */
-    PL_WM++;let merged0;try{merged0=(row&&!ow)?mergeDoc(id,key,loc,remote,!b):loc;}finally{PL_WM--;}   /* mods150: fusión de subida (candado de la nube) */
+    PL_WM++;let merged0;try{merged0=(row&&!ow)?mergeDoc(id,key,loc,remote,!b):loc;}finally{PL_WM--;}if(row&&!ow)merged0=lgFloorFix(id,key,merged0,remote);   /* mods251 */   /* mods150: fusión de subida (candado de la nube) */
     const mj=JSON.stringify(merged0);const merged=JSON.parse(mj);   /* copia fija: lo que se manda es lo que queda como base */
     if(!ow&&CORE_KEYS.has(key)&&Array.isArray(merged)&&!merged.length&&Array.isArray(remote)&&remote.length&&!sbIntentHas(id,key))return {ok:false,recover:true};   /* vacía sin que el usuario la vaciara (borrado local, daño): se trae la nube */
     const ts=sbNewTs();let w;LAST_W[key]={ts:ts.slice(0,23)+'Z',lj,merged,mj};
@@ -14355,7 +14355,7 @@ async function sbSyncWriteOne(sb,id,key){
         if(!c||c.error||!c.data||c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio (o ya no está): fusionar otra vez
         LAST_W[key]=null;throw new Error('sync-denied');}   /* nadie escribió en medio pero no se dejó actualizar: queda pendiente (antes se escribía sin condición) */
     }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error){LAST_W[key]=null;throw w.error;}}
-    wtokConfirm(id,key,ts);   /* SÍ quedó: si se termina después (pregunta abierta, cambio de tienda, app cerrada), se reconoce aunque otro equipo escriba encima */
+    wtokConfirm(id,key,ts);lgFixDone(id,key);   /* mods251: aviso de lo igualado */   /* SÍ quedó: si se termina después (pregunta abierta, cambio de tienda, app cerrada), se reconoce aunque otro equipo escriba encima */
     if(mj!==lj&&id===currentDataId()&&sbHoldApply())await sbWaitHold(300000);   /* llegó algo de otro equipo y hay una pregunta o el formulario abierto: se refleja al cerrarse (si la app se cierra antes, la marca guardada lo termina) */
     if(mj!==lj&&id!==currentDataId()){LAST_W[key]=null;return {ok:true};}   /* se cambió de tienda: la marca guardada lo termina al volver (antes la base nueva con lo local viejo borraba lo de otros equipos) */
     delete FASTMISS[key];{const kk=id+'|'+key;if(EARLY[kk]===ts)SB_DELTA[kk]={k:key,ok:ts,at:Date.now()};   /* mods204: el cambio ya salió antes de subir → ahora solo "confirmado" */
@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261110093123';
+const APP_VERSION='20261110194218';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18043,6 +18043,87 @@ function lgSameSet(key,local,b){
     for(const x of local){const k=recKey(key,x);if(k==null||seen.has(k))return false;seen.add(k);if(b.map.get(k)!==JSON.stringify(x))return false;}
     LG_SAME_N++;return true;
   }catch(_){return false;}
+}
+
+
+/* ==== mods251 (2026-11-10): la ficha y la venta ven el MISMO inventario ====
+   Caso de Fabio: la ficha muestra 18 unidades y la venta responde «pides 1, hay 0».
+   Causa: con el libro encendido el inventario solo BAJA por el servidor (venta, merma, ajuste…). Si un equipo queda con UN producto en una
+   cantidad menor que la del servidor (una baja que no pasó por el servidor: p. ej. una importación de archivo con menos cantidad), el servidor
+   rechaza el documento de productos ENTERO («relax_ledger: el inventario solo baja por el servidor»), en cada reintento, para siempre.
+   Con eso NINGÚN cambio de productos de ese equipo sube (tampoco un 0 → 18 de otro producto): la ficha muestra lo local (18) y la venta,
+   que valida contra el servidor, ve 0.
+   Arreglo (solo app; el servidor y su protección NO cambian):
+   A. lgFloorFix: al armar la subida de productos, el saldo que este equipo tiene POR DEBAJO del servidor no se manda: en ese producto queda el
+      saldo del servidor (la autoridad para bajar). Todo lo demás (precios, nombres, cantidades que suben, productos nuevos) sube como siempre.
+      Al quedar la subida, lo local se iguala (camino de siempre: «llegó algo distinto en la fusión») y se AVISA qué productos se igualaron,
+      con las dos cantidades; queda además una lista en este equipo (abanico.lgfixlog.<tienda>). Nunca se sube un saldo: no se inventan existencias.
+   B. lgPreFlush: antes de confirmar una venta, si hay cambios de productos de este equipo sin subir, se suben primero (máx. 6 s).
+   C. lgRejDiff: si el servidor rechaza por existencias y este equipo mostraba otra cantidad, se dice, y se sincroniza de una vez.
+   Apagarlo en un equipo: localStorage 'abanico.lgfix'='0' (queda exactamente lo de antes). */
+var LG_FIX_N=0,LG_PRE_N=0,LG_FIX_PEND={};
+(function(){try{
+  Object.assign(I18N.es,{lg_fix_t:'Relax igualó {n} producto(s) con el servidor.',lg_fix_why:'Este equipo tenía una cantidad MENOR que nunca quedó registrada en el servidor (el inventario solo baja con ventas, mermas o ajustes confirmados). Eso impedía subir los demás cambios de inventario de este equipo.',
+    lg_fix_l:'· {p}: este equipo {a} → servidor {b}',lg_fix_more:'… y {n} más',lg_fix_tail:'Si de verdad hay menos, abre la ficha del producto y corrige la cantidad: así queda registrada.',
+    lg_rej_diff:'{p}: en este equipo figuraban {a}, en el servidor hay {b}. Relax está sincronizando este equipo: revisa la cantidad en unos segundos y vuelve a intentar.'});
+  Object.assign(I18N.en,{lg_fix_t:'Relax matched {n} product(s) with the server.',lg_fix_why:'This device had a LOWER quantity that was never recorded on the server (stock only goes down through confirmed sales, losses or adjustments). That kept the other inventory changes of this device from uploading.',
+    lg_fix_l:'· {p}: this device {a} → server {b}',lg_fix_more:'… and {n} more',lg_fix_tail:'If there really is less, open the product and correct the quantity: that way it is recorded.',
+    lg_rej_diff:'{p}: this device showed {a}, the server has {b}. Relax is syncing this device: check the quantity in a few seconds and try again.'});
+}catch(_){}})();
+function lgFixOn(){try{return localStorage.getItem('abanico.lgfix')!=='0';}catch(_){return true;}}
+function lgFixName(p){return (''+((p&&p.name)||'')).replace(/^\.{3}\s*/,'')||('#'+(p&&p.id));}
+/* A. en la fusión de una subida de productos: nunca mandar un saldo menor que el del servidor (se manda el del servidor) */
+function lgFloorFix(id,key,merged,remote){
+  try{
+    if(key!=='products')return merged;
+    delete LG_FIX_PEND[id];
+    if(!lgFixOn()||!lgCache(id)||!Array.isArray(merged)||!Array.isArray(remote))return merged;
+    const R=new Map();remote.forEach(x=>{if(x&&x.id!=null)R.set(''+x.id,x);});
+    let out=null;const ch=[];
+    merged.forEach((m,i)=>{if(!m||m.id==null||typeof m.stock!=='number'||!isFinite(m.stock))return;const r=R.get(''+m.id);if(!r)return;
+      const rs=typeof r.stock==='number'&&isFinite(r.stock)?r.stock:0;
+      if(invM(m.stock)<invM(rs)){if(!out)out=merged.slice();out[i]={...m,stock:rs};ch.push({id:m.id,n:lgFixName(m),loc:m.stock,srv:rs});}});
+    if(!out)return merged;
+    LG_FIX_PEND[id]=ch;return out;
+  }catch(_){return merged;}
+}
+/* la subida SÍ quedó: se anota y se avisa (lo local lo iguala el camino de siempre, justo después) */
+function lgFixDone(id,key){
+  try{
+    if(key!=='products')return;const ch=LG_FIX_PEND[id];delete LG_FIX_PEND[id];if(!ch||!ch.length)return;
+    LG_FIX_N+=ch.length;
+    try{const K='abanico.lgfixlog.'+id;let L=[];try{L=JSON.parse(localStorage.getItem(K)||'[]')||[];}catch(_){}const at=new Date().toISOString();
+      ch.forEach(c=>L.push({at,id:c.id,n:c.n,loc:c.loc,srv:c.srv}));localStorage.setItem(K,JSON.stringify(L.slice(-200)));}catch(_){}
+    if(id!==currentDataId())return;
+    const ls=ch.slice(0,8).map(c=>ti('lg_fix_l',{p:c.n,a:qtyLoc(c.loc),b:qtyLoc(c.srv)}));if(ch.length>8)ls.push(ti('lg_fix_more',{n:ch.length-8}));
+    const msg=ti('lg_fix_t',{n:ch.length})+'\n\n'+t('lg_fix_why')+'\n\n'+ls.join('\n')+'\n\n'+t('lg_fix_tail');
+    setTimeout(()=>{try{appAlert(msg);}catch(_){}},600);
+  }catch(_){}
+}
+/* B. antes de confirmar una venta: lo de productos de este equipo que aún no sube, sube primero (acotado; si no se puede, sigue como antes) */
+async function lgPreFlush(id){
+  try{
+    if(!lgFixOn()||!sbOnline()||id!==currentDataId())return;
+    const k=id+'|products',sl=ms=>new Promise(r=>setTimeout(r,ms));
+    const busy=()=>!!SB_PENDING[k]||(WRITING.products||0)>0||FLUSHING_KEY==='products';
+    if(!busy()&&!sbIsDirty(id,'products'))return;
+    LG_PRE_N++;const t0=Date.now();let tried=false;
+    while(Date.now()-t0<6000){
+      if(busy()){await sl(100);continue;}
+      if(!sbIsDirty(id,'products')||tried||FLUSHING)break;
+      tried=true;await Promise.race([Promise.resolve(flushDirty(true)).catch(()=>{}),sl(Math.max(200,6000-(Date.now()-t0)))]);
+    }
+  }catch(_){}
+}
+/* C. rechazo por existencias: si este equipo mostraba otra cantidad, se dice y se sincroniza ya */
+function lgRejDiff(id,errs){
+  try{
+    if(!lgFixOn()||!Array.isArray(errs))return '';
+    const st=errs.filter(e=>e&&e.code==='stock');if(!st.length)return '';
+    const L=[];st.forEach(e=>{const p=e.id!=null?P(+e.id):null;if(p&&typeof p.stock==='number'&&invM(p.stock)!==invM(e.have))L.push(ti('lg_rej_diff',{p:lgFixName(p),a:qtyLoc(p.stock),b:qtyLoc(e.have)}));});
+    if(!errs.some(e=>e&&e.code==='config_changed'))setTimeout(()=>{try{lgApply(id);}catch(_){}},50);
+    return L.length?'\n\n'+L.join('\n'):'';
+  }catch(_){return '';}
 }
 
 </script>

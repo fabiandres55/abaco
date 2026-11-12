@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261111193617';
+const APP_VERSION='20261112071424';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18746,6 +18746,165 @@ document.addEventListener('keydown',e=>{const el=e.target;if(e.key!=='Enter'||!e
   .po3ppr{cursor:pointer}
   .po3cur{box-shadow:inset 3px 0 0 var(--green)}
   .po3cur .t{font-weight:700}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods254 (2026-11-11): ORDEN DE COMPRA — AJUSTES DE PANTALLA ====
+   Pedido de Fabio (11-nov, 3 videos y una foto, sobre mods253 ya publicado). Solo app y solo la pantalla de crear/editar una orden:
+   1) El deslizador recorría toda la pantalla (se metía en la barra «Orden de Compra») y Total/Guardar subían 90 px al llegar al final.
+      Ahora la barra y el buscador quedan fijos arriba, Total y Guardar fijos abajo y SOLO la lista se desplaza (#po4Scroll).
+   2) Al tocar «+» (o el campo de cantidad) la tarjeta del producto queda CENTRADA en lo que se ve, y se vuelve a centrar cuando el
+      teclado termina de abrir (antes se acomodaba con la pantalla todavía entera y el teclado la tapaba).
+   3) Con el teclado del celular ABIERTO, Total y Guardar se ocultan; vuelven al cerrarlo (aunque el cursor siga en el campo). En PC (sin
+      teclado en pantalla) siguen a la vista.
+   4) En pantallas grandes (720 px o más) los productos de la orden van en tarjetas, en varias columnas y con el ancho del Inventario.
+   5) La ✕ roja SIN productos elegidos hace lo mismo que la ✕ de arriba (sale). Con productos elegidos sigue como antes (pregunta y vacía).
+   No cambia qué se guarda ni cómo: mismos datos, mismas órdenes, mismo servidor. Interruptor por equipo: localStorage 'abanico.po4'='0'. */
+function po4On(){try{return localStorage.getItem('abanico.po4')!=='0'&&po3On();}catch(_){return po3On();}}
+/* de qué lista se trata (proveedor · texto · filtro · «en todos» · «solo elegidos»): si no cambia, la posición se conserva al redibujar */
+function po4Key(){const sel=po2Sel();return [sel?po2Keys(sel).join(','):'',fold((''+(state.q||'')).toLowerCase().trim()),state.po3F||'all',state.po3Wide?1:0,state.po3Only?1:0].join('|');}
+/* la pantalla de mods253 es  [encabezado][lista + pie]: se parte en  [encabezado][lista que se desplaza][pie] */
+const PO4_CART='<div class="cartwrap pocart po2 po3">',PO4_BOT='<div class="po2bot">';
+function po4Wrap(h){const a=h.indexOf(PO4_CART),b=h.lastIndexOf(PO4_BOT);if(a<0||b<a||h.slice(-12)!=='</div></div>')return h;
+  return h.slice(0,a)+'<div class="po4scroll" id="po4Scroll">'+h.slice(a,b)+'</div></div>'+h.slice(b,h.length-6);}
+{const _s=po2Screen;po2Screen=function(){const h=_s.apply(this,arguments);try{if(typeof h==='string'&&po4On())return po4Wrap(h);}catch(_){}return h;};}
+/* cada vez que la pantalla se redibuja: la clase del diseño y la posición de la lista */
+let PO4_KEY=null,PO4_MORE=0,PO4_RT=0,PO4_H=0,PO4_W=0;
+/* ¿teclado en pantalla abierto? La pantalla (Android: interactive-widget=resizes-content) o lo visible (iPhone) mide bastante menos que su
+   alto completo. El alto completo es el mayor visto con este ancho (al girar el teléfono se vuelve a medir) */
+function po4Kb(){try{const d=document.getElementById('device');if(!d)return;const w=innerWidth;if(w!==PO4_W){PO4_W=w;PO4_H=0;}
+  const vv=window.visualViewport,h=Math.min(innerHeight,vv?vv.height:innerHeight);if(innerHeight>PO4_H)PO4_H=innerHeight;
+  d.classList.toggle('po4kb',PO4_H-h>120&&po4Touch()&&po2Act()&&po2Typing());}catch(_){}}   /* solo en equipos táctiles: en PC, achicar la ventana no es un teclado */
+function po4Around(fn,self,args){let y=0;const el=document.getElementById('po4Scroll'),k0=PO4_KEY;if(el)y=el.scrollTop;
+  const r=fn.apply(self,args);
+  try{const n=document.getElementById('po4Scroll'),d=document.getElementById('device');if(d)d.classList.toggle('po4lay',!!n);
+    if(n){const k=po4Key();if(el&&n!==el&&k===k0&&y>0)n.scrollTop=y;PO4_KEY=k;po4Kb();}else{PO4_KEY=null;if(d)d.classList.remove('po4kb');}}catch(_){}
+  return r;}
+{const _r=render;render=function(){return po4Around(_r,this,arguments);};}
+{const _f=searchRefresh;searchRefresh=function(){return po4Around(_f,this,arguments);};}
+/* «Ver más» solo, al acercarse al final (lo mismo que mods252 hacía con la pantalla entera) */
+document.addEventListener('scroll',e=>{const el=e.target;if(PO4_MORE||!el||el.id!=='po4Scroll'||!po2Act()||state.screen!=='compras')return;
+  if(el.scrollHeight-el.scrollTop-el.clientHeight>600||!el.querySelector('[data-act="po2more"]'))return;
+  const a=document.activeElement;if(a&&a.id!=='searchInput'&&po2Typing())return;
+  PO4_MORE=1;requestAnimationFrame(()=>{PO4_MORE=0;});po2More();},true);
+/* ¿equipo con teclado en pantalla? (celular o tableta: se centra; en PC basta con que la tarjeta quede a la vista) */
+function po4Touch(){try{return matchMedia('(pointer:coarse)').matches||innerWidth<720;}catch(_){return true;}}
+/* deja una fila a la vista dentro de la lista: centrada, o lo justo para que se vea. Lo visible llega hasta el teclado */
+function po4Show(row,center){const sc=row&&row.closest&&row.closest('#po4Scroll');if(!sc)return false;
+  const s=sc.getBoundingClientRect(),vv=window.visualViewport,top=s.top,bot=Math.min(s.bottom,vv?vv.offsetTop+vv.height:innerHeight),h=bot-top,r=row.getBoundingClientRect();
+  if(h<40)return true;let d=0;
+  if(center)d=r.height+16>=h?r.top-top-8:(r.top+r.bottom)/2-(top+bot)/2;
+  else if(r.top<top+8)d=r.top-top-8;else if(r.bottom>bot-8)d=Math.min(r.bottom-bot+8,r.top-top-8);
+  if(Math.abs(d)>1)sc.scrollTop+=d;return true;}
+{const _s=showRow;showRow=function(row){try{if(po4Show(row,po4Touch()))return;}catch(_){}return _s.apply(this,arguments);};}
+function po4Recenter(){po4Kb();clearTimeout(PO4_RT);PO4_RT=setTimeout(()=>{try{po4Kb();if(!po2Act())return;const a=document.activeElement;if(!a||!a.closest||!/^(INPUT|TEXTAREA)$/.test(a.tagName))return;
+  const row=a.closest('#po4Scroll .crow');if(row)po4Show(row,po4Touch());}catch(_){}},70);}
+try{if(window.visualViewport)visualViewport.addEventListener('resize',po4Recenter);}catch(_){}
+window.addEventListener('resize',po4Recenter);
+document.addEventListener('focusin',e=>{const a=e.target;if(a&&a.closest&&a.closest('#po4Scroll .crow'))po4Recenter();},true);
+document.addEventListener('focusout',()=>{setTimeout(po4Kb,160);},true);
+/* ✕ roja sin productos elegidos = la ✕ de arriba (sale; pregunta solo si se cambió la fecha o la información) */
+{const _c=poClear;poClear=function(){try{if(po4On()&&state.poMode&&!pcItemsRecent().length)return poCancel();}catch(_){}return _c.apply(this,arguments);};}
+(function(){try{const s=document.createElement('style');s.textContent=`
+  #device.po4lay>#screen{overflow:hidden;display:flex;flex-direction:column}
+  #device.po4lay #body{flex:1 1 auto;min-height:0;width:100%;box-sizing:border-box;display:flex;flex-direction:column;padding-bottom:0}
+  #device.po4lay #body>.stickhead{position:static;flex:none}
+  .po4scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px}
+  .po4scroll>.cartwrap{padding-bottom:14px}
+  #device.po4lay #body>.po2bot{position:static;flex:none;margin-top:0}
+  #device.po4lay.po4kb #body>.po2bot{display:none}
+  @media (min-width:720px){
+    #device.po4lay #screen[data-s="compras"]>#body{max-width:1440px}
+    .po4scroll>.cartwrap.po3{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px;align-items:start}
+    .po4scroll>.cartwrap.po3>*{grid-column:1/-1}
+    .po4scroll>.cartwrap.po3>.po3row,.po4scroll>.cartwrap.po3>.crow{grid-column:auto}
+    .po4scroll>.cartwrap.po3>.po3row{display:grid;grid-template-columns:62px minmax(0,1fr) 44px;column-gap:13px;row-gap:0;align-items:center;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:13px 14px 12px}
+    .po4scroll .po3row>div:nth-child(2){display:contents}   /* nombre, código y proveedor pasan a ser casillas de la tarjeta (como la ficha del Inventario) */
+    .po4scroll .po3row .av{grid-column:1;grid-row:1/3;width:62px;height:62px;border-radius:50%;border:1px solid var(--line)}
+    .po4scroll .po3row .t{grid-column:2;grid-row:1;align-self:end}
+    .po4scroll .po3row .s{grid-column:2;grid-row:2;align-self:start}
+    .po4scroll .po3row .po2plus{grid-column:3;grid-row:1/3}
+    .po4scroll .po3row .s.po3s2{grid-column:1/-1;grid-row:3;margin-top:11px;padding-top:10px;border-top:1px solid var(--line2)}
+    .po4scroll .po3row .av svg{width:28px;height:28px}
+    .po4scroll .po3row .t{font-size:16px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+    .po4scroll .po3row .s{font-size:13.5px;line-height:1.35;margin-top:4px}
+    .po4scroll .po3row .po2plus{width:44px;height:44px}
+    .po4scroll .po3row .po2plus svg{width:23px;height:23px}
+    .po4scroll>.cartwrap.po3>.crow{border-radius:16px;padding:13px 14px;border-width:1.5px}
+    .po4scroll .crow .crow-name{font-size:16px}
+    .po4scroll .crow .po2meta{font-size:13.5px;line-height:1.35}
+  }
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods255 (2026-11-12): ORDEN DE COMPRA — DOS LISTAS CON EL PROVEEDOR ESCOGIDO ====
+   Pedido de Fabio (12-nov, «autorizado»), encima de mods254. Solo app y solo la pantalla de crear/editar una orden CON proveedor arriba:
+   1) Debajo de «Productos de [PROVEEDOR] · N» (que queda EXACTAMENTE como la arma mods253: se toma tal cual de su salida) aparece
+      «Otros productos · N»: los demás productos de la tienda, con el mismo orden (sin stock, bajo stock, el resto) y la misma carga por
+      tandas. Sale cuando ya se ven todos los del proveedor (al bajar hasta el final de su lista). N = cuántos productos tiene cada lista
+      (no cambia al buscar ni al filtrar, igual que el número de la lista del proveedor).
+   2) El buscador busca en las dos listas a la vez y muestra los dos grupos con su título; el grupo sin coincidencias lo dice y el otro se
+      sigue viendo. Por eso ya no hace falta el botón «Buscar en todos los productos» (se quita de la pantalla) y la cajita dice
+      «Buscar producto». El filtro de stock se aplica a las dos listas.
+   3) Un producto de «Otros productos» se agrega con el mismo «+» (po2Add de mods253): queda a nombre del proveedor de arriba, sin aviso.
+   Guardar NO se toca: mods253 ya hace una orden y un PDF para ese proveedor y abre «Recibo / Ticket».
+   Lo elegido que NO esté a la vista en «Otros productos» (por el buscador, el filtro o porque todavía no se ha bajado) sigue saliendo
+   al final como hoy: «Otros productos de esta orden» / «Elegidos para otros proveedores».
+   Solo LEE productos: no escribe existencias, precios, costos ni productos. Supabase y la forma de los datos no cambian.
+   Si la pantalla de mods253 no tiene la forma esperada, se deja tal cual. Interruptor por equipo: localStorage 'abanico.po5'='0'. */
+(function(){try{
+  Object.assign(I18N.es,{po5_others_h:'Otros productos',po5_filter_ph:'Buscar producto',po5_none_q:'Ningún otro producto coincide con «{q}».'});
+  Object.assign(I18N.en,{po5_others_h:'Other products',po5_filter_ph:'Search product',po5_none_q:'No other product matches «{q}».'});
+}catch(_){}})();
+function po5On(){try{return localStorage.getItem('abanico.po5')!=='0'&&po3On();}catch(_){return po3On();}}
+const PO5_CART='<div class="cartwrap pocart po2 po3">';
+function po5Lists(h){
+  const sel=po2Sel();if(!sel||state.po3Only||state.po3Wide)return h;
+  const cart=pcItemsRecent(),inC=new Set(cart.map(i=>i.id)),foot=po3FootHTML(inC.size)+'</div>';
+  const a=h.indexOf(PO5_CART);if(a<0||h.length<a+PO5_CART.length+foot.length||h.slice(-foot.length)!==foot)return h;
+  let g1=h.slice(a+PO5_CART.length,h.length-foot.length);
+  /* 1) la lista del proveedor, tal cual: se le quitan solo las dos secciones finales (se arman abajo) y el botón «Buscar en todos» */
+  const hSel=`<div class="section-h po2h"><h2>${t('po2_others_h')}</h2></div>`,hProv=`<div class="section-h po2h"><h2>${t('po3_others_prov_h')}</h2></div>`;
+  const c1=g1.indexOf(hSel),c2=g1.indexOf(hProv),cut=Math.min(c1<0?g1.length:c1,c2<0?g1.length:c2);g1=g1.slice(0,cut);
+  g1=g1.split(`<div class="po2c"><button class="btn ghost" data-act="po3wide">${t('po3_wide_btn')}</button></div>`).join('');
+  /* 2) los demás productos de la tienda */
+  const free=po3Free(),q=fold((state.q||'').toLowerCase().trim()),qt=(''+(state.q||'')).trim();
+  const F=state.po3F||'all',fC=F==='out'?0:F==='low'?1:-1,passF=p=>fC<0||po3Cls(p)===fC;
+  const X=po2Index(),selKeys=new Set(po2Keys(sel)),PM=po2Prods(sel),items=new Map(cart.map(i=>[i.id,i])),lastId=cart.length?cart[cart.length-1].id:null;
+  const pm=new Map();(state.products||[]).forEach(p=>{if(p)pm.set(p.id,p);});
+  const lim=state.po2Lim||PO2_PAGE,all=po3List().l;
+  /* ¿ya se ven todos los del proveedor? (la misma cuenta de mods253) */
+  const mine=all.filter(p=>PM.has(p.id)),mineF=fC<0?mine:mine.filter(passF),mHits=q?mineF.filter(p=>prodHit(p,q)):mineF;
+  const mShown=mHits.filter((p,k)=>k<lim||inC.has(p.id)).length,open=mShown>=mHits.length;
+  /* filas: las mismas de mods253 (un producto que no es del proveedor no trae «última compra») */
+  const costOf=(pid,k)=>{const mm=X.by.get(k);return (mm&&mm.get(pid))||null;};
+  const info=(p,o)=>{const s=[];if(p.key)s.push(exEsc(p.key));s.push(exEsc(t('po3_stock'))+' '+qtyLoc(p.stock)+mSuf(isDist(p)));
+    return {s:s.join(' · ')+po3Badge(p),b:(o&&(o.d||o.c>0))?(o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+money(o.c):''};};
+  const chip=id=>{if(!free)return '';const tg=po3TagOf(id),k=po3TagKey(tg);if(selKeys.has(k))return '';
+    return `<div class="po3chipw"><button type="button" class="po3chip${po3IsSPKey(k)?' sp':''}" data-act="po3rowprov:${id}">${svg(S_PER)}<span>${exEsc(po3TagLabel(tg))}</span><i>▾</i></button></div>`;};
+  const offRow=p=>{const i=info(p,null);return `<div class="row po2row po3row" data-act="po2add:${p.id}"><div class="av">${saleProdImg(p,svg(PC_BOX_IC))}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(pNmV(p))}</div><div class="s">${i.s}</div></div><button class="po2plus" data-act="po2add:${p.id}" aria-label="+">${svg(PO2_PLUS)}</button></div>`;};
+  const onRow=p=>{let o=null;if(free){const k=po3TagKey(po3TagOf(p.id));o=(selKeys.has(k)&&PM.get(p.id))||costOf(p.id,k);}else o=PM.get(p.id)||null;
+    const i=info(p,o);return po2OnRow(p,items.get(p.id),p.id===lastId,i.s+(i.b?' · '+i.b:'')+chip(p.id));};
+  const others=all.filter(p=>!PM.has(p.id));let g2='';const seen=new Set();
+  if(open&&others.length){
+    const oF=fC<0?others:others.filter(passF);let oHits=oF;
+    if(q){const kq=qt.toLowerCase();   /* con texto: el código exacto primero; luego sin stock, bajo stock y el resto (como la lista de la tienda) */
+      oHits=prodKeyFirst(oF.filter(p=>prodHit(p,q)),q).map((p,i)=>[p,i,(''+(p.key||'')).trim().toLowerCase()===kq?0:1]).sort((x,y)=>x[2]-y[2]||po3Cls(x[0])-po3Cls(y[0])||x[1]-y[1]).map(x=>x[0]);}
+    const bud=Math.max(0,lim-mHits.length),oShown=oHits.filter((p,k)=>k<bud||inC.has(p.id));oShown.forEach(p=>seen.add(p.id));
+    g2=`<div class="section-h po2h po3lh po5oh" id="po5Others"><h2>${t('po5_others_h')} · ${others.length}</h2></div>`+
+      (oHits.length?oShown.map(p=>inC.has(p.id)?onRow(p):offRow(p)).join('')+(oHits.length>oShown.length?`<div class="loadmore" data-act="po2more">${exEsc(ti('po2_more',{n:oHits.length-oShown.length}))}</div>`:'')
+        :`<div class="empty po3e po5e">${q?exEsc(ti('po5_none_q',{q:qt})):t(F==='out'?'po3_none_out':'po3_none_low')}</div>`);}
+  /* 3) lo elegido que no es del proveedor y no quedó a la vista arriba: al final, como hoy */
+  const isSel=i=>!free||selKeys.has(po3TagKey(po3TagOf(i.id))),rest=cart.filter(i=>!PM.has(i.id)&&!seen.has(i.id));
+  const rows=l=>l.map(i=>{const p=pm.get(i.id);return p?onRow(p):'';}).join('');
+  const oSel=rows(rest.filter(isSel)),oProv=rows(rest.filter(i=>!isSel(i)));
+  const head=h.slice(0,a).split(`placeholder="${exEsc(t('po2_filter_ph'))}"`).join(`placeholder="${exEsc(t('po5_filter_ph'))}"`);
+  return head+PO5_CART+g1+g2+(oSel?hSel+oSel:'')+(oProv?hProv+oProv:'')+foot;}
+{const _s=po3Screen;po3Screen=function(){const h=_s.apply(this,arguments);try{if(typeof h==='string'&&po5On())return po5Lists(h);}catch(_){}return h;};}
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .po5oh{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

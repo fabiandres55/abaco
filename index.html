@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261111100309';
+const APP_VERSION='20261111193617';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18403,6 +18403,349 @@ document.getElementById('device').addEventListener('focusout',()=>{setTimeout(()
   .po2n{font-size:12.5px;color:var(--muted);font-weight:500;margin-right:auto;padding-right:10px}
   #device.po2typing .po2bot{position:static}
   .po2load{margin:6px 0}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+/* ==== mods253 (2026-11-11): ORDEN DE COMPRA — LISTA DE LA TIENDA POR STOCK, FILTRO Y VARIOS PROVEEDORES ====
+   Pedido de Fabio (11-nov), encima de mods252. Solo app: Supabase, sus funciones y la forma de los datos NO cambian.
+   - Sin proveedor elegido, la zona central muestra los productos de la tienda: 1) sin stock (existencia ≤ 0), 2) bajo stock (existencia
+     ≤ «Cantidad reservada», el criterio de «Productos en Reserva»), 3) el resto; por páginas como Inventario. Cada fila: nombre, código,
+     existencia, etiqueta roja/amarilla, el proveedor (el último al que se le compró) y su último costo, y «+».
+   - Desplegable de stock arriba a la derecha (Todos · Sin stock · Bajo stock): se combina con el buscador y con el proveedor; no borra
+     lo elegido.
+   - Un producto se le puede pedir a CUALQUIER proveedor: ya no existe el aviso «se le compra a X, no a Y» (lista, lector, selector y
+     Guardar). Los sugeridos de cada proveedor siguen saliendo de sus compras y órdenes (Opción A: la forma de los datos no cambia), así
+     que el producto aparece en el proveedor nuevo desde que se guarda la orden y sigue en el anterior.
+   - Orden NUEVA: cada producto elegido recuerda su proveedor (state.po3Prov). Con un proveedor puesto arriba, lo que se agrega es de ese
+     proveedor; sin proveedor, del último al que se le compró (se cambia en la fila). Los que nunca se han comprado ni pedido van al
+     proveedor «Sin proveedor» (decisión de Fabio). Cambiar el proveedor de arriba ya no quita lo elegido.
+   - Guardar agrupa por proveedor: UNA orden (y un PDF) por proveedor, todas con la misma fecha de vencimiento e información. Se dice
+     «registrada» solo con la nube confirmada (la misma pregunta de mods246). Reintentar actualiza las MISMAS órdenes (no se duplican).
+     Una orden: se abre «Recibo / Ticket» como en mods252. Varias: ventana con la lista de proveedores y «Compartir» por cada uno.
+   - Folio repetido con dos equipos a la vez: la orden nueva lleva dev/ts (como ventas y compras) y, al mezclar con la nube ANTES de
+     subir, la que todavía no subió toma el siguiente número (la subida es con candado: no entran dos con el mismo número). Un número
+     ya confirmado nunca cambia.
+   - Editar una orden existente sigue igual (un solo proveedor), sin el bloqueo.
+   Fuera de alcance (no se toca): el teclado numérico de cantidades y la recepción de órdenes.
+   Apagarlo en un equipo: localStorage 'abanico.po3'='0' (queda mods252 tal cual). */
+var PO3_SORT=null,PO3_PP=null,PO3_DONE=null;
+const PO3_SPN=['sin proveedor','no provider'];
+const PO3_FUNNEL='<path d="M4 5h16l-6.2 7.4v5.2l-3.6 1.9v-7.1z"/>';
+(function(){try{
+  Object.assign(I18N.es,{po3_search_ph:'Proveedor o producto',
+    po3_hint:'Elige productos de toda la tienda o escribe un proveedor para ver los suyos. Al guardar se crea una orden por proveedor.',
+    po3_all:'Todos',po3_out:'Sin stock',po3_low:'Bajo stock',po3_filter:'Filtrar por stock',po3_stock:'Existencia',
+    po3_h_all:'Productos de la tienda',po3_h_sum:'{o} sin stock · {l} bajo stock',po3_provs_h:'Proveedores',po3_prods_h:'Productos',
+    po3_none_out:'No hay productos sin stock.',po3_none_low:'No hay productos con bajo stock.',po3_none_store:'La tienda todavía no tiene productos.',
+    po3_none_q:'Nada coincide con «{q}».',po3_none_qp:'Ningún producto coincide con «{q}».',
+    po3_sp:'Sin proveedor',po3_n_ord:'{n} órdenes',po3_only_h:'Productos elegidos',po3_only_back:'Volver a la lista',
+    po3_pp_t:'Proveedor del producto',po3_pp_known:'Se le ha comprado a',po3_pp_all:'Otros proveedores',po3_pp_none:'Ningún proveedor coincide.',
+    po3_others_prov_h:'Elegidos para otros proveedores',po3_wide_btn:'Buscar en todos los productos',po3_wide_h:'Todos los productos',
+    po3_confirm_q:'Se crearán {n} órdenes de compra, una por proveedor:\n\n{l}\n\n¿Guardar?',po3_saving_n:'Guardando {n} órdenes de compra…',
+    po3_ok_n:'{n} órdenes de compra registradas',po3_dlg_t:'Órdenes de compra',po3_line:'#{f} · {n} producto(s)',po3_share:'Compartir',
+    po3_done_hint:'Toca «Compartir» para enviar el PDF de cada orden por WhatsApp u otra aplicación.',
+    po3_bad_h:'NO quedaron confirmadas',po3_bad_hint:'Quedaron guardadas en este equipo y se enviarán solas cuando haya conexión. Sus productos siguen en la pantalla: toca «Guardar» para reintentar (no se crean otras órdenes).',
+    po3_fail_n:'Las {n} órdenes de compra NO quedaron confirmadas.\n\n{why}\n\nQuedaron guardadas en este equipo y se enviarán solas cuando haya conexión. Tu selección sigue aquí: toca «Guardar» para reintentar (no se crean otras órdenes).'});
+  Object.assign(I18N.en,{po3_search_ph:'Provider or product',
+    po3_hint:'Pick products from the whole store or type a provider to see theirs. Saving creates one order per provider.',
+    po3_all:'All',po3_out:'Out of stock',po3_low:'Low stock',po3_filter:'Filter by stock',po3_stock:'Stock',
+    po3_h_all:'Store products',po3_h_sum:'{o} out of stock · {l} low stock',po3_provs_h:'Providers',po3_prods_h:'Products',
+    po3_none_out:'No products are out of stock.',po3_none_low:'No products are low on stock.',po3_none_store:'The store has no products yet.',
+    po3_none_q:'Nothing matches «{q}».',po3_none_qp:'No product matches «{q}».',
+    po3_sp:'No provider',po3_n_ord:'{n} orders',po3_only_h:'Selected products',po3_only_back:'Back to the list',
+    po3_pp_t:'Provider of the product',po3_pp_known:'Bought from',po3_pp_all:'Other providers',po3_pp_none:'No provider matches.',
+    po3_others_prov_h:'Selected for other providers',po3_wide_btn:'Search all products',po3_wide_h:'All products',
+    po3_confirm_q:'{n} purchase orders will be created, one per provider:\n\n{l}\n\nSave?',po3_saving_n:'Saving {n} purchase orders…',
+    po3_ok_n:'{n} purchase orders registered',po3_dlg_t:'Purchase orders',po3_line:'#{f} · {n} product(s)',po3_share:'Share',
+    po3_done_hint:'Tap «Share» to send the PDF of each order through WhatsApp or another app.',
+    po3_bad_h:'NOT confirmed',po3_bad_hint:'They are saved on this device and will upload by themselves when there is a connection. Their products are still on the screen: tap «Save» to retry (no other orders are created).',
+    po3_fail_n:'The {n} purchase orders were NOT confirmed.\n\n{why}\n\nThey are saved on this device and will upload by themselves when there is a connection. Your selection is still here: tap «Save» to retry (no other orders are created).'});
+}catch(_){}})();
+function po3On(){try{return po2On()&&localStorage.getItem('abanico.po3')!=='0';}catch(_){return true;}}
+function po3Act(){return po2Act()&&po3On();}
+/* orden NUEVA (cada producto recuerda su proveedor); una orden que se edita tiene poMode.id desde startPO y sigue siendo de un proveedor */
+function po3Free(){const m=state.poMode;return po3Act()&&!!m&&!m.id;}
+/* «Sin proveedor»: el proveedor de los productos que nunca se han comprado ni pedido */
+function po3IsSPName(n){return PO3_SPN.includes(po2Norm(n));}
+function po3IsSPKey(k){if(!k)return false;if(k.startsWith('n:'))return PO3_SPN.includes(k.slice(2));const pv=provById(k.slice(3));return !!pv&&po3IsSPName(provName(pv));}
+function po3SP(){return {id:null,name:t('po3_sp')};}
+/* proveedor de una línea: {id (o null), name} ↔ clave del índice de mods252 ('id:…' registrado, 'n:…' solo el nombre) */
+function po3TagKey(tg){if(!tg)return '';let pv=(tg.id!=null&&tg.id!=='')?provById(tg.id):null;if(!pv)pv=provByName(tg.name);return pv?'id:'+pv.id:'n:'+po2Norm(tg.name);}
+function po3TagLabel(tg){if(!tg)return '';const pv=((tg.id!=null&&tg.id!=='')&&provById(tg.id))||provByName(tg.name);return pv?pcProvLabel(pv):(''+tg.name);}
+function po3KeyTag(k){if(k.startsWith('id:')){const pv=provById(k.slice(3));return pv?{id:pv.id,name:provName(pv)}:null;}const X=po2Index();return {id:null,name:X.names.get(k)||k.slice(2)};}
+/* por defecto: el último proveedor REAL al que se le compró o pidió; si no hay, «Sin proveedor» */
+function po3Default(pid){const X=po2Index(),r=X.rev.get(+pid);let best=null,bd='';
+  if(r)r.forEach(k=>{if(po3IsSPKey(k))return;const mm=X.by.get(k),o=mm&&mm.get(+pid);if(!o)return;const d=o.d||'';if(best==null||d>bd||(d===bd&&k<best)){best=k;bd=d;}});
+  return (best&&po3KeyTag(best))||po3SP();}
+function po3TagOf(pid){pid=+pid;const m=state.po3Prov||(state.po3Prov={});if(m[pid])return m[pid];const sel=po2Sel();return m[pid]=sel?{id:sel.id,name:sel.name}:po3Default(pid);}
+/* cada línea del carrito con su proveedor; las etiquetas de líneas que ya no están se olvidan */
+function po3Sync(){const m=state.po3Prov||(state.po3Prov={}),inC=new Set(pcartRows().map(i=>''+i.id));Object.keys(m).forEach(k=>{if(!inC.has(k))delete m[k];});inC.forEach(k=>{if(!m[k])po3TagOf(+k);});}
+function po3Groups(){const G=new Map();pcItemsRecent().forEach(i=>{const tg=po3TagOf(i.id),k=po3TagKey(tg);let g=G.get(k);if(!g){g={k,tag:tg,label:po3TagLabel(tg),rows:[],total:0};G.set(k,g);}g.rows.push(i);g.total+=pLineCost(i.id)*(+i.q||0);});return [...G.values()];}
+/* stock: 0 sin stock (≤ 0), 1 bajo stock (≤ Cantidad reservada: rsvBase de «Productos en Reserva»), 2 el resto */
+function po3Cls(p){const s=+(p&&p.stock)||0,r=+(p&&p.reserve)||0;return s<=0?0:(s<=r?1:2);}
+function po3Badge(p){const c=po3Cls(p);return c===0?` <span class="po3b out">${t('po3_out')}</span>`:c===1?` <span class="po3b low">${t('po3_low')}</span>`:'';}
+/* productos de la tienda ya ordenados (sin stock, bajo stock, resto; dentro, por nombre como Inventario). Se rehace solo si cambian los datos */
+function po3List(){const sig=currentDataId()+'|'+DATA_VER+'|'+(state.products||[]).length;if(PO3_SORT&&PO3_SORT.sig===sig)return PO3_SORT;
+  const a=(state.products||[]).filter(Boolean).map(p=>({p,c:po3Cls(p),n:mnName(p),k:''+(p.key||'')}));
+  a.sort((x,y)=>x.c-y.c||BIN_COLL.compare(x.n,y.n)||BIN_COLL.compare(x.k,y.k));
+  const n=[0,0,0];a.forEach(x=>{n[x.c]++;});PO3_SORT={sig,l:a.map(x=>x.p),n};return PO3_SORT;}
+function po3FilterHTML(){const f=state.po3F||'all',o=(v,k)=>`<option value="${v}"${f===v?' selected':''}>${exEsc(t(k))}</option>`;
+  return `<label class="round po3flt${f!=='all'?' on':''}" title="${exEsc(t('po3_filter'))}">${svg(PO3_FUNNEL)}<select id="po3Filter" aria-label="${exEsc(t('po3_filter'))}">${o('all','po3_all')}${o('out','po3_out')}${o('low','po3_low')}</select></label>`;}
+function po3ProvRowsHTML(L,all){const rows=L.map((s,i)=>{const n=po2Prods(s).size;const sub=[s.phone,n?ti('po2_n_prods',{n}):t('po2_no_link'),(s.reg||s.sp)?'':t('po2_unreg')].filter(Boolean).join(' · ');
+    return `<div class="row po2sug" data-act="po2prov:${i}"><div class="av">${svg(S_PER)}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(s.label)}</div><div class="s">${exEsc(sub)}</div></div></div>`;}).join('');
+  return `<div class="list po2sugs">${rows}</div>`+(all.length>L.length?`<div class="salehelp po3more">${exEsc(ti('po2_prov_more',{n:all.length-L.length}))}</div>`:'');}
+/* pie de mods252 con «N elegido(s)» como botón: muestra solo lo elegido (por proveedor) para revisar antes de guardar */
+function po3FootHTML(n){const h=po2FootHTML(n),old='<span class="po2n">'+exEsc(ti('po2_sel_n',{n}))+'</span>',g=po3Free()&&n?po3Groups().length:0;
+  const txt=ti('po2_sel_n',{n})+(g>1?' · '+ti('po3_n_ord',{n:g}):'');
+  return h.split(old).join(`<button type="button" class="po2n po3n${state.po3Only?' on':''}" data-act="po3only"${n?'':' disabled'}>${exEsc(txt)}</button>`);}
+function po3Screen(){
+  const sel=po2Sel(),free=po3Free();if(free)po3Sync();
+  const ic=svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>');
+  const cart=pcItemsRecent(),inC=new Set(cart.map(i=>i.id)),items=new Map(cart.map(i=>[i.id,i]));
+  const q=fold((state.q||'').toLowerCase().trim());
+  if(!cart.length||q)state.po3Only=false;if(!q)state.po3Wide=false;
+  const only=!!state.po3Only,F=state.po3F||'all',fC=F==='out'?0:F==='low'?1:-1,passF=p=>fC<0||po3Cls(p)===fC;
+  const X=po2Index(),selKeys=sel?new Set(po2Keys(sel)):null,lastId=cart.length?cart[cart.length-1].id:null,PM=sel?po2Prods(sel):null;
+  const pm=new Map();(state.products||[]).forEach(p=>{if(p)pm.set(p.id,p);});
+  const costOf=(pid,k)=>{const mm=X.by.get(k);return (mm&&mm.get(pid))||null;};
+  const ls=[sel?po2Keys(sel).join(','):'',q,F,state.po3Wide?1:0].join('|');if(state.po2LimQ!==ls){state.po2LimQ=ls;state.po2Lim=0;}
+  const lim=state.po2Lim||PO2_PAGE;
+  /* textos de una fila: código · existencia + etiqueta; debajo, proveedor y última compra (las de ESE proveedor) */
+  const info=(p,o,tg)=>{const a=[];if(p.key)a.push(exEsc(p.key));a.push(exEsc(t('po3_stock'))+' '+qtyLoc(p.stock)+mSuf(isDist(p)));
+    const b=[];if(tg)b.push(exEsc(po3TagLabel(tg)));if(o&&(o.d||o.c>0))b.push((o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+money(o.c));
+    return {s:a.join(' · ')+po3Badge(p),b:b.join(' · ')};};
+  const chip=id=>{if(!free)return '';const tg=po3TagOf(id),k=po3TagKey(tg);if(selKeys&&selKeys.has(k))return '';
+    return `<div class="po3chipw"><button type="button" class="po3chip${po3IsSPKey(k)?' sp':''}" data-act="po3rowprov:${id}">${svg(S_PER)}<span>${exEsc(po3TagLabel(tg))}</span><i>▾</i></button></div>`;};
+  const offRow=(p,o,tg)=>{const i=info(p,o,tg);return `<div class="row po2row po3row" data-act="po2add:${p.id}"><div class="av">${saleProdImg(p,svg(PC_BOX_IC))}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(pNmV(p))}</div><div class="s">${i.s}</div>${i.b?`<div class="s po3s2">${i.b}</div>`:''}</div><button class="po2plus" data-act="po2add:${p.id}" aria-label="+">${svg(PO2_PLUS)}</button></div>`;};
+  const onRow=p=>{let o=null;if(free){const k=po3TagKey(po3TagOf(p.id));o=(selKeys&&selKeys.has(k)&&PM.get(p.id))||costOf(p.id,k);}else if(PM)o=PM.get(p.id)||null;
+    const i=info(p,o,null);return po2OnRow(p,items.get(p.id),p.id===lastId,i.s+(i.b?' · '+i.b:'')+chip(p.id));};
+  const more=(hits,shown)=>hits.length>shown.length?`<div class="loadmore" data-act="po2more">${exEsc(ti('po2_more',{n:hits.length-shown.length}))}</div>`:'';
+  /* con texto: primero el código exacto; luego sin stock, bajo stock y el resto (dentro, el orden del buscador de Relax) */
+  const sortQ=list=>{if(!q)return list;const kq=(''+(state.q||'')).trim().toLowerCase();
+    return prodKeyFirst(list.filter(p=>prodHit(p,q)),q).map((p,i)=>[p,i,(''+(p.key||'')).trim().toLowerCase()===kq?0:1]).sort((a,b)=>a[2]-b[2]||po3Cls(a[0])-po3Cls(b[0])||a[1]-b[1]).map(x=>x[0]);};
+  const storeHits=()=>{const S=po3List();return sortQ(fC<0?S.l:S.l.filter(passF));};
+  /* solo lo elegido (para revisar): en una orden nueva, agrupado por proveedor = las órdenes que se van a crear */
+  const reviewHTML=()=>{let h=`<div class="section-h po2h po3oh"><h2>${t('po3_only_h')} · ${cart.length}</h2><button type="button" class="po3lnk" data-act="po3only">${t('po3_only_back')}</button></div>`;
+    if(free)po3Groups().forEach(g=>{h+=`<div class="po3gh"><b>${exEsc(g.label)}</b><span>${exEsc(ti('po2_n_prods',{n:g.rows.length}))} · ${money(g.total)}</span></div>`+g.rows.map(i=>{const p=pm.get(i.id);return p?onRow(p):'';}).join('');});
+    else h+=cart.map(i=>{const p=pm.get(i.id);return p?onRow(p):'';}).join('');
+    return h;};
+  /* 1) sin proveedor: los productos de la tienda (y, al escribir, los proveedores que empiezan por lo escrito) */
+  const freeList=()=>{const S=po3List();let provH='';
+    if(q){const all=po2ProvList(po2Norm(state.q)),L=all.slice(0,5);PO2_SUG=L;if(L.length)provH=`<div class="section-h po2h"><h2>${t('po3_provs_h')}</h2></div>`+po3ProvRowsHTML(L,all);}else PO2_SUG=[];
+    const hits=storeHits(),shown=hits.filter((p,k)=>k<lim||inC.has(p.id));
+    const title=F==='out'?t('po3_out'):F==='low'?t('po3_low'):t(q?'po3_prods_h':'po3_h_all');
+    const sum=(F==='all'&&!q&&S.l.length)?`<span class="po3sum">${exEsc(ti('po3_h_sum',{o:S.n[0],l:S.n[1]}))}</span>`:'';
+    let list;const qt=(''+(state.q||'')).trim();
+    if(!hits.length){
+      if(q)list=provH?`<div class="empty po3e">${exEsc(ti('po3_none_qp',{q:qt}))}</div>`:`<div class="empty po2none">${exEsc(ti('po3_none_q',{q:qt}))}</div><div class="po2c"><button class="btn ghost po2addp" data-act="pcprovadd">${svg(IC_PRV_ADD)} ${t('prv_add_t')}</button></div>`;
+      else list=`<div class="empty po3e">${t(F==='out'?'po3_none_out':F==='low'?'po3_none_low':'po3_none_store')}</div>`;}
+    else list=shown.map(p=>{if(inC.has(p.id))return onRow(p);const tg=free?po3Default(p.id):null;return offRow(p,tg?costOf(p.id,po3TagKey(tg)):null,tg);}).join('')+more(hits,shown);
+    const help=(!q&&!cart.length)?`<div class="salehelp po2help po3help">${t('po3_hint')}</div>`:'';
+    return help+provH+`<div class="section-h po2h po3lh"><h2>${exEsc(title)} · ${hits.length}</h2>${sum}</div>`+list;};
+  /* 2) con proveedor: sus productos (sin stock primero) y lo demás de la orden */
+  const provList=()=>{const lk=sel.id!=null?provById(sel.id):null,label=lk?pcProvLabel(lk):sel.name,qt=(''+(state.q||'')).trim();
+    if(state.po3Wide&&q){const hits=storeHits(),shown=hits.filter((p,k)=>k<lim||inC.has(p.id));   /* mejora 7: buscar en toda la tienda sin salir del proveedor */
+      return `<div class="section-h po2h po3lh"><h2>${t('po3_wide_h')} · ${hits.length}</h2></div>`+(hits.length?shown.map(p=>inC.has(p.id)?onRow(p):offRow(p,PM.get(p.id)||null,null)).join('')+more(hits,shown):`<div class="empty po3e">${exEsc(ti('po3_none_qp',{q:qt}))}</div>`);}
+    const mine=po3List().l.filter(p=>PM.has(p.id)),total=mine.length,mineF=fC<0?mine:mine.filter(passF);
+    const hits=q?prodKeyFirst(mineF.filter(p=>prodHit(p,q)),q):mineF,shown=hits.filter((p,k)=>k<lim||inC.has(p.id));
+    const wide=`<div class="po2c"><button class="btn ghost" data-act="po3wide">${t('po3_wide_btn')}</button></div>`;
+    let list;
+    if(!total)list=`<div class="po2empty"><div class="salehelp">${exEsc(ti('po2_no_prods',{p:label}))}</div><div class="po2c"><button class="btn ghost" data-act="po2provclr">${t('po2_pick_other')}</button></div></div>`;
+    else if(!hits.length)list=q?`<div class="empty po3e">${exEsc(ti('po2_filter_none',{q:qt}))}</div>`+wide:`<div class="empty po3e">${t(F==='out'?'po3_none_out':'po3_none_low')}</div>`;
+    else list=shown.map(p=>inC.has(p.id)?onRow(p):offRow(p,PM.get(p.id),null)).join('')+more(hits,shown);
+    const isSel=i=>!free||selKeys.has(po3TagKey(po3TagOf(i.id)));
+    const oSel=cart.filter(i=>!PM.has(i.id)&&isSel(i)).map(i=>{const p=pm.get(i.id);return p?onRow(p):'';}).join('');
+    const oProv=cart.filter(i=>!PM.has(i.id)&&!isSel(i)).map(i=>{const p=pm.get(i.id);return p?onRow(p):'';}).join('');
+    const head=`<div class="section-h po2h po3lh"><h2>${exEsc(ti('po2_prods_h',{p:sel.name}))} · ${total}</h2></div>`;
+    const loading=PO2_IDX&&PO2_IDX.need&&PO2_RAWBUSY?`<div class="salehelp po2load">${t('po2_loading')}</div>`:'';
+    return head+loading+list+(oSel?`<div class="section-h po2h"><h2>${t('po2_others_h')}</h2></div>`+oSel:'')+(oProv?`<div class="section-h po2h"><h2>${t('po3_others_prov_h')}</h2></div>`+oProv:'');};
+  const flt=po3FilterHTML(),clr=state.q?`<span class="clr" data-act="clearq">✕</span>`:'';
+  if(!sel){
+    const fld=`<div class="invhead po2ph po3ph"><div class="isearch po2prov">${ic}<input autocomplete="off" id="searchInput" enterkeyhint="search" aria-label="${exEsc(t('po3_search_ph'))}" placeholder="${exEsc(t('po3_search_ph'))}" value="${exEsc(state.q)}">${clr}</div><button class="round" data-act="pcprovadd" aria-label="${exEsc(t('prv_add_t'))}" title="${exEsc(t('prv_add_t'))}">${svg(IC_PRV_ADD)}</button>${flt}</div>`;
+    return '<div class="stickhead">'+poHeadHTML()+fld+'</div>'+`<div class="cartwrap pocart po2 po3">${only?reviewHTML():freeList()}${po3FootHTML(inC.size)}</div>`;}
+  const lk=sel.id!=null?provById(sel.id):null,label=lk?pcProvLabel(lk):sel.name;
+  const chipSel=`<div class="po2sel"><span class="pfico">${svg(S_PER)}</span><div class="po2selt"><span class="po2l">${exEsc(t('po2_prov_ph'))}</span><b>${exEsc(label)}</b></div><button class="pvclr po2x" data-act="po2provclr" aria-label="✕">✕</button></div>`;
+  const filt=`<div class="invhead po2fh"><div class="isearch">${ic}<input autocomplete="off" id="searchInput" enterkeyhint="search" placeholder="${exEsc(t('po2_filter_ph'))}" value="${exEsc(state.q)}">${clr}</div>
+    <button class="round" data-act="compraprod">${svg('<path d="M8 4l3.4 6H4.6z"/><circle cx="17" cy="7" r="3"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>')}</button>
+    <button class="round" data-act="scan:purchase">${svg('<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2"/><path d="M7 12h10"/>')}</button></div>`;
+  return '<div class="stickhead">'+poHeadHTML()+`<div class="po3selrow">${chipSel}${flt}</div>`+filt+'</div>'+`<div class="cartwrap pocart po2 po3">${only?reviewHTML():provList()}${po3FootHTML(inC.size)}</div>`;}
+/* cambiar el proveedor de UNA línea (orden nueva): los que ya le han vendido ese producto, «Sin proveedor» y todos los demás */
+function po3RowProv(pid){pid=+pid;const p=P(pid),d=document.getElementById('provpickdlg'),b=document.getElementById('provpickBody'),h=document.getElementById('provpickH');
+  if(!p||!po3Free()||!d||!b||!h||state.pcart[pid]==null)return;PO3_PP={pid,q:'',l:[]};h.textContent=t('po3_pp_t');
+  b.innerHTML=`<div class="pp-search"><div class="po3ppn">${exEsc(pNmV(p))}</div><div class="isearch">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="po3ppQ" placeholder="${exEsc(t('prv_search'))}"></div></div><div id="po3ppList"></div>`;
+  po3ppFill();const q=document.getElementById('po3ppQ');if(q)q.addEventListener('input',e=>{if(PO3_PP){PO3_PP.q=e.target.value;po3ppFill();}});
+  b.scrollTop=0;d.classList.add('on');}
+function po3ppFill(){const S=PO3_PP,box=document.getElementById('po3ppList');if(!S||!box)return;const q=po2Norm(S.q),X=po2Index(),cur=po3TagKey(po3TagOf(S.pid)),L=[],seen=new Set();
+  const push=(tag,sub,grp)=>{if(!tag||!(''+tag.name).trim())return;const k=po3TagKey(tag);if(seen.has(k))return;seen.add(k);L.push({tag,k,label:po3TagLabel(tag),sub,grp});};
+  const r=X.rev.get(S.pid);
+  if(r)[...r].filter(k=>!po3IsSPKey(k)).map(k=>({k,o:(X.by.get(k)||new Map()).get(S.pid)})).filter(x=>x.o).sort((a,b)=>(b.o.d||'').localeCompare(a.o.d||'')||(a.k<b.k?-1:1))
+    .forEach(x=>push(po3KeyTag(x.k),(x.o.d?ti('po2_last',{d:x.o.d})+' · ':'')+money(x.o.c),0));
+  push(po3SP(),'',1);
+  provLive().slice().sort((a,b)=>provName(a).localeCompare(provName(b))).forEach(pv=>push({id:pv.id,name:provName(pv)},pv.company||'',2));
+  [...X.names.keys()].sort().forEach(k=>{if(!po3IsSPKey(k))push({id:null,name:X.names.get(k)},t('po2_unreg'),2);});
+  const l=(q?L.filter(x=>po2Norm(x.label).includes(q)||po2Norm(x.tag.name).includes(q)):L).slice(0,200);S.l=l;
+  let g=-1;box.innerHTML=l.length?l.map((x,i)=>{let hh='';if(x.grp!==g){g=x.grp;hh=x.grp===0?`<div class="po3pph">${t('po3_pp_known')}</div>`:x.grp===2?`<div class="po3pph">${t('po3_pp_all')}</div>`:'';}
+    return hh+`<div class="row po3ppr${x.k===cur?' po3cur':''}" data-act="po3pp:${i}"><div class="av">${svg(S_PER)}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(x.label)}</div>${x.sub?`<div class="s">${exEsc(x.sub)}</div>`:''}</div></div>`;}).join(''):`<div class="empty" style="margin-top:24px">${t('po3_pp_none')}</div>`;}
+function po3ppPick(i){const S=PO3_PP,x=S&&S.l&&S.l[+i];if(!x)return;PO3_PP=null;closeProvPick();
+  if(!po3Free()||state.pcart[S.pid]==null)return;(state.po3Prov||(state.po3Prov={}))[S.pid]={id:x.tag.id,name:x.tag.name};
+  const sc=document.getElementById('screen');state._keep=sc?sc.scrollTop:0;render();}
+function po3OnlyToggle(){if(!po3Act())return;state.po3Only=!state.po3Only&&pcartRows().length>0;if(state.po3Only)state.q='';state._keep=0;render();try{document.getElementById('screen').scrollTop=0;}catch(_){}}
+function po3WideOn(){if(!po3Act()||!po2Sel())return;state.po3Wide=true;state.po2Lim=0;const live=document.getElementById('searchInput');
+  if(live&&document.activeElement===live&&(live.value||'')===(state.q||''))searchRefresh();else render();}
+/* ¿la nube tiene ESTAS órdenes? (la pregunta de mods246). El folio se lee cada vez: la mezcla con la nube pudo renumerar la que no había subido */
+async function po3Confirm(ids){const sid=currentDataId();if(!ccOn()||!ids.length)return {bad:[]};const t0=Date.now(),lim=Math.min(45000,20000+2500*ids.length);
+  const chk=()=>ids.map(id=>{const o=poById(id);return o?{key:'porders',m:{id:o.id,folio:o.folio,...(o.edited?{edited:o.edited}:{})}}:null;}).filter(Boolean);
+  for(;;){if(!sbOnline())return {bad:ids.slice(),why:t('po2_why_off')};
+    if(ccSettled(sid,'porders')){let bad;try{bad=await ccCloud(sid,chk());}catch(e){return {bad:ids.slice(),why:ccWhy(e)};}
+      if(!bad.length)return {bad:[]};if(Date.now()-t0>lim)return {bad:bad.map(c=>c.m.id),why:t('po2_why_slow')};await ccSl(1000);continue;}
+    const er=CC_ERR&&CC_ERR[sid+'|porders'];if(er&&er.at>=t0&&sbIsDirty(sid,'porders'))return {bad:ids.slice(),why:er.msg};
+    if(Date.now()-t0>lim)return {bad:ids.slice(),why:t('po2_why_slow')};await ccSl(300);}}
+/* Guardar una orden NUEVA: una orden por proveedor */
+async function po3Save(){const m=state.poMode;if(!m||PO2_SAVING)return;
+  try{const a=document.activeElement;if(a&&pcFieldOf(a))pcFieldCommit(a);}catch(_){}
+  const de=document.getElementById('poDue');if(de&&(de.value||'')!==(m.due||''))poDueSet(de);
+  const rows=pcItemsRecent();if(!rows.length){await appAlert(t('po2_need_items'));return;}
+  const far=()=>!!document.querySelector('#body [data-act="po2more"]')||document.querySelectorAll('#body .po2row').length>25;
+  const see=id=>{if(!document.querySelector('#body [data-pqty="'+id+'"]')){state.po3Only=true;state.q='';state._keep=0;render();}};   /* la fila puede estar fuera del filtro o del buscador */
+  for(const i of rows){const p=P(i.id),nm=p?pNmV(p):'';
+    if(!(i.q>0)||!isFinite(i.q)||!pcDig(pcQtyShow(i.id))){await appAlert(ti('po2_qty_bad',{n:nm}));see(i.id);pcFocus(i.id,'q');return;}
+    if(i.q>1e6){await appAlert(ti('po2_qty_big',{n:nm}));see(i.id);pcFocus(i.id,'q');return;}
+    if(!pcDig(pcCostShow(i.id))){await appAlert(ti('cp_cost_empty',{n:nm}));see(i.id);pcFocus(i.id,'c');return;}}
+  if(!m.due){await appAlert(t('po_due_need'));if(state.poMode!==m)return;if(!state.po3Only&&far()){state.po3Only=true;state.q='';state._keep=0;render();}poDueFocus();return;}
+  po3Sync();let groups=po3Groups();
+  if(groups.length>1){const l=groups.map(g=>'• '+g.label+' — '+ti('po2_n_prods',{n:g.rows.length})).join('\n');
+    if(!await appConfirmL(ti('po3_confirm_q',{n:groups.length,l}),t('ask_cancel'),t('ask_ok')))return;
+    if(state.poMode!==m||PO2_SAVING)return;po3Sync();groups=po3Groups();if(!groups.length)return;}
+  state.porders=state.porders||[];const ids=m.po3ids||(m.po3ids={}),keys=new Set(groups.map(g=>g.k)),note=(''+(state.pnote||'')).trim();
+  /* un reintento con otro reparto: la orden de un proveedor que ya no tiene productos se quita (no queda una orden repetida) */
+  Object.keys(ids).forEach(k=>{if(keys.has(k))return;const o=poById(ids[k]);if(o&&o.recvPurchase==null){o.del=true;o.edited=Date.now();}delete ids[k];});
+  let folio=state.porders.reduce((a,x)=>Math.max(a,+(x&&x.folio)||0),500);const used=new Set(state.porders.map(x=>x&&''+x.id)),made=[];
+  for(const g of groups){
+    const lines=g.rows.map(i=>{const p=P(i.id);const c=pLineCost(i.id);return {pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};});
+    const pv=((g.tag.id!=null&&g.tag.id!=='')&&provById(g.tag.id))||provByName(g.tag.name);
+    const data={lines,total:lines.reduce((a,l)=>a+l.subtotal,0),provider:g.tag.name,provId:pv?pv.id:undefined,note,due:m.due};
+    let o=ids[g.k]?poById(ids[g.k]):null;const it={k:g.k,label:g.label,pids:g.rows.map(i=>i.id)};
+    if(o&&o.recvPurchase!=null){made.push({...it,id:o.id,skip:true});continue;}   /* otro equipo ya la recibió: no se toca */
+    if(o){Object.assign(o,data);o.edited=Date.now();}
+    else{let id;do{id='O'+Date.now().toString(36)+Math.floor(Math.random()*1e3);}while(used.has(id));used.add(id);
+      o={id,folio:++folio,issue:todayISO(),dev:deviceId(),ts:Date.now(),...data};state.porders.unshift(o);ids[g.k]=id;}
+    made.push({...it,id:o.id});}
+  PO2_SAVING=true;let r;const chk=made.filter(x=>!x.skip).map(x=>x.id);
+  try{lgBusy(true,made.length>1?ti('po3_saving_n',{n:made.length}):t('po2_saving'));persist();r=await po3Confirm(chk);}catch(e){r={bad:chk,why:ccWhy(e)};}finally{PO2_SAVING=false;lgBusy(false);}
+  const badS=new Set((r.bad||[]).map(String)),ok=made.filter(x=>!badS.has(''+x.id)),bad=made.filter(x=>badS.has(''+x.id));
+  const fo=x=>{const o=poById(x.id);return {id:x.id,label:x.label,folio:o?o.folio:'',n:o?(o.lines||[]).length:x.pids.length,total:o?(+o.total||0):0};};
+  if(!bad.length){if(state.poMode===m){poEnd();go('porders');}
+    if(ok.length===1){openPO(ok[0].id);return po2Done(ok[0].id);}
+    return po3DoneDlg({ok:ok.map(fo),bad:[],why:''});}
+  /* algo no quedó confirmado: lo confirmado sale de la pantalla; lo demás se queda para reintentar sobre las mismas órdenes */
+  if(state.poMode===m){ok.forEach(x=>{x.pids.forEach(pid=>{pcForget(pid);if(state.po3Prov)delete state.po3Prov[pid];});delete ids[x.k];});m.sig=poSig();render();}
+  try{if(ccOn())bad.forEach(x=>{const o=poById(x.id);if(!o)return;ccPend({uid:'cc'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),store:currentDataId(),what:t('po_title')+' #'+o.folio,del:false,checks:[{key:'porders',m:{id:o.id,...(o.edited?{edited:o.edited}:{})}}],at:Date.now(),told:1});});}catch(_){}   /* cuando suba: «ya quedó en la nube» (mods246); sin el folio: pudo cambiar al subir */
+  const why=r.why||t('cc_why_net');
+  if(!ok.length&&bad.length===1){const o=poById(bad[0].id);await appAlert(ti('po2_fail',{n:o?o.folio:'',why}));return;}
+  if(!ok.length){await appAlert(ti('po3_fail_n',{n:bad.length,why}));return;}
+  po3DoneDlg({ok:ok.map(fo),bad:bad.map(fo),why});}
+/* varias órdenes registradas: la lista de proveedores, cada uno con «Compartir» (abre «Recibo / Ticket» con el PDF de ESA orden) */
+function po3DoneDlg(R){PO3_DONE=R;const h=document.getElementById('provpickH'),b=document.getElementById('provpickBody'),d=document.getElementById('provpickdlg');
+  const title=R.ok.length===1?t('po2_ok'):ti('po3_ok_n',{n:R.ok.length});
+  if(!h||!b||!d)return appAlert(title);
+  h.textContent=t('po3_dlg_t');
+  const row=(x,good)=>`<div class="row po3dr${good?'':' bad'}" data-po3o="${exEsc(''+x.id)}"><div class="av">${svg(S_PER)}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(x.label)}</div><div class="s">${exEsc(ti('po3_line',{f:x.folio,n:x.n}))} · ${money(x.total)}</div></div>${good?`<button type="button" class="btn po3shb" data-act="po3share:${exEsc(''+x.id)}">${PDF_ICO_SHARE}<span>${t('po3_share')}</span></button>`:''}</div>`;
+  b.innerHTML=`<div class="po3done"><div class="shok" role="status"><span class="shok-c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.6 4.6L19 7.6"/></svg></span><span class="shok-t">${exEsc(title)}</span></div>
+    <div class="list po3dl">${R.ok.map(x=>row(x,true)).join('')}</div>
+    ${R.bad.length?`<div class="po3badh">${exEsc(t('po3_bad_h'))}</div><div class="list po3dl">${R.bad.map(x=>row(x,false)).join('')}</div><div class="po3why">${exEsc(R.why||'')}<br>${exEsc(t('po3_bad_hint'))}</div>`:''}
+    <div class="salehelp po3dh">${exEsc(t('po3_done_hint'))}</div>
+    <div class="po2c"><button type="button" class="btn po3okb" data-act="po3doneclose">${t('ask_ok')}</button></div></div>`;
+  b.scrollTop=0;d.classList.add('on');}
+function po3Share(id){const o=poById(id);if(o)po2Done(o.id);}
+/* dos equipos sacaron el mismo folio: al mezclar con la nube, la orden de ESTE equipo que todavía no subió toma el siguiente número.
+   Solo órdenes con dev (las de mods253); una que ya está en la nube nunca cambia de número */
+function po3FolioClash(list,remote){const me=deviceId(),R=new Set();(remote||[]).forEach(x=>{if(x&&x.id!=null)R.add(''+x.id);});
+  const by=new Map();let max=500,n=0;
+  list.forEach(x=>{if(!x||x.folio==null)return;const f=+x.folio;if(!isFinite(f))return;if(f>max)max=f;if(x.del)return;let g=by.get(f);if(!g){g=[];by.set(f,g);}g.push(x);});
+  by.forEach(g=>{if(g.length<2)return;const mine=g.filter(x=>x.dev===me&&!R.has(''+x.id)).sort((a,b)=>((a.ts||0)-(b.ts||0))||(''+a.id).localeCompare(''+b.id));
+    if(!mine.length)return;mine.slice(g.length>mine.length?0:1).forEach(x=>{const i=list.indexOf(x);if(i>=0){list[i]={...x,folio:++max};n++;}});});
+  return n;}
+{const _m=mergeArr;mergeArr=function(key,base,local,remote){const out=_m.apply(this,arguments);
+  if(key==='porders'&&Array.isArray(out)){try{if(po3On())po3FolioClash(out,remote);}catch(_){}}return out;};}
+/* enganches sobre mods252 (con 'abanico.po3'='0' todo queda como mods252) */
+{const _s=po2Screen;po2Screen=function(){return po3On()?po3Screen():_s.apply(this,arguments);};}
+{const _v=po2Save;po2Save=function(){return po3Free()?po3Save():_v.apply(this,arguments);};}
+{const _o=po2Other;po2Other=function(){return po3On()?'':_o.apply(this,arguments);};}   /* sin el bloqueo «se le compra a X» */
+{const _g=po2Gate;po2Gate=function(){return po3On()?true:_g.apply(this,arguments);};}
+{const _l=po2ProvList;po2ProvList=function(q){const out=_l.apply(this,arguments);if(!po3On())return out;const sp=t('po3_sp');
+  if(q&&po2Norm(sp).startsWith(q)&&!out.some(s=>po3IsSPName(s.name)))out.push({id:null,name:sp,label:sp,phone:'',reg:false,sp:true});return out;};}
+/* «Sin proveedor» elegido arriba: además de lo que se le pidió, todos los productos que no tienen un proveedor real */
+{const _p=po2Prods;po2Prods=function(sel){const out=_p.apply(this,arguments);if(!po3On()||!sel||!po3IsSPName(sel.name))return out;const X=po2Index();
+  (state.products||[]).forEach(p=>{if(!p||out.has(p.id))return;const r=X.rev.get(p.id);if(r)for(const k of r)if(!po3IsSPKey(k))return;out.set(p.id,{c:0,d:'',n:0});});return out;};}
+{const _a=po2Add;po2Add=function(id){if(!po3Act())return _a.apply(this,arguments);id=+id;if(!P(id))return;if(state.pcart&&state.pcart[id]!=null)return pcFocus(id);
+  let o=null;const sel=po2Sel();if(po3Free()){const k=po3TagKey(po3TagOf(id));o=(sel&&po2Keys(sel).includes(k)&&po2Prods(sel).get(id))||(po2Index().by.get(k)||new Map()).get(id)||null;}else if(sel)o=po2Prods(sel).get(id)||null;
+  pcAddLine(id,o&&o.c>0?{cost:o.c}:{});};}
+/* quitar el proveedor de arriba ya no pregunta ni quita lo elegido: cada producto conserva su proveedor */
+{const _c=po2ProvClr;po2ProvClr=function(){if(!po3Act())return _c.apply(this,arguments);
+  state.pprovider='';state.pprovId=null;state.pprovShort=false;state.q='';state.po2Lim=0;state.po3Wide=false;state._keep=0;render();try{document.getElementById('screen').scrollTop=0;}catch(_){}};}
+{const _d=startPO;startPO=function(){if(!state.poMode){state.po3Prov={};state.po3F='all';state.po3Only=false;state.po3Wide=false;}return _d.apply(this,arguments);};}
+document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act^="po3"]');if(!el)return;
+  const a=el.dataset.act,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);e.preventDefault();e.stopPropagation();
+  if(k==='po3share')return po3Share(v);if(k==='po3doneclose'){PO3_DONE=null;return closeProvPick();}if(k==='po3pp')return po3ppPick(v);
+  if(!po3Act())return;
+  if(k==='po3rowprov')return po3RowProv(v);if(k==='po3only')return po3OnlyToggle();if(k==='po3wide')return po3WideOn();},true);
+document.addEventListener('change',e=>{const el=e.target;if(!el||el.id!=='po3Filter'||!po3Act())return;e.stopPropagation();
+  state.po3F=/^(out|low)$/.test(el.value)?el.value:'all';state.po2Lim=0;state._keep=0;render();try{document.getElementById('screen').scrollTop=0;}catch(_){}},true);
+/* Enter en el buscador: un código exacto agrega ese producto (lector); sin proveedor puesto, un nombre exacto de proveedor (o el único
+   que coincide, si ningún producto coincide) lo elige; si no, cierra el teclado. Va antes que el Enter de mods252 */
+document.addEventListener('keydown',e=>{const el=e.target;if(e.key!=='Enter'||!el||el.id!=='searchInput'||!po3Act()||state.screen!=='compras')return;
+  e.preventDefault();e.stopPropagation();const v=(''+(el.value||'')).trim();
+  if(v){const kq=v.toLowerCase(),p=(state.products||[]).find(x=>x&&(''+(x.key||'')).trim().toLowerCase()===kq);
+    if(p){state.q='';el.value='';return po2Add(p.id);}
+    if(!po2Sel()){state.q=el.value;const nq=po2Norm(v),L=po2ProvList(nq).slice(0,60),ex=L.findIndex(s=>po2Norm(s.name)===nq);
+      if(ex>=0){PO2_SUG=L;return po2PickProv(ex);}
+      if(L.length===1&&!(state.products||[]).some(x=>x&&prodHit(x,fold(kq)))){PO2_SUG=L;return po2PickProv(0);}}}
+  try{el.blur();}catch(_){}},true);
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .po3selrow{display:flex;align-items:center;gap:9px}
+  .po3selrow .po2sel{flex:1;min-width:0;margin:8px 0 6px;padding:6px 6px 6px 12px;gap:8px}
+  .po3selrow .po2sel .po2x{width:36px;height:36px}
+  .po3flt{position:relative;overflow:hidden}
+  .po3flt svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linejoin:round}
+  .po3flt select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;border:0;-webkit-appearance:none;appearance:none}
+  .po3flt.on{border-color:var(--green);box-shadow:inset 0 0 0 1.5px var(--green)}
+  .po3flt.on svg{stroke:var(--green);fill:var(--green)}
+  .po3b{display:inline-block;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:9px;margin-left:5px;vertical-align:1px;white-space:nowrap}
+  :root{--po3-out-ink:#ffffff;--po3-low-bg:#f0b90b;--po3-low-ink:#3a2c00}
+  html[data-theme="dark"]{--po3-low-bg:#e5b42c;--po3-low-ink:#2e2300}
+  .po3b.out{background:var(--red);color:var(--po3-out-ink)}
+  .po3b.low{background:var(--po3-low-bg);color:var(--po3-low-ink)}
+  .po3s2{margin-top:1px}
+  .po3chipw{margin-top:5px}
+  .po3chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:5px 10px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font-size:12.5px;font-family:inherit;cursor:pointer}
+  .po3chip svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:2;flex:none}
+  .po3chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .po3chip i{font-style:normal;color:var(--muted)}
+  .po3chip.sp{border-style:dashed;color:var(--muted)}
+  .po3sum{margin-left:auto;font-size:11.5px;color:var(--muted);text-align:right;padding-left:8px}
+  .po3lnk{margin-left:auto;border:0;background:none;color:var(--green);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;padding:4px 2px}
+  .po3gh{display:flex;align-items:baseline;gap:8px;margin:12px 2px 6px;padding-top:9px;border-top:1px solid var(--line)}
+  .po3gh b{font-size:14.5px;overflow-wrap:anywhere}
+  .po3gh span{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+  button.po3n{border:0;background:none;text-align:left;cursor:pointer;text-decoration:underline;font-family:inherit}
+  button.po3n.on{color:var(--green);font-weight:700}
+  button.po3n:disabled{text-decoration:none;cursor:default}
+  .po3help{margin-top:10px}
+  .po3more{margin:6px 0 2px}
+  .po3e{padding:22px 20px}
+  .po3done{display:flex;flex-direction:column;padding:18px 14px 22px}
+  .po3dl{margin-top:14px}
+  .po3dr{align-items:center}
+  .po3shb{width:auto;flex:none;display:inline-flex;align-items:center;gap:6px;padding:9px 12px;font-size:13.5px}
+  .po3shb svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+  .po3badh{margin:18px 2px 0;font-weight:700;color:var(--red)}
+  .po3why{font-size:13px;color:var(--muted);margin:8px 2px;line-height:1.5}
+  .po3dh{margin-top:16px}
+  .po3ppn{font-weight:600;margin:0 2px 9px;overflow-wrap:anywhere}
+  .po3pph{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:14px 16px 4px}
+  .po3ppr{cursor:pointer}
+  .po3cur{box-shadow:inset 3px 0 0 var(--green)}
+  .po3cur .t{font-weight:700}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

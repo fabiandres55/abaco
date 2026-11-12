@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261112071424';
+const APP_VERSION='20261112115822';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18906,5 +18906,52 @@ function po5Lists(h){
 (function(){try{const s=document.createElement('style');s.textContent=`
   .po5oh{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 `;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods256 (2026-11-12): ORDEN DE COMPRA — SIEMPRE UNA SOLA ORDEN Y UN SOLO PDF ====
+   Pedido de Fabio (12-nov, con captura de «2 órdenes de compra registradas»): «No pueden quedar en dos pdf por separado.» ·
+   «Solamente debe aparecer un PDF.» · «en el PDF puede estar un proveedor y un producto que no necesariamente sea ese proveedor,
+   pero tiene que estar los productos en un solo PDF.»
+   Antes (mods253): cada producto elegido guardaba SU proveedor y Guardar creaba una orden (y un PDF) por proveedor.
+   Ahora, en una orden NUEVA:
+   - Con un proveedor escogido arriba, TODO lo elegido es de ese proveedor (también lo que se eligió antes de escogerlo o con otro):
+     Guardar crea UNA orden y UN PDF, sin preguntar.
+   - Sin proveedor arriba: si todo lo elegido es de un mismo proveedor se guarda como antes (una orden). Si es de varios, Guardar NO
+     crea varias órdenes: pide escoger arriba el proveedor de la orden.
+   No se toca: la lista, el buscador, las cantidades, los costos, el guardado mismo (po3Save de mods253 con un solo proveedor), la
+   edición de una orden guardada ni la recepción. Solo cambia a nombre de quién va cada producto elegido (memoria de la pantalla,
+   state.po3Prov). No se escribe nada en productos ni existencias.
+   Apagarlo en un equipo: localStorage 'abanico.po6'='0' (queda mods255 tal cual, con una orden por proveedor). */
+(function(){try{
+  Object.assign(I18N.es,{po6_hint:'Elige productos de toda la tienda o escribe un proveedor para ver los suyos. Todo lo elegido va en una sola orden y un solo PDF.',
+    po6_need_prov:'Los productos elegidos son de {n} proveedores:\n\n{l}\n\nEscoge arriba el proveedor al que va la orden. Todos los productos saldrán en un solo PDF.'});
+  Object.assign(I18N.en,{po6_hint:'Pick products from the whole store or type a provider to see theirs. Everything you pick goes in a single order and a single PDF.',
+    po6_need_prov:'The selected products belong to {n} providers:\n\n{l}\n\nPick the provider of the order at the top. All the products will go in a single PDF.'});
+}catch(_){}})();
+function po6On(){try{return localStorage.getItem('abanico.po6')!=='0'&&po3On();}catch(_){return po3On();}}
+/* con proveedor arriba, todo lo elegido queda a su nombre (po3Sync corre en cada pintada de una orden nueva y antes de guardar) */
+{const _y=po3Sync;po3Sync=function(){const r=_y.apply(this,arguments);
+  try{if(po6On()&&po3Free()){const sel=po2Sel();if(sel){const m=state.po3Prov||(state.po3Prov={});pcartRows().forEach(i=>{m[i.id]={id:sel.id,name:sel.name};});}}}catch(_){}
+  return r;};}
+/* el pie ya no anuncia «N órdenes»: nunca se crea más de una */
+{const _f=po3FootHTML;po3FootHTML=function(n){const h=_f.apply(this,arguments);
+  try{if(n&&po6On()&&po3Free()){const g=po3Groups().length;if(g>1)return h.split(exEsc(ti('po2_sel_n',{n})+' · '+ti('po3_n_ord',{n:g}))).join(exEsc(ti('po2_sel_n',{n})));}}catch(_){}
+  return h;};}
+/* el texto de ayuda ya no dice «una orden por proveedor» */
+{const _s=po3Screen;po3Screen=function(){const h=_s.apply(this,arguments);
+  try{if(typeof h==='string'&&po6On())return h.split(t('po3_hint')).join(t('po6_hint'));}catch(_){}
+  return h;};}
+/* Guardar sin proveedor arriba y con productos de varios proveedores: no se crean varias órdenes; se pide escoger el proveedor */
+{const _v=po3Save;po3Save=async function(){
+  let stop=false;const m=state.poMode;
+  try{if(m&&!PO2_SAVING&&po6On()&&po3Free()&&!po2Sel()&&pcItemsRecent().length){po3Sync();const G=po3Groups();
+    if(G.length>1){stop=true;try{const a=document.activeElement;if(a&&pcFieldOf(a))pcFieldCommit(a);}catch(_){}
+      await appAlert(ti('po6_need_prov',{n:G.length,l:G.map(g=>'• '+g.label+' — '+ti('po2_n_prods',{n:g.rows.length})).join('\n')}));
+      if(state.poMode===m&&po3Free()){if(state.po3Only||state.q){state.po3Only=false;state.q='';state._keep=0;render();}
+        setTimeout(()=>{const s=document.getElementById('searchInput');if(s)try{s.focus();}catch(_){}},30);}}}
+  }catch(_){}
+  if(stop)return;
+  return _v.apply(this,arguments);};}
 
 </script>

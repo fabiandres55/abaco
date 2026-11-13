@@ -14352,7 +14352,7 @@ async function sbSyncWriteOne(sb,id,key){
         if(!ok){LAST_W[key]=null;throw w.error;}}   /* error de la nube: queda pendiente y se reintenta (la marca dice si sí llegó). NUNCA escribir sin condición: pisaría a otro equipo */
       else if(!w||!Array.isArray(w.data)||!w.data.length){   // no actualizó: ¿otro dispositivo escribió en medio?
         const c=await sb.from('store_docs').select('updated_at').eq('store_id',id).eq('doc_key',key).maybeSingle();
-        if(!c||c.error||!c.data||c.data.updated_at!==prevTs)continue;   // otro dispositivo escribió en medio (o ya no está): fusionar otra vez
+        if(!c||c.error||!c.data||c.data.updated_at!==prevTs){wtMissNoProbe(id,key,w,c,prevTs,ts);/* mods258: 0 filas y otro equipo escribió: la marca queda, pero ya no puede decir «sí llegó» por parecido */continue;}   // otro dispositivo escribió en medio (o ya no está): fusionar otra vez
         LAST_W[key]=null;throw new Error('sync-denied');}   /* nadie escribió en medio pero no se dejó actualizar: queda pendiente (antes se escribía sin condición) */
     }else{w=await sb.from('store_docs').upsert({store_id:id,doc_key:key,data:merged,updated_at:ts},{onConflict:'store_id,doc_key'});if(w&&w.error){LAST_W[key]=null;throw w.error;}}
     wtokConfirm(id,key,ts);lgFixDone(id,key);   /* mods251: aviso de lo igualado */   /* SÍ quedó: si se termina después (pregunta abierta, cambio de tienda, app cerrada), se reconoce aunque otro equipo escriba encima */
@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261112115822';
+const APP_VERSION='20261113083348';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18953,5 +18953,334 @@ function po6On(){try{return localStorage.getItem('abanico.po6')!=='0'&&po3On();}
   }catch(_){}
   if(stop)return;
   return _v.apply(this,arguments);};}
+
+/* ==== mods257 (2026-11-12): RECEPCIÓN PARCIAL DE UNA ORDEN DE COMPRA ====
+   Pedido de Fabio (12-nov): «Hoy "Recibir mercancía (convertir en compra)" convierte la orden completa. Ahora debe convertir solo
+   lo que llegó, y lo que falta debe quedarse en la misma orden de compra.» Autorizado con «Ok dale» y cinco decisiones:
+   1) tras el resumen se pasa por Compras (pago y Guardar, como hoy) · 2) la orden resta lo que DE VERDAD se guardó en la compra ·
+   3) lo ya recibido se sigue viendo en la orden · 4) eliminar una compra parcial devuelve sus cantidades a lo pendiente ·
+   5) las marcas sin confirmar se recuerdan solo en este equipo.
+   QUÉ HACE
+   - Detalle de una orden sin recibir del todo: cada producto con su check y el campo «Recibido»; «Marcar todos». Marcar NO cambia
+     nada (ni la orden, ni el inventario, ni la nube): las marcas viven en localStorage 'abanico.po7m'.
+   - «Recibir mercancía (convertir en compra)»: sin marcas avisa; con marcas valida (ni cero ni vacío; más de lo pedido pregunta),
+     muestra el resumen y carga en Compras SOLO lo marcado con su cantidad. Si todo está marcado completo se llama al poReceive de
+     siempre, sin cambios.
+   - EL INVENTARIO ENTRA SOLO POR saveCompra, que no se modifica. Si la compra cubre todo lo pendiente corre el camino de hoy
+     (la orden queda «Recibida · compra #n»). Si falta algo, la compra se guarda igual y, en el mismo instante, la orden resta lo
+     recibido, recalcula su total y anota la compra en o.parts → «Recibida parcial · compra #n». Se repite hasta que no quede nada.
+   - Eliminar una compra parcial (purOrderBack): sus cantidades vuelven a lo pendiente de la orden.
+   DATOS NUEVOS (opcionales, dentro del documento de órdenes; Supabase no cambia): o.parts=[{id,folio,date,at,items:[{pid,key,name,
+   q,d,cost,oc}]}] (q = recibido, d = descontado de lo pendiente, oc = costo de la orden) y, en el borrador de Compras, state.po7Sig.
+   Una orden recibida antes de este cambio no tiene o.parts: se ve y funciona igual.
+   - DOS EQUIPOS (refuerzo autorizado por Fabio el 12-nov): al sincronizar órdenes (mergeArr, solo 'porders'), si la orden cambió en los
+     dos lados y hay entregas de por medio, se juntan las entregas de ambos y la orden se rehace (po7Merge / po7Rebuild).
+   Apagarlo en un equipo: localStorage 'abanico.po7'='0' (vuelve el botón de antes; lo ya anotado en las órdenes se sigue mostrando). */
+(function(){try{
+  Object.assign(I18N.es,{po7_recv:'Recibido',po7_all:'Marcar todos',po7_none:'Desmarcar todos',po7_ord:'Pedido: {q}',po7_pend_q:'Pendiente: {q}',
+    po7_st_pend:'Pendiente',po7_st_full:'Completo',po7_st_part:'Parcial · {r} de {q}, faltan {f}',po7_st_over:'Más de lo pedido · {r} de {q}',po7_st_bad:'Escribe la cantidad recibida',
+    po7_gone:'Ya no está en el inventario: no se puede recibir',po7_gone_n:'{n} ya no está en el inventario: quita su marca para seguir.',
+    po7_need_mark:'Primero marca los productos que llegaron.',po7_zero:'Escribe la cantidad recibida de {n} (mayor a 0) o quita su marca.',po7_big:'La cantidad recibida de {n} es demasiado grande.',
+    po7_over_q:'Estos productos traen MÁS de lo pedido:\n\n{l}\n\n¿Es correcto?',po7_over_l:'• {n} — recibido {r}, pedido {q}',
+    po7_sum_h:'Recibir mercancía · Orden de compra #{n}',po7_sum_full:'Llegan completos ({n}):',po7_sum_part:'Llegan parciales ({n}):',po7_sum_left:'Siguen pendientes en la orden ({n}):',
+    po7_sum_of:'{r} de {q} (quedan {f})',po7_sum_ord:'pedido {q}',po7_more:'… y {n} más',
+    po7_sum_foot:'Al aceptar se abre Compras con lo recibido. El inventario sube cuando toques Guardar.',
+    po7_partial:'Recibida parcial · compra #{n}',po7_partial_n:'Recibida parcial · compras {n}',po7_received_n:'Recibida · compras {n}',
+    po7_done_h:'Ya recibido',po7_prev_h:'Entregas anteriores',po7_done_p:'Compra #{n}',po7_last_h:'Última entrega · compra #{n}',po7_pending_h:'Pendiente por recibir',po7_total_pend:'Total pendiente',
+    po7_changed:'La orden de compra #{n} cambió desde que marcaste lo recibido (se recibió o se editó, aquí o en otro equipo). Vuelve a abrir la orden y marca de nuevo lo que llegó.',
+    po7_stale:'La orden de compra #{n} cambió en otro equipo. Se va a actualizar: vuelve a abrirla y marca lo que llegó.'});
+  Object.assign(I18N.en,{po7_recv:'Received',po7_all:'Check all',po7_none:'Uncheck all',po7_ord:'Ordered: {q}',po7_pend_q:'Pending: {q}',
+    po7_st_pend:'Pending',po7_st_full:'Complete',po7_st_part:'Partial · {r} of {q}, {f} missing',po7_st_over:'More than ordered · {r} of {q}',po7_st_bad:'Enter the received quantity',
+    po7_gone:'No longer in the inventory: it cannot be received',po7_gone_n:'{n} is no longer in the inventory: uncheck it to continue.',
+    po7_need_mark:'First check the products that arrived.',po7_zero:'Enter the received quantity of {n} (greater than 0) or uncheck it.',po7_big:'The received quantity of {n} is too large.',
+    po7_over_q:'These products bring MORE than ordered:\n\n{l}\n\nIs that right?',po7_over_l:'• {n} — received {r}, ordered {q}',
+    po7_sum_h:'Receive goods · Purchase order #{n}',po7_sum_full:'Arrive complete ({n}):',po7_sum_part:'Arrive partially ({n}):',po7_sum_left:'Still pending in the order ({n}):',
+    po7_sum_of:'{r} of {q} ({f} left)',po7_sum_ord:'ordered {q}',po7_more:'… and {n} more',
+    po7_sum_foot:'Accepting opens Purchases with what was received. Stock goes up when you tap Save.',
+    po7_partial:'Partially received · purchase #{n}',po7_partial_n:'Partially received · purchases {n}',po7_received_n:'Received · purchases {n}',
+    po7_done_h:'Already received',po7_prev_h:'Previous deliveries',po7_done_p:'Purchase #{n}',po7_last_h:'Last delivery · purchase #{n}',po7_pending_h:'Pending to receive',po7_total_pend:'Pending total',
+    po7_changed:'Purchase order #{n} changed since you checked what arrived (it was received or edited, here or on another device). Open the order again and check what arrived.',
+    po7_stale:'Purchase order #{n} changed on another device. It will be updated: open it again and check what arrived.'});
+}catch(_){}})();
+function po7On(){try{return localStorage.getItem('abanico.po7')!=='0';}catch(_){return true;}}
+Object.assign(PC_DEF,{po7Sig:null});   /* la versión de la orden con que se cargó la recepción: viaja en el borrador de Compras, como purchFromPO */
+/* ---- lo que una orden ya recibió por partes ---- */
+function po7Parts(o){return o&&Array.isArray(o.parts)?o.parts.filter(p=>p&&p.id!=null):[];}
+function po7PartFol(p){const x=purById(p.id);return x&&x.folio!=null?x.folio:p.folio;}   /* el folio ACTUAL de la compra (pudo renumerarse al subir) */
+function po7Fols(o){const L=po7Parts(o).map(po7PartFol);if(o.recvPurchase!=null){const f=poRecvFol(o);if(!L.some(x=>''+x===''+f))L.push(f);}return L;}
+function po7Sig(o){return JSON.stringify([(o.lines||[]).map(l=>[l.pid!=null?l.pid:null,l.key||'',+l.q||0]),po7Parts(o).map(p=>''+p.id)]);}
+function po7Prod(l){return (l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||state.products.find(x=>qtNorm(x.name)===qtNorm(l.name))||null;}   /* la misma búsqueda de poLinesToCart */
+function po7Nm(l){return (''+((l&&l.name)||'')).replace(/^\.{3}\s*/,'');}
+/* reparte unas cantidades (Map id de producto → cantidad en unidades base) entre las líneas pendientes de la orden.
+   got = lo recibido por producto (q recibido, d descontado de lo pendiente) · left = las líneas que siguen pendientes · any = algo era de la orden */
+function po7Split(o,qm,cm){const av=new Map(qm),got=new Map(),left=[];let any=false;
+  (o.lines||[]).forEach(l=>{const p=po7Prod(l),q=+l.q||0,a=p?(+av.get(p.id)||0):0,d=q3(Math.min(a,q));
+    if(p&&d>0){any=true;av.set(p.id,q3(a-d));const g=got.get(p.id)||{pid:p.id,key:p.key||l.key||'',name:l.name||p.name,q:0,d:0,cost:cm&&cm.has(p.id)?cm.get(p.id):(+l.cost||0),oc:+l.cost||0};g.d=q3(g.d+d);got.set(p.id,g);}
+    const rem=q3(q-d);if(rem>0)left.push({...l,q:rem,subtotal:(+l.cost||0)*rem});});
+  got.forEach((g,pid)=>{g.q=q3(g.d+(+av.get(pid)||0));});   /* lo que llegó de más se anota como recibido, pero no descuenta nada */
+  return {got:[...got.values()],left,any};}
+function po7Total(lines){return (lines||[]).reduce((a,l)=>a+(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0)),0);}
+/* ---- estado: «Recibida parcial · compra #n» y «Recibida · compras #a, #b» (también en la lista y en el CSV) ---- */
+{const _t=poStateTxt;poStateTxt=function(o){
+  try{if(po7Parts(o).length){const F=po7Fols(o),n=F.map(f=>'#'+f).join(', ');
+    if(o.recvPurchase==null)return F.length===1?ti('po7_partial',{n:F[0]}):ti('po7_partial_n',{n});
+    return ti('po7_received_n',{n});}}catch(_){}
+  return _t.apply(this,arguments);};}
+{const _c=poStateCls;poStateCls=function(o){try{if(o&&o.recvPurchase==null&&po7Parts(o).length)return 'po7p';}catch(_){}return _c.apply(this,arguments);};}
+/* ---- marcas de este equipo (nada sube a la nube) ---- */
+const PO7_KEY='abanico.po7m';let PO7={id:null,sig:'',m:{}};
+function po7Store(){try{const v=JSON.parse(localStorage.getItem(PO7_KEY)||'{}');return v&&typeof v==='object'?v:{};}catch(_){return {};}}
+function po7MarksGet(o){try{const S=po7Store(),T=S[currentDataId()],e=T&&T[o.id];return e&&e.sig===po7Sig(o)&&e.m&&typeof e.m==='object'?{...e.m}:{};}catch(_){return {};}}
+function po7MarksPut(o,m){try{const sid=currentDataId();if(!sid||!o)return;const S=po7Store(),T=S[sid]||(S[sid]={});
+  if(m&&Object.keys(m).length)T[o.id]={sig:po7Sig(o),m,at:Date.now()};else delete T[o.id];
+  const ks=Object.keys(T);if(ks.length>40)ks.sort((a,b)=>(T[a].at||0)-(T[b].at||0)).slice(0,ks.length-40).forEach(k=>{delete T[k];});
+  if(!Object.keys(T).length)delete S[sid];localStorage.setItem(PO7_KEY,JSON.stringify(S));}catch(_){}}
+function po7Need(o){const sg=po7Sig(o);if(PO7.id!==o.id||PO7.sig!==sg)PO7={id:o.id,sig:sg,m:po7MarksGet(o)};return PO7;}
+function po7Num(tx){return q3(fNum(tx));}
+function po7Fill(q){return (''+q3(q)).replace('.',numLoc()==='es-CO'?',':'.');}
+function po7RowState(l,tx,on){const q=+l.q||0;if(!on)return {k:'pend',txt:t('po7_st_pend')};const r=po7Num(tx);
+  if(!(r>0))return {k:'bad',txt:t('po7_st_bad')};
+  if(r<q)return {k:'part',txt:ti('po7_st_part',{r:qtyLoc(r),q:qtyLoc(q),f:qtyLoc(q3(q-r))})};
+  if(r>q)return {k:'over',txt:ti('po7_st_over',{r:qtyLoc(r),q:qtyLoc(q)})};
+  return {k:'full',txt:t('po7_st_full')};}
+/* ---- pantalla: el detalle de la orden (openPO) con checks, «Recibido», «Marcar todos» y lo ya recibido ---- */
+const PO7_CK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.6 4.6L19 7.6"/></svg>';
+function po7RowHTML(o,i,hasParts){const l=o.lines[i],p=po7Prod(l),on=PO7.m[i]!=null,st=p?po7RowState(l,PO7.m[i],on):{k:'gone',txt:t('po7_gone')};
+  return `<div class="row po7r ${st.k}${on?' on':''}" data-po7i="${i}"><div class="po7hit" data-po7="ck"><button type="button" class="po7ck" role="checkbox" aria-checked="${on}" aria-label="${exEsc(t('po7_recv')+': '+po7Nm(l))}"${p?'':' disabled'}>${PO7_CK}</button>
+    <div class="po7m"><div class="t">${exEsc(po7Nm(l))}</div><div class="s">${exEsc(ti(hasParts?'po7_pend_q':'po7_ord',{q:qtyLoc(+l.q||0)}))} · ${money(+l.cost||0)} c/u</div><div class="po7st">${exEsc(st.txt)}</div></div></div>
+    ${p?`<label class="po7f"><span>${exEsc(t('po7_recv'))}</span><input class="po7q num" id="po7q_${i}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-case="keep" value="${on?exEsc(PO7.m[i]):''}"></label>`:''}</div>`;}
+function po7DoneHTML(o,title){const Pp=po7Parts(o);if(!Pp.length)return '';
+  return `<div class="po7done"><div class="section-h"><h2>${exEsc(title)}</h2></div>`+Pp.map(p=>{const x=purById(p.id),d=(x&&x.date)||p.date||'';
+    return `<div class="po7dp">${exEsc(ti('po7_done_p',{n:po7PartFol(p)}))}${d?' · '+exEsc(d):''}</div><div class="list">`+alphaLines(p.items||[]).map(it=>`<div class="row"><div class="av num">${qtyLoc(+it.q||0)}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc(po7Nm(it))}</div><div class="s">${money(+it.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money((+it.cost||0)*(+it.q||0))}</div></div></div>`).join('')+`</div>`;}).join('')+`</div>`;}
+function po7AllUpd(o){const b=document.querySelector('#quoteBody .po7all');if(!b)return;const can=(o.lines||[]).map((l,i)=>i).filter(i=>po7Prod(o.lines[i]));
+  const all=can.length>0&&can.every(i=>PO7.m[i]!=null);b.textContent=t(all?'po7_none':'po7_all');b.hidden=!can.length;}
+function po7Paint(o){const body=document.getElementById('quoteBody');if(!body||!o)return;
+  const parts=po7Parts(o),rc=o.recvPurchase!=null;if(!parts.length&&(rc||!po7On()))return;   /* una orden de antes, o el arreglo apagado: tal cual */
+  const sh=body.querySelector('.section-h'),list=sh&&sh.nextElementSibling;if(!sh||!list||!list.classList.contains('list'))return;
+  const L=o.lines||[];
+  if(rc){sh.querySelector('h2').textContent=ti('po7_last_h',{n:poRecvFol(o)})+' · '+L.length;list.insertAdjacentHTML('afterend',po7DoneHTML(o,t('po7_prev_h')));return;}
+  if(parts.length){const kl=body.querySelector('.kpi.hero .k-l');if(kl)kl.textContent=t('po7_total_pend');}
+  if(po7On()&&L.length){po7Need(o);const ord=alphaLines(L.map((l,i)=>({name:l.name,i}))).map(x=>x.i);
+    sh.classList.add('po7sh');sh.innerHTML=`<h2>${exEsc(t(parts.length?'po7_pending_h':'sale_items'))} · ${L.length}</h2><button type="button" class="po7all" data-po7="all"></button>`;
+    list.classList.add('po7list');list.innerHTML=ord.map(i=>po7RowHTML(o,i,parts.length>0)).join('');po7AllUpd(o);}
+  else if(parts.length)sh.querySelector('h2').textContent=t('po7_pending_h')+' · '+L.length;
+  if(parts.length)list.insertAdjacentHTML('afterend',po7DoneHTML(o,t('po7_done_h')));}
+{const _o=openPO;openPO=function(id){const r=_o.apply(this,arguments);
+  try{const o=poById(id);if(o&&!state.poMode&&''+state.poOpen===''+o.id)po7Paint(o);}catch(e){try{console.error('mods257 openPO',e);}catch(_){}}
+  return r;};}
+function po7Cur(){try{const o=state.poOpen?poById(state.poOpen):null;return o&&o.recvPurchase==null&&!state.poMode&&po7On()?o:null;}catch(_){return null;}}
+function po7RowUpd(o,i){const row=document.querySelector('#quoteBody .po7r[data-po7i="'+i+'"]'),l=o.lines[i];if(!row||!l)return;const on=PO7.m[i]!=null,st=po7RowState(l,PO7.m[i],on);
+  row.className='row po7r '+st.k+(on?' on':'');const ck=row.querySelector('.po7ck');if(ck)ck.setAttribute('aria-checked',on?'true':'false');
+  const s=row.querySelector('.po7st');if(s)s.textContent=st.txt;po7AllUpd(o);}
+function po7Toggle(i){const o=po7Cur();if(!o||!o.lines||!o.lines[i])return;po7Need(o);const l=o.lines[i];if(!po7Prod(l))return;
+  if(PO7.m[i]!=null)delete PO7.m[i];else PO7.m[i]=po7Fill(+l.q||0);
+  const inp=document.getElementById('po7q_'+i);if(inp)inp.value=PO7.m[i]!=null?PO7.m[i]:'';po7MarksPut(o,PO7.m);po7RowUpd(o,i);}
+function po7All(){const o=po7Cur();if(!o)return;po7Need(o);const can=(o.lines||[]).map((l,i)=>i).filter(i=>po7Prod(o.lines[i]));if(!can.length)return;
+  if(can.every(i=>PO7.m[i]!=null))PO7.m={};else can.forEach(i=>{if(PO7.m[i]==null||!(po7Num(PO7.m[i])>0))PO7.m[i]=po7Fill(+o.lines[i].q||0);});   /* lo que ya tiene su cantidad escrita se respeta */
+  po7MarksPut(o,PO7.m);can.forEach(i=>{const inp=document.getElementById('po7q_'+i);if(inp)inp.value=PO7.m[i]!=null?PO7.m[i]:'';po7RowUpd(o,i);});}
+function po7Focus(i){const el=document.getElementById('po7q_'+i);if(!el)return;try{el.scrollIntoView({block:'center'});}catch(_){}try{el.focus();el.select();}catch(_){}}
+(function(){const dlg=document.getElementById('quotedlg');if(!dlg)return;
+  dlg.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-po7]');if(!el||!po7Cur())return;
+    if(el.dataset.po7==='all'){e.preventDefault();return po7All();}
+    if(el.dataset.po7==='ck'){const row=el.closest('.po7r');if(row){e.preventDefault();po7Toggle(+row.dataset.po7i);}}});
+  /* mientras se escribe en «Recibido»: sin signo, un separador, hasta 3 decimales; escribir marca el producto. No se redibuja (el teclado sigue abierto) */
+  dlg.addEventListener('input',e=>{const el=e.target;if(!el||!/^po7q_\d+$/.test(el.id||''))return;const o=po7Cur();if(!o)return;const i=+el.id.slice(5);if(!o.lines||!o.lines[i])return;po7Need(o);
+    const raw=el.value,tx=unsignedNumTxt(numInTxt(raw,e),3);
+    if(tx!==raw){let pos=el.selectionStart;pos=pos==null?tx.length:Math.max(0,Math.min(tx.length,pos-(raw.length-tx.length)));el.value=tx;try{el.setSelectionRange(pos,pos);}catch(_){}}
+    PO7.m[i]=tx;po7MarksPut(o,PO7.m);po7RowUpd(o,i);});
+  dlg.addEventListener('keydown',e=>{const el=e.target;if(e.key!=='Enter'||!el||!/^po7q_\d+$/.test(el.id||''))return;e.preventDefault();try{el.blur();}catch(_){}});
+  /* al entrar al campo queda todo seleccionado: escribir reemplaza la cantidad (en el teléfono el toque pone el cursor DESPUÉS del foco: se vuelve a seleccionar) */
+  dlg.addEventListener('focusin',e=>{const el=e.target;if(!el||!/^po7q_\d+$/.test(el.id||''))return;el.__po7s=1;try{el.select();}catch(_){}
+    setTimeout(()=>{try{if(el.__po7s&&document.activeElement===el&&el.value)el.select();}catch(_){}el.__po7s=0;},90);});
+  dlg.addEventListener('mouseup',e=>{const el=e.target;if(el&&el.__po7s&&/^po7q_\d+$/.test(el.id||''))e.preventDefault();});
+  /* teléfono: al abrirse el teclado la parte visible se achica (según el teléfono, la ventana se encoge o el teclado la tapa por abajo).
+     Con el cursor en «Recibido»: si el teclado tapa, se le da espacio abajo a la lista; y si el campo quedó fuera de lo visible, se centra */
+  const kb=()=>{try{const el=document.activeElement,body=document.getElementById('quoteBody'),vv=window.visualViewport;if(!body)return;
+    const on=!!(el&&/^po7q_\d+$/.test(el.id||'')),h=on&&vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
+    body.style.paddingBottom=h>80?Math.round(h+30)+'px':'';
+    if(!on)return;const r=el.getBoundingClientRect(),b=body.getBoundingClientRect(),lo=b.top+6,hi=Math.min(b.bottom,vv?vv.offsetTop+vv.height:b.bottom)-12;
+    if(hi-lo>60&&(r.top<lo||r.bottom>hi))body.scrollTop+=Math.round((r.top+r.bottom)/2-(lo+hi)/2);}catch(_){}};
+  dlg.addEventListener('focusin',e=>{const el=e.target;if(el&&/^po7q_\d+$/.test(el.id||'')){setTimeout(kb,350);setTimeout(kb,800);}});
+  dlg.addEventListener('focusout',e=>{const el=e.target;if(el&&/^po7q_\d+$/.test(el.id||''))setTimeout(kb,220);});
+  try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{const el=document.activeElement,b=document.getElementById('quoteBody');if((el&&/^po7q_\d+$/.test(el.id||''))||(b&&b.style.paddingBottom))kb();});}catch(_){}
+})();
+/* ---- ¿la nube tiene ESTA versión de la orden? Solo pregunta (no escribe). Sin conexión, con algo por subir o sin respuesta → se sigue como hoy ---- */
+async function po7Fresh(o){try{if(!ccOn()||!sbOnline())return true;const sid=currentDataId();if(!ccSettled(sid,'porders'))return true;
+    const sb=await sbInit();if(!sb)return true;const q0=sb.from('store_docs').select('doc_key');if(typeof q0.filter!=='function')return true;
+    const m={id:o.id,lines:(o.lines||[]).map(l=>{const x={q:+l.q||0};if(l.pid!=null)x.pid=l.pid;return x;})};const pp=po7Parts(o);if(pp.length)m.parts=pp.map(p=>({id:p.id}));
+    const r=await Promise.race([q0.eq('store_id',sid).eq('doc_key','porders').filter('data','cs',JSON.stringify([m])),new Promise(res=>setTimeout(()=>res(null),6000))]);
+    if(!r||r.error||!Array.isArray(r.data))return true;return r.data.length>0;}catch(_){return true;}}
+function po7SumTxt(o,full,part,left){const cap=(A,f)=>{const L=A.slice(0,10).map(f);if(A.length>10)L.push(ti('po7_more',{n:A.length-10}));return L.join('\n');};
+  const S=[ti('po7_sum_h',{n:o.folio})];
+  if(full.length)S.push(ti('po7_sum_full',{n:full.length})+'\n'+cap(full,x=>'• '+x.n+' — '+qtyLoc(x.r)+(x.r>x.q?' ('+ti('po7_sum_ord',{q:qtyLoc(x.q)})+')':'')));
+  if(part.length)S.push(ti('po7_sum_part',{n:part.length})+'\n'+cap(part,x=>'• '+x.n+' — '+ti('po7_sum_of',{r:qtyLoc(x.r),q:qtyLoc(x.q),f:qtyLoc(q3(x.q-x.r))})));
+  if(left.length)S.push(ti('po7_sum_left',{n:left.length})+'\n'+cap(left,x=>'• '+x.n+' — '+qtyLoc(x.q)));
+  S.push(t('po7_sum_foot'));return S.join('\n\n');}
+/* ---- «Recibir mercancía (convertir en compra)» con lo marcado ---- */
+let PO7_BUSY=false;
+async function po7Receive(o0,orig){
+  try{const a=document.activeElement;if(a&&/^po7q_/.test(a.id||''))a.blur();}catch(_){}
+  if(PO7.id===o0.id&&PO7.sig!==po7Sig(o0)){await appAlert(ti('po7_changed',{n:o0.folio}));if(!state.poMode&&''+state.poOpen===''+o0.id)openPO(o0.id);return;}   /* la orden cambió con la ventana abierta */
+  po7Need(o0);const L=o0.lines||[],M={...PO7.m},sig=PO7.sig;const on=Object.keys(M).map(Number).filter(i=>L[i]).sort((a,b)=>a-b);
+  if(!on.length){await appAlert(t('po7_need_mark'));return;}
+  for(const i of on){const l=L[i],p=po7Prod(l),r=po7Num(M[i]);
+    if(!p){await appAlert(ti('po7_gone_n',{n:po7Nm(l)}));return;}
+    if(!(r>0)){await appAlert(ti('po7_zero',{n:po7Nm(l)}));po7Focus(i);return;}
+    if(r>1e6){await appAlert(ti('po7_big',{n:po7Nm(l)}));po7Focus(i);return;}
+    if(isUInt(p)&&Math.abs(r-Math.round(r))>1e-9){await appAlert(ti('int_qty',{n:po7Nm(l)}));po7Focus(i);return;}}
+  const over=on.filter(i=>po7Num(M[i])>(+L[i].q||0));
+  if(over.length&&!await appConfirmL(ti('po7_over_q',{l:over.map(i=>ti('po7_over_l',{n:po7Nm(L[i]),r:qtyLoc(po7Num(M[i])),q:qtyLoc(+L[i].q||0)})).join('\n')}),t('ask_cancel'),t('ask_ok')))return;
+  const full=[],part=[],left=[];L.forEach((l,i)=>{const q=+l.q||0,x={n:po7Nm(l),q,r:M[i]!=null?po7Num(M[i]):0};if(M[i]==null)left.push(x);else if(x.r<q)part.push(x);else full.push(x);});
+  if(!await appConfirmL(po7SumTxt(o0,full,part,left),t('ask_cancel'),t('ask_ok')))return;
+  const still=()=>{const o=poById(o0.id);return o&&o.recvPurchase==null&&!state.poMode&&po7Sig(o)===sig?o:null;};   /* de nuevo por id tras cada pregunta */
+  let o=still();if(!o){const x=poById(o0.id);if(x&&x.recvPurchase==null&&!state.poMode){await appAlert(ti('po7_changed',{n:x.folio}));if(''+state.poOpen===''+x.id)openPO(x.id);}return;}
+  if(!await po7Fresh(o)){await appAlert(ti('po7_stale',{n:o.folio}));try{closePO();}catch(_){}try{sbPullAndApply(currentDataId(),['porders','purchases','products']).catch(()=>{});}catch(_){}return;}
+  o=still();if(!o)return;
+  if(!part.length&&!left.length&&!over.length){   /* todo marcado y completo: el botón de siempre, sin cambios */
+    if(''+state.poOpen!==''+o.id)return;await orig();
+    if(state.purchFromPO!=null&&''+state.purchFromPO===''+o.id&&!state.poMode){state.po7Sig=sig;try{saveCartDraft();}catch(_){}}return;}
+  if(pcartRows().length&&!await appConfirmL(t('po_replace'),t('ask_cancel'),t('ask_ok')))return;
+  o=still();if(!o)return;
+  pcReset();const r=poLinesToCart(on.map(i=>({...o.lines[i],q:po7Num(M[i])})));
+  state.pprovider=o.provider||'';state.pprovId=o.provId||null;state.pnote=ti('po_note_purchase',{n:o.folio});state.purchFromPO=o.id;state.po7Sig=sig;
+  closePO();go('compras');toast(ti('po_loaded',{n:o.folio})+(r.skip?' · '+ti('po_skipped',{n:r.skip}):''));}
+{const _r=poReceive;poReceive=async function(){
+  if(!po7On())return _r.apply(this,arguments);
+  if(state.poMode||PO7_BUSY)return;const o0=poById(state.poOpen);if(!o0||o0.recvPurchase!=null)return;
+  PO7_BUSY=true;try{return await po7Receive(o0,()=>_r.apply(this,arguments));}finally{PO7_BUSY=false;}};}
+/* ---- Guardar la compra de una orden: el inventario entra por saveCompra, SIN cambios. Aquí solo se decide qué pasa con la ORDEN ---- */
+let PO7_SAVING=false;
+{const _sc=saveCompra;saveCompra=function(){
+  let o=null,oid=null;
+  try{if(po7On()&&!state.poMode&&state.purchFromPO!=null){oid=state.purchFromPO;o=poById(oid);if(o&&o.recvPurchase!=null)o=null;}}catch(_){o=null;}
+  if(!o)return _sc.apply(this,arguments);   /* sin orden, o la orden ya se recibió / eliminó en otro equipo: el camino de hoy (pcPOGoneAsk pregunta) */
+  if(PO7_SAVING)return;
+  if(state.po7Sig&&state.po7Sig!==po7Sig(o)){appAlert(ti('po7_changed',{n:o.folio}));return;}   /* la orden cambió después de cargar la recepción: no se guarda a ciegas */
+  const cq=new Map();pcartRows().forEach(i=>{const k=pcPkOf(i.id);cq.set(i.id,q3((cq.get(i.id)||0)+(+i.q||0)*(k?k.f:1)));});
+  const plan=po7Split(o,cq);
+  if(!plan.left.length)return _sc.apply(this,arguments);   /* la compra cubre TODO lo pendiente: exactamente el camino de hoy («Recibida · compra #n») */
+  if(!plan.any){pcPOUnlink();return _sc.apply(this,arguments);}   /* en el carrito no quedó nada de la orden: es una compra aparte y la orden no se toca */
+  const n0=state.purchases.length,top0=state.purchases[0];
+  PO7_SAVING=true;state.purchFromPO=null;   /* saveCompra guarda la compra y sube el inventario; a la orden la actualiza este bloque (no queda «Recibida» entera) */
+  try{_sc.apply(this,arguments);}finally{PO7_SAVING=false;}
+  const pur=state.purchases[0];
+  if(state.purchases.length!==n0+1||!pur||pur===top0){state.purchFromPO=oid;return;}   /* no se guardó (falta una cantidad, el proveedor, el pago…): nada cambió */
+  try{const o2=poById(oid);if(!o2||o2.recvPurchase!=null)return;
+    const q2=new Map(),c2=new Map();(pur.items||[]).forEach(it=>{const id=+it.id;q2.set(id,q3((q2.get(id)||0)+(+it.q||0)));if(!c2.has(id))c2.set(id,+it.cost||0);});
+    const fin=po7Split(o2,q2,c2);   /* con la compra que DE VERDAD se guardó */
+    pur.fromPO=o2.folio;
+    if(fin.left.length){o2.parts=po7Parts(o2).concat([{id:pur.id,folio:pur.folio,date:pur.date,at:pur.ts,items:fin.got}]);o2.lines=fin.left;o2.total=po7Total(fin.left);}
+    else{o2.recvPurchase=pur.folio;o2.recvId=pur.id;}
+    o2.edited=Date.now();po7MarksPut(o2,null);if(PO7.id===o2.id)PO7={id:null,sig:'',m:{}};
+    persist();
+  }catch(e){try{console.error('mods257 saveCompra',e);}catch(_){}}
+};}
+/* ---- LAS ENTREGAS DE UNA ORDEN: las parciales (o.parts) y, si ya quedó «Recibida», la compra final (sus renglones son o.lines) ----
+   Lo pedido originalmente = lo pendiente + lo que descontó cada entrega. Con eso la orden se puede REHACER cuando cambia la lista de
+   entregas (se elimina una compra, o al sincronizar aparece la entrega que hizo otro equipo): cada entrega, en orden, descuenta hasta
+   donde alcanza lo pedido; lo que sobra queda pendiente. Si no queda nada pendiente, la orden queda «Recibida» con la última compra. */
+function po7Fin(o){return o&&o.recvPurchase!=null?{id:o.recvId!=null?o.recvId:'f'+o.recvPurchase,folio:o.recvPurchase,fin:1,items:(o.lines||[]).map(l=>({pid:l.pid,key:l.key||'',name:l.name,q:+l.q||0,d:+l.q||0,cost:+l.cost||0,oc:+l.cost||0}))}:null;}
+function po7Dels(o){const f=po7Fin(o);return po7Parts(o).concat(f?[f]:[]);}
+function po7K(x){return x.pid!=null?'p'+x.pid:'n'+qtNorm(x.name);}
+function po7Q0(o){const m=new Map(),add=(k,q,l,it)=>{const e=m.get(k)||{q:0,l:null,it:null};e.q=q3(e.q+q);if(l&&!e.l)e.l=l;if(it&&!e.it)e.it=it;m.set(k,e);};
+  (o.lines||[]).forEach(l=>add(po7K(l),+l.q||0,l,null));   /* lo pendiente (o los renglones de la compra final) */
+  po7Parts(o).forEach(p=>(p.items||[]).forEach(it=>add(po7K(it),q3(it.d!=null?+it.d:+it.q||0),null,it)));return m;}
+function po7Rebuild(o,q0,D){const need=new Map();q0.forEach((e,k)=>need.set(k,e.q));
+  const L=D.slice().sort((a,b)=>(''+a.id).localeCompare(''+b.id));   /* por id de la compra (lleva la hora): el mismo orden en todos los equipos */
+  const D2=L.map(p=>({...p,items:(p.items||[]).map(it=>{const k=po7K(it),n=need.get(k)||0,d=q3(Math.min(+it.q||0,n));need.set(k,q3(n-d));return {...it,d};})}));
+  const lines=[];q0.forEach((e,k)=>{const q=need.get(k)||0;if(!(q>0))return;const c=e.l?(+e.l.cost||0):(e.it.oc!=null?+e.it.oc:(+e.it.cost||0));
+    lines.push(e.l?{...e.l,q,subtotal:c*q}:{pid:e.it.pid,key:e.it.key||'',name:e.it.name,q,cost:c,subtotal:c*q});});
+  const m={...o},strip=p=>{const c={...p};delete c.fin;return c;};delete m.parts;
+  if(lines.length||!D2.length){m.lines=lines;m.total=po7Total(lines);if(m.recvPurchase!=null)m.recvPurchase=null;delete m.recvId;if(D2.length)m.parts=D2.map(strip);}
+  else{const last=D2[D2.length-1],rest=D2.slice(0,-1);
+    m.lines=(last.items||[]).map(it=>{const c=it.oc!=null?+it.oc:(+it.cost||0),q=+it.q||0;return {pid:it.pid,key:it.key||'',name:it.name,q,cost:c,subtotal:c*q};});m.total=po7Total(m.lines);
+    m.recvPurchase=last.folio;if(last.fin&&(''+last.id)==='f'+last.folio)delete m.recvId;else m.recvId=last.id;if(rest.length)m.parts=rest.map(strip);}
+  return m;}
+/* ---- Eliminar una compra que fue una entrega de una orden recibida por partes: la orden se rehace sin esa entrega (purDelete ya bajó
+   el inventario). Una orden sin entregas parciales sigue con lo de siempre (vuelve a «Pendiente») ---- */
+{const _b=purOrderBack;purOrderBack=function(p){const hits=[];
+  try{if(p&&p.id!=null)(state.porders||[]).forEach(o=>{if(!o||o.del||!po7Parts(o).length)return;const D=po7Dels(o);if(D.some(x=>''+x.id===''+p.id))hits.push({o,q0:po7Q0(o),D});});}catch(_){}
+  const r=_b.apply(this,arguments);
+  try{hits.forEach(h=>{const m=po7Rebuild(h.o,h.q0,h.D.filter(x=>''+x.id!==''+p.id));Object.keys(h.o).forEach(k=>{if(!(k in m))delete h.o[k];});Object.assign(h.o,m);h.o.edited=Date.now();po7MarksPut(h.o,null);});}
+  catch(e){try{console.error('mods257 purOrderBack',e);}catch(_){}}
+  return r;};}
+/* ---- DOS EQUIPOS recibieron (o uno recibió y el otro editó / eliminó una compra) la MISMA orden antes de sincronizar ----
+   Autorizado por Fabio el 12-nov («Autorizado» al refuerzo). La mezcla normal es por campo: en un choque gana el equipo que mezcla y
+   la entrega del otro se perdía de la orden (el inventario y las compras sí quedaban bien). Aquí, SOLO cuando la orden cambió en los
+   dos lados y hay entregas de por medio (parciales, o dos compras finales distintas), se juntan las entregas de ambos y la orden se
+   rehace con todas. No toca productos, compras ni existencias. Una orden sin entregas en ningún lado no pasa por aquí. */
+function po7Merge(out,base,local,remote){if(!base||typeof base.get!=='function'||!Array.isArray(out))return 0;let n=0;
+  const idx=A=>{const m=new Map();(A||[]).forEach(x=>{if(x&&x.id!=null)m.set(''+x.id,x);});return m;},L=idx(local),R=idx(remote),ids=A=>new Set(A.map(p=>''+p.id));
+  for(let i=0;i<out.length;i++){const o=out[i];if(!o||o.id==null||o.del)continue;const l=L.get(''+o.id),r=R.get(''+o.id);if(!l||!r||l.del||r.del)continue;
+    const dl=po7Dels(l),dr=po7Dels(r);if(!dl.length&&!dr.length)continue;   /* nadie ha recibido nada: la mezcla de siempre */
+    if(!po7Parts(l).length&&!po7Parts(r).length&&!(dl.length&&dr.length&&''+dl[0].id!==''+dr[0].id))continue;   /* sin parciales y sin dos compras finales distintas: la mezcla de siempre */
+    const bj=base.get(''+o.id);if(bj===undefined)continue;const lj=JSON.stringify(l),rj=JSON.stringify(r);
+    if(sameRecJ(lj,rj)||sameRecJ(lj,bj)||sameRecJ(rj,bj))continue;   /* solo cuando cambió en LOS DOS lados */
+    const IL=ids(dl),IR=ids(dr);if(IL.size===IR.size&&[...IL].every(x=>IR.has(x)))continue;   /* las mismas entregas en los dos lados */
+    const b=JSON.parse(bj),B=ids(po7Dels(b)),cl=canonJ(o.lines||[]),lw=cl===canonJ(l.lines||[]),rw=cl===canonJ(r.lines||[]);
+    if(!lw&&!rw)continue;const W=lw?l:r,DW=lw?dl:dr,DO=lw?dr:dl,IW=lw?IL:IR,IO=lw?IR:IL;   /* W = el lado cuyas líneas ganaron: de ahí sale lo pedido */
+    const add=DO.filter(p=>!B.has(''+p.id)&&!IW.has(''+p.id)),gone=ids(DW.filter(p=>B.has(''+p.id)&&!IO.has(''+p.id)));
+    const m=po7Rebuild({...o,lines:W.lines,recvPurchase:W.recvPurchase,recvId:W.recvId},po7Q0(W),DW.filter(p=>!gone.has(''+p.id)).concat(add));
+    if(m.recvId===undefined)delete m.recvId;if(m.recvPurchase===undefined)delete m.recvPurchase;
+    const ed=Math.max(+l.edited||0,+r.edited||0);if(ed)m.edited=ed;
+    if(canonJ(m)!==canonJ(o)){out[i]=m;n++;}}
+  return n;}
+{const _m=mergeArr;mergeArr=function(key,base,local,remote){const out=_m.apply(this,arguments);
+  if(key==='porders'&&Array.isArray(out)){try{po7Merge(out,base,local,remote);}catch(e){try{console.error('mods257 mezcla de órdenes',e);}catch(_){}}}return out;};}
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .qt-st.po7p{background:var(--pl-bg);color:var(--pl-ink);white-space:normal}
+  .section-h.po7sh{gap:10px}
+  .po7all{margin-left:auto;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .po7all:active{background:var(--sel)}
+  .po7list .row.po7r{cursor:default;gap:10px;padding:10px 12px}
+  .po7hit{display:flex;align-items:center;gap:11px;min-width:0;flex:1;cursor:pointer}
+  .po7ck{flex:none;width:30px;height:30px;border-radius:8px;border:2px solid var(--faint);background:var(--card);display:grid;place-items:center;padding:0;cursor:pointer}
+  .po7ck svg{width:18px;height:18px;fill:none;stroke:transparent;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .po7r.on .po7ck{background:var(--green);border-color:var(--green)}
+  .po7r.on .po7ck svg{stroke:#fff}
+  .po7ck:disabled{opacity:.35}
+  .po7m{min-width:0;flex:1}
+  .po7m .t{overflow-wrap:anywhere}
+  .po7st{font-size:12px;font-weight:700;margin-top:3px;color:var(--muted)}
+  .po7r.full .po7st{color:var(--green)}
+  .po7r.part .po7st,.po7r.over .po7st{color:var(--amber)}
+  .po7r.bad .po7st,.po7r.gone .po7st{color:var(--red)}
+  .po7f{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:11px;font-weight:600;color:var(--muted)}
+  .po7q{width:84px;height:40px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;font-weight:600;text-align:right;padding:0 9px}
+  .po7q:focus{outline:none;border-color:var(--pri)}
+  .po7r.bad .po7q{border-color:var(--red)}
+  .po7dp{font-size:13px;font-weight:700;color:var(--ink);margin:12px 3px 6px}
+  .po7done .list .row{cursor:default}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+/* ==== mods258 (2026-11-13, 2.ª versión): UNA SUBIDA QUE NO ENTRÓ NO SE DA POR LLEGADA «POR PARECIDO» ====
+   Hallado el 12-nov con prueba257_azar (semilla 333) y reproducido en lo publicado con compras normales (cambios/mods257/pruebas/diag_f5.mjs).
+   Caso: dos equipos cambian los mismos productos a la vez (p. ej. los dos guardan una compra sin conexión). La primera subida del segundo
+   equipo es la «directa» (no baja la nube) y NO entra: el servidor responde 0 filas porque el otro equipo escribió antes. Pero la marca de
+   esa subida (wtok) quedaba puesta con su huella, y en el reintento la huella de mods246 F5 (wtProbeLanded: «al menos un registro con el
+   después y ninguno con el antes») daba «sí llegó» si la nube tenía un registro IDÉNTICO al que se mandaba (el otro equipo dejó la misma
+   cantidad). Se terminaba como llegada: la base pasaba a ser lo local y lo que este equipo había sumado se descartaba (inventario de menos).
+   Arreglo (autorizado por Fabio el 13-nov, «Autorizado»): en sbSyncWriteOne, cuando la subida condicional respondió 0 filas y la nube tiene
+   la hora de OTRO equipo (ni la anterior ni la nuestra), a la marca de esa subida se le quita SOLO la huella de contenido (pr) antes de
+   reintentar. La marca NO se borra: sigue sirviendo para las confirmaciones EXACTAS (la nube con la hora de esa subida, o el aviso de otro
+   equipo que escribió sobre ella: wtokSeen/wtokConfirm).
+   POR QUÉ NO SE BORRA LA MARCA (1.ª versión, 12-nov, NO publicable: cambios/mods258/app_mods258.v1_no_publicable.js): «0 filas» NO prueba que
+   la subida no entró. Si la subida SÍ entró y la respuesta se perdió, el NAVEGADOR reenvía solo la misma subida y esa copia recibe 0 filas;
+   si además otro equipo escribe encima, borrar la marca perdía la confirmación exacta y la compra entraba DOS veces (prueba258_S.mjs).
+   Límite que queda: respuesta perdida + reenvío del navegador + otro equipo escribe en ese instante + el aviso en tiempo real no llega.
+   No cambia el servidor, ni los datos, ni lo que se sube. Apagarlo en un equipo: localStorage 'abanico.wtmiss'='0' (queda lo de antes). */
+var WT_MISS_N=0;
+function wtMissOn(){try{return localStorage.getItem('abanico.wtmiss')!=='0';}catch(_){return true;}}
+/* w = respuesta de la subida condicional (0 filas), c = la hora que tiene la nube, prevTs = la hora que se esperaba, ts = la de esta subida */
+function wtMissNoProbe(id,key,w,c,prevTs,ts){
+  try{
+    if(!wtMissOn()||!w||w.error||!Array.isArray(w.data)||w.data.length)return;
+    if(!c||c.error||!c.data||!c.data.updated_at||c.data.updated_at===prevTs||tsSame(c.data.updated_at,ts))return;
+    const m=WTOK_MEM[id+'|'+key];if(!m||m.ts!==ts)return;   /* solo la marca de ESTA subida */
+    m.pr=null;WT_MISS_N++;
+    try{idbKvPut('wtok:'+id+'|'+key,{ts:m.ts,lj:m.lj,pr:null});}catch(_){}   /* la copia guardada (por si la app se cierra antes del reintento) también queda sin huella */
+  }catch(_){}
+}
 
 </script>

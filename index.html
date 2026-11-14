@@ -11086,7 +11086,7 @@ let QT_SEEN=null;
 function qtSnap(){return new Map(quotesLive().map(q=>[q.id,(q.ap||'')+'|'+(q.soldSale!=null?'s':'')]));}
 function qtWatch(){try{const now=qtSnap();if(QT_SEEN===null){QT_SEEN=now;return;}const id=currentDataId();
   if(isTat()){quotesLive().filter(qtMine).forEach(q=>{const a=QT_SEEN.get(q.id),b=now.get(q.id);if(a===undefined||a===b)return;
-      if(q.soldSale!=null&&!/\|s$/.test(a))toast(ti('qt_n_ok',{n:q.folio,s:q.soldSale}));else if(q.ap==='no'&&!/^no\|/.test(a))toast(ti('qt_n_no',{n:q.folio})+(q.apMsg?' · '+q.apMsg:''));});}
+      if(q.soldSale!=null&&!/\|s$/.test(a))toast(ti('qt_n_ok',{n:q.folio,s:q.soldSale})+(typeof qeOkNote==='function'?qeOkNote(q):''));else if(q.ap==='no'&&!/^no\|/.test(a))toast(ti('qt_n_no',{n:q.folio})+(q.apMsg?' · '+q.apMsg:''));});}
   else if(!isSeller()&&id){const nw=quotesLive().filter(q=>q.tat&&quoteStatus(q)==='pend'&&!QT_SEEN.has(q.id)&&(!q.sent||Date.now()-q.sent<36e5));
     nw.slice(0,5).forEach(q=>{try{pushNotif(id,{kind:'quote',qid:q.id,...nt('qt_n_new',{v:q.tat.n,n:q.folio,m:money(q.total||0)})});}catch(_){}});
     if(nw.length){toast(ti('qt_n_new',{v:nw[0].tat.n,n:nw[0].folio,m:money(nw[0].total||0)}));const bd=document.getElementById('bellDot');if(bd)bd.hidden=false;try{playSaleSound();}catch(_){}}}
@@ -11095,7 +11095,7 @@ async function qtApprove(){const q=quoteById(state.qtOpen);if(!q||isSeller()||qu
   if(state.editSale||state.quoteMode){toast(t('qt_busy'));return;}
   if(!await appConfirm(ti('qt_apr_q',{n:q.folio,v:(q.tat&&q.tat.n)||''})))return;
   const qq=quoteById(q.id);if(!qq||quoteStatus(qq)!=='pend')return;   /* de nuevo por id tras la pregunta */
-  if(qtPendFor(qq)){await appAlert(ti('qt_pend_dup',{n:qq.folio}));return;}   /* mods240 */
+  if(qtPendFor(qq)){await appAlert(ti('qt_pend_dup',{n:qq.folio}));return;}if(typeof qeShortAsk==='function'&&await qeShortAsk(qq))return;   /* mods262 */   /* mods240 */
   const K=['cart','cartAt','cartPrice','scart','scPrice','scName','cartAdj','saleClient','saleAddr','salePay','saleTag','saleNote','saleStatus','salePayCleared','saleInit','saleSched','saleDate','saleFromQuote'];
   const st={};K.forEach(k=>st[k]=state[k]);
   const c=quoteLinesToCart(qq.lines);if(c.chg.length&&!await appConfirm(qtChgTxt(c.chg)+'\n\n'+t('qt_chg_apr')))return;   /* mods240 */state.cart=c.cart;cartOrderFrom(c.order);state.cartPrice=c.cp;state.scart=c.sc;state.scPrice=c.sp;state.scName=c.sn;state.cartAdj={};
@@ -11204,7 +11204,7 @@ function openQuote(id){
   document.getElementById('quoteH').textContent=t('sales_quote')+' #'+q.folio;
   const cl=cliByName(q.client);const cinfo=cl&&(cl.address||cl.phone)?`<div class="qt-cli">${cl.address?`<div class="qt-addr">${svg(IC_PIN)}<span>${exEsc(cl.address)}</span></div>`:''}${cl.phone?`<div class="qt-tel"><a class="prv-q" href="${telHref(cl.phone)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a><a class="prv-q" href="${waHref(cl.phone)}" target="_blank" rel="noopener">${svg(IC_WA)}<span>WhatsApp</span></a></div>`:''}</div>`:'';
   const meta=[q.date&&(t('qt_emit')+': '+q.date),q.due&&(t('qt_exp')+': '+q.due),q.client&&(t('sale_client')+': '+q.client),q.note&&(t('sale_note')+': '+q.note)].filter(Boolean).map(x=>`<div class="osub" style="font-size:12.5px;color:var(--muted);margin-bottom:2px">${exEsc(x)}</div>`).join('');
-  const lines=alphaLines(q.lines||[]).map(l=>qtRowHTML(l)||   /* mods240 */`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines(q.lines||[]).map(l=>(typeof qeRowHTML==='function'&&qeRowHTML(q,l))||   /* mods262 */qtRowHTML(l)||   /* mods240 */`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${l.svc?svg(SVC_ICO)+' ':''}${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0))}</div></div></div>`).join('');
   const st=quoteStatus(q);
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}${cinfo}<div style="margin:8px 0">${quoteStLbl(q)}</div>
     <div class="kpis" style="margin:12px 0"><div class="kpi hero"><div class="k-l">${t('total')}</div><div class="k-v num">${money(q.total||0)}</div></div></div>
@@ -11213,7 +11213,7 @@ function openQuote(id){
       <div class="qt-row"><button class="btn ghost" data-act="qtedit">${svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>')} ${t('qt_edit')}</button><button class="btn ghost" data-act="qtpdf">${svg('<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/>')} PDF</button></div>
       <div class="qt-row"><button class="btn ghost" data-act="qtwa">${svg(IC_WA)} WhatsApp</button><button class="btn ghost" data-act="qtdup">${svg('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>')} ${t('qt_dup')}</button></div>
     </div>
-    <div class="section-h"><h2>${t('sale_items')} · ${(q.lines||[]).length}</h2></div><div class="list">${lines||`<div class="empty">${t('sale_noitems')}</div>`}</div>
+    ${typeof qeHeadHTML==='function'?qeHeadHTML(q):''}<div class="section-h"><h2>${t('sale_items')} · ${(q.lines||[]).length}</h2></div><div class="list">${lines||`<div class="empty">${t('sale_noitems')}</div>`}</div>${typeof qeTailHTML==='function'?qeTailHTML(q):''}
     <button class="btn ghost exdel" data-act="qtdel" style="margin-top:14px">${svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>')} ${t('qt_del')}</button>
   </div>`;
   document.getElementById('quotedlg').classList.add('on');
@@ -17313,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261114113715';
+const APP_VERSION='20261114171441';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -19591,6 +19591,181 @@ try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=
   .sd-tot.dcd{gap:12px}
   .ie-dcn{margin:-4px 0 12px;font-size:13px;color:var(--muted);text-align:right}
   .g3pd-box.dcx>span{font-size:15.5px}.g3pd-box.dcx>b{font-size:16.5px}
+`;document.head.appendChild(s);}catch(_){}})();
+
+/* ==== mods262 (2026-11-14): COTIZACIÓN DE VENDEDOR — EDITAR CANTIDADES AL APROBAR ====
+   Pedido de Fabio (14-nov, documento «Nueva función: editar cantidades al aprobar una cotización de vendedor»; «Autorizado» con las siete
+   recomendaciones: 1 cada cambio se guarda al instante y la cotización sigue «Por aprobar» · 2 «quién» = la tienda (+ nombre del equipo)
+   y la fecha · 3 se puede subir o bajar la cantidad (mayor que 0); Aprobar valida el inventario · 4 por presentación se editan empaques
+   completos; por metros, con decimales · 5 si «Ajustar a lo disponible» dejaría la cotización vacía, no ajusta y manda a RECHAZAR ·
+   6 si el vendedor edita y reenvía, su pedido nuevo reemplaza todo y las marcas se borran · 7 los servicios, igual que los productos).
+   QUÉ HACE
+   - En el detalle de una cotización de vendedor «Por aprobar», el equipo de la TIENDA (quien puede aprobar) toca la cantidad de cada
+     línea y la cambia, o quita la línea (✕, con confirmación). El valor de la línea y el Total se recalculan al instante.
+     Los precios no se pueden cambiar. La cotización no puede quedar sin líneas (para eso está RECHAZAR).
+   - Al tocar APROBAR, si el inventario no alcanza, el aviso de siempre trae además «Ajustar a lo disponible»: pone cada producto en lo
+     que hay y quita los que están en 0. La cotización queda abierta y «Por aprobar»: nada se aprueba solo. ACEPTAR cierra sin cambiar nada.
+   - La cotización guarda, dentro de sí misma (sin tablas nuevas): en cada línea ajustada, lo que pidió el vendedor (l.q0, en la unidad
+     que se ve: empaques si es por presentación); y en q.adj = {sent, total0, rm:[líneas quitadas], by, n, dev, at}.
+     q.adj vale solo para el envío para el que se hizo (adj.sent === q.sent): si el vendedor edita y reenvía, q.sent cambia y las marcas
+     dejan de mostrarse (y sus líneas nuevas ya no traen q0).
+   - El vendedor ve en su cotización «Pediste 3 · se aprobaron 2» y los productos que la tienda quitó.
+   LO QUE NO TOCA: la venta se genera con saveSale, sin cambios; ahí se vuelve a validar el inventario y ahí bajan las existencias.
+   Los permisos del vendedor no cambian (un vendedor no ve los campos y las acciones lo rechazan).
+   Apagarlo en un equipo: localStorage 'abanico.qe'='0' (el detalle y el aviso quedan como antes; las marcas ya guardadas se siguen viendo). */
+(function(){try{
+  Object.assign(I18N.es,{qe_hint:'Toca una cantidad para cambiarla, o ✕ para quitar el producto. Los precios no cambian aquí.',
+    qe_rm_q:'¿Quitar {n} de la cotización #{f}?',qe_last:'La cotización no puede quedar sin productos. Si no se va a despachar nada, usa RECHAZAR.',
+    qe_zero:'La cantidad debe ser mayor que 0. Para quitar el producto usa ✕.',qe_fit:'Ajustar a lo disponible',
+    qe_fit_done:'Cotización #{n} ajustada a lo disponible. Revisa el nuevo total y toca Aprobar.',
+    qe_fit_none:'Ningún producto de esta cotización alcanza en el inventario. La cotización no puede quedar sin productos: usa RECHAZAR.',
+    qe_s_pend:'Pediste {a} · la tienda lo ajustó a {b}',qe_s_ok:'Pediste {a} · se aprobaron {b}',qe_o_pend:'El vendedor pidió {a}',qe_o_ok:'El vendedor pidió {a} · se aprobaron {b}',
+    qe_rm_s:'Productos que la tienda quitó',qe_rm_o:'Productos quitados de la cotización',qe_rml_s:'pediste {a}',qe_rml_o:'el vendedor pidió {a}',
+    qe_by:'Ajustada por la tienda{w} · {d}',qe_tot0_s:'Total que pediste: {m}',qe_tot0_o:'Total que pidió el vendedor: {m}',qe_ok_note:' · con cambios: revisa las cantidades',qe_x:'Quitar'});
+  Object.assign(I18N.en,{qe_hint:'Tap a quantity to change it, or ✕ to remove the product. Prices cannot be changed here.',
+    qe_rm_q:'Remove {n} from quote #{f}?',qe_last:'The quote cannot be left without products. If nothing will be shipped, use REJECT.',
+    qe_zero:'The quantity must be greater than 0. To remove the product use ✕.',qe_fit:'Adjust to available',
+    qe_fit_done:'Quote #{n} adjusted to what is available. Check the new total and tap Approve.',
+    qe_fit_none:'No product in this quote is available in stock. The quote cannot be left without products: use REJECT.',
+    qe_s_pend:'You asked for {a} · the store adjusted it to {b}',qe_s_ok:'You asked for {a} · {b} approved',qe_o_pend:'The seller asked for {a}',qe_o_ok:'The seller asked for {a} · {b} approved',
+    qe_rm_s:'Products the store removed',qe_rm_o:'Products removed from the quote',qe_rml_s:'you asked for {a}',qe_rml_o:'the seller asked for {a}',
+    qe_by:'Adjusted by the store{w} · {d}',qe_tot0_s:'Total you asked for: {m}',qe_tot0_o:'Total the seller asked for: {m}',qe_ok_note:' · with changes: check the quantities',qe_x:'Remove'});
+}catch(_){}})();
+function qeOn(){try{return localStorage.getItem('abanico.qe')!=='0';}catch(_){return true;}}
+/* quién puede editar: el mismo que puede aprobar (un equipo de la tienda, no un vendedor), y solo mientras está «Por aprobar» */
+function qeCan(q){return qeOn()&&!!q&&!!q.tat&&!isSeller()&&quoteStatus(q)==='pend';}
+/* el registro del ajuste vale solo para el envío para el que se hizo */
+function qeAdj(q){const a=q&&q.adj;return a&&typeof a==='object'&&(a.sent||0)===(q.sent||0)?a:null;}
+function qeHas(q){const a=qeAdj(q);return !!a&&((a.rm||[]).length>0||(q.lines||[]).some(l=>l&&l.q0!=null));}
+/* el producto de una línea, como lo resuelve quoteLinesToCart (id, clave o nombre) */
+function qeProd(l){if(!l||l.svc)return null;return (l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||state.products.find(x=>qtNorm(x.name)===qtNorm(l.name))||null;}
+/* la cantidad que SE VE de la línea: empaques si es por presentación; si no, la cantidad */
+function qeQty(l){return l&&l.pk?(+l.pk.c||0):(+(l&&l.q)||0);}
+function qeUnit(l){return l&&l.pk?(+l.pk.p||0):(+(l&&l.price)||0);}
+function qeSub(l){return l.subtotal!=null?+l.subtotal:(+l.price||0)*(+l.q||0);}
+function qeInt(l){return !!l&&(!!l.pk||(!l.svc&&isUInt(qeProd(l))));}
+function qeUn(l){return l&&l.pk?' '+l.pk.n:(qtIsM(l)?' m':'');}
+function qeName(l){return (''+(l&&l.name||'')).replace(/^\.{3}\s*/,'');}
+function qeR2(v){return Math.round((+v||0)*100)/100;}
+function qeQtyTxt(l){const n=qeQty(l);if(qeInt(l))return ''+Math.round(n);const D=numLoc()==='es-CO'?',':'.';return (''+q3(n)).replace('.',D);}
+/* lo que SALE del inventario si se aprueba: por producto, en la unidad base (lo mismo que revisa saveSale con el carrito) */
+function qeNeed(q){const nd={};((q&&q.lines)||[]).forEach(l=>{const p=qeProd(l);if(p)nd[p.id]=(nd[p.id]||0)+(+l.q||0);});return nd;}
+function qeWhen(ts){try{const d=new Date(ts),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes());}catch(_){return '';}}
+/* abre (o actualiza) el registro del ajuste: quién y cuándo */
+function qeTouch(q){let a=qeAdj(q);if(!a){a=q.adj={sent:q.sent||0,total0:+q.total||0,rm:[]};(q.lines||[]).forEach(l=>{if(l)delete l.q0;});}
+  if(!Array.isArray(a.rm))a.rm=[];a.by='store';a.n=(''+((state.profile&&state.profile.name)||'')).slice(0,60);try{a.dev=deviceId();}catch(_){}a.at=Date.now();return a;}
+/* cambia la cantidad de una línea (n en la unidad que se ve). El precio no cambia; el subtotal y el total sí */
+function qeSetQty(q,l,n){const old=qeSub(l),was=qeQty(l);if(q3(n)===q3(was))return false;qeTouch(q);
+  if(l.q0==null)l.q0=was;
+  if(l.pk){l.pk.c=n;l.q=q3(n*(+l.pk.f||1));l.subtotal=(+l.pk.p||0)*n;}else{l.q=n;l.subtotal=(+l.price||0)*n;}
+  if(q3(l.q0)===q3(n))delete l.q0;
+  q.total=qeR2((+q.total||0)-old+qeSub(l));return true;}
+function qeDrop(q,l){const i=(q.lines||[]).indexOf(l);if(i<0)return false;const a=qeTouch(q);
+  const c={name:l.name||'',q:l.q0!=null?+l.q0:qeQty(l),price:qeUnit(l)};if(l.pid!=null)c.pid=l.pid;if(l.svc)c.svc=true;if(l.pk)c.pkn=l.pk.n;else if(qtIsM(l))c.m=1;
+  a.rm.push(c);q.total=qeR2((+q.total||0)-qeSub(l));q.lines.splice(i,1);return true;}
+let QE_DIRTY=false;
+function qeSave(q){const a=qeAdj(q);if(a&&!(a.rm||[]).length&&!(q.lines||[]).some(l=>l&&l.q0!=null))delete q.adj;   /* todo volvió a lo pedido: sin marca */
+  q.edited=Date.now();QE_DIRTY=true;persist();}
+
+/* ---------- lo que se ve ---------- */
+function qeReqTxt(q,l){if(!l||l.q0==null||!qeAdj(q))return '';const a=qtyLoc(l.q0)+qeUn(l),b=qtyLoc(qeQty(l))+qeUn(l),ok=q.soldSale!=null||q.ap==='ok';
+  return isSeller()?ti(ok?'qe_s_ok':'qe_s_pend',{a,b}):ti(ok?'qe_o_ok':'qe_o_pend',{a,b});}
+function qeLineTop(l){return l.pk?`<b class="qt-pk">${exEsc(qtPkTxt(l))}</b><br>`:(qtIsM(l)?`<b class="qt-pk">${qtyLoc(+l.q||0)} m</b><br>`:'');}
+function qeLinePr(l){const k=l.pk,pp=qeUnit(l),pl=+(k?k.pl:l.pl)||0;
+  const pr=k?`${money(pp)} / ${exEsc(k.n)}`:(qtIsM(l)?`${money(pp)} / m`:`${money(pp)} c/u`);
+  const ds=pl>0&&pp<pl-0.004?` · <span class="qt-ds">${t('qt_hab')} ${money(pl)} − ${qtyLoc(Math.round((1-pp/pl)*1000)/10)} %</span>`:'';
+  const xn=l.xn?` <span class="qt-xn">${svg(IC_TAG)}${exEsc(l.xn)}</span>`:'';return pr+ds+xn;}
+/* la fila de siempre (la de openQuote), para ponerle la nota de lo pedido */
+function qeBaseRow(l){return qtRowHTML(l)||`<div class="row"><div class="av num">${+l.q||0}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${l.svc?svg(SVC_ICO)+' ':''}${exEsc(qeName(l))}</div><div class="s">${money(+l.price||0)} c/u</div></div><div class="r"><div class="amt num">${money(qeSub(l))}</div></div></div>`;}
+/* fila del detalle. '' = se dibuja como siempre */
+function qeRowHTML(q,l){try{if(!q||!l)return '';
+  if(qeCan(q)){const i=q.lines.indexOf(l);if(i<0)return '';const req=qeReqTxt(q,l);
+    return `<div class="row qe-row" data-qel="${i}"><input autocomplete="off" class="cinp num qe-q" data-qeq="${i}" type="text" inputmode="${qeInt(l)?'numeric':'decimal'}" enterkeyhint="done" data-uns="3" value="${exEsc(qeQtyTxt(l))}" aria-label="${exEsc(t('qt_count'))}">`+
+      `<div class="qe-mid"><div class="t" style="overflow-wrap:anywhere">${l.svc?svg(SVC_ICO)+' ':''}${exEsc(qeName(l))}</div><div class="s"><span data-qetop="${i}">${qeLineTop(l)}</span>${qeLinePr(l)}<span class="qe-req" data-qereq="${i}"${req?'':' hidden'}>${exEsc(req)}</span></div></div>`+
+      `<div class="r qe-r"><div class="amt num" data-qeamt="${i}">${money(qeSub(l))}</div><button type="button" class="qe-x" data-qex="${i}" aria-label="${exEsc(t('qe_x'))}">✕</button></div></div>`;}
+  const req=qeReqTxt(q,l);if(!req)return '';
+  const h=qeBaseRow(l),m='</div></div><div class="r">';if(h.split(m).length!==2)return '';
+  return h.split(m).join(`<span class="qe-req">${exEsc(req)}</span>`+m);}catch(e){console.error('qeRowHTML',e);return '';}}
+/* encima de la lista: la pista para la tienda y el resumen del ajuste */
+function qeHeadHTML(q){try{const out=[];const a=qeHas(q)?qeAdj(q):null;
+  if(a){const w=a.n&&a.n!==t('vd_store')?' ('+a.n+')':'';out.push(`<div class="qe-by">${exEsc(ti('qe_by',{w,d:qeWhen(a.at)}))}<br>${exEsc(ti(isSeller()?'qe_tot0_s':'qe_tot0_o',{m:money(+a.total0||0)}))}</div>`);}
+  if(qeCan(q))out.push(`<div class="qe-hint">${exEsc(t('qe_hint'))}</div>`);return out.join('');}catch(e){console.error('qeHeadHTML',e);return '';}}
+/* debajo de la lista: lo que se quitó */
+function qeTailHTML(q){try{const a=qeAdj(q);if(!a||!(a.rm||[]).length)return '';const sl=isSeller();
+  return `<div class="section-h qe-rmh"><h2>${exEsc(t(sl?'qe_rm_s':'qe_rm_o'))} · ${a.rm.length}</h2></div><div class="list qe-rml">`+a.rm.map(c=>{const un=c.pkn?' '+c.pkn:(c.m?' m':'');
+    return `<div class="row qe-rmrow"><div class="av num">0</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc((''+(c.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s"><span class="qe-req">${exEsc(ti(sl?'qe_rml_s':'qe_rml_o',{a:qtyLoc(+c.q||0)+un}))}</span></div></div><div class="r"><div class="amt num">${money(0)}</div></div></div>`;}).join('')+`</div>`;}catch(e){console.error('qeTailHTML',e);return '';}}
+function qeOkNote(q){try{return qeHas(q)?t('qe_ok_note'):'';}catch(_){return '';}}
+
+/* ---------- editar en el detalle ---------- */
+function qeOpenQ(){const q=quoteById(state.qtOpen);return qeCan(q)?q:null;}
+function qeLineAt(q,el,at){const i=+el.getAttribute(at);const l=q&&q.lines&&q.lines[i];return l||null;}
+function qeTotPaint(v){const e=document.querySelector('#quoteBody .kpi.hero .k-v');if(e)e.textContent=money(v);}
+/* mientras se escribe: el valor de la línea y el Total cambian en la pantalla (todavía no se guarda) */
+function qeLive(el){const q=qeOpenQ();if(!q)return;const l=qeLineAt(q,el,'data-qeq');if(!l)return;
+  const n=fNum(el.value),i=el.getAttribute('data-qeq');const am=document.querySelector('#quoteBody [data-qeamt="'+i+'"]');
+  const sub=n>0?qeUnit(l)*n:0;if(am)am.textContent=money(sub);qeTotPaint(qeR2((+q.total||0)-qeSub(l)+sub));}
+/* se guarda al salir del campo (o Enter) y también solo, un momento después de dejar de escribir (suave = sin avisos ni tocar lo escrito:
+   en Android cerrar el teclado con Atrás no saca el foco del campo) */
+let QE_T=0;
+function qeCommit(el,suave){const q=qeOpenQ();if(!q){return;}const l=qeLineAt(q,el,'data-qeq');if(!l)return;const i=el.getAttribute('data-qeq');
+  let n=q3(fNum(el.value));
+  if(suave){if(!(n>0)||(qeInt(l)&&Math.abs(n-Math.round(n))>1e-9))return;if(qeSetQty(q,l,n)){const rq=document.querySelector('#quoteBody [data-qereq="'+i+'"]');if(rq){const tx=qeReqTxt(q,l);rq.textContent=tx;rq.hidden=!tx;}
+      const tp=document.querySelector('#quoteBody [data-qetop="'+i+'"]');if(tp)tp.innerHTML=qeLineTop(l);qeSave(q);qeHeadPaint(q);}return;}
+  if(!(n>0)){el.value=qeQtyTxt(l);qeLive(el);toast(t('qe_zero'));return;}
+  if(qeInt(l)&&Math.abs(n-Math.round(n))>1e-9){el.value=qeQtyTxt(l);qeLive(el);appAlert(ti(l.pk?'int_pack':'int_qty',{n:(l.pk?l.pk.n+' · ':'')+qeName(l)}));return;}   /* unidades y empaques completos, como en la venta */
+  const ch=qeSetQty(q,l,n);el.value=qeQtyTxt(l);
+  const am=document.querySelector('#quoteBody [data-qeamt="'+i+'"]');if(am)am.textContent=money(qeSub(l));qeTotPaint(+q.total||0);
+  const tp=document.querySelector('#quoteBody [data-qetop="'+i+'"]');if(tp)tp.innerHTML=qeLineTop(l);
+  const rq=document.querySelector('#quoteBody [data-qereq="'+i+'"]');if(rq){const tx=qeReqTxt(q,l);rq.textContent=tx;rq.hidden=!tx;}
+  if(ch){qeSave(q);qeHeadPaint(q);}}
+function qeHeadPaint(q){try{const b=document.getElementById('quoteBody');if(!b)return;const old=b.querySelector('.qe-by');const a=qeHas(q)?qeAdj(q):null;
+  if(!a){if(old)old.remove();return;}const tmp=document.createElement('div');tmp.innerHTML=qeHeadHTML(q);const nw=tmp.querySelector('.qe-by');if(!nw)return;
+  if(old)old.replaceWith(nw);else{const h=b.querySelector('.qe-hint');if(h)h.parentNode.insertBefore(nw,h);}}catch(_){}}
+async function qeRemove(i){let q=qeOpenQ();if(!q)return;let l=q.lines[i];if(!l)return;const sig=(l.pid!=null?l.pid:'')+'|'+(l.name||'');
+  if((q.lines||[]).length<=1){await appAlert(t('qe_last'));return;}
+  if(!await appConfirm(ti('qe_rm_q',{n:qeName(l),f:q.folio})))return;
+  q=qeOpenQ();if(!q)return;l=(q.lines||[]).find(x=>x&&((x.pid!=null?x.pid:'')+'|'+(x.name||''))===sig);if(!l)return;   /* de nuevo tras la pregunta */
+  if(q.lines.length<=1){await appAlert(t('qe_last'));return;}
+  qeDrop(q,l);qeSave(q);openQuote(q.id);QE_DIRTY=false;render();}
+/* ---------- el aviso de inventario al aprobar ---------- */
+/* true = no alcanza (ya se avisó; no se aprueba). Va ANTES de armar la venta: saveSale conserva su propia validación. */
+async function qeShortAsk(q){try{if(!qeCan(q))return false;const L=invShort(qeNeed(q));if(!L.length)return false;
+  try{toast(t('qt_apr_fail'));}catch(_){}
+  const d=askEl();let fit=false;try{const pr=appConfirmL(invMsg(L,'inv_fix_sale'),t('ask_ok'),t('qe_fit'));d.classList.add('qe-ask');fit=await pr;}finally{d.classList.remove('qe-ask');}
+  if(fit)await qeFit(q.id);return true;}catch(e){console.error('qeShortAsk',e);return false;}}
+/* «Ajustar a lo disponible»: cada producto que no alcanza baja a lo que hay (empaques completos si es por presentación); con 0, se quita */
+async function qeFit(id){const q=quoteById(id);if(!qeCan(q))return;const L=invShort(qeNeed(q));if(!L.length)return;const plan=[];
+  L.forEach(x=>{let av=Math.max(0,invM(x.p.stock));   /* milésimas */
+    (q.lines||[]).forEach(l=>{if(qeProd(l)!==x.p)return;const f=l.pk?invM(+l.pk.f||1):1000;let n;
+      if(l.pk)n=Math.floor(av/f);else if(qeInt(l))n=Math.floor(av/1000);else n=av/1000;
+      n=Math.max(0,Math.min(n,qeQty(l)));plan.push({l,to:n});av-=Math.round(n*f);});});
+  const gone=plan.filter(x=>!(x.to>0)).length;if((q.lines||[]).length-gone<1){await appAlert(t('qe_fit_none'));return;}
+  plan.forEach(x=>{if(x.to>0)qeSetQty(q,x.l,x.to);else qeDrop(q,x.l);});
+  qeSave(q);openQuote(q.id);QE_DIRTY=false;render();toast(ti('qe_fit_done',{n:q.folio}));}
+/* una cantidad escrita que todavía no salió del campo (en Android, cerrar el teclado con Atrás no saca el foco) */
+function qeFlush(){try{const el=document.activeElement;if(el&&el.getAttribute&&el.getAttribute('data-qeq')!=null&&document.getElementById('quotedlg').classList.contains('on'))qeCommit(el);}catch(e){console.error('qeFlush',e);}}
+/* al cerrar el detalle: primero se guarda lo escrito; después la lista de atrás muestra el total nuevo */
+{const _cq=closeQuote;closeQuote=function(){qeFlush();const r=_cq.apply(this,arguments);try{if(QE_DIRTY){QE_DIRTY=false;render();}}catch(_){}return r;};}
+document.addEventListener('visibilitychange',()=>{try{if(document.visibilityState==='hidden')qeFlush();}catch(_){}});
+document.addEventListener('input',e=>{try{const el=e.target;if(!el||!el.getAttribute||el.getAttribute('data-qeq')==null)return;qeLive(el);clearTimeout(QE_T);QE_T=setTimeout(()=>{try{if(document.body.contains(el))qeCommit(el,true);}catch(er){console.error('qeCommit',er);}},900);}catch(_){}});
+document.addEventListener('focusin',e=>{try{const el=e.target;if(el&&el.getAttribute&&el.getAttribute('data-qeq')!=null)setTimeout(()=>{try{el.select();}catch(_){}},30);}catch(_){}});
+document.addEventListener('focusout',e=>{try{const el=e.target;if(el&&el.getAttribute&&el.getAttribute('data-qeq')!=null){clearTimeout(QE_T);qeCommit(el);}}catch(er){console.error('qeCommit',er);}});
+document.addEventListener('keydown',e=>{try{if(e.key==='Enter'&&e.target&&e.target.getAttribute&&e.target.getAttribute('data-qeq')!=null){e.preventDefault();e.target.blur();}}catch(_){}});
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('#quoteBody [data-qex]');if(!b)return;e.preventDefault();e.stopPropagation();qeRemove(+b.getAttribute('data-qex'));}catch(er){console.error('qeRemove',er);}},true);
+(function(){try{const s=document.createElement('style');s.textContent=`
+  :root{--qe-warn:#a15c00;--qe-bad:#c8452f}
+  html[data-theme="dark"]{--qe-warn:#f0b35a;--qe-bad:#f08a78}
+  .row.qe-row{cursor:default;align-items:center}
+  .qe-q.cinp{width:62px;flex:none;height:42px;font-weight:700;font-size:16px;padding:8px 4px;text-align:center}
+  .qe-mid{min-width:0;flex:1}
+  .qe-r{display:flex;align-items:center;gap:6px;flex:none}
+  .qe-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--qe-bad);font:700 15px var(--ui);cursor:pointer;display:grid;place-items:center;padding:0}
+  .qe-req{display:block;margin-top:2px;color:var(--qe-warn);font-weight:600}
+  .qe-req[hidden]{display:none}
+  .qe-hint{margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+  .qe-by{margin:10px 0 0;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sel);font-size:13px;color:var(--ink);line-height:1.45}
+  .qe-rmrow{cursor:default}.qe-rmrow .t,.qe-rmrow .amt,.qe-rmrow .av{color:var(--muted)}.qe-rmrow .t{text-decoration:line-through}
+  .askdlg.qe-ask .askbtns{flex-wrap:wrap;justify-content:flex-end}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

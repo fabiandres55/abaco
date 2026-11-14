@@ -7723,7 +7723,7 @@ function scCompras(){
   const chips=`<div class="chips">
     <span class="fchip io" data-act="phist">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')} ${t('cp_hist')}</span>
     <span class="fchip" data-act="porders">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')} ${t('cp_order')}</span>
-    <span class="fchip" data-act="pnewprod">${svg('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>')} ${t('cp_new_prod')}</span>
+    <span class="fchip" data-act="pnewprod">${svg('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>')} ${t('cp_new_prod')}</span>${typeof pgChipHTML==='function'?pgChipHTML():''}
   </div>`;
   const search=pcSearchHTML();   /* mods146a: "Nombre/Clave" con lista desplegable (B01–B03) */
   const hint=`<div class="salehelp" style="margin-top:26px">${t('cp_help')}</div><div style="display:flex;justify-content:center;margin-top:18px"><button class="btn ghost" style="width:auto;padding:11px 20px" data-act="provtpl">${t('cp_provider_tpl')}</button></div>`;
@@ -7761,7 +7761,7 @@ function pcRowsHTML(){
         <div class="pccell"><span class="cfl">${t('cp_tot_qty')}</span><b class="pcv num pctot">${c.tot}</b></div>
         <div class="pccell"><span class="cfl">${t('cp_buy_price')}${pcPkOf(i.id)?'<span class="pm-u">/'+exEsc(pcPkOf(i.id).n)+'</span>':(isDist(p)?'<span class="pm-u">/m</span>':'')}</span>${f('data-pcost',i.id,pcCostShow(i.id),t('cp_qty_ph'),'1','next')}</div>
         <div class="pccell"><span class="cfl">${t('cp_sale_price')}${pcPkOf(i.id)?'<span class="pm-u">/'+exEsc(pcPkOf(i.id).n)+'</span>':(isDist(p)?'<span class="pm-u">/m</span>':'')}</span>${f('data-pprice',i.id,pcSaleShow(i.id),t('cp_sub_ph'),'1',k===last?'done':'next')}</div>
-        <div class="pccell"><span class="cfl">${t('sale_subtotal')} ${exEsc(moneySym())}</span><b class="pcv num csub">${c.sub}</b></div>
+        ${typeof pgCellsHTML==='function'&&pgUse()?pgCellsHTML(i.id,c,k===last):`<div class="pccell"><span class="cfl">${t('sale_subtotal')} ${exEsc(moneySym())}</span><b class="pcv num csub">${c.sub}</b></div>`}
       </div>${pcBrkHTML(i.id)?`<div class="cbrk">${pcBrkHTML(i.id)}</div>`:''}
       <div class="crow-ico pcico"><span class="pcic-l">${cal}</span><span class="pcic-m">${tag}</span><span class="pcic-r"><button class="cico del" data-pcdel="${i.id}" title="${t('remove')}">${trash}</button></span></div>
     </div>`;}).join('');
@@ -17312,7 +17312,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261113083348';
+const APP_VERSION='20261114053139';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -19282,5 +19282,167 @@ function wtMissNoProbe(id,key,w,c,prevTs,ts){
     try{idbKvPut('wtok:'+id+'|'+key,{ts:m.ts,lj:m.lj,pr:null});}catch(_){}   /* la copia guardada (por si la app se cierra antes del reintento) también queda sin huella */
   }catch(_){}
 }
+
+
+/* ==== mods260 (2026-11-13): COMPRAS — CAMPOS CONECTADOS Y PORCENTAJE DE GANANCIA ====
+   Pedido de Fabio (13-nov noche, documento «Nueva función: campos conectados y porcentaje de ganancia en la pantalla de Compras»;
+   «Autorizado» con las recomendaciones 1a esto reemplaza el ícono de mods259 · 2a la compra guarda Agregar × Precio de Compra, como hoy ·
+   3a el Subtotal baja a una tercera fila · 4a sin precio de venta y sin mínimo: «—» y Venta vacía).
+   QUÉ HACE (solo en la tarjeta de Compras; la de la Orden de Compra no cambia)
+   - Campo nuevo «% de ganancia» entre Precio de Venta y Subtotal: (Venta − Compra) ÷ Compra × 100, con máximo un decimal.
+     Empieza en el porcentaje REAL del producto (sus precios no cambian solos). Sin precio de venta: empieza en el mínimo de la tienda y
+     calcula la Venta con él. Verde si es igual o mayor al mínimo, rojo si es menor; sin mínimo o sin Precio de Compra: «—» sin color.
+   - El Subtotal se puede escribir: Precio de Compra = Subtotal ÷ Agregar (2 decimales). Con Agregar en 0 o vacío no se divide.
+   - Los campos se recalculan entre sí mientras se escribe, sin redibujar y sin tocar el campo en el que se escribe:
+       Agregar → Cantidad Total y Subtotal (como siempre) · Subtotal → Compra → Venta · Compra → Subtotal y Venta · % → Venta · Venta → %.
+     Cuando cambia el costo, el porcentaje de la fila se mantiene y la Venta lo sigue, redondeada a pesos enteros.
+   - Arriba, después de «Crear Producto»: «Ajustes de porcentaje de ganancia» (mínimo de la tienda: número de 0 en adelante; vacío = sin
+     mínimo). Se guarda con setOpt('minGain') → receipt.opts, el documento de ajustes que ya se sincroniza.
+   TODO OCURRE EN PANTALLA. No toca saveCompra, existencias ni la sincronización: al guardar, la compra hace lo de siempre con los números
+   que quedaron en la fila (state.pcart / pcost / pprice). Lo único que escribe fuera de la pantalla es receipt.opts.minGain.
+   El porcentaje de cada fila viaja en el borrador de la compra (state.pcGain / pcGainTxt / pcSubTxt, claves de PC_DEF).
+   Apagarlo en un equipo: localStorage 'abanico.pg'='0' (la tarjeta y la franja de arriba quedan exactamente como antes). */
+(function(){try{
+  Object.assign(I18N.es,{pg_chip:'Ajustes de porcentaje de ganancia',pg_title:'Porcentaje de ganancia',pg_field:'% de ganancia',
+    pg_ask:'Ajustes de porcentaje de ganancia\n\nPorcentaje mínimo de ganancia que aceptas (%). Ejemplo: 30\n\nDéjalo vacío para no usar un mínimo.',
+    pg_bad:'Escribe solo un número de 0 en adelante. Ejemplo: 30',pg_saved:'Mínimo de ganancia: {n} %',pg_cleared:'Sin mínimo de ganancia'});
+  Object.assign(I18N.en,{pg_chip:'Profit percentage settings',pg_title:'Profit percentage',pg_field:'Profit %',
+    pg_ask:'Profit percentage settings\n\nMinimum profit percentage you accept (%). Example: 30\n\nLeave it empty to use no minimum.',
+    pg_bad:'Enter only a number from 0 up. Example: 30',pg_saved:'Minimum profit: {n} %',pg_cleared:'No minimum profit'});
+}catch(_){}})();
+function pgOn(){try{return localStorage.getItem('abanico.pg')!=='0';}catch(_){return true;}}
+function pgUse(){return pgOn()&&!state.poMode;}
+/* el porcentaje, el texto escrito en él y el texto escrito en el Subtotal entran solos en el borrador, en pcReset y en la compra apartada */
+try{if(pgOn())Object.assign(PC_DEF,{pcGain:{},pcGainTxt:{},pcSubTxt:{}});}catch(_){}
+/* el mínimo de la tienda: número de 0 en adelante, o null si no se ha definido */
+function pgMin(){try{const v=((state.receipt||{}).opts||{}).minGain;if(v==null||v==='')return null;const n=+v;return isFinite(n)&&n>=0?n:null;}catch(_){return null;}}
+const pgR1=v=>Math.round(v*10)/10,pgR2=v=>Math.round(v*100)/100;
+const pgMap=k=>state[k]||(state[k]={});
+/* precios de la fila: el costo cuenta solo si el campo tiene un número mayor que 0 */
+function pgC(id){return pcDig(pcCostShow(id))?(+pLineCost(id)||0):0;}
+function pgS(id){return +pLineSale(id)||0;}
+function pgReal(id){const c=pgC(id),s=pgS(id);return c>0&&s>0?(s-c)/c*100:null;}
+/* el porcentaje GUARDADO de la fila: número, null (el dueño lo dejó sin porcentaje) o undefined (nadie lo ha tocado) */
+function pgG(id){const v=(state.pcGain||{})[id];return typeof v==='number'&&isFinite(v)?v:(v===null?null:undefined);}
+/* ¿la Venta de la fila es la que da ese porcentaje? (si otro camino cambió un precio, el guardado ya no vale y manda el real) */
+function pgFits(id,g){const c=pgC(id),s=pgS(id);return c>0&&s>0&&Math.round(c*(1+g/100))===s;}
+/* el porcentaje que se MUESTRA: sin Precio de Compra → null («—»); el guardado si la Venta le corresponde; si no, el real */
+function pgVal(id){const c=pgC(id);if(!(c>0))return null;const g=pgG(id);if(typeof g==='number'&&pgFits(id,g))return g;return pgReal(id);}
+/* el porcentaje que se MANTIENE cuando va a cambiar el costo (se lee ANTES del cambio) */
+function pgKeep(id){const g=pgG(id);if(!(pgC(id)>0))return typeof g==='number'?g:null;
+  if(typeof g==='number')return pgFits(id,g)?g:(pgReal(id)!=null?pgReal(id):g);if(g===null)return null;return pgReal(id);}
+/* mientras se escribe en Precio de Compra o en Subtotal, el porcentaje que se mantiene es el que había al entrar al campo */
+let PG_HOLD=null;
+function pgHoldEl(el,id){const d=el&&el.dataset;return !!d&&((d.pcost!=null&&+d.pcost===id)||(d.psub!=null&&+d.psub===id));}
+function pgHoldG(id){const el=document.activeElement;if(!pgHoldEl(el,id))return pgKeep(id);if(!PG_HOLD||PG_HOLD.el!==el)PG_HOLD={el,id,g:pgKeep(id)};return PG_HOLD.g;}
+/* el costo cambió: la Venta sigue al porcentaje (pesos enteros). Sin porcentaje o sin costo, la Venta no se toca */
+function pgFollow(id,g){if(g==null)return;pgMap('pcGain')[id]=g;const c=pgC(id);if(!(c>0))return;
+  pgMap('pprice')[id]=Math.max(0,Math.round(c*(1+g/100)));if(state.pcSaleTxt)delete state.pcSaleTxt[id];if(state.pcGainTxt&&fNum(state.pcGainTxt[id])!==g)delete state.pcGainTxt[id];}
+/* el dueño escribió la Venta: el porcentaje pasa a ser el real; sin Venta o sin costo la fila queda sin porcentaje (la Venta escrita manda) */
+function pgFromSale(id){const r=pgReal(id);pgMap('pcGain')[id]=r==null?null:r;if(state.pcGainTxt)delete state.pcGainTxt[id];}
+/* al terminar de escribir el costo: si la fila estaba sin porcentaje y ya tiene los dos precios, queda con el real */
+function pgSettle(id){try{if(pgG(id)===null){const r=pgReal(id);if(r!=null)pgMap('pcGain')[id]=r;}}catch(_){}}
+/* producto SIN precio de venta: la fila empieza en el mínimo de la tienda y calcula la Venta con él (una sola vez; si el dueño ya escribió
+   o borró la Venta, no). Con precio de venta no se toca nada: solo se muestra su porcentaje real */
+function pgInit(id){try{if(!pgUse()||pgG(id)!==undefined||pgS(id)>0||(state.pprice&&state.pprice[id]!=null))return;const m=pgMin();if(m==null)return;
+  pgMap('pcGain')[id]=m;const c=pgC(id);if(c>0)pgMap('pprice')[id]=Math.max(0,Math.round(c*(1+m/100)));}catch(_){}}
+/* texto del campo %: lo que el dueño escribió si sigue diciendo lo mismo; si no, el número con máximo un decimal; '' = «—» */
+function pgShow(id){const v=pgVal(id),g=pgG(id),tx=(state.pcGainTxt||{})[id];
+  if(typeof tx==='string'&&pcDig(tx)&&typeof g==='number'&&fNum(tx)===g&&(v===g||!(pgC(id)>0)))return tx;return v==null?'':fTxt(pgR1(v));}
+function pgCls(id){const v=pgVal(id),m=pgMin();return v==null||m==null?'':(pgR1(v)>=m?' ok':' bad');}
+/* texto del campo Subtotal: fuera del campo, el de siempre (Agregar × Precio de Compra con formato); dentro, lo escrito o el número liso */
+function pgSubOk(id){const q=+(state.pcart||{})[id]||0;return q>0&&pcDig(pcQtyShow(id))?q:0;}
+function pgSubShow(id,focused){const c=pcCells(id);if(!focused)return c.inc?'':c.sub;const q=pgSubOk(id),tx=(state.pcSubTxt||{})[id];
+  if(typeof tx==='string'){if(!pcDig(tx)||!q)return tx;if(pgR2(fNum(tx)/q)===pgC(id))return tx;}return c.inc?'':fTxt(pgR2((+(state.pcart||{})[id]||0)*pLineCost(id)));}
+const PG_CHIP_IC='<circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/><path d="M18 6L6 18"/>';
+/* las dos celdas que reemplazan a la del Subtotal en la tarjeta: «% de ganancia» (tercera de la segunda fila) y Subtotal (tercera fila) */
+function pgCellsHTML(id,c,last){
+  const old=`<div class="pccell"><span class="cfl">${t('sale_subtotal')} ${exEsc(moneySym())}</span><b class="pcv num csub">${c.sub}</b></div>`;
+  try{const fld=(at,cls,val,ph,hint)=>`<input autocomplete="off" class="cinp num ${cls}" ${at}="${id}" type="text" inputmode="decimal" enterkeyhint="${hint}" data-uns="1" placeholder="${exEsc(ph)}" value="${exEsc(val)}">`;
+    return `<div class="pccell pgcell"><span class="cfl">${exEsc(t('pg_field'))}</span>${fld('data-pgain','pgin'+pgCls(id),pgShow(id),'—','next')}</div>
+        <div class="pccell pgsubc"><span class="cfl">${t('sale_subtotal')} ${exEsc(moneySym())}</span>${fld('data-psub','pgsub',pgSubShow(id,false),'...',last?'done':'next')}</div>`;
+  }catch(_){return old;}}
+function pgChipHTML(){try{if(!pgOn())return '';return `<span class="fchip" data-pg="cfg">${svg(PG_CHIP_IC)} ${exEsc(t('pg_chip'))}</span>`;}catch(_){return '';}}
+/* antes de dibujar las tarjetas: las filas de productos sin precio de venta empiezan en el mínimo */
+{const _r=pcRowsHTML;pcRowsHTML=function(){try{if(pgUse())pcartRows().forEach(i=>pgInit(i.id));}catch(_){}return _r.apply(this,arguments);};}
+/* lo que el dueño escribe en Precio de Compra o Precio de Venta (pcFieldSet es el camino de siempre): se le suma la conexión */
+{const _s=pcFieldSet;pcFieldSet=function(f,tx){
+  let on=false;try{on=pgUse()&&!!f&&(f.k==='c'||f.k==='s')&&!!state.pcart&&state.pcart[f.id]!=null;}catch(_){}
+  if(!on)return _s.apply(this,arguments);
+  if(f.k==='c'){let c0=0,g=null;try{c0=pgC(f.id);g=pgHoldG(f.id);}catch(_){}_s.apply(this,arguments);try{if(pgC(f.id)!==c0)pgFollow(f.id,g);}catch(_){}return;}
+  _s.apply(this,arguments);try{pgFromSale(f.id);}catch(_){}};}
+/* después de cada recálculo de la fila: pinta los campos conectados, menos aquel en el que se está escribiendo */
+function pgPaint(id){try{if(!pgUse())return;const row=document.querySelector('#body [data-pcrow="'+id+'"]');if(!row)return;const a=document.activeElement;
+  const put=(sel,v)=>{const el=row.querySelector(sel);if(el&&el!==a&&el.value!==v)el.value=v;return el;};
+  put('[data-pcost]',pcCostShow(id));put('[data-pprice]',pcSaleShow(id));put('[data-psub]',pgSubShow(id,false));
+  const g=put('[data-pgain]',pgShow(id));if(g){const cl='cinp num pgin'+pgCls(id);if(g.className!==cl)g.className=cl;}}catch(_){}}
+{const _l=pcLiveRefresh;pcLiveRefresh=function(id){_l.apply(this,arguments);pgPaint(id);};}
+/* una línea que se quita, una presentación que se cambia o un carrito que se limpia: sus textos se olvidan igual que los demás */
+function pgDrop(id){['pcGain','pcGainTxt','pcSubTxt'].forEach(k=>{if(state[k])delete state[k][id];});}
+{const _f=pcForget;pcForget=function(id){try{pgDrop(+id);}catch(_){}return _f.apply(this,arguments);};}
+{const _p=pcPkSet;pcPkSet=function(act){try{pgDrop(+(''+act).split(':')[1]);}catch(_){}return _p.apply(this,arguments);};}
+{const _o=pcOrderSync;pcOrderSync=function(){const r=_o.apply(this,arguments);
+  try{if(!state.poStash){const inC=new Set();Object.entries(state.pcart||{}).forEach(([id,q])=>{if(q!=null&&+q>=0)inC.add(id);});
+    ['pcGain','pcGainTxt','pcSubTxt'].forEach(k=>{const m=state[k];if(m)Object.keys(m).forEach(id=>{if(!inC.has(id))delete m[id];});});}}catch(_){}return r;};}
+/* ---- los dos campos nuevos: g = % de ganancia (data-pgain), t = Subtotal (data-psub) ---- */
+function pgFieldOf(el){const d=el&&el.dataset;if(!d)return null;if(d.pgain!=null)return {k:'g',id:+d.pgain};if(d.psub!=null)return {k:'t',id:+d.psub};return null;}
+function pgFieldIn(el){const f=pgFieldOf(el);return f&&pgUse()&&el.closest&&el.closest('#body')&&state.pcart&&state.pcart[f.id]!=null?f:null;}
+function pgTrim(el,dec){const raw=el.value,tx=unsignedNumTxt(raw,dec);if(tx!==raw){let pos=el.selectionStart;pos=pos==null?tx.length:Math.max(0,Math.min(tx.length,pos-(raw.length-tx.length)));el.value=tx;try{el.setSelectionRange(pos,pos);}catch(_){}}return tx;}
+document.addEventListener('input',e=>{try{const el=e.target,f=pgFieldIn(el);if(!f)return;const id=f.id;
+  if(f.k==='g'){const tx=pgTrim(el,1);pgMap('pcGainTxt')[id]=tx;
+    if(pcDig(tx)){const g=fNum(tx);pgMap('pcGain')[id]=g;const c=pgC(id);if(c>0){pgMap('pprice')[id]=Math.max(0,Math.round(c*(1+g/100)));if(state.pcSaleTxt)delete state.pcSaleTxt[id];}}
+    else pgMap('pcGain')[id]=null;}
+  else{const tx=pgTrim(el,2);pgMap('pcSubTxt')[id]=tx;const q=pgSubOk(id);
+    if(q&&pcDig(tx)){const c0=pgC(id),g=pgHoldG(id),c1=pgR2(fNum(tx)/q);pgMap('pcost')[id]=c1;if(state.pcCostTxt)delete state.pcCostTxt[id];if(pgC(id)!==c0)pgFollow(id,g);}}   /* Agregar en 0 o vacío: no se divide, el Precio de Compra queda como estaba */
+  pcLiveRefresh(id);}catch(_){}});
+/* al entrar: se recuerda el porcentaje de la fila; el Subtotal pasa de «25,000» al número liso para poder escribir */
+document.addEventListener('focusin',e=>{try{const el=e.target;if(!el||!el.dataset||!pgUse()||!el.closest||!el.closest('#body'))return;
+  if(el.dataset.pcost!=null){const id=+el.dataset.pcost;if(state.pcart&&state.pcart[id]!=null)PG_HOLD={el,id,g:pgKeep(id)};}
+  if(el.dataset.psub!=null){const id=+el.dataset.psub;if(!state.pcart||state.pcart[id]==null)return;PG_HOLD={el,id,g:pgKeep(id)};
+    const v=pgSubShow(id,true);if(el.value!==v){el.value=v;try{const n=v.length;el.setSelectionRange(n,n);}catch(_){}}}
+  if(pcFieldOf(el)||pgFieldOf(el)){setTimeout(pgReveal,350);setTimeout(pgReveal,800);}}catch(_){}});
+/* al salir: el Subtotal vuelve a mostrar Agregar × Precio de Compra (lo que guarda la compra); el borrador se guarda como con los demás campos */
+document.addEventListener('focusout',e=>{try{const el=e.target;if(!el||!el.dataset||!pgUse())return;if(PG_HOLD&&PG_HOLD.el===el)PG_HOLD=null;
+  if(el.dataset.pcost!=null){pgSettle(+el.dataset.pcost);pgPaint(+el.dataset.pcost);return;}
+  const f=pgFieldOf(el);if(!f||!state.pcart||state.pcart[f.id]==null)return;const id=f.id;
+  if(f.k==='t'){if(state.pcSubTxt)delete state.pcSubTxt[id];pgSettle(id);el.value=pgSubShow(id,false);}
+  else{const tx=(state.pcGainTxt||{})[id];if(typeof tx==='string'&&!/\d$/.test(tx))delete state.pcGainTxt[id];el.value=pgShow(id);}
+  pgPaint(id);try{saveCartDraft();}catch(_){}}catch(_){}});
+/* Enter («Sig.»): % → Subtotal de la misma tarjeta → Agregar de la siguiente; en la última, cierra el teclado (la cadena de siempre no cambia) */
+document.addEventListener('keydown',e=>{try{if(e.key!=='Enter')return;const el=e.target,f=pgFieldIn(el);if(!f)return;e.preventDefault();let nx=null;
+  if(f.k==='g')nx=document.querySelector('#body [data-psub="'+f.id+'"]');
+  else{const all=[...document.querySelectorAll('#body [data-pqty]')],me=document.querySelector('#body [data-pqty="'+f.id+'"]');nx=all[all.indexOf(me)+1]||null;}
+  if(!nx){try{el.blur();}catch(_){}return;}
+  try{nx.focus({preventScroll:true});}catch(_){nx.focus();}try{const n=nx.value.length;nx.setSelectionRange(n,n);}catch(_){}const row=nx.closest('.crow');if(row)try{showRow(row);}catch(_){}}catch(_){}});
+/* En el teléfono, al tocar un campo el navegador lo deja justo encima del teclado y lo que se recalcula más abajo en la tarjeta queda tapado.
+   Con el foco en un campo de la tarjeta se sube la lista LO JUSTO para que se vea hasta el Subtotal, sin meter el campo bajo la parte fija
+   de arriba. Si ya se ve, no hace nada. */
+function pgReveal(){try{if(!pgUse()||state.screen!=='compras')return;const el=document.activeElement,f=el&&(pcFieldOf(el)||pgFieldOf(el));if(!f||!el.closest||!el.closest('#body'))return;
+  const sc=document.getElementById('screen'),bd=document.querySelector('#body [data-psub="'+f.id+'"]');if(!sc||!bd)return;const vv=window.visualViewport,sr=sc.getBoundingClientRect();
+  const vb=Math.min(vv?vv.offsetTop+vv.height:sr.bottom,sr.bottom)-6,rb=bd.getBoundingClientRect();if(rb.bottom<=vb)return;
+  const sh=document.querySelector('#body .stickhead'),top=(sh?sh.getBoundingClientRect().bottom:sr.top)+4,d=Math.min(rb.bottom-vb,el.getBoundingClientRect().top-top);if(d>0)sc.scrollTop+=d;}catch(_){}}
+try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{setTimeout(pgReveal,80);});}catch(_){}
+/* ---- «Ajustes de porcentaje de ganancia» ---- */
+/* lo escrito en el ajuste → número de 0 en adelante con hasta 2 decimales; '' = sin mínimo; null = no vale */
+function pgParse(tx){const s=(''+(tx==null?'':tx)).trim().replace(/\s*%$/,'');if(!s)return '';if(!/^\d+([.,]\d+)?$/.test(s))return null;const n=Math.round(parseFloat(s.replace(',','.'))*100)/100;return isFinite(n)&&n>=0?n:null;}
+let PG_BUSY=false;
+async function pgOpenCfg(){if(PG_BUSY)return;PG_BUSY=true;try{
+  let val=pgMin();val=val==null?'':fTxt(val);
+  for(;;){const p=appPrompt(t('pg_ask'),val);try{askEl().querySelector('.askin').inputMode='decimal';}catch(_){}
+    const tx=await p;if(tx==null)return;const n=pgParse(tx);
+    if(n===null){val=(''+tx).trim();await appAlert(t('pg_bad'));continue;}
+    const cur=pgMin();if(n===''){if(cur!=null)setOpt('minGain',null);toast(t('pg_cleared'));}else{if(cur!==n)setOpt('minGain',n);toast(ti('pg_saved',{n:fTxt(n)}));}
+    if(state.screen==='compras')render();return;}
+}finally{PG_BUSY=false;}}
+document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-pg="cfg"]');if(!el)return;e.preventDefault();pgOpenCfg();});
+(function(){try{const s=document.createElement('style');s.textContent=`
+  :root{--pg-ok:#2e7d4f;--pg-ok-bg:#e3f3e9;--pg-bad:#c8452f;--pg-bad-bg:#fbe7e3}
+  html[data-theme="dark"]{--pg-ok:#6fcf97;--pg-ok-bg:#1f3a2b;--pg-bad:#f08a78;--pg-bad-bg:#40221d}
+  .pcgrid .pgsubc{grid-column:3}
+  .pcrow .cinp.pgsub{font-weight:700;font-size:16px}
+  .pcrow .cinp.pgin{font-weight:700}
+  .pcrow .cinp.pgin.ok{color:var(--pg-ok);background:var(--pg-ok-bg);border-color:var(--pg-ok)}
+  .pcrow .cinp.pgin.bad{color:var(--pg-bad);background:var(--pg-bad-bg);border-color:var(--pg-bad)}
+`;document.head.appendChild(s);}catch(_){}})();
 
 </script>

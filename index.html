@@ -5792,7 +5792,7 @@ function phistCardHTML(p){
   const si=t('sin_info');const row=(ic,val)=>`<div class="scard-row">${svg(ic)}<span>${val?exEsc(val):si}</span></div>`;const dt=[p.date,p.time].filter(Boolean).join('  ')||si;
   return `<div class="scard" data-purdet="${exEsc(p.id)}"><div class="scard-top"><span class="scard-fol">${t('sale_folio')}: ${exEsc(p.folio||p.id)}</span><span class="scard-pay">${exEsc(payLbl(p.pay)||si)} ${svg(S_CASH)}</span></div>
     ${row(S_CAL,dt)}${row(PRV_ICO,p.provider)}${row(S_INFO,p.note)}
-    <div class="scard-bot">${recStBadge('purch',p)}<span class="scard-tot"><span class="scard-tl">${t('total')}</span><b class="num">${money(p.total||0)}</b></span></div></div>`;
+    ${typeof dcCardHTML==='function'?dcCardHTML(p):''}<div class="scard-bot">${recStBadge('purch',p)}<span class="scard-tot"><span class="scard-tl">${typeof dcTotLbl==='function'?dcTotLbl(p):t('total')}</span><b class="num">${money(p.total||0)}</b></span></div></div>`;
 }
 function fillPHist(){
   const body=document.getElementById('phistBody');if(!body)return;PHIST_VER=DATA_VER;
@@ -5869,7 +5869,7 @@ async function openPurchaseDet(id){
       <div class="sd-line sd-right"><span class="sd-ico">${svg(S_CASH)}</span><span class="sd-tx">${r.pay?exEsc(payLbl(r.pay)):si}</span>${r.pay?`<button class="sd-ib" data-act="purpayclr:${pid}" aria-label="✕">${xx}</button>`:''}<button class="sd-ib" data-act="purpay:${pid}" aria-label="✎">${pen}</button></div>
       ${r.edited?`<div class="sd-ed">${t('sale_edited')}: ${exEsc(localStamp(r.edited))}</div>`:''}
     </div>
-    <div class="sd-tot"><span>${t('total')} ${sym}</span><b class="num">${moneyNum(r.total||0)}</b></div>
+    ${typeof dcDetHTML==='function'?dcDetHTML(r,sym):''}<div class="sd-tot"><span>${typeof dcTotLbl==='function'?dcTotLbl(r):t('total')} ${sym}</span><b class="num">${moneyNum(r.total||0)}</b></div>
     ${cobro}${sched}
     <div class="sd-card sd-items cp-items"><div class="sd-ih"><span>${t('sd_items')}</span><button class="sd-ib" data-act="puredit:${pid}" aria-label="✎">${pen}</button></div>
       <div class="sd-pg sd-ph"><span>${t('cx_qty')}</span><span>${t('sd_price')} ${sym}</span><span>${t('sale_subtotal')} ${sym}</span></div><div class="cp-rows">${rows}</div></div>
@@ -5920,7 +5920,7 @@ function purIeEmpty(l){return !/\d/.test(l.qt||'');}
 function purIeTotTxt(){const L=ITEMS_ED?ITEMS_ED.lines:[];return L.some(purIeEmpty)?'...':moneyNum(L.reduce((a,l)=>a+(+l.q||0)*(+l.price||0),0));}
 function purIeFill(){
   const ed=ITEMS_ED;if(!ed)return;const sym=moneySym(),trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13M10 11l4 4M14 11l-4 4"/>');
-  document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${t('total')}</span><b class="num" id="ieTot">${purIeTotTxt()}</b></div>`+
+  document.getElementById('itemsBody').innerHTML=`<div class="ie-tot"><span>${typeof dcIeLbl==='function'?dcIeLbl():t('total')}</span><b class="num" id="ieTot">${purIeTotTxt()}</b></div>${typeof dcIeNote==='function'?dcIeNote():''}`+
     (ed.lines.length?ed.lines.map((l,k)=>`<div class="ie-row ie-purch"><div class="ie-n">${svg(S_BOX2)} ${exEsc(nmV(l.name))}</div>
       <div class="ie-g"><span class="cfl">${t('cx_qty')}</span><span class="cfl">${t('cp_ie_cost')} ${sym}</span><span class="cfl">${t('sale_subtotal')} ${sym}</span>
       <input autocomplete="off" class="cinp num" id="iepq_${k}" type="text" inputmode="decimal" enterkeyhint="next" data-uns="3" value="${exEsc(l.qt)}"><input autocomplete="off" class="cinp num" id="iepc_${k}" type="text" inputmode="decimal" enterkeyhint="done" data-uns="1" value="${exEsc(l.pt)}"><span class="ie-sub num" id="ies_${k}">${purIeEmpty(l)?'...':moneyNum((+l.q||0)*(+l.price||0))}</span></div>
@@ -5937,6 +5937,7 @@ function purIeClose(save){
     const zq=ed.lines.findIndex(l=>!(fNum(l.qt)>0));if(zq>=0){const l=ed.lines[zq];appAlert(ti('qty_zero',{n:(''+(l.name||'')).replace(/^\.{3}\s*/,'')})).then(()=>purIeFocus('iepq_'+zq));return;}
     const zc=ed.lines.findIndex(l=>!/\d/.test(l.pt||''));if(zc>=0){appAlert(t('cp_ie_price')).then(()=>purIeFocus('iepc_'+zc));return;}
     const r2=v=>Math.round(v*100)/100,r3=v=>Math.round(v*1000)/1000;
+    if(typeof dcEditBlock==='function'&&dcEditBlock(p,r2(ed.lines.reduce((a,l)=>a+r3(fNum(l.qt))*r2(fNum(l.pt)),0))))return;   /* mods261 */
     const keep=ed.lines.slice().sort((a,b)=>a.ix-b.ix);   /* se guarda en el orden original de la compra */
     const oldQ=new Map(),newQ=new Map(),ad=(m,k,q)=>m.set(''+k,(m.get(''+k)||0)+q);
     p.items.forEach(i=>ad(oldQ,i.id,+i.q||0));keep.forEach(l=>ad(newQ,l.id,r3(fNum(l.qt))));   /* lo viejo se lee de la compra actual (pudo cambiar por sincronización) */
@@ -5945,7 +5946,7 @@ function purIeClose(save){
       if(_neg.length){lgStockOut('compra_editada',_neg).then(ok=>{if(ok){ed._lgok=1;ITEMS_ED=ed;purIeClose(true);}});return;}}   /* mods239: lo que baja, por el servidor; luego se termina de guardar */
     new Set([...oldQ.keys(),...newQ.keys()]).forEach(k=>{const d=r3((newQ.get(k)||0)-(oldQ.get(k)||0));if(!d)return;if(d<0&&ed._lgok)return;const pr=P(+k)||P(k);if(!pr)return;const o=invSnap(pr);stockAdd(pr,d);invLogAdd(2,pr,o);});   /* stock por la diferencia; costo y precio no cambian (D9) */
     p.items=keep.map(l=>({...l.orig,id:l.id,q:r3(fNum(l.qt)),cost:r2(fNum(l.pt))}));
-    p.total=r2(p.items.reduce((a,i)=>a+(+i.q||0)*(+i.cost||0),0));
+    p.total=r2(p.items.reduce((a,i)=>a+(+i.q||0)*(+i.cost||0),0));if(typeof dcReapply==='function')dcReapply(p);   /* mods261 */
     p.edited=new Date().toISOString();persist();
   }
   ITEMS_ED=null;const d=document.getElementById('itemsdlg');if(d)d.classList.remove('on');
@@ -6016,7 +6017,7 @@ async function purchPDF(x,ret){   /* mods163: ret → devuelve {blob,name} para 
     if(opts().pdfStatus){y+=23;y=mnNativeLine(doc,t('rc_status')+':  '+status.toUpperCase(),y,15,15);}else y+=2;   /* mods181: sin status como MN */
     y=Math.max(220,y);if(p.note)y=mnNativeParagraph(doc,p.note,y,12,350,10);
     y=mnNativeProducts(doc,y,lines.length?lines.map(l=>[String(nmV(l.name)),qtyLoc(l.qty)+mSuf(l.m),moneyNum(l.price),moneyNum(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))]):[[t('sale_noitems'),'','','']]);   /* mods161: con "... " como MN */
-    const totals=[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred)totals.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)],[t('sr_total_pay')+' '+sym,moneyNum(due)]);
+    const totals=(typeof dcPdfRows==='function'&&dcPdfRows(p,sym))||[[(t('total')+' '+sym).toUpperCase(),moneyNum(p.total||0)]];if(cred)totals.push([(t('sr_pagos_lbl')+' '+sym).toUpperCase(),moneyNum(pg)],[t('sr_total_pay')+' '+sym,moneyNum(due)]);
     mnNativeTotal(doc,y+20,totals);if(ret)return {blob:doc.output('blob'),name:mnFile('purchase')};mnPdfDone(doc,mnFile('purchase'));   /* mods161: "Compra.pdf" en la ventana de exportar */
   }catch(e){if(ret)throw e;console.error('PDF compra',e);toast(t('cp_pdf_err'));}
 }
@@ -6266,7 +6267,7 @@ async function purReceiptText(p){if(!p)return '';const cfg=receiptCfg(),lines=aw
   if(opts().pdfStatus)L.push(t('rc_status')+': '+(due>0.5?t('cp_topay'):t('cp_paid')).toUpperCase());
   if(p.note)L.push('',p.note);
   L.push('');(lines||[]).forEach(l=>L.push(`${qtyLoc(l.qty)}${mSuf(l.m)} x ${l.name} = ${f(l.subtotal!=null?l.subtotal:(+l.price||0)*(+l.qty||0))}`));
-  L.push('',(t('total')+' '+sym).toUpperCase()+' '+f(p.total||0));
+  {const _d=typeof dcTxtLines==='function'?dcTxtLines(p,sym,f):null;if(_d){L.push('');_d.forEach(x=>L.push(x));}else L.push('',(t('total')+' '+sym).toUpperCase()+' '+f(p.total||0));}
   if(cred){L.push((t('sr_pagos_lbl')+' '+sym).toUpperCase()+' '+f(pg));L.push(t('sr_total_pay')+' '+sym+' '+f(due));}
   return L.join('\n');}
 function renderShareBody(){
@@ -6539,7 +6540,7 @@ async function openPayDet(id){
       <div class="g3pd-pay">${G3_CASH}<span>${r.pay?exEsc(payLbl(r.pay)):si}</span>${r.pay?`<button class="g3pd-ib" data-act="purpayclr:${pid}" aria-label="✕">${ic(MN_IC.close)}</button>`:''}${pen('purpay:'+pid)}</div>
       ${r.edited?`<div class="g3pd-ed">${t('sale_edited')}: ${exEsc(localStamp(r.edited))}</div>`:''}
     </div>
-    ${box(t('sr_total_lbl'),tot,'')}${box(t('sr_pagos_lbl'),pg,'p')}<div class="g3pd-sep"></div>${box(t('ttx_deuda'),due,'')}
+    ${typeof dcPayDetHTML==='function'?dcPayDetHTML(r,box):''}${box(t('sr_total_lbl'),tot,'')}${box(t('sr_pagos_lbl'),pg,'p')}<div class="g3pd-sep"></div>${box(t('ttx_deuda'),due,'')}
     ${due>0.5?`<button class="g3pd-all" data-act="payall:purch:${eid}"><span>${esc(t('g3_confirm_all'))}</span>${ic(MN_IC.check)}</button>`:''}
     <div class="g3pd-card2 g3pd-pays"><div class="g3pd-h"><b>${t('g3_pay_det')}</b>${due>0.5?`<button class="g3pd-pill" data-act="payadd:purch:${eid}">${ic(G3PD_PLUS)}<span>${t('g3_add')}</span></button>`:''}</div>
       ${pays.length?`<div class="g3pd-pl">${pays.map(prow).join('')}</div>`:`<div class="g3pd-empty">${esc(t('g3_pay_empty'))}</div>`}</div>
@@ -7783,7 +7784,7 @@ function pcFootHTML(){
 }
 // mods146b: Pago Inicial y Deuda de la compra (Deuda = Total − Pago Inicial, nunca menos de 0, como MN 18c)
 function pcInitAmt(){return Math.max(0,Math.round(fNum(state.pinit)*100)/100);}
-function pcDebt(){return Math.max(0,Math.round((pcartTotal()-pcInitAmt())*100)/100);}
+function pcDebt(){return Math.max(0,Math.round(((typeof dcPay==='function'?dcPay():pcartTotal())-pcInitAmt())*100)/100);}
 function pcDebtTxt(){return (typeof pcAnyEmpty==='function'&&pcAnyEmpty())?'...':moneyNum(pcDebt());}   // como el Total (P1): "..." si falta Agregar o Precio de Compra
 function pcDebtRefresh(){const d=document.getElementById('pDebt');if(d)d.textContent=pcDebtTxt();}   // en su lugar: el teclado sigue abierto
 function pcCobroHTML(){const sym=moneySym();
@@ -7828,7 +7829,7 @@ function pcSaveCheck(){   /* mods198: el proveedor es obligatorio en TODA compra
   const say=(k,id)=>{appAlert(t(k)).then(()=>go2(id));return true;};
   if(!(''+(state.pprovider||'')).trim())return say('prv_required','pProvider');
   if((state.pstatus||'pagado')!=='porpagar')return false;
-  const ini=pcInitAmt();if(ini>0&&ini>=pcartTotal()-0.005)return say('init_too_much','pInit');
+  const ini=pcInitAmt();if(ini>0&&ini>=(typeof dcPay==='function'?dcPay():pcartTotal())-0.005)return say('init_too_much','pInit');
   const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0),sm=ps.reduce((a,x)=>a+(+x.p||0),0);
   if(ps.length&&sm>pcDebt()+0.005){appAlert(t('sched_over')).then(()=>openSched('purch'));return true;}
   return false;}
@@ -7995,8 +7996,8 @@ function saveCompra(){
   const _psn={};items.forEach(i=>{_psn[i.id]=pcSnap(i);});   /* mods239: la copia de cada línea antes de tocar precios */
   items.forEach(i=>{const p=P(i.id);if(p){const o=invSnap(p);const _k=pcPkOf(i.id);stockAdd(p,q3((+i.q||0)*(_k?_k.f:1)));const c=pLineCost(i.id);const s=pLineSale(i.id);
     if(_k){if(c>0)_k.ps.c=c;if(s>0)_k.ps.v=s;}else{if(c>0)p.cost=c;if(s>0)p.price=s;}invLogAdd(2,p,o);}});   /* por presentación: suma su contenido y actualiza los precios de ESA presentación */
-  const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=pcartTotal();
-  const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>_psn[i.id]||pcSnap(i)),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};{const pv=pcProvLocked()||provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.ppay)purchase.pay=state.ppay;if(purchase.status==='porpagar'){const ini=pcInitAmt();if(ini>0)purchase.pays=[{f:purchase.date,h:tm,p:ini,id:'Y'+uidPart()}];const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0);if(ps.length)purchase.sched=ps.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}/* mods146b: provId del bloqueo, forma de pago (clave de la lista), Pago Inicial = primer abono y pagos programados, como Ventas */if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo&&!oo.del&&oo.recvPurchase==null){oo.recvPurchase=fol;oo.recvId=id;/* mods147e: id de la compra (folio actual, §18.19) */oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
+  const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=(typeof dcPay==='function'?dcPay():pcartTotal());
+  const purchase={id,folio:fol,ts:Date.now(),dev:deviceId(),date:todayISO(),time:tm,items:items.map(i=>_psn[i.id]||pcSnap(i)),total:tot,provider:(state.pprovider||'').trim(),note:(state.pnote||'').trim(),status:state.pstatus||'pagado'};if(typeof dcStamp==='function')dcStamp(purchase);{const pv=pcProvLocked()||provByName(purchase.provider);if(pv)purchase.provId=pv.id;}if(state.ppay)purchase.pay=state.ppay;if(purchase.status==='porpagar'){const ini=pcInitAmt();if(ini>0)purchase.pays=[{f:purchase.date,h:tm,p:ini,id:'Y'+uidPart()}];const ps=(state.psched||[]).filter(x=>x&&x.f&&+x.p>0);if(ps.length)purchase.sched=ps.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}/* mods146b: provId del bloqueo, forma de pago (clave de la lista), Pago Inicial = primer abono y pagos programados, como Ventas */if(state.purchFromPO){const oo=(state.porders||[]).find(x=>''+x.id===''+state.purchFromPO);if(oo&&!oo.del&&oo.recvPurchase==null){oo.recvPurchase=fol;oo.recvId=id;/* mods147e: id de la compra (folio actual, §18.19) */oo.edited=Date.now();purchase.fromPO=oo.folio;}state.purchFromPO=null;}
   state.purchases.unshift(purchase);
   pcReset();state.q='';   /* mods145: carrito vacío = PC_DEF */
   persist();render();{const _po=(state.porders||[]).find(o=>o&&''+o.recvId===''+id);   /* mods246 F1: «guardada» solo cuando la nube la tiene */
@@ -10884,7 +10885,7 @@ function repProvider(){   /* igual que Reporte clientes, sin gráfica (como Mi N
   return pk+sum+buys+prods;}
 // Top proveedores: los proveedores con compras en el rango y su total
 function repTopProvData(){   /* ct/co: contacto y empresa por separado para la fila de Mi Negocio; name sigue igual (PDF, CSV y Ordenar) */
-  const LP=repPLinesFor(repEnsureRange());if(!LP)return null;const tot={};LP.forEach(l=>{tot[''+l.purId]=(tot[''+l.purId]||0)+l.cost*l.q;});const by={};repPurchR().filter(p=>!p.del).forEach(p=>{const v=purProv(p);const k=v?v.id:'—'+(''+(p.provider||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:v?provLabel(v):((p.provider||'')+' ('+t('mr_no_company')+')'),ct:v?(v.contact||v.company||''):(p.provider||''),co:v&&v.contact&&v.company?v.company:t('mr_no_company'),tot:0});o.tot+=tot[''+p.id]!=null?tot[''+p.id]:(+p.total||0);});return Object.values(by);}   /* las líneas de compra (precio de compra × cantidad), como Mi Negocio */
+  const LP=repPLinesFor(repEnsureRange());if(!LP)return null;const tot={};LP.forEach(l=>{tot[''+l.purId]=(tot[''+l.purId]||0)+l.cost*l.q;});const by={};repPurchR().filter(p=>!p.del).forEach(p=>{const v=purProv(p);const k=v?v.id:'—'+(''+(p.provider||'')).trim().toUpperCase();const o=by[k]||(by[k]={name:v?provLabel(v):((p.provider||'')+' ('+t('mr_no_company')+')'),ct:v?(v.contact||v.company||''):(p.provider||''),co:v&&v.contact&&v.company?v.company:t('mr_no_company'),tot:0});o.tot+=(typeof dcHas==='function'&&dcHas(p))?(+p.total||0):(tot[''+p.id]!=null?tot[''+p.id]:(+p.total||0));});return Object.values(by);}   /* las líneas de compra (precio de compra × cantidad), como Mi Negocio */
 function repTopProviders(){   /* filas grises de 78 de Mi Negocio: persona, contacto, empresa y el total a la derecha (sin etiqueta) */
   const a=repTopProvData();if(!a)return repLoading();if(!a.length)return repEmpty();
   const rows=repSorted('top_providers',a,{name:o=>o.name,purch:o=>o.tot});
@@ -17312,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261114053139';
+const APP_VERSION='20261114113715';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -19443,6 +19444,153 @@ document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.tar
   .pcrow .cinp.pgin{font-weight:700}
   .pcrow .cinp.pgin.ok{color:var(--pg-ok);background:var(--pg-ok-bg);border-color:var(--pg-ok)}
   .pcrow .cinp.pgin.bad{color:var(--pg-bad);background:var(--pg-bad-bg);border-color:var(--pg-bad)}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+/* ==== mods261 (2026-11-14): COMPRAS — DESCUENTO DEL PROVEEDOR SOBRE EL TOTAL DE LA COMPRA ====
+   Pedido de Fabio (14-nov, documento «Nueva función: descuento del proveedor sobre el total de la compra»; «Autorizo» con las cinco
+   recomendaciones: 1 se redondea a pesos solo cuando hay descuento · 2 Mejores proveedores muestra lo pagado · 3 en Por Pagar la deuda
+   parte del Total a pagar · 4 al editar los productos de una compra con descuento, el descuento se conserva · 5 el campo se ve siempre
+   y el desglose solo cuando hay descuento).
+   QUÉ HACE
+   - En el pie de Compras, debajo del Total: campo «Descuento» con selector $ / %. Con descuento se ven tres valores:
+       Subtotal de la compra (la suma de siempre) · Descuento en pesos · Total a pagar = Subtotal − Descuento, en pesos enteros.
+     Se recalcula en su lugar al escribir el descuento o al cambiar cualquier producto (sin redibujar: el teclado sigue abierto).
+   - No se acepta un descuento negativo, mayor que el subtotal ni mayor que 100 %: se avisa en la pantalla y Guardar no deja pasar.
+   - Al guardar, el total de la compra (purchase.total, lo que leen los reportes de dinero y la deuda de Por Pagar) es el Total a pagar.
+     La compra guarda además purchase.sub (subtotal) y purchase.disc = {t:'$'|'%', v: lo escrito, a: pesos}. Sin tablas nuevas.
+   - Historial, detalle, Compras por Pagar, PDF y texto del recibo muestran Subtotal, Descuento y Total pagado SOLO en las compras que
+     tienen descuento. Las demás se ven exactamente igual que antes.
+   - Editar los productos de una compra con descuento lo conserva (% se recalcula; $ se mantiene; si queda mayor que el subtotal, no guarda).
+   LO QUE NO TOCA: existencias, precios de compra y precios de venta. El bloque de saveCompra que los escribe no cambia; el descuento
+   no se reparte entre los productos. Sin descuento (campo vacío o 0) la compra se guarda exactamente como antes.
+   El descuento viaja en el borrador de la compra (state.pdisc / pdiscT, claves de PC_DEF) y se limpia con pcReset.
+   Apagarlo en un equipo: localStorage 'abanico.dc'='0' (el pie de Compras queda como antes; las compras ya guardadas con descuento se
+   siguen mostrando con su desglose). */
+(function(){try{
+  Object.assign(I18N.es,{dc_field:'Descuento',dc_sub:'Subtotal de la compra',dc_subs:'Subtotal',dc_pay:'Total a pagar',dc_paid:'Total pagado',
+    dc_big:'El descuento no puede ser mayor que el subtotal de la compra ({s}).',dc_pct:'El descuento no puede ser mayor que 100 %.',dc_neg:'El descuento no puede ser negativo.',
+    dc_keep_p:'Esta compra tiene un descuento de {d}. Al guardar se recalcula sobre el nuevo subtotal.',dc_keep_m:'Esta compra tiene un descuento de {d}. Se mantiene al guardar.',
+    dc_edit_big:'Esta compra tiene un descuento de {d} y el nuevo subtotal sería {s}. El descuento no puede ser mayor que el subtotal de la compra.'});
+  Object.assign(I18N.en,{dc_field:'Discount',dc_sub:'Purchase subtotal',dc_subs:'Subtotal',dc_pay:'Total to pay',dc_paid:'Total paid',
+    dc_big:'The discount cannot be greater than the purchase subtotal ({s}).',dc_pct:'The discount cannot be greater than 100 %.',dc_neg:'The discount cannot be negative.',
+    dc_keep_p:'This purchase has a discount of {d}. On save it is recalculated on the new subtotal.',dc_keep_m:'This purchase has a discount of {d}. It is kept on save.',
+    dc_edit_big:'This purchase has a discount of {d} and the new subtotal would be {s}. The discount cannot be greater than the purchase subtotal.'});
+}catch(_){}})();
+function dcOn(){try{return localStorage.getItem('abanico.dc')!=='0';}catch(_){return true;}}
+function dcUse(){return dcOn()&&!state.poMode;}
+/* lo escrito en el campo y el selector entran solos en el borrador, en pcReset y en la compra apartada */
+try{if(dcOn())Object.assign(PC_DEF,{pdisc:'',pdiscT:'$'});}catch(_){}
+const dcR2=v=>Math.round(v*100)/100;
+function dcT(){return state.pdiscT==='%'?'%':'$';}
+/* el descuento de la compra EN CURSO. on = hay un descuento válido; v = lo escrito; a = pesos; pay = lo que se paga;
+   bad = por qué no vale ('neg' negativo, 'pct' más de 100 %, 'big' mayor que el subtotal). Sin descuento, pay es la suma de siempre, sin tocar */
+function dcNow(){const sub=pcartTotal(),o={on:false,sub,t:dcT(),v:0,a:0,pay:sub,bad:''};
+  try{if(!dcUse())return o;const tx=''+(state.pdisc==null?'':state.pdisc);if(/-/.test(tx)){o.bad='neg';return o;}if(!pcDig(tx))return o;
+    const v=fNum(tx);if(!(v>0))return o;o.v=v;
+    if(o.t==='%'&&v>100){o.bad='pct';return o;}
+    const a=o.t==='%'?dcR2(sub*v/100):dcR2(v);if(a>dcR2(sub)+0.005){o.bad='big';return o;}
+    if(!(a>0))return o;
+    o.on=true;o.a=a;o.pay=Math.max(0,Math.round(sub-a));}catch(_){}
+  return o;}
+function dcPay(){return dcNow().pay;}
+function dcMsg(d){return d.bad==='neg'?t('dc_neg'):d.bad==='pct'?t('dc_pct'):d.bad==='big'?ti('dc_big',{s:money(dcR2(d.sub))}):'';}
+/* al guardar (saveCompra): el subtotal y el descuento quedan dentro de la compra; el total ya es el Total a pagar */
+function dcStamp(p){try{const d=dcNow();if(p&&d.on){p.sub=dcR2(d.sub);p.disc={t:d.t,v:d.v,a:d.a};}}catch(_){}}
+/* ---- compras YA guardadas ---- */
+function dcHas(p){return !!(p&&p.disc&&typeof p.disc==='object'&&+p.disc.a>0&&p.sub!=null&&isFinite(+p.sub));}
+function dcDiscLbl(p){return t('dc_field')+(p.disc.t==='%'?' ('+fTxt(dcR2(+p.disc.v||0))+' %)':'');}
+function dcTotLbl(p){if(!dcHas(p))return t('total');let due=0;try{due=purchDueAmt(p);}catch(_){}return due>0.5?t('dc_pay'):t('dc_paid');}
+/* historial: dos renglones encima del total de la tarjeta */
+function dcCardHTML(p){try{if(!dcHas(p))return '';const r=(l,v)=>`<div class="dch"><span>${exEsc(l)}</span><b class="num">${money(v)}</b></div>`;
+  return `<div class="dchs">${r(t('dc_sub'),+p.sub||0)}${r(dcDiscLbl(p),+p.disc.a||0)}</div>`;}catch(_){return '';}}
+/* detalle de la compra: dos cajas encima del Total */
+function dcDetHTML(p,sym){try{if(!dcHas(p))return '';const r=(l,v)=>`<div class="sd-tot cp-pg dcd"><span>${exEsc(l)} ${exEsc(sym)}</span><b class="num">${moneyNum(v)}</b></div>`;
+  return r(t('dc_sub'),+p.sub||0)+r(dcDiscLbl(p),+p.disc.a||0);}catch(_){return '';}}
+/* detalle de Compras por Pagar: dos cajas encima del Total */
+function dcPayDetHTML(p,box){try{if(!dcHas(p))return '';return box(exEsc(t('dc_subs')),+p.sub||0,'dcx')+box(exEsc(t('dc_field')),+p.disc.a||0,'dcx');}catch(_){return '';}}
+/* PDF y texto del recibo: los tres renglones, o null si la compra no tiene descuento (queda el renglón de siempre) */
+function dcPdfRows(p,sym){try{if(!dcHas(p))return null;const u=s=>(s+' '+sym).toUpperCase();
+  return [[u(t('dc_sub')),moneyNum(+p.sub||0)],[u(dcDiscLbl(p)),moneyNum(+p.disc.a||0)],[u(dcTotLbl(p)),moneyNum(p.total||0)]];}catch(_){return null;}}
+function dcTxtLines(p,sym,f){try{if(!dcHas(p))return null;const u=s=>(s+' '+sym).toUpperCase();
+  return [u(t('dc_sub'))+' '+f(+p.sub||0),u(dcDiscLbl(p))+' '+f(+p.disc.a||0),u(dcTotLbl(p))+' '+f(p.total||0)];}catch(_){return null;}}
+/* ---- editar los productos de una compra con descuento (purIeClose): el descuento se conserva ---- */
+function dcEdP(){try{const ed=ITEMS_ED;if(!ed||ed.kind!=='purch')return null;const p=purById(ed.id);return dcHas(p)?p:null;}catch(_){return null;}}
+function dcIeLbl(){return dcEdP()?t('dc_sub'):t('total');}
+function dcIeNote(){try{const p=dcEdP();if(!p)return '';const pct=p.disc.t==='%';
+  return `<div class="ie-dcn">${exEsc(ti(pct?'dc_keep_p':'dc_keep_m',{d:pct?fTxt(dcR2(+p.disc.v||0))+' %':money(+p.disc.a||0)}))}</div>`;}catch(_){return '';}}
+/* antes de tocar existencias: un descuento en pesos mayor que el nuevo subtotal no deja guardar */
+function dcEditBlock(p,sub){try{if(!dcHas(p)||p.disc.t==='%')return false;const a=+p.disc.a||0;if(a>sub+0.005){appAlert(ti('dc_edit_big',{d:money(a),s:money(sub)}));return true;}}catch(_){}return false;}
+/* p.total acaba de quedar en la suma de los renglones: se vuelve a aplicar el descuento */
+function dcReapply(p){try{if(!dcHas(p))return;const sub=dcR2(+p.total||0),pct=p.disc.t==='%',v=+p.disc.v||0;
+  const a=Math.min(sub,pct?dcR2(sub*v/100):dcR2(+p.disc.a||0));p.sub=sub;p.disc={t:pct?'%':'$',v:pct?v:a,a};p.total=Math.max(0,Math.round(sub-a));}catch(_){}}
+/* ---- el pie de Compras ---- */
+function dcView(){const d=dcNow(),sym=moneySym();let inc=false;try{inc=pcAnyEmpty();}catch(_){}
+  const show=inc?(d.v>0&&d.bad!=='pct'&&d.bad!=='neg'):d.on;
+  return {d,inc,show,lbl:(show?t('dc_sub'):t('total'))+' '+sym,err:!inc&&d.bad?dcMsg(d):'',
+    dl:t('dc_field')+(d.t==='%'&&d.v>0?' ('+fTxt(dcR2(d.v))+' %)':'')+' '+sym,amt:inc?(d.t==='%'?'...':moneyNum(dcR2(d.v))):moneyNum(d.a),pay:inc?'...':moneyNum(d.pay)};}
+function dcBoxHTML(){const V=dcView(),T=V.d.t,sym=moneySym(),b=(k,tx)=>`<button type="button" class="dcb${T===k?' on':''}" data-dc="${k}" role="radio" aria-checked="${T===k}">${exEsc(tx)}</button>`;
+  return `<div class="dcbox" id="dcBox"><div class="dcrow"><span class="l">${exEsc(t('dc_field'))}</span><span class="dcseg" role="radiogroup" aria-label="${exEsc(t('dc_field'))}">${b('$',sym||'$')}${b('%','%')}</span><input autocomplete="off" class="inp num" id="pDisc" type="text" inputmode="decimal" data-uns="1" enterkeyhint="done" placeholder="0" value="${exEsc(state.pdisc||'')}" aria-label="${exEsc(t('dc_field'))}"></div>
+    <div class="dcerr" id="dcErr"${V.err?'':' hidden'}>${exEsc(V.err)}</div>
+    <div class="dcsum" id="dcSum"${V.show?'':' hidden'}><div class="dcl"><span class="l" id="dcAmtL">${exEsc(V.dl)}</span><b class="num" id="dcAmt">${V.amt}</b></div><div class="ctotal dcpay"><span class="l">${exEsc(t('dc_pay'))} ${exEsc(sym)}</span><b class="num" id="dcPayV">${V.pay}</b></div></div></div>`;}
+{const _t=pcTotalHTML;pcTotalHTML=function(){const h=_t.apply(this,arguments);
+  try{if(!dcUse())return h;const V=dcView();let h2=h;
+    if(V.show){const a='<span class="l">'+t('total')+' ',p=h.split(a);if(p.length===2)h2=p.join('<span class="l">'+t('dc_sub')+' ');}
+    return h2+dcBoxHTML();}catch(_){return h;}};}
+/* pinta en su lugar el rótulo del total, el aviso, el descuento en pesos, el Total a pagar y la Deuda */
+function dcPaint(){try{const bx=document.getElementById('dcBox');if(!bx)return;const V=dcView(),tb=document.getElementById('pcTot'),lb=tb&&tb.parentNode&&tb.parentNode.querySelector('.l');
+  if(lb&&lb.textContent!==V.lbl)lb.textContent=V.lbl;
+  const set=(id,tx)=>{const e=document.getElementById(id);if(e&&e.textContent!==tx)e.textContent=tx;return e;};
+  const er=set('dcErr',V.err);if(er)er.hidden=!V.err;const sm=document.getElementById('dcSum');if(sm)sm.hidden=!V.show;set('dcAmtL',V.dl);set('dcAmt',V.amt);set('dcPayV',V.pay);
+  bx.querySelectorAll('[data-dc]').forEach(b=>{const on=b.dataset.dc===V.d.t;b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');});
+  const d=document.getElementById('pDebt');if(d)d.textContent=pcDebtTxt();}catch(_){}}
+{const _l=pcLiveRefresh;pcLiveRefresh=function(id){_l.apply(this,arguments);dcPaint();};}
+/* Guardar: un descuento que no vale no deja pasar y dice por qué */
+{const _c=pcSaveCheck;pcSaveCheck=function(){
+  try{if(dcUse()){const d=dcNow();if(d.bad){appAlert(dcMsg(d)).then(()=>{const c=document.getElementById('pDisc');if(c){try{c.scrollIntoView({block:'center'});}catch(_){}try{c.focus();}catch(_){}}});return true;}}}catch(_){}
+  return _c.apply(this,arguments);};}
+/* el campo no admite el signo menos (lo quita el listener de data-uns): aquí se avisa por qué */
+document.addEventListener('input',e=>{try{const el=e.target;if(el&&el.id==='pDisc'&&/-/.test(el.value))toast(t('dc_neg'));}catch(_){}},true);
+document.addEventListener('input',e=>{try{const el=e.target;if(!el||el.id!=='pDisc'||!dcUse())return;
+  const raw=el.value,tx=unsignedNumTxt(raw,2);if(tx!==raw){let pos=el.selectionStart;pos=pos==null?tx.length:Math.max(0,Math.min(tx.length,pos-(raw.length-tx.length)));el.value=tx;try{el.setSelectionRange(pos,pos);}catch(_){}}
+  state.pdisc=tx;dcPaint();dcReveal();}catch(_){}});
+/* selector $ / %: sin quitarle el foco al campo (el teclado sigue abierto) */
+document.addEventListener('mousedown',e=>{try{if(e.target&&e.target.closest&&e.target.closest('#dcBox [data-dc]'))e.preventDefault();}catch(_){}});
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('#dcBox [data-dc]');if(!b||!dcUse())return;e.preventDefault();
+  const v=b.dataset.dc==='%'?'%':'$';if(dcT()===v)return;state.pdiscT=v;dcPaint();dcReveal();try{saveCartDraft();}catch(_){}}catch(_){}});
+document.addEventListener('focusin',e=>{try{if(e.target&&e.target.id==='pDisc'){setTimeout(dcReveal,350);setTimeout(dcReveal,800);}}catch(_){}});
+document.addEventListener('focusout',e=>{try{if(e.target&&e.target.id==='pDisc'&&dcUse())saveCartDraft();}catch(_){}});
+document.addEventListener('keydown',e=>{try{if(e.key==='Enter'&&e.target&&e.target.id==='pDisc'){e.preventDefault();e.target.blur();}}catch(_){}});
+/* En el teléfono, con el teclado abierto, lo que se recalcula queda DEBAJO del campo. Con el foco en el Descuento la lista sube lo justo
+   para que se vea hasta el Total a pagar, sin meter el campo bajo la parte fija de arriba. Si ya se ve, no hace nada. */
+function dcReveal(){try{if(!dcUse()||state.screen!=='compras')return;const el=document.activeElement;if(!el||el.id!=='pDisc')return;
+  const sc=document.getElementById('screen'),bx=document.getElementById('dcBox');if(!sc||!bx)return;const vv=window.visualViewport,sr=sc.getBoundingClientRect();
+  const vb=Math.min(vv?vv.offsetTop+vv.height:sr.bottom,sr.bottom)-6,rb=bx.getBoundingClientRect();if(rb.bottom<=vb)return;
+  const sh=document.querySelector('#body .stickhead'),top=(sh?sh.getBoundingClientRect().bottom:sr.top)+4,row=el.closest('.dcrow')||el;
+  const d=Math.min(rb.bottom-vb,row.getBoundingClientRect().top-top);if(d>0)sc.scrollTop+=d;}catch(_){}}
+try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{setTimeout(dcReveal,80);});}catch(_){}
+(function(){try{const s=document.createElement('style');s.textContent=`
+  :root{--dc-bad:#c8452f;--dc-on:#fff}
+  html[data-theme="dark"]{--dc-bad:#f08a78}
+  .dcbox{display:flex;flex-direction:column;gap:8px}
+  .dcbox [hidden]{display:none!important}
+  .dcrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+  .dcrow .l{font-weight:700;color:var(--ink)}
+  .dcseg{display:inline-flex;margin-left:auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+  .dcb{min-width:42px;padding:9px 10px;border:0;background:var(--card);color:var(--muted);font-weight:700;font-size:15px;cursor:pointer}
+  .dcb.on{background:var(--pri);color:var(--dc-on)}
+  .dcrow input{width:110px;max-width:34%;text-align:right;flex:none}
+  .dcl{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:4px 17px 2px}
+  .dcl .l{font-size:13px;color:var(--muted);font-weight:600}
+  .dcl b{font-size:17px;color:var(--ink)}
+  .dcerr{color:var(--dc-bad);font-size:13px;font-weight:600;padding:0 16px}
+  .dchs{margin-top:8px;padding-top:7px;border-top:1px solid var(--line2);display:flex;flex-direction:column;gap:2px}
+  .dchs+.scard-bot{margin-top:6px;padding-top:6px;border-top:0}
+  .dch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px;color:var(--muted)}
+  .dch b{font-weight:600;color:var(--ink)}
+  .sd-tot.dcd{gap:12px}
+  .ie-dcn{margin:-4px 0 12px;font-size:13px;color:var(--muted);text-align:right}
+  .g3pd-box.dcx>span{font-size:15.5px}.g3pd-box.dcx>b{font-size:16.5px}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

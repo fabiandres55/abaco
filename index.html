@@ -9393,7 +9393,7 @@ function scTutorial(){
 /* ---------------- Configuración (como Mi Negocio) ---------------- */
 const OPT_DEF={sym:'$',dec:0,sep:'',pdfStatus:true,pdfFmt:'normal',pdfDesign:'extra',tkLogo:false,exQR:true,exSched:false,exText:'',scanner:1,cam:'back',scanCont:false,cliInfo:true,/* mods177: Diseño Extra con QR y cliente por defecto */incQty:true,manualDate:false,notifyCli:true,newline:false,lock:null,bkRemind:7,bkLast:''};
 function opts(){const r=state.receipt||{};const o=Object.assign({},OPT_DEF,r.opts||{});if(isSeller()){const v=vSym();if(v)o.sym=v;}return o;}   /* mods210: el vendedor ve su moneda */
-function setOpt(k,v){state.receipt=state.receipt||{};state.receipt.opts=Object.assign({},state.receipt.opts||{},{[k]:v});persist();const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);}
+function setOpt(k,v){state.receipt=Object.assign({},state.receipt||{});   /* mods265: objeto propio (antes cambiaba en sitio el mismo objeto de la copia base y el ajuste se perdía) */state.receipt.opts=Object.assign({},state.receipt.opts||{},{[k]:v});persist();const id=currentDataId();if(id)sbPushDoc(id,'receipt',state.receipt);}
 const NF_CACHE={};
 function moneyFmt(n){const o=(state.receipt&&state.receipt.opts)||{};
   /* como Mi Negocio si la tienda no eligió otra cosa: coma de miles, punto decimal y hasta 2 decimales ($530,800 · $4,898,187.5) */
@@ -17313,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261115060127';
+const APP_VERSION='20261115125517';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -20235,7 +20235,7 @@ function cgPatch(c){const body=document.getElementById('cliBody');if(!body)retur
   const mk=(id,k,val,extra)=>{const d=document.createElement('div');d.className='fld';d.innerHTML=`<span class="fl">${t(k)}</span><input autocomplete="off" class="inp" id="cf_${id}" ${extra||''} value="${cgEsc(val||'')}">`;return d;};
   req(fn,'cg_name');
   const fb=mk('cli_biz','cg_biz',c&&c.biz);req(fb,'cg_biz');
-  const ft=document.createElement('div');ft.className='fld';ft.innerHTML=`<span class="fl">${t('cg_tag')}</span><div class="cg-tagrow"><select class="inp" id="cf_cli_tag">${cgTagOpts(c&&c.tag)}</select>${isSeller()?'':`<button type="button" class="cg-b" data-cg="tagadd">+ ${t('cg_tag_add')}</button>`}</div>`;
+  const ft=document.createElement('div');ft.className='fld';ft.innerHTML=`<span class="fl">${t('cg_tag')}</span><div class="cg-tagrow"><select class="inp" id="cf_cli_tag">${cgTagOpts(c&&c.tag)}</select><button type="button" class="cg-b" data-cg="tagadd">+ ${t('cg_tag_add')}</button></div>`;   /* mods265: los vendedores también crean etiquetas */
   const fh=mk('cli_hood','cg_hood',c&&c.hood),fr=mk('cli_route','cg_route',c&&c.route);
   const fl=document.createElement('div');fl.className='fld cg-loc';fl.innerHTML=`<span class="fl">${t('cg_loc')}</span><div id="cgLocBox"></div>`;
   [ft,fp,fe,fd,fh,fr,fl,fa,fo].forEach(f=>opt(f));
@@ -20272,7 +20272,7 @@ function cgExtra(){if(!cgEl('cli_biz'))return {};const c=state.cliEdit?cliById(s
 /* por fuera del «agregar cliente desde la venta» (mods226): si falta algo, ese pedido no se pierde */
 {const _s=saveClient;saveClient=function(){if(cgOn()&&!cgCheck())return;return _s.apply(this,arguments);};}
 /* ---- «Añadir etiqueta» ---- */
-async function cgTagAdd(){if(isSeller())return;const raw=await appPrompt(t('cg_tag_ask'),'');if(raw==null)return;const n=cgUp(raw);
+async function cgTagAdd(){const raw=await appPrompt(t('cg_tag_ask'),'');if(raw==null)return;const n=cgUp(raw);
   if(!n){await appAlert(t('cg_tag_empty'));return;}
   const ya=cgTagFind(n);const sel=cgEl('cli_tag');
   if(ya){if(sel){if(![...sel.options].some(o=>o.value===ya))sel.insertAdjacentHTML('beforeend',`<option value="${cgEsc(ya)}">${cgEsc(ya)}</option>`);sel.value=ya;}toast(ti('cg_tag_dup',{n:ya}));return;}

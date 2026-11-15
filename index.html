@@ -9985,7 +9985,7 @@ async function mnNativeOrder(record,purchase,ret){   /* mods169: ret = devolver 
   y=mnNativeLine(doc,t('po_issue')+':  '+(purchase?record.issue||'':record.date||''),y,13,18);
   y=mnNativeLine(doc,t('po_due')+':  '+(record.due||''),y,13,23);
   /* mods169: sin el folio a la derecha (MN no lo imprime) */
-  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(purchase?(record.lines||[]):(record.lines||[]).map(qtShowLine)).map(l=>{const price=purchase?l.cost:l.price;return [String(nmV(l.name)),fmtQty(l.q)+mSuf(lineIsM(l)),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
+  y=mnNativeProducts(doc,mnNativeNeed(doc,Math.max(170,y),40),alphaLines(purchase?(record.lines||[]).map(l=>typeof po9Show==='function'?po9Show(l):l):(record.lines||[]).map(qtShowLine)).map(l=>{const price=purchase?l.cost:l.price;return [String(nmV(l.name)),fmtQty(l.q)+mSuf(lineIsM(l)),mnAmount(price),mnAmount(l.subtotal!=null?l.subtotal:(+price||0)*(+l.q||0))];}));
   mnNativeTotal(doc,y+20,[[t('total').toUpperCase()+' '+moneySym(),mnAmount(record.total)]]);const fname=purchase?title+' '+record.folio+'.pdf':'cotizacion.pdf';   /* mods169: nombre de MN */
   if(ret)return {blob:doc.output('blob'),name:fname};mnPdfDone(doc,fname);
 }
@@ -10979,9 +10979,9 @@ async function savePO(){
   if(!m.due){await appAlert(t('po_due_need'));poDueFocus();return;}
   const items=pcItemsRecent().filter(i=>i.q>0);if(!items.length){appAlert(t('cp_empty'));return;}
   let o=m.id?poById(m.id):null;if(o&&o.recvPurchase!=null){appAlert(ti('po_was_recv',{n:o.folio}));return;}   // otro equipo la recibió mientras se editaba
-  const lines=items.map(i=>{const p=P(i.id);const c=pLineCost(i.id);return {pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};});   // orden de llegada
+  const lines=items.flatMap(i=>{const p=P(i.id);const c=pLineCost(i.id);const L0={pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};return typeof po9Lines==='function'?po9Lines(i,L0):[L0];   /* mods263 */});   // orden de llegada
   const prov=(''+(state.pprovider||'')).trim();const pv=pcProvLocked()||provByName(prov);
-  const data={lines,total:pcartTotal(),provider:prov,provId:pv?pv.id:undefined,note:(''+(state.pnote||'')).trim(),due:m.due};
+  const data={lines,total:(typeof po9Tot==='function'?po9Tot(lines):pcartTotal()),provider:prov,provId:pv?pv.id:undefined,note:(''+(state.pnote||'')).trim(),due:m.due};
   state.porders=state.porders||[];
   if(o){Object.assign(o,data);o.edited=Date.now();}
   else{const folio=state.porders.reduce((a,x)=>Math.max(a,+x.folio||0),500)+1;o={id:'O'+Date.now().toString(36)+Math.floor(Math.random()*1e3),folio,issue:todayISO(),...data};state.porders.unshift(o);}
@@ -10994,7 +10994,7 @@ function openPO(id){
   const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   const mt=(x,cls)=>`<div class="pometa${cls?' '+cls:''}">${exEsc(x)}</div>`;
   const meta=(o.issue?mt(t('po_issue')+': '+o.issue):'')+(o.due?mt(t('po_due')+': '+o.due,exp?'neg':''):'')+(o.provider?mt(t('cp_provider')+': '+o.provider):'')+(o.note?mt(t('cp_info')+': '+o.note):'');
-  const lines=alphaLines(o.lines||[]).map(l=>`<div class="row"><div class="av num">${qtyLoc(+l.q||0)}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
+  const lines=alphaLines((o.lines||[]).map(l=>typeof po9Show==='function'?po9Show(l):l)).map(l=>`<div class="row"><div class="av num">${qtyLoc(+l.q||0)}</div><div style="min-width:0"><div class="t" style="overflow-wrap:anywhere">${exEsc((''+(l.name||'')).replace(/^\.{3}\s*/,''))}</div><div class="s">${money(+l.cost||0)} c/u</div></div><div class="r"><div class="amt num">${money(l.subtotal!=null?+l.subtotal:(+l.cost||0)*(+l.q||0))}</div></div></div>`).join('');
   document.getElementById('quoteBody').innerHTML=`<div style="padding:12px 16px 18px">${meta}
     ${ph?`<div class="qt-tel" style="margin:8px 0"><a class="prv-q" href="${telHref(ph)}">${svg(IC_PHONE)}<span>${t('prv_call')}</span></a></div>`:''}
     <div style="margin:8px 0"><span class="qt-st ${poStateCls(o)}">${exEsc(poStateTxt(o))}</span></div>
@@ -11052,7 +11052,7 @@ function poExportCSV(){
 }
 function poText(o){const cfg=receiptCfg();const f=n=>Math.round(+n||0).toLocaleString(numLoc());
   return [(cfg.name||'').toUpperCase(),t('po_title')+' #'+o.folio+' · '+(o.issue||''),o.due?t('po_due')+': '+o.due:'',o.provider?t('cp_provider')+': '+o.provider:'','',
-    ...alphaLines(o.lines||[]).map(l=>qtyLoc(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')),'',o.note||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
+    ...alphaLines((o.lines||[]).map(l=>typeof po9Show==='function'?po9Show(l):l)).map(l=>qtyLoc(+l.q||0)+' x '+(''+(l.name||'')).replace(/^\.{3}\s*/,'')),'',o.note||''].filter((x,i,a)=>x!==''||a[i-1]!=='').join('\n');}
 function poWhatsApp(){const o=poById(state.poOpen);if(!o)return;const pv=(o.provId&&provById(o.provId))||provByName(o.provider);const ph=pv&&(pv.phone||pv.phone2);
   window.open((ph?waHref(ph):'https://wa.me/')+'?text='+encodeURIComponent(poText(o)),'_blank');}
 async function poPDF(){const o=poById(state.poOpen);if(!o)return;try{toast(t('po_pdf_gen'));await mnNativeOrder(o,true);}catch(e){console.error('PDF orden',e);toast(t('io_err'));}}
@@ -17313,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261114171441';
+const APP_VERSION='20261114223345';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -18250,7 +18250,7 @@ function po2OnRow(p,i,last,meta){const c=pcCells(i.id),sym=exEsc(moneySym()),box
       </div>
       <div class="crow-ico pcico"><span class="pcic-l"></span><span class="pcic-m"></span><span class="pcic-r"><button class="cico del" data-pcdel="${i.id}" title="${t('remove')}">${trash}</button></span></div>
     </div>`;}
-function po2Meta(p,o){const a=[];if(p.key)a.push(exEsc(p.key));if(o&&o.d)a.push(exEsc(ti('po2_last',{d:o.d}))+' · '+money(o.c));a.push(t('f_qty')+' '+qtyLoc(p.stock)+mSuf(isDist(p)));return a.join(' · ');}
+function po2Meta(p,o){const a=[];if(p.key)a.push(exEsc(p.key));if(o&&o.d)a.push(exEsc(ti('po2_last',{d:o.d}))+' · '+(typeof po9LastTxt==='function'?po9LastTxt(o):money(o.c)));a.push(t('f_qty')+' '+qtyLoc(p.stock)+mSuf(isDist(p)));return a.join(' · ');}
 function po2OffRow(p,o){return `<div class="row po2row" data-act="po2add:${p.id}"><div class="av">${saleProdImg(p,svg(PC_BOX_IC))}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(pNmV(p))}</div><div class="s">${po2Meta(p,o)}</div></div><button class="po2plus" data-act="po2add:${p.id}" aria-label="+">${svg(PO2_PLUS)}</button></div>`;}
 /* pie: Fecha de vencimiento e Información (los de siempre) y, abajo y fijos, Total y ✕ / Guardar (como Ventas). Sin el campo de proveedor de abajo: va arriba */
 function po2FootHTML(n){const f=poFootHTML(),pv=pcProvFieldHTML('po'),tot=pcTotalHTML();let g=f.split(pv).join('');const i=g.indexOf('<div class="saveact">');
@@ -18316,9 +18316,9 @@ async function po2Save(){const m=state.poMode;if(!m||PO2_SAVING)return;
     const ot=po2Other(i.id,sel);if(ot){await appAlert(ti('po2_other',{n:nm,p:ot,q:po2SelLabel(sel)}));return;}}
   if(!m.due){await appAlert(t('po_due_need'));poDueFocus();return;}
   let o=m.id?poById(m.id):null;if(o&&o.recvPurchase!=null){appAlert(ti('po_was_recv',{n:o.folio}));return;}
-  const lines=rows.map(i=>{const p=P(i.id);const c=pLineCost(i.id);return {pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};});
+  const lines=rows.flatMap(i=>{const p=P(i.id);const c=pLineCost(i.id);const L0={pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};return typeof po9Lines==='function'?po9Lines(i,L0):[L0];   /* mods263 */});
   const pv=(sel.id!=null&&provById(sel.id))||provByName(sel.name);
-  const data={lines,total:pcartTotal(),provider:sel.name,provId:pv?pv.id:undefined,note:(''+(state.pnote||'')).trim(),due:m.due};
+  const data={lines,total:(typeof po9Tot==='function'?po9Tot(lines):pcartTotal()),provider:sel.name,provId:pv?pv.id:undefined,note:(''+(state.pnote||'')).trim(),due:m.due};
   state.porders=state.porders||[];
   if(o){Object.assign(o,data);o.edited=Date.now();}
   else{const folio=state.porders.reduce((a,x)=>Math.max(a,+x.folio||0),500)+1;o={id:'O'+Date.now().toString(36)+Math.floor(Math.random()*1e3),folio,issue:todayISO(),...data};state.porders.unshift(o);}
@@ -18513,7 +18513,7 @@ function po3Screen(){
   const lim=state.po2Lim||PO2_PAGE;
   /* textos de una fila: código · existencia + etiqueta; debajo, proveedor y última compra (las de ESE proveedor) */
   const info=(p,o,tg)=>{const a=[];if(p.key)a.push(exEsc(p.key));a.push(exEsc(t('po3_stock'))+' '+qtyLoc(p.stock)+mSuf(isDist(p)));
-    const b=[];if(tg)b.push(exEsc(po3TagLabel(tg)));if(o&&(o.d||o.c>0))b.push((o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+money(o.c));
+    const b=[];if(tg)b.push(exEsc(po3TagLabel(tg)));if(o&&(o.d||o.c>0))b.push((o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+(typeof po9LastTxt==='function'?po9LastTxt(o):money(o.c)));
     return {s:a.join(' · ')+po3Badge(p),b:b.join(' · ')};};
   const chip=id=>{if(!free)return '';const tg=po3TagOf(id),k=po3TagKey(tg);if(selKeys&&selKeys.has(k))return '';
     return `<div class="po3chipw"><button type="button" class="po3chip${po3IsSPKey(k)?' sp':''}" data-act="po3rowprov:${id}">${svg(S_PER)}<span>${exEsc(po3TagLabel(tg))}</span><i>▾</i></button></div>`;};
@@ -18622,7 +18622,7 @@ async function po3Save(){const m=state.poMode;if(!m||PO2_SAVING)return;
   Object.keys(ids).forEach(k=>{if(keys.has(k))return;const o=poById(ids[k]);if(o&&o.recvPurchase==null){o.del=true;o.edited=Date.now();}delete ids[k];});
   let folio=state.porders.reduce((a,x)=>Math.max(a,+(x&&x.folio)||0),500);const used=new Set(state.porders.map(x=>x&&''+x.id)),made=[];
   for(const g of groups){
-    const lines=g.rows.map(i=>{const p=P(i.id);const c=pLineCost(i.id);return {pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};});
+    const lines=g.rows.flatMap(i=>{const p=P(i.id);const c=pLineCost(i.id);const L0={pid:i.id,key:p?(p.key||''):'',name:p?p.name:'—',q:i.q,cost:c,subtotal:c*i.q};return typeof po9Lines==='function'?po9Lines(i,L0):[L0];   /* mods263 */});
     const pv=((g.tag.id!=null&&g.tag.id!=='')&&provById(g.tag.id))||provByName(g.tag.name);
     const data={lines,total:lines.reduce((a,l)=>a+l.subtotal,0),provider:g.tag.name,provId:pv?pv.id:undefined,note,due:m.due};
     let o=ids[g.k]?poById(ids[g.k]):null;const it={k:g.k,label:g.label,pids:g.rows.map(i=>i.id)};
@@ -18882,7 +18882,7 @@ function po5Lists(h){
   /* filas: las mismas de mods253 (un producto que no es del proveedor no trae «última compra») */
   const costOf=(pid,k)=>{const mm=X.by.get(k);return (mm&&mm.get(pid))||null;};
   const info=(p,o)=>{const s=[];if(p.key)s.push(exEsc(p.key));s.push(exEsc(t('po3_stock'))+' '+qtyLoc(p.stock)+mSuf(isDist(p)));
-    return {s:s.join(' · ')+po3Badge(p),b:(o&&(o.d||o.c>0))?(o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+money(o.c):''};};
+    return {s:s.join(' · ')+po3Badge(p),b:(o&&(o.d||o.c>0))?(o.d?exEsc(ti('po2_last',{d:o.d}))+' · ':'')+(typeof po9LastTxt==='function'?po9LastTxt(o):money(o.c)):''};};
   const chip=id=>{if(!free)return '';const tg=po3TagOf(id),k=po3TagKey(tg);if(selKeys.has(k))return '';
     return `<div class="po3chipw"><button type="button" class="po3chip${po3IsSPKey(k)?' sp':''}" data-act="po3rowprov:${id}">${svg(S_PER)}<span>${exEsc(po3TagLabel(tg))}</span><i>▾</i></button></div>`;};
   const offRow=p=>{const i=info(p,null);return `<div class="row po2row po3row" data-act="po2add:${p.id}"><div class="av">${saleProdImg(p,svg(PC_BOX_IC))}</div><div style="min-width:0;flex:1"><div class="t">${exEsc(pNmV(p))}</div><div class="s">${i.s}</div></div><button class="po2plus" data-act="po2add:${p.id}" aria-label="+">${svg(PO2_PLUS)}</button></div>`;};
@@ -19766,6 +19766,381 @@ document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.
   .qe-by{margin:10px 0 0;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sel);font-size:13px;color:var(--ink);line-height:1.45}
   .qe-rmrow{cursor:default}.qe-rmrow .t,.qe-rmrow .amt,.qe-rmrow .av{color:var(--muted)}.qe-rmrow .t{text-decoration:line-through}
   .askdlg.qe-ask .askbtns{flex-wrap:wrap;justify-content:flex-end}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods263 (2026-11-14): ORDEN DE COMPRA POR PRESENTACIÓN (unidad, caja, paca, display…) ====
+   Pedido de Fabio (14-nov, documento «Nueva función: presentaciones de compra por producto»); «Autorizo» con las seis recomendaciones:
+   1) una sola lista de presentaciones (la de mods239: p.pres) · 2) lo recibido de una orden entra a Compras en UNIDAD BASE ·
+   3) el costo por unidad se guarda sin redondear para que el total de la compra sea el de la orden · 4) dos presentaciones del mismo
+   producto recibidas juntas = una sola fila en Compras con el costo promedio · 5) la recepción es en presentaciones completas ·
+   6) el precio de venta propuesto sigue la regla de mods260 (solo si el producto no tiene precio de venta).
+   QUÉ HACE
+   - Editor de la orden: cada producto con presentaciones muestra sus fichas (Unidad · CAJA ×12 · PACA ×144); la Cantidad y «Compra $»
+     pasan a ser por presentación y debajo se ve la equivalencia («5 CAJA × 12 = 60 unidades · $900 por unidad»). «+ Presentación» crea
+     una presentación nueva sin salir de la orden (misma validación de la ficha: presClean). «+ Otra presentación» agrega el mismo
+     producto en otra presentación (nunca dos veces la misma).
+   - Al agregar un producto se propone la presentación y el precio de la última compra u orden de ESE producto a ESE proveedor
+     (índice de mods252, ampliado); sin historial, Unidad. En los sugeridos se ve esa presentación y su precio.
+   - CÓMO SE GUARDA: la línea de la orden sigue en UNIDAD BASE (q, cost) y lleva la copia pk={id,n,f,c,p} (misma convención de ventas,
+     cotizaciones y compras de mods239). Un equipo con una versión anterior la lee como unidades y el inventario entra bien.
+     La cantidad en presentaciones SIEMPRE se calcula como q ÷ f (pk.c es solo informativo).
+   - Detalle, PDF y texto de la orden: «5 · PRODUCTO (CAJA ×12) · $10.800 c/u».
+   - Recibir mercancía (mods257): «Recibido» se escribe en la presentación de la línea, en enteros; las marcas se guardan en unidad base
+     (como siempre). A Compras llegan las unidades base con su costo por unidad y la nota «De la orden: 4 CAJA ×12 · $10.800 c/u».
+     EL INVENTARIO ENTRA SOLO POR saveCompra, que no se modifica. Lo pendiente queda en su presentación.
+   - Una orden SIN presentaciones recorre el código de siempre, sin cambios. Lo nuevo de la recepción (reparto por línea, rehacer la
+     orden al eliminar una compra o al mezclar dos equipos) actúa solo cuando la orden trae líneas con pk.
+   DATOS NUEVOS (opcionales; Supabase no cambia): en la línea de la orden y en las entregas (o.parts[].items), pk; en la línea de una
+   compra que vino de una orden, op={id,n,f,p} (la presentación y su precio, para recordarlos por proveedor); en el borrador de
+   Compras, po9From y po9Rc; en el editor de la orden, po9X (las otras presentaciones de un producto).
+   Apagarlo en un equipo: localStorage 'abanico.po9'='0' (el editor, el detalle y la recepción vuelven a verse en unidades). */
+(function(){try{
+  Object.assign(I18N.es,{po9_new:'Presentación',po9_other:'Otra presentación',po9_un:'unidades',po9_u1:'unidad',po9_per:'por',
+    po9_ask_f:'¿Cuántas unidades contiene 1 {n}? (número entero mayor que 0)',po9_ask_fm:'¿Cuántos metros contiene 1 {n}? (mayor que 0)',
+    po9_made:'Presentación {n} ×{f} creada',po9_dup:'Esa presentación ya está en otra línea de este producto.',
+    po9_no_more:'Este producto no tiene más presentaciones. Crea una con «+ Presentación».',
+    po9_from:'De la orden: {l}',po9_ord:'Pedido: {c} {n} ×{f} = {q} {u}',po9_pend:'Pendiente: {c} {n} ×{f} = {q} {u}',po9_recv:'Recibido · {n}',
+    po9_x_qty:'Escribe la cantidad de {n} (mayor a 0) o quita esa línea.',po9_x_cost:'Escribe el precio de {n}.'});
+  Object.assign(I18N.en,{po9_new:'Pack size',po9_other:'Another pack size',po9_un:'units',po9_u1:'unit',po9_per:'per',
+    po9_ask_f:'How many units are in 1 {n}? (whole number greater than 0)',po9_ask_fm:'How many meters are in 1 {n}? (greater than 0)',
+    po9_made:'Pack size {n} ×{f} created',po9_dup:'That pack size is already on another line of this product.',
+    po9_no_more:'This product has no more pack sizes. Create one with "+ Pack size".',
+    po9_from:'From the order: {l}',po9_ord:'Ordered: {c} {n} ×{f} = {q} {u}',po9_pend:'Pending: {c} {n} ×{f} = {q} {u}',po9_recv:'Received · {n}',
+    po9_x_qty:'Enter the quantity of {n} (greater than 0) or remove that line.',po9_x_cost:'Enter the price of {n}.'});
+}catch(_){}})();
+function po9On(){try{return localStorage.getItem('abanico.po9')!=='0';}catch(_){return true;}}
+/* po9X: otras presentaciones de un producto en el editor · po9From: de qué presentación viene cada fila de Compras · po9Rc: lo marcado por línea al recibir */
+Object.assign(PC_DEF,{po9X:{},po9From:null,po9Rc:null});
+const po9R2=v=>Math.round((+v||0)*100)/100;
+/* ---- la presentación de una línea guardada (orden o entrega) ---- */
+/* tal como viene: {id,n,f,p precio de 1 presentación}; null si la línea es por unidad */
+function po9Pk0(l){const k=l&&l.pk;if(!k||k.id==null||!(+k.f>0))return null;const f=+k.f;return {id:k.id,n:''+(k.n||''),f,p:(k.p!=null&&isFinite(+k.p))?+k.p:po9R2((+l.cost||0)*f)};}
+/* para mostrar y recibir: solo si la cantidad es un número entero de presentaciones (c = q ÷ f); si no, la línea se trata en unidades */
+function po9Pk(l){const k=po9Pk0(l);if(!k)return null;const c=(+l.q||0)/k.f,r=Math.round(c);if(!(r>0)||Math.abs(c-r)>1e-6)return null;k.c=r;return k;}
+function po9Lbl(k){return k.n+' ×'+qtyLoc(k.f);}
+function po9Units(p,q){return isDist(p)?'m':t(Math.abs((+q||0)-1)<1e-9?'po9_u1':'po9_un');}
+/* línea para mostrar o imprimir (detalle, PDF, texto): cantidad y precio POR PRESENTACIÓN */
+function po9Show(l){try{if(!po9On())return l;const k=po9Pk(l);if(!k)return l;
+  return {...l,name:(l.name||'')+' ('+po9Lbl(k)+')',q:k.c,cost:k.p,subtotal:l.subtotal!=null?+l.subtotal:k.c*k.p,m:false};}catch(_){return l;}}
+/* una línea con otra cantidad (en unidad base): la copia de la presentación y el subtotal se rehacen */
+function po9Line(l,q){const o={...l,q},k=po9Pk0(l);
+  if(k){const c=q/k.f;o.pk={...l.pk,id:k.id,n:k.n,f:k.f,p:k.p,c:Math.abs(c-Math.round(c))<1e-6?Math.round(c):q3(c)};o.subtotal=po9R2(c*k.p);}
+  else o.subtotal=(+l.cost||0)*q;
+  return o;}
+
+/* ================= EDITOR DE LA ORDEN ================= */
+function po9Ed(){return po9On()&&!!state.poMode;}
+function po9MainKey(id){const k=pcPkOf(id);return k?''+k.id:'b';}
+/* las otras presentaciones de un producto del carrito (sin repetir la principal ni entre sí; una presentación borrada se ignora) */
+function po9XL(id){if(!po9Ed()||!state.pcart||state.pcart[id]==null)return [];const p=P(+id);if(!p)return [];const L=(state.po9X||{})[id];if(!Array.isArray(L))return [];
+  const seen=new Set([po9MainKey(id)]);
+  return L.filter(x=>{if(!x)return false;const k=''+x.k;if(seen.has(k))return false;if(k!=='b'){const ps=presById(p,k);if(!ps||ps.off)return false;}seen.add(k);return true;});}
+function po9XInf(id,x){const p=P(+id),ps=''+x.k==='b'?null:presById(p,x.k),f=ps?+ps.f:1,q=qtyVal(x.q),c=fNum(x.c);
+  return {p,ps,f,n:ps?ps.n:baseLbl(p),q,c,hasQ:pcDig(x.q)&&q>0,hasC:pcDig(x.c),sub:q*c};}
+function po9XCount(){let n=0;if(po9Ed())pcartRows().forEach(i=>{n+=po9XL(i.id).length;});return n;}
+function po9XTot(){let s=0;if(po9Ed())pcartRows().forEach(i=>po9XL(i.id).forEach(x=>{const f=po9XInf(i.id,x);if(f.hasQ)s+=f.sub;}));return s;}
+function po9XAnyEmpty(){let e=false;if(po9Ed())pcartRows().forEach(i=>po9XL(i.id).forEach(x=>{const f=po9XInf(i.id,x);if(!f.hasQ||!f.hasC)e=true;}));return e;}
+/* presentaciones del producto que todavía no están en ninguna línea ('b' = la unidad base) */
+function po9Free(p,id){const used=new Set([po9MainKey(id)]);po9XL(id).forEach(x=>used.add(''+x.k));const out=[];
+  if(!used.has('b'))out.push({k:'b',lbl:baseLbl(p)});presList(p).forEach(ps=>{if(!used.has(''+ps.id))out.push({k:''+ps.id,lbl:po9Lbl({n:ps.n,f:+ps.f})});});return out;}
+/* el Total del editor cuenta también las otras presentaciones */
+{const _t=pcTotalTxt;pcTotalTxt=function(){try{if(po9XCount()){if(pcAnyEmpty()||po9XAnyEmpty())return '...';return moneyNum(pcartTotal()+po9XTot());}}catch(_){}return _t.apply(this,arguments);};}
+/* «5 CAJA × 12 = 60 unidades · $900 por unidad» (n ya escapado) */
+function po9EqHTML(p,n,f,q,price,hasQ,hasC){const a=[],qb=q3(q*f);
+  if(hasQ)a.push(qtyLoc(q)+' '+n+' × '+qtyLoc(f)+' = <b>'+qtyLoc(qb)+' '+po9Units(p,qb)+'</b>');else a.push(n+' × '+qtyLoc(f));
+  if(hasC&&price>0)a.push(money(price/f)+' '+t('po9_per')+' '+(isDist(p)?'m':t('po9_u1')));
+  return a.join(' · ');}
+function po9MainEq(p,id){const k=pcPkOf(id);if(!k)return '';const q=+(state.pcart||{})[id]||0;
+  return po9EqHTML(p,exEsc(k.n),k.f,q,pLineCost(id),pcDig(pcQtyShow(id))&&q>0,pcDig(pcCostShow(id)));}
+function po9ChipsHTML(p,id){const L=presList(p);if(!L.length)return '';const k=pcPkOf(id);
+  const b=(key,lbl,on)=>`<button type="button" class="pkchip${on?' on':''}" data-po9="pk:${id}:${key}" aria-pressed="${on}">${lbl}</button>`;
+  return `<div class="pkchips po9chips" role="group" aria-label="${exEsc(t('pr_title'))}">${b('b',exEsc(baseLbl(p)),!k)}${L.map(ps=>b(exEsc(''+ps.id),exEsc(ps.n)+' <span class="pkf">×'+qtyLoc(ps.f)+'</span>',!!k&&''+k.id===''+ps.id)).join('')}</div>`;}
+function po9XHTML(p,id){const sym=exEsc(moneySym()),trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
+  return po9XL(id).map(x=>{const f=po9XInf(id,x),key=exEsc(''+x.k),n=exEsc(f.n);
+    const inp=(at,val,ph,mode,uns)=>`<input autocomplete="off" class="cinp num" ${at}="${id}:${key}" type="text" inputmode="${mode}" enterkeyhint="done" data-uns="${uns}" placeholder="${exEsc(ph)}" value="${exEsc(val==null?'':''+val)}">`;
+    return `<div class="po9x" data-po9x="${id}:${key}"><div class="po9xh"><b>${n}${f.ps?' <span class="pkf">×'+qtyLoc(f.f)+'</span>':''}</b><button type="button" class="cico del" data-po9="xdel:${id}:${key}" title="${exEsc(t('remove'))}" aria-label="${exEsc(t('remove'))}">${trash}</button></div>
+      <div class="pcgrid">
+        <div class="pccell"><span class="cfl">${t('me_qty')} (${n})</span>${inp('data-po9q',x.q,t('cp_qty_ph'),f.ps?'numeric':'decimal','3')}</div>
+        <div class="pccell"><span class="cfl">${t('po_buy')} ${sym}<span class="pm-u">/${n}</span></span>${inp('data-po9c',x.c,t('po_buy'),'decimal','1')}</div>
+        <div class="pccell"><span class="cfl">${t('sale_subtotal')} ${sym}</span><b class="pcv num po9xs">${f.hasQ&&f.hasC?moneyNum(f.sub):'...'}</b></div>
+      </div>${f.ps?`<div class="po9eq po9xeq">${po9EqHTML(p,n,f.f,f.q,f.c,f.hasQ,f.hasC)}</div>`:''}</div>`;}).join('');}
+/* la fila de siempre de la orden + fichas, equivalencia, otras presentaciones y los dos botones (en los huecos libres de la fila de íconos) */
+function po9Patch(h,p,id){try{if(!po9Ed()||!p||id==null||!state.pcart||state.pcart[id]==null)return h;
+  const k=pcPkOf(id),chips=po9ChipsHTML(p,id),xs=po9XHTML(p,id),sym=exEsc(moneySym());
+  const once=(a,b)=>{const i=h.indexOf(a);if(i<0)return false;h=h.slice(0,i)+b+h.slice(i+a.length);return true;};
+  if(chips)once('<div class="pcgrid">',chips+'<div class="pcgrid">');
+  if(k){const n=exEsc(k.n);once(`<span class="cfl">${t('me_qty')}</span>`,`<span class="cfl">${t('me_qty')} (${n})</span>`);
+    once(`<span class="cfl">${t('po_buy')} ${sym}</span>`,`<span class="cfl">${t('po_buy')} ${sym}<span class="pm-u">/${n}</span></span>`);}
+  const eq=k?`<div class="po9eq" data-po9eq="${id}">${po9MainEq(p,id)}</div>`:'';
+  once('<div class="crow-ico pcico">',eq+xs+'<div class="crow-ico pcico po9ico">');
+  const plus=svg(typeof ICO_PLUS==='string'?ICO_PLUS:'<path d="M12 5v14M5 12h14"/>');
+  const more=presList(p).length&&po9Free(p,id).length?`<button type="button" class="po9lk" data-po9="xadd:${id}">${plus}<span>${exEsc(t('po9_other'))}</span></button>`:'';
+  once('<span class="pcic-l"></span><span class="pcic-m"></span>',`<span class="pcic-l"><button type="button" class="po9lk" data-po9="new:${id}">${plus}<span>${exEsc(t('po9_new'))}</span></button></span><span class="pcic-m">${more}</span>`);
+  }catch(e){try{console.error('mods263 fila',e);}catch(_){}}
+  return h;}
+{const _r=po2OnRow;po2OnRow=function(p,i){const h=_r.apply(this,arguments);return po9Patch(h,p,i&&i.id);};}
+{const _r=poRowsHTML;poRowsHTML=function(){const h=_r.apply(this,arguments);
+  try{if(!po9Ed())return h;return h.split(/(?=<div class="crow pcrow po" data-pcrow=")/).map(c=>{const m=/^<div class="crow pcrow po" data-pcrow="(\d+)"/.exec(c);return m?po9Patch(c,P(+m[1]),+m[1]):c;}).join('');}catch(_){return h;}};}
+{const _l=pcLiveRefresh;pcLiveRefresh=function(id){_l.apply(this,arguments);
+  try{if(po9Ed()){const e=document.querySelector('#body [data-po9eq="'+id+'"]'),p=P(+id);if(e&&p&&pcPkOf(id))e.innerHTML=po9MainEq(p,id);}}catch(_){}};}
+/* teléfono con el teclado abierto: la fila con presentaciones es más alta que lo visible; si el campo donde se escribe o su equivalencia quedan
+   tapados, la lista se mueve lo justo para que se vean los dos (las filas sin presentaciones siguen con el centrado de mods254) */
+{const _p=po4Show;po4Show=function(row,center){const r=_p.apply(this,arguments);
+  try{if(r&&po9Ed()&&row&&row.querySelector&&row.querySelector('.po9chips,.po9x')){const a=document.activeElement,sc=row.closest('#po4Scroll'),g=a&&row.contains(a)&&a.tagName==='INPUT'?a.closest('.pcgrid'):null;
+    if(sc&&g){const s=sc.getBoundingClientRect(),vv=window.visualViewport,top=s.top,bot=Math.min(s.bottom,vv?vv.offsetTop+vv.height:innerHeight),e=g.nextElementSibling;
+      const b0=g.getBoundingClientRect().top,b1=(e&&e.classList&&e.classList.contains('po9eq')?e:g).getBoundingClientRect().bottom;
+      if(bot-top>=40&&(b0<top+4||b1>bot-6)){let d=b1-(bot-8);if(b0-d<top+4)d=b0-(top+4);if(Math.abs(d)>1)sc.scrollTop+=d;}}}}catch(_){}
+  return r;};}
+/* ---- proveedor de la línea y lo último que se le compró o pidió (presentación y precio) ---- */
+function po9ProvKeys(id){try{const sel=po2Sel(),ks=sel?po2Keys(sel).slice():[];if(typeof po3Free==='function'&&po3Free()){const k=po3TagKey(po3TagOf(id));if(k&&!ks.includes(k))ks.push(k);}return ks;}catch(_){return [];}}
+function po9Entry(id){try{const X=po2Index();let best=null;po9ProvKeys(id).forEach(k=>{const m=X.by.get(k),o=m&&m.get(+id);if(o&&(!best||(o.d||'')>=(best.d||'')))best=o;});return best;}catch(_){return null;}}
+function po9Price(id,key){try{const X=po2Index();if(!X.pp)return null;let best=null;po9ProvKeys(id).forEach(k=>{const m=X.pp.get(k),a=m&&m.get(+id+'|'+key);if(a&&(!best||a.w>=best.w))best=a;});return best&&best.p>0?best.p:null;}catch(_){return null;}}
+/* el índice de mods252 (proveedor → producto → última compra) recuerda además la presentación y su precio; precios por presentación en X.pp */
+{const _i=po2Index;po2Index=function(){const X=_i.apply(this,arguments);
+  try{if(X&&!X.po9){X.po9=1;X.pp=new Map();
+    const put=(k,pid,d,pk,price,ts)=>{if(pid==null)return;pid=+pid;const m=X.by.get(k),o=m&&m.get(pid);if(!o)return;d=d||'';const w=d+'|'+String(Math.round(+ts||0)).padStart(15,'0');   /* el mismo día, manda lo más reciente */
+      let mm=X.pp.get(k);if(!mm){mm=new Map();X.pp.set(k,mm);}const kk=pid+'|'+(pk?pk.id:'b'),a=mm.get(kk);if(!a||w>=a.w)mm.set(kk,{d,w,p:+price||0});
+      if(o.po9w==null||w>=o.po9w){o.po9w=w;o.po9d=d;if(pk){o.pk={id:pk.id,n:pk.n,f:pk.f};o.pp=+price||0;}else{delete o.pk;delete o.pp;}}};
+    (state.purchases||[]).forEach(c=>{if(!c||c.del||!Array.isArray(c.items))return;const k=po2KeyOf(c);if(!k)return;
+      c.items.forEach(i=>{if(!i)return;const a=i.pk&&+i.pk.f>0&&i.pk.id!=null?i.pk:(i.op&&+i.op.f>0&&i.op.id!=null?i.op:null);
+        if(a)put(k,i.id,c.date,{id:a.id,n:''+(a.n||''),f:+a.f},a.p!=null?+a.p:po9R2((+i.cost||0)*(+a.f)),c.ts);else put(k,i.id,c.date,null,i.cost,c.ts);});});
+    (state.porders||[]).forEach(o=>{if(!o||o.del)return;const k=po2KeyOf(o);if(!k)return;
+      (o.lines||[]).forEach(l=>{if(!l||l.pid==null)return;const a=po9Pk0(l);if(a)put(k,l.pid,o.issue,{id:a.id,n:a.n,f:a.f},a.p,o.ts);else put(k,l.pid,o.issue,null,l.cost,o.ts);});});
+    /* si el dato más nuevo del índice vino de una compra vieja reconocida por el nombre, no se le atribuye ninguna presentación */
+    X.by.forEach(m=>m.forEach(o=>{if(o.pk&&o.po9d!==(o.d||'')){delete o.pk;delete o.pp;}}));}}
+  catch(e){try{console.error('mods263 índice',e);}catch(_){}}
+  return X;};}
+/* «Última compra 2026-11-14 · CAJA ×12 · $10.800» en los sugeridos */
+function po9LastTxt(o){try{if(po9On()&&o&&o.pk&&o.pp>0)return exEsc(po9Lbl(o.pk))+' · '+money(o.pp);}catch(_){}return money(o.c);}
+/* ---- agregar un producto a la orden: se propone la presentación y el precio de la última vez con ese proveedor ---- */
+let PO9_LOAD=false;
+{const _a=pcAddLine;pcAddLine=function(id,o){
+  try{if(po9Ed()&&!PO9_LOAD){const pid=+id,p=P(pid);
+    if(p&&!(state.pcart&&state.pcart[pid]!=null)){if(state.pcPk)delete state.pcPk[pid];if(state.po9X)delete state.po9X[pid];
+      const e=po9Entry(pid),ps=e&&e.pk?presById(p,e.pk.id):null;
+      if(ps&&!ps.off&&Math.abs(+ps.f-(+e.pk.f))<1e-9&&e.pp>0){(state.pcPk||(state.pcPk={}))[pid]={id:ps.id};o=Object.assign({},o||{},{cost:e.pp});}}}}catch(_){}
+  return _a.call(this,id,o);};}
+{const _f=pcForget;pcForget=function(id){try{if(state.po9X)delete state.po9X[+id];if(state.po9From&&state.po9From.by)delete state.po9From.by[+id];}catch(_){}return _f.apply(this,arguments);};}
+{const _s=poSig;poSig=function(){const s=_s.apply(this,arguments);
+  try{if(po9On())return s+JSON.stringify(pcItemsRecent().map(i=>[i.id,po9MainKey(i.id),po9XL(i.id).map(x=>[''+x.k,''+(x.q==null?'':x.q),''+(x.c==null?'':x.c)])]));}catch(_){}return s;};}
+/* ---- cambiar la presentación de la línea principal ---- */
+function po9PkSet(id,key){const p=P(+id);if(!p||!po9Ed()||!state.pcart||state.pcart[id]==null)return;
+  if(po9MainKey(id)===''+key)return;
+  if(po9XL(id).some(x=>''+x.k===''+key)){toast(t('po9_dup'));return;}
+  state.pcPk=state.pcPk||{};
+  if(key==='b')delete state.pcPk[id];else{const ps=presById(p,key);if(!ps||ps.off)return;state.pcPk[id]={id:ps.id};}
+  const pr=po9Price(id,key);state.pcost=state.pcost||{};if(pr!=null)state.pcost[id]=pr;else delete state.pcost[id];   /* sin historial: el precio de compra de esa presentación (o el costo del producto) */
+  if(state.pcCostTxt)delete state.pcCostTxt[id];
+  render();try{pcFocus(id,'q');}catch(_){}}
+/* ---- crear una presentación nueva sin salir de la orden (la misma validación de la ficha) ---- */
+async function po9New(id){const p0=P(+id);if(!p0||!po9Ed())return;const med=isDist(p0)?'m':'u';
+  const used=new Set(presList(p0).map(x=>pnorm(x.n))),sug=(med==='m'?PR_SUG_M:PR_SUG_U).filter(n=>!used.has(pnorm(n)));
+  const ki=await appMenu(t('pr_add'),[...sug,t('pr_other')]);if(ki==null||ki<0)return;let n=sug[ki];
+  if(n==null){n=await appPrompt(t('pr_other_ask'),'');if(n==null)return;n=(''+n).trim().toUpperCase();if(!n)return;}
+  const fv=await appPrompt(ti(med==='m'?'po9_ask_fm':'po9_ask_f',{n}),'');if(fv==null)return;
+  const p=P(+id);if(!p||!po9Ed())return;   /* de nuevo por id tras las preguntas */
+  const nid='pr'+uidPart(),L=presClone(p.pres);L.push({id:nid,n,f:(''+fv).trim(),c:'',v:'',xp:[]});
+  const r=presClean(L,med,'');if(r.err){await appAlert(r.err);return;}
+  const made=r.list.find(x=>''+x.id===nid);if(!made)return;
+  const o=invSnap(p);p.pres=r.list;invLogAdd(2,p,o);persist();
+  if(state.pcart&&state.pcart[id]!=null&&po9MainKey(id)==='b'&&!pcDig(pcQtyShow(id))){state.pcPk=state.pcPk||{};state.pcPk[id]={id:made.id};if(state.pcost)delete state.pcost[id];if(state.pcCostTxt)delete state.pcCostTxt[id];}   /* la línea recién agregada (sin cantidad) pasa a la presentación nueva */
+  render();toast(ti('po9_made',{n:made.n,f:qtyLoc(made.f)}));}
+/* ---- el mismo producto en otra presentación ---- */
+async function po9XAdd(id){const p0=P(+id);if(!p0||!po9Ed()||!state.pcart||state.pcart[id]==null)return;
+  let F=po9Free(p0,id);if(!F.length){toast(t('po9_no_more'));return;}let pick=F[0];
+  if(F.length>1){const ki=await appMenu(t('po9_other'),F.map(x=>x.lbl));if(ki==null||ki<0)return;const p1=P(+id);if(!p1||!po9Ed()||state.pcart[id]==null)return;F=po9Free(p1,id);pick=F[ki];if(!pick)return;}
+  const p=P(+id),ps=pick.k==='b'?null:presById(p,pick.k),pr=po9Price(id,pick.k),c=pr!=null?pr:(ps?presHabC(p,ps):(+p.cost||0));
+  const X=state.po9X||(state.po9X={});(X[id]=Array.isArray(X[id])?X[id]:[]).push({k:pick.k,q:'',c:c>0?fTxt(c):''});
+  render();try{const el=document.querySelector('#body [data-po9q="'+id+':'+pick.k+'"]');if(el){el.focus();const row=el.closest('.crow');if(row)showRow(row);}}catch(_){}}
+function po9XDel(id,key){const L=(state.po9X||{})[id];if(!Array.isArray(L))return;state.po9X[id]=L.filter(x=>x&&''+x.k!==''+key);if(!state.po9X[id].length)delete state.po9X[id];render();}
+function po9XLive(el,e){const isQ=el.dataset.po9q!=null,a=(''+(isQ?el.dataset.po9q:el.dataset.po9c)).split(':'),id=+a[0],key=a.slice(1).join(':');
+  const x=po9XL(id).find(y=>''+y.k===key);if(!x)return;
+  const raw=el.value,tx=isQ?unsignedTxt(numInTxt(raw,e)):unsignedNumTxt(numInTxt(raw,e),null);
+  if(tx!==raw){let pos=el.selectionStart;pos=pos==null?tx.length:Math.max(0,Math.min(tx.length,pos-(raw.length-tx.length)));el.value=tx;try{el.setSelectionRange(pos,pos);}catch(_){}}
+  if(isQ)x.q=tx;else x.c=tx;
+  const box=el.closest('.po9x'),f=po9XInf(id,x);
+  if(box){const s=box.querySelector('.po9xs');if(s)s.textContent=f.hasQ&&f.hasC?moneyNum(f.sub):'...';const q=box.querySelector('.po9xeq');if(q&&f.ps)q.innerHTML=po9EqHTML(f.p,exEsc(f.n),f.f,f.q,f.c,f.hasQ,f.hasC);}
+  const tb=document.getElementById('pcTot');if(tb)tb.textContent=pcTotalTxt();}
+(function(){const dev=document.getElementById('device');if(!dev)return;
+  dev.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-po9]');if(!el||!po9Ed())return;e.preventDefault();e.stopPropagation();
+    const a=(''+el.dataset.po9).split(':'),id=+a[1],key=a.slice(2).join(':');
+    if(a[0]==='pk')po9PkSet(id,key);else if(a[0]==='new')po9New(id);else if(a[0]==='xadd')po9XAdd(id);else if(a[0]==='xdel')po9XDel(id,key);},true);
+  dev.addEventListener('input',e=>{const el=e.target,d=el&&el.dataset;if(!d||(d.po9q==null&&d.po9c==null)||!po9Ed())return;po9XLive(el,e);});
+  dev.addEventListener('keydown',e=>{const el=e.target,d=el&&el.dataset;if(e.key!=='Enter'||!d||(d.po9q==null&&d.po9c==null))return;e.preventDefault();try{el.blur();}catch(_){}});
+  dev.addEventListener('focusin',e=>{const el=e.target,d=el&&el.dataset;if(!d||(d.po9q==null&&d.po9c==null))return;try{el.select();}catch(_){}});
+})();
+/* ---- Guardar: presentaciones en enteros y las otras presentaciones completas (lo demás lo valida el guardado de siempre) ---- */
+async function po9Block(){const nmOf=p=>p?pNmV(p):'';
+  for(const i of pcItemsRecent()){const p=P(i.id),k=pcPkOf(i.id);
+    if(k&&i.q>0&&Math.abs(i.q-Math.round(i.q))>1e-9){await appAlert(ti('int_pack',{n:k.n+' · '+nmOf(p)}));try{pcFocus(i.id,'q');}catch(_){}return true;}
+    for(const x of po9XL(i.id)){const f=po9XInf(i.id,x),lbl=nmOf(p)+' ('+f.n+')',foc=at=>{try{const el=document.querySelector('#body ['+at+'="'+i.id+':'+x.k+'"]');if(el){el.focus();const row=el.closest('.crow');if(row)showRow(row);}}catch(_){}};
+      if(!f.hasQ||!isFinite(f.q)||f.q>1e6){await appAlert(ti('po9_x_qty',{n:lbl}));foc('data-po9q');return true;}
+      if(f.ps&&Math.abs(f.q-Math.round(f.q))>1e-9){await appAlert(ti('int_pack',{n:f.n+' · '+nmOf(p)}));foc('data-po9q');return true;}
+      if(!f.hasC){await appAlert(ti('po9_x_cost',{n:lbl}));foc('data-po9c');return true;}}}
+  return false;}
+{const _s=savePO;savePO=function(){if(!po9Ed())return _s.apply(this,arguments);const self=this,args=arguments;
+  try{const a=document.activeElement;if(a&&pcFieldOf(a))pcFieldCommit(a);}catch(_){}
+  return po9Block().then(b=>b?undefined:_s.apply(self,args));};}
+/* ---- las líneas que se guardan (las llama el guardado de siempre: una fila del carrito → una o varias líneas) ---- */
+function po9Mk(p,k,c,price){return {pid:p.id,key:p.key||'',name:p.name,q:q3(c*k.f),cost:price/k.f,subtotal:price*c,pk:{id:k.id,n:k.n,f:k.f,c,p:price}};}
+function po9Lines(i,L0){try{if(!po9Ed())return [L0];const p=P(i.id),k=pcPkOf(i.id),xs=po9XL(i.id);if(!p||(!k&&!xs.length))return [L0];
+  const out=[k?po9Mk(p,{id:k.id,n:k.n,f:k.f},+i.q||0,+L0.cost||0):L0];
+  xs.forEach(x=>{const f=po9XInf(i.id,x);if(!f.hasQ)return;out.push(f.ps?po9Mk(p,{id:f.ps.id,n:f.ps.n,f:+f.ps.f},f.q,f.c):{pid:p.id,key:p.key||'',name:p.name,q:f.q,cost:f.c,subtotal:f.c*f.q});});
+  return out;}catch(e){try{console.error('mods263 líneas',e);}catch(_){}return [L0];}}
+function po9Tot(lines){try{if(po9Ed()&&((lines||[]).some(l=>l&&l.pk)||po9XCount()))return (lines||[]).reduce((a,l)=>a+(+l.subtotal||0),0);}catch(_){}return pcartTotal();}
+
+/* ================= CARGAR LÍNEAS DE UNA ORDEN: al editor (por presentación) o a Compras (unidad base) ================= */
+function po9FindProd(l){return (l.pid!=null&&P(+l.pid))||(l.key&&state.products.find(x=>(''+(x.key||'')).trim()===(''+l.key).trim()))||state.products.find(x=>qtNorm(x.name)===qtNorm(l.name))||null;}   /* la misma búsqueda de poLinesToCart */
+function po9LoadEd(lines){let skip=0;PO9_LOAD=true;
+  try{state.po9X=state.po9X||{};state.pcPk=state.pcPk||{};
+    (lines||[]).forEach(l=>{if(!l)return;const p=po9FindProd(l);if(!p){skip++;return;}
+      const k0=po9Pk(l),ps=k0?presById(p,k0.id):null,pk=ps&&!ps.off&&Math.abs(+ps.f-k0.f)<1e-9?k0:null;   /* la presentación debe seguir existiendo con el mismo contenido; si no, la línea entra en unidades */
+      const key=pk?''+pk.id:'b',qv=pk?pk.c:(+l.q||0),cv=pk?pk.p:(+l.cost||0);
+      if(state.pcart==null||state.pcart[p.id]==null){pcAddLine(p.id,{q:qv,cost:cv,noRender:true});if(pk)state.pcPk[p.id]={id:pk.id};return;}
+      if(po9MainKey(p.id)===key){pcAddLine(p.id,{q:qv,noRender:true});return;}   /* la misma presentación repetida suma, como siempre */
+      const X=(state.po9X[p.id]=Array.isArray(state.po9X[p.id])?state.po9X[p.id]:[]),e=X.find(x=>x&&''+x.k===key);
+      if(e)e.q=unsignedTxt(''+q3(qtyVal(e.q)+qv));else X.push({k:key,q:unsignedTxt(''+q3(qv)),c:fTxt(cv)});});}
+  finally{PO9_LOAD=false;}
+  return {skip};}
+{const _c=poLinesToCart;poLinesToCart=function(lines){
+  if(state.poMode){if(po9On()&&(lines||[]).some(l=>l&&po9Pk(l))){try{return po9LoadEd(lines);}catch(e){try{console.error('mods263 editor',e);}catch(_){}}}
+    PO9_LOAD=true;try{return _c.apply(this,arguments);}finally{PO9_LOAD=false;}}
+  /* recepción: las unidades base de siempre. Si un producto viene en dos presentaciones queda en UNA fila con el costo promedio;
+     y se anota de qué presentación viene cada fila (la nota de Compras y la memoria de precios por proveedor) */
+  const r=_c.apply(this,arguments);
+  try{const G=new Map();(lines||[]).forEach(l=>{if(!l)return;const p=po9FindProd(l);if(!p)return;const q=+l.q||0,g=G.get(p.id)||{q:0,v:0,n:0,pk:[]};g.q+=q;g.v+=q*(+l.cost||0);g.n++;
+      const k=po9Pk0(l);if(k)g.pk.push({id:k.id,n:k.n,f:k.f,p:k.p,q});G.set(p.id,g);});
+    const by={};G.forEach((g,pid)=>{if(!g.pk.length)return;by[pid]=g.pk;
+      if(g.n>1&&g.q>0){(state.pcost||(state.pcost={}))[pid]=g.v/g.q;if(state.pcCostTxt)delete state.pcCostTxt[pid];}});
+    state.po9From=Object.keys(by).length?{by}:null;}
+  catch(e){try{console.error('mods263 recepción',e);}catch(_){}}
+  return r;};}
+/* ---- Compras: la nota «De la orden: 4 CAJA ×12 · $10.800 c/u» bajo el nombre del producto ---- */
+function po9FromTxt(L){return ti('po9_from',{l:(L||[]).map(x=>{const c=(+x.q||0)/x.f;return (Math.abs(c-Math.round(c))<1e-6?qtyLoc(Math.round(c))+' ':'')+po9Lbl(x)+' · '+money(x.p)+' c/u';}).join(' + ')});}
+{const _r=pcRowsHTML;pcRowsHTML=function(){let h=_r.apply(this,arguments);
+  try{const by=po9On()&&!state.poMode&&state.po9From&&state.po9From.by;if(by)Object.keys(by).forEach(pid=>{if(!state.pcart||state.pcart[pid]==null||!by[pid]||!by[pid].length)return;
+      const a='<div class="crow pcrow" data-pcrow="'+pid+'">',i=h.indexOf(a);if(i<0)return;const j=h.indexOf('</div>',i+a.length);if(j<0)return;
+      h=h.slice(0,j+6)+'<div class="po9from">'+exEsc(po9FromTxt(by[pid]))+'</div>'+h.slice(j+6);});}
+  catch(e){try{console.error('mods263 nota de Compras',e);}catch(_){}}
+  return h;};}
+/* ---- la línea de la compra recuerda la presentación de la orden y lo que de verdad se pagó por ella (op), para proponerla la próxima vez ---- */
+{const _p=pcSnap;pcSnap=function(i){const r=_p.apply(this,arguments);
+  try{const by=!state.poMode&&state.po9From&&state.po9From.by,L=by&&i?by[i.id]:null;
+    if(r&&!r.pk&&L&&L.length){const a=L.length===1?L[0]:L.slice().sort((x,y)=>(+y.q||0)-(+x.q||0))[0];   /* dos presentaciones juntas: la de más unidades, a su precio de la orden */
+      if(a&&+a.f>0)r.op={id:a.id,n:a.n,f:a.f,p:L.length===1?po9R2((+r.cost||0)*a.f):a.p};}}catch(_){}
+  return r;};}
+
+/* ================= RECIBIR MERCANCÍA (mods257) EN LA PRESENTACIÓN DE LA LÍNEA ================= */
+const PO9_NM0=po7Nm;
+{const _n=po7Nm;po7Nm=function(l){const n=_n.apply(this,arguments);
+  try{const k=po9On()?po9Pk0(l):null;if(k){const c=(+l.q||0)/k.f,w=Math.abs(c-Math.round(c))<1e-6&&Math.round(c)>0;return n+' ('+(w?qtyLoc(Math.round(c))+' ':'')+po9Lbl(k)+')';}}catch(_){}
+  return n;};}
+function po9Cnt(v,f){const c=(+v||0)/f;return Math.abs(c-Math.round(c))<1e-6?''+Math.round(c):(''+q3(c)).replace('.',numLoc()==='es-CO'?',':'.');}
+{const _s=po7RowState;po7RowState=function(l,tx,on){const st=_s.apply(this,arguments);
+  try{const k=po9On()&&on?po9Pk(l):null;if(k){const r=po7Num(tx);
+    if(st.k==='part')return {k:st.k,txt:ti('po7_st_part',{r:po9Cnt(r,k.f),q:k.c+' '+k.n,f:po9Cnt(q3((+l.q||0)-r),k.f)})};
+    if(st.k==='over')return {k:st.k,txt:ti('po7_st_over',{r:po9Cnt(r,k.f),q:k.c+' '+k.n})};}}catch(_){}
+  return st;};}
+{const _h=po7RowHTML;po7RowHTML=function(o,i,hasParts){
+  try{const l=o&&o.lines&&o.lines[i],k=po9On()&&l?po9Pk(l):null,p=k?po7Prod(l):null;
+    if(k&&p){const on=PO7.m[i]!=null,st=po7RowState(l,PO7.m[i],on),nm=PO9_NM0(l),v=on&&PO7.m[i]!==''?po9Cnt(po7Num(PO7.m[i]),k.f):'';
+      const sub=ti(hasParts?'po9_pend':'po9_ord',{c:k.c,n:k.n,f:qtyLoc(k.f),q:qtyLoc(+l.q||0),u:po9Units(p,+l.q||0)})+' · '+money(k.p)+' c/u';
+      return `<div class="row po7r po9r ${st.k}${on?' on':''}" data-po7i="${i}"><div class="po7hit" data-po7="ck"><button type="button" class="po7ck" role="checkbox" aria-checked="${on}" aria-label="${exEsc(t('po7_recv')+': '+nm)}">${PO7_CK}</button>
+    <div class="po7m"><div class="t">${exEsc(nm)}</div><div class="s">${exEsc(sub)}</div><div class="po7st">${exEsc(st.txt)}</div></div></div>
+    <label class="po7f po9f"><span>${exEsc(ti('po9_recv',{n:k.n}))}</span><input class="po7q num" id="po9q_${i}" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" data-case="keep" value="${exEsc(v)}"><input type="hidden" id="po7q_${i}" value=""></label></div>`;}}
+  catch(e){try{console.error('mods263 fila de recepción',e);}catch(_){}}
+  return _h.apply(this,arguments);};}
+{const _u=po7RowUpd;po7RowUpd=function(o,i){const r=_u.apply(this,arguments);
+  try{const el=document.getElementById('po9q_'+i),l=o&&o.lines&&o.lines[i],k=l?po9Pk(l):null;
+    if(el&&k&&document.activeElement!==el){const v=PO7.m[i];el.value=(v==null||v==='')?'':po9Cnt(po7Num(v),k.f);}}catch(_){}
+  return r;};}
+{const _f=po7Focus;po7Focus=function(i){const el=document.getElementById('po9q_'+i);if(!el)return _f.apply(this,arguments);
+  try{el.scrollIntoView({block:'center'});}catch(_){}try{el.focus();el.select();}catch(_){}};}
+(function(){const dlg=document.getElementById('quotedlg');if(!dlg)return;const mine=el=>!!el&&/^po9q_\d+$/.test(el.id||'');
+  /* «Recibido» en presentaciones enteras; la marca se guarda en unidad base, como las demás */
+  dlg.addEventListener('input',e=>{const el=e.target;if(!mine(el))return;const o=po7Cur();if(!o)return;const i=+el.id.slice(5),l=o.lines&&o.lines[i],k=l?po9Pk(l):null;if(!k)return;po7Need(o);
+    const raw=el.value,tx=raw.replace(/\D/g,'').slice(0,7);if(tx!==raw)el.value=tx;
+    PO7.m[i]=tx===''?'':po7Fill(q3((+tx)*k.f));po7MarksPut(o,PO7.m);po7RowUpd(o,i);});
+  dlg.addEventListener('keydown',e=>{if(e.key!=='Enter'||!mine(e.target))return;e.preventDefault();try{e.target.blur();}catch(_){}});
+  const kb=()=>{try{const el=document.activeElement,body=document.getElementById('quoteBody'),vv=window.visualViewport;if(!body)return;
+    const on=mine(el),h=on&&vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
+    if(on||body.dataset.po9pad){body.style.paddingBottom=h>80?Math.round(h+30)+'px':'';body.dataset.po9pad=h>80?'1':'';}
+    if(!on)return;const r=el.getBoundingClientRect(),b=body.getBoundingClientRect(),lo=b.top+6,hi=Math.min(b.bottom,vv?vv.offsetTop+vv.height:b.bottom)-12;
+    if(hi-lo>60&&(r.top<lo||r.bottom>hi))body.scrollTop+=Math.round((r.top+r.bottom)/2-(lo+hi)/2);}catch(_){}};
+  dlg.addEventListener('focusin',e=>{const el=e.target;if(!mine(el))return;try{el.select();}catch(_){}setTimeout(()=>{try{if(document.activeElement===el&&el.value)el.select();}catch(_){}},90);setTimeout(kb,350);setTimeout(kb,800);});
+  dlg.addEventListener('focusout',e=>{if(mine(e.target))setTimeout(kb,220);});
+  try{if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{const b=document.getElementById('quoteBody');if(mine(document.activeElement)||(b&&b.dataset.po9pad))kb();});}catch(_){}
+})();
+/* el resumen antes de pasar a Compras, en la presentación de cada línea */
+{const _s=po7SumTxt;po7SumTxt=function(o,full,part,left){
+  try{if(po9On()&&o&&PO7.id===o.id&&(o.lines||[]).some(l=>po9Pk(l))){const F=[],A=[],E=[];
+    (o.lines||[]).forEach((l,i)=>{const k=po9Pk(l),f=k?k.f:1,q=q3((+l.q||0)/f),on=PO7.m[i]!=null,r=on?q3(po7Num(PO7.m[i])/f):0,x={n:PO9_NM0(l)+(k?' ('+po9Lbl(k)+')':''),q,r};
+      if(!on)E.push(x);else if(r<q)A.push(x);else F.push(x);});
+    return _s.call(this,o,F,A,E);}}catch(_){}
+  return _s.apply(this,arguments);};}
+/* lo marcado en cada línea viaja con la recepción: si el mismo producto está en dos presentaciones, cada línea descuenta lo suyo */
+{const _r=poReceive;poReceive=async function(){let snap=null;
+  try{const o=state.poOpen?poById(state.poOpen):null;if(o&&(o.lines||[]).some(l=>l&&l.pk)){const m={};if(PO7.id===o.id)Object.keys(PO7.m).forEach(i=>{const v=po7Num(PO7.m[i]);if(v>0)m[i]=v;});snap={oid:o.id,m};}}catch(_){}
+  const r=await _r.apply(this,arguments);
+  try{if(snap&&!state.poMode&&state.purchFromPO!=null&&''+state.purchFromPO===''+snap.oid){state.po9Rc=snap;try{saveCartDraft();}catch(_){}}}catch(_){}
+  return r;};}
+let PO9_RC=null;
+{const _sc=saveCompra;saveCompra=function(){
+  try{const rc=state.po9Rc;PO9_RC=rc&&rc.oid!=null&&state.purchFromPO!=null&&''+rc.oid===''+state.purchFromPO?{oid:rc.oid,m:{...(rc.m||{})}}:null;}catch(_){PO9_RC=null;}
+  try{return _sc.apply(this,arguments);}finally{PO9_RC=null;}};}
+/* ---- reparto de lo recibido entre las líneas de una orden CON presentaciones (las demás órdenes: el reparto de siempre) ---- */
+{const _k=po7K;po7K=function(x){const k=_k.apply(this,arguments);return x&&x.pid!=null&&x.pk&&x.pk.id!=null&&+x.pk.f>0?k+'~'+x.pk.id:k;};}
+function po9HasPk(A){return (A||[]).some(l=>l&&l.pk&&l.pk.id!=null&&+l.pk.f>0);}
+function po9Split(o,qm,cm,rc){const L=o.lines||[],av=new Map(qm),PR=L.map(l=>po7Prod(l)),give=L.map(()=>0);let any=false;
+  const take=(i,max)=>{const p=PR[i];if(!p||!(max>0))return;const a=+av.get(p.id)||0,d=q3(Math.min(a,max));if(d>0){give[i]=q3(give[i]+d);av.set(p.id,q3(a-d));}};
+  if(rc)L.forEach((l,i)=>{const m=+rc[i]||0;if(m>0)take(i,Math.min(m,+l.q||0));});   /* primero, cada línea lo que se marcó en ella */
+  L.forEach((l,i)=>take(i,q3((+l.q||0)-give[i])));   /* luego, lo que sobre, en el orden de la orden (como siempre) */
+  const got=[],left=[],first=new Map();
+  L.forEach((l,i)=>{const p=PR[i],q=+l.q||0,d=give[i],k=po9Pk0(l);
+    if(p&&d>0){any=true;const g={pid:p.id,key:p.key||l.key||'',name:l.name||p.name,q:d,d,cost:cm&&cm.has(p.id)?cm.get(p.id):(+l.cost||0),oc:+l.cost||0};if(k)g.pk={id:k.id,n:k.n,f:k.f,p:k.p};
+      const kk=po7K(g),ex=got.find(x=>po7K(x)===kk);if(ex){ex.q=q3(ex.q+d);ex.d=q3(ex.d+d);}else{got.push(g);if(!first.has(p.id))first.set(p.id,g);}}
+    const rem=q3(q-d);if(rem>0)left.push(po9Line(l,rem));});
+  av.forEach((a,pid)=>{if(a>0){const g=first.get(pid);if(g)g.q=q3(g.q+a);}});   /* lo que llegó de más se anota como recibido, pero no descuenta nada */
+  return {got,left,any};}
+{const _s=po7Split;po7Split=function(o,qm,cm){
+  if(o&&po9HasPk(o.lines)){try{return po9Split(o,qm,cm,PO9_RC&&''+PO9_RC.oid===''+o.id?PO9_RC.m:null);}catch(e){try{console.error('mods263 reparto',e);}catch(_){}}}
+  return _s.apply(this,arguments);};}
+/* la compra final de una orden recibida: sus renglones conservan la presentación */
+{const _f=po7Fin;po7Fin=function(o){const r=_f.apply(this,arguments);
+  try{if(r&&Array.isArray(r.items)&&o&&Array.isArray(o.lines))r.items.forEach((it,i)=>{const k=po9Pk0(o.lines[i]);if(k&&it)it.pk={id:k.id,n:k.n,f:k.f,p:k.p};});}catch(_){}
+  return r;};}
+/* rehacer la orden (se eliminó una compra, o dos equipos recibieron la misma orden) conservando la presentación de cada línea */
+function po9Rebuild(o,q0,D){const need=new Map();q0.forEach((e,k)=>need.set(k,e.q));
+  const L=D.slice().sort((a,b)=>(''+a.id).localeCompare(''+b.id));
+  const D2=L.map(p=>({...p,items:(p.items||[]).map(it=>{const k=po7K(it),n=need.get(k)||0,d=q3(Math.min(+it.q||0,n));need.set(k,q3(n-d));return {...it,d};})}));
+  const fromIt=(it,q)=>{const c=it.oc!=null?+it.oc:(+it.cost||0),b={pid:it.pid,key:it.key||'',name:it.name,q,cost:c};if(it.pk&&+it.pk.f>0)b.pk={id:it.pk.id,n:it.pk.n,f:+it.pk.f,p:it.pk.p!=null?+it.pk.p:po9R2(c*(+it.pk.f))};return po9Line(b,q);};
+  const lines=[];q0.forEach((e,k)=>{const q=need.get(k)||0;if(!(q>0))return;lines.push(e.l?po9Line(e.l,q):fromIt(e.it,q));});
+  const m={...o},strip=p=>{const c={...p};delete c.fin;return c;};delete m.parts;
+  if(lines.length||!D2.length){m.lines=lines;m.total=po7Total(lines);if(m.recvPurchase!=null)m.recvPurchase=null;delete m.recvId;if(D2.length)m.parts=D2.map(strip);}
+  else{const last=D2[D2.length-1],rest=D2.slice(0,-1);
+    m.lines=(last.items||[]).map(it=>fromIt(it,+it.q||0));m.total=po7Total(m.lines);
+    m.recvPurchase=last.folio;if(last.fin&&(''+last.id)==='f'+last.folio)delete m.recvId;else m.recvId=last.id;if(rest.length)m.parts=rest.map(strip);}
+  return m;}
+{const _r=po7Rebuild;po7Rebuild=function(o,q0,D){
+  try{let pk=po9HasPk(o&&o.lines)||(D||[]).some(p=>po9HasPk(p&&p.items));if(!pk&&q0&&typeof q0.forEach==='function')q0.forEach(e=>{if(e&&((e.l&&e.l.pk)||(e.it&&e.it.pk)))pk=true;});
+    if(pk)return po9Rebuild(o,q0,D);}catch(e){try{console.error('mods263 rehacer la orden',e);}catch(_){}}
+  return _r.apply(this,arguments);};}
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .po9chips{margin:2px 0 8px}
+  .po9eq{font-size:12.5px;line-height:1.45;color:var(--muted);margin:6px 0 2px;overflow-wrap:anywhere}
+  .po9eq b{color:var(--ink)}
+  .po9x{margin:10px 0 2px;padding:10px 0 0;border-top:1px dashed var(--line)}
+  .po9xh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:13.5px;color:var(--ink)}
+  .po9xh .pkf{font-weight:500;color:var(--muted)}
+  .pcico.po9ico{grid-template-columns:auto 1fr auto;column-gap:8px}
+  .pcico.po9ico .pcic-m{justify-self:start}
+  .po9lk{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:0 6px;border:0;background:none;color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border-radius:8px;white-space:nowrap}
+  .po9lk svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .po9lk:active{background:var(--sel)}
+  .po9from{font-size:12.5px;line-height:1.4;color:var(--muted);margin:2px 0 6px;overflow-wrap:anywhere}
+  .po9f span{max-width:104px;text-align:right;overflow-wrap:anywhere;line-height:1.2}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

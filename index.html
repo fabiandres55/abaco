@@ -9112,7 +9112,7 @@ function scClientes(){
   const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
   const rows=shown.map(c=>{
     const acts=[
-      c.address?`<a class="cli-act" href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" rel="noopener">${svg(IC_PIN)}</a>`:'',
+      (c.address||(typeof cgHas==='function'&&cgHas(c)))?`<a class="cli-act" href="${(typeof cgMap==='function'&&cgMap(c))||('https://maps.google.com/?q='+encodeURIComponent(c.address))}" target="_blank" rel="noopener">${svg(IC_PIN)}</a>`:'',
       c.phone?`<a class="cli-act" href="tel:${(''+c.phone).replace(/[^0-9+]/g,'')}">${svg(IC_PHONE)}</a>`:'',
       c.email?`<a class="cli-act" href="mailto:${exEsc(c.email)}">${svg(IC_MAIL)}</a>`:''
     ].join('');
@@ -9244,8 +9244,8 @@ function saveClient(){
   const g=k=>{const el=document.getElementById('cf_'+k);return el?el.value.trim():'';};
   const name=g('cli_name');if(!name){toast(t('cli_need_name'));return;}
   const data={name,alias:g('cli_alias'),phone:g('cli_phone'),email:g('cli_email'),address:g('cli_address'),notes:g('cli_notes')};
-  if(state.cliEdit){const c=cliById(state.cliEdit);if(c){const old=(''+(c.name||'')).trim();Object.assign(c,data);if(old&&old!==name)cliRenameRefs(c.id,old,name);}}
-  else state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e3),...data});
+  if(state.cliEdit){const c=cliById(state.cliEdit);if(c){const old=(''+(c.name||'')).trim();Object.assign(c,data,typeof cgExtra==='function'?cgExtra():{});if(old&&old!==name)cliRenameRefs(c.id,old,name);}}
+  else state.clients.push({id:'C'+Date.now()+Math.floor(Math.random()*1e3),...data,...(typeof cgExtra==='function'?cgExtra():{})});   /* mods264 */
   persist();closeCli();render();toast(t('cli_saved'));
 }
 function delClient(){if(!state.cliEdit)return;state.clients=state.clients.filter(c=>c.id!==state.cliEdit);sbIntentEmpty('clients');state.cliEdit=null;persist();closeCli();render();toast(t('cli_deleted'));}
@@ -17313,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261114223345';
+const APP_VERSION='20261115060127';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -20141,6 +20141,178 @@ function po9Rebuild(o,q0,D){const need=new Map();q0.forEach((e,k)=>need.set(k,e.
   .po9lk:active{background:var(--sel)}
   .po9from{font-size:12.5px;line-height:1.4;color:var(--muted);margin:2px 0 6px;overflow-wrap:anywhere}
   .po9f span{max-width:104px;text-align:right;overflow-wrap:anywhere;line-height:1.2}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods264 (2026-11-14): FORMULARIO DE REGISTRO DE CLIENTES ====
+   Pedido de Fabio (14-nov, documento «Nueva función: formulario de registro de clientes»); «Autorizo» con las seis recomendaciones:
+   1) «Nombre del negocio» es un campo NUEVO (el Alias queda como está) · 2) Alias e Información adicional siguen, opcionales, al final ·
+   3) «Agregar cliente» desde la venta y desde contactos usan el mismo formulario y exigen lo mismo · 4) las etiquetas siguen la regla
+   de mayúsculas de la app (el correo no) · 5) las etiquetas no se borran ni se renombran · 6) el ícono de mapa de la lista abre el
+   punto GPS si el cliente lo tiene; si no, la dirección como hoy.
+   QUÉ HACE
+   - Formulario (crear, ver y editar son el mismo): Nombre del cliente* · Nombre del negocio* · Etiqueta (desplegable + «Añadir etiqueta»)
+     · Teléfono · Correo · Dirección · Barrio · Localidad o ruta · Ubicación (GPS) · Alias · Información adicional.
+   - No guarda sin nombre del cliente ni nombre del negocio (solo espacios no vale); marca el campo que falta y no borra nada.
+   - Teléfono: solo números y un + al inicio. Correo: formato válido. Un valor viejo que no se tocó no se rechaza ni se reescribe.
+   - Etiquetas: DETAL, MAYORISTA y E-COMMERCE de fábrica; las nuevas quedan en los ajustes de la tienda (receipt.opts.cliTags, que ya se
+     sincroniza). Ni vacías ni repetidas (sin distinguir mayúsculas ni tildes).
+   - Ubicación: navigator.geolocation; guarda lat, lng y la fecha; «Ver en mapa» = enlace de Google Maps (sin clave); volver a tomar y quitar.
+   CÓMO SE GUARDA (dentro de cada cliente, sin tablas nuevas): biz, tag, hood, route, loc={lat,lng,acc,at}. Los clientes de antes no se
+   reescriben; se siguen usando sin nombre de negocio y la app lo pide solo al editarlos.
+   Interruptor por equipo: localStorage 'abanico.cg'='0' deja el formulario como antes (los datos nuevos de un cliente se conservan). */
+(function(){try{
+  Object.assign(I18N.es,{cg_name:'Nombre del cliente',cg_biz:'Nombre del negocio',cg_tag:'Etiqueta del cliente',cg_tag_none:'Sin etiqueta',cg_tag_add:'Añadir etiqueta',
+    cg_tag_ask:'Nombre de la nueva etiqueta',cg_tag_empty:'Escribe el nombre de la etiqueta.',cg_tag_dup:'La etiqueta {n} ya existe. Quedó seleccionada.',cg_tag_ok:'Etiqueta {n} creada',
+    cg_hood:'Barrio',cg_route:'Localidad o ruta',cg_loc:'Ubicación',cg_loc_take:'Tomar ubicación',cg_loc_again:'Volver a tomar',cg_loc_del:'Quitar',cg_loc_map:'Ver en mapa',
+    cg_loc_busy:'Buscando la ubicación…',cg_loc_new:'Ubicación tomada · {d}. Se guarda al tocar Guardar.',cg_loc_saved:'Ubicación guardada · {d}',cg_loc_acc:'Precisión: {m} m',
+    cg_loc_hint:'Se guarda el lugar donde está este dispositivo en este momento: tómala estando en el negocio del cliente.',
+    cg_loc_denied:'No se pudo tomar la ubicación: el permiso de ubicación está negado. Actívalo para esta app en los ajustes del dispositivo. Puedes guardar el cliente sin ubicación.',
+    cg_loc_off:'No se pudo tomar la ubicación: el GPS está apagado o no hay señal. Enciende la ubicación del dispositivo e inténtalo de nuevo. Puedes guardar el cliente sin ubicación.',
+    cg_loc_time:'No se pudo tomar la ubicación: el dispositivo tardó demasiado en encontrarla. Inténtalo de nuevo en un lugar con mejor señal. Puedes guardar el cliente sin ubicación.',
+    cg_loc_none:'Este dispositivo o navegador no permite tomar la ubicación. Puedes guardar el cliente sin ubicación.',
+    cg_req:'Obligatorio',cg_opt:'opcional',cg_need_name:'Escribe el nombre del cliente.',cg_need_biz:'Escribe el nombre del negocio.',cg_bad_phone:'El teléfono solo acepta números, y el signo + al inicio.',
+    cg_bad_email:'El correo no tiene un formato válido (ejemplo: nombre@correo.com).',cg_fix:'Revisa los campos marcados'});
+  Object.assign(I18N.en,{cg_name:'Client name',cg_biz:'Business name',cg_tag:'Client tag',cg_tag_none:'No tag',cg_tag_add:'Add tag',
+    cg_tag_ask:'Name of the new tag',cg_tag_empty:'Type the tag name.',cg_tag_dup:'The tag {n} already exists. It is now selected.',cg_tag_ok:'Tag {n} created',
+    cg_hood:'Neighborhood',cg_route:'Area or route',cg_loc:'Location',cg_loc_take:'Get location',cg_loc_again:'Get again',cg_loc_del:'Remove',cg_loc_map:'View on map',
+    cg_loc_busy:'Finding the location…',cg_loc_new:'Location taken · {d}. It is saved when you tap Save.',cg_loc_saved:'Location saved · {d}',cg_loc_acc:'Accuracy: {m} m',
+    cg_loc_hint:'It saves the place where this device is right now: take it while you are at the client\'s business.',
+    cg_loc_denied:'Could not get the location: the location permission is denied. Turn it on for this app in the device settings. You can save the client without a location.',
+    cg_loc_off:'Could not get the location: GPS is off or there is no signal. Turn on the device location and try again. You can save the client without a location.',
+    cg_loc_time:'Could not get the location: the device took too long to find it. Try again where the signal is better. You can save the client without a location.',
+    cg_loc_none:'This device or browser cannot get the location. You can save the client without a location.',
+    cg_req:'Required',cg_opt:'optional',cg_need_name:'Type the client name.',cg_need_biz:'Type the business name.',cg_bad_phone:'The phone only accepts digits, and a + sign at the start.',
+    cg_bad_email:'The email format is not valid (example: name@mail.com).',cg_fix:'Check the marked fields'});
+}catch(_){}})();
+function cgOn(){try{return localStorage.getItem('abanico.cg')!=='0';}catch(_){return true;}}
+const CG_TAGS0=['DETAL','MAYORISTA','E-COMMERCE'];
+const CG_PIN='<path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/>';
+let CG={loc:null,loc0:null,tok:0,ph0:'',em0:''};   /* estado del formulario abierto */
+function cgEsc(v){return (''+(v==null?'':v)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function cgUp(v){return (''+(v==null?'':v)).trim().replace(/\s+/g,' ').toLocaleUpperCase('es-CO');}
+/* etiquetas de la tienda: las de fábrica + las creadas (ajustes de la tienda) */
+function cgTags(){const ex=(state.receipt&&state.receipt.opts&&Array.isArray(state.receipt.opts.cliTags))?state.receipt.opts.cliTags:[];const seen=new Set(),out=[];
+  CG_TAGS0.concat(ex).forEach(x=>{const n=cgUp(x);if(!n)return;const k=fold(n);if(seen.has(k))return;seen.add(k);out.push(n);});return out;}
+function cgTagFind(n){const k=fold(cgUp(n));return cgTags().find(x=>fold(x)===k)||null;}
+function cgLocOk(l){return !!l&&typeof l==='object'&&isFinite(+l.lat)&&isFinite(+l.lng)&&Math.abs(+l.lat)<=90&&Math.abs(+l.lng)<=180&&!(l.lat===''||l.lng==='');}
+function cgHas(c){return cgOn()&&!!c&&cgLocOk(c.loc);}
+function cgMapOf(l){return 'https://maps.google.com/?q='+(+l.lat).toFixed(6)+','+(+l.lng).toFixed(6);}
+function cgMap(c){return cgHas(c)?cgMapOf(c.loc):'';}
+function cgWhen(at){try{const d=new Date(at);if(isNaN(d))return '';const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}catch(_){return '';}}
+function cgEl(k){return document.getElementById('cf_'+k);}
+/* ---- la sección de Ubicación ---- */
+function cgLocHTML(st,msg){const l=CG.loc,has=cgLocOk(l);let body='';
+  if(st==='busy')body=`<div class="cg-st cg-busy" id="cgLocSt" role="status"><span class="cg-spin"></span>${t('cg_loc_busy')}</div>`;
+  else{
+    if(has){const nuevo=!(CG.loc0&&CG.loc0.at===l.at&&+CG.loc0.lat===+l.lat&&+CG.loc0.lng===+l.lng);
+      body+=`<div class="cg-st cg-ok" id="cgLocSt" role="status"><b>${ti(nuevo?'cg_loc_new':'cg_loc_saved',{d:cgEsc(cgWhen(l.at))})}</b><span class="cg-co">${(+l.lat).toFixed(6)}, ${(+l.lng).toFixed(6)}${l.acc?' · '+ti('cg_loc_acc',{m:Math.round(+l.acc)}):''}</span>
+        <a class="cg-map" id="cgLocMap" href="${cgMapOf(l)}" target="_blank" rel="noopener">${svg(CG_PIN)}${t('cg_loc_map')}</a></div>`;}
+    if(msg)body+=`<div class="cg-st cg-err" id="cgLocErr" role="alert">${cgEsc(msg)}</div>`;
+  }
+  const btns=st==='busy'?'':(has?`<div class="cg-row"><button type="button" class="cg-b" data-cg="loc">${svg(CG_PIN)}${t('cg_loc_again')}</button><button type="button" class="cg-b cg-del" data-cg="locdel">${t('cg_loc_del')}</button></div>`
+    :`<button type="button" class="cg-b cg-main" data-cg="loc">${svg(CG_PIN)}${t('cg_loc_take')}</button>`);
+  return body+btns+`<div class="cg-hint">${t('cg_loc_hint')}</div>`;}
+function cgLocDraw(st,msg){const b=document.getElementById('cgLocBox');if(b)b.innerHTML=cgLocHTML(st,msg);}
+function cgLocTake(){const tok=++CG.tok;const fail=k=>{if(tok!==CG.tok)return;cgLocDraw('',t(k));};
+  let geo=null;try{geo=navigator.geolocation;}catch(_){}
+  if(!geo||typeof geo.getCurrentPosition!=='function'||window.isSecureContext===false)return fail('cg_loc_none');
+  cgLocDraw('busy');
+  try{geo.getCurrentPosition(p=>{if(tok!==CG.tok)return;const c=p&&p.coords;if(!c||!isFinite(c.latitude)||!isFinite(c.longitude))return fail('cg_loc_off');
+      CG.loc={lat:Math.round(c.latitude*1e6)/1e6,lng:Math.round(c.longitude*1e6)/1e6,acc:isFinite(c.accuracy)?Math.round(c.accuracy):0,at:new Date().toISOString()};cgLocDraw('');},
+    e=>{fail(e&&e.code===1?'cg_loc_denied':e&&e.code===3?'cg_loc_time':'cg_loc_off');},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+  }catch(_){fail('cg_loc_none');}}
+function cgLocDel(){CG.tok++;CG.loc=null;cgLocDraw('');}
+/* ---- el formulario: se dibuja el de siempre y se le agregan los campos nuevos, en el orden pedido ---- */
+function cgTagOpts(sel){const L=cgTags();const cur=cgUp(sel);if(cur&&!L.some(x=>fold(x)===fold(cur)))L.push(cur);
+  return `<option value="">${t('cg_tag_none')}</option>`+L.map(x=>`<option value="${cgEsc(x)}"${cur&&fold(x)===fold(cur)?' selected':''}>${cgEsc(x)}</option>`).join('');}
+function cgPatch(c){const body=document.getElementById('cliBody');if(!body)return;const F=k=>{const e=cgEl(k);return e?e.closest('.fld'):null;};
+  const fn=F('cli_name'),fa=F('cli_alias'),fp=F('cli_phone'),fe=F('cli_email'),fd=F('cli_address'),fo=F('cli_notes');if(!fn||!fa||!fp||!fe||!fd||!fo)return;
+  const wrap=fn.parentNode;wrap.classList.add('cgform');
+  const req=(f,k)=>{const l=f.querySelector('.fl');if(l)l.innerHTML=t(k)+' <i class="cg-req" aria-hidden="true">*</i>';f.classList.add('cg-rq');};
+  const opt=(f,k)=>{const l=f&&f.querySelector('.fl');if(l)l.innerHTML=(k?t(k):cgEsc(l.textContent))+' <i class="cg-opt">('+t('cg_opt')+')</i>';};
+  const mk=(id,k,val,extra)=>{const d=document.createElement('div');d.className='fld';d.innerHTML=`<span class="fl">${t(k)}</span><input autocomplete="off" class="inp" id="cf_${id}" ${extra||''} value="${cgEsc(val||'')}">`;return d;};
+  req(fn,'cg_name');
+  const fb=mk('cli_biz','cg_biz',c&&c.biz);req(fb,'cg_biz');
+  const ft=document.createElement('div');ft.className='fld';ft.innerHTML=`<span class="fl">${t('cg_tag')}</span><div class="cg-tagrow"><select class="inp" id="cf_cli_tag">${cgTagOpts(c&&c.tag)}</select>${isSeller()?'':`<button type="button" class="cg-b" data-cg="tagadd">+ ${t('cg_tag_add')}</button>`}</div>`;
+  const fh=mk('cli_hood','cg_hood',c&&c.hood),fr=mk('cli_route','cg_route',c&&c.route);
+  const fl=document.createElement('div');fl.className='fld cg-loc';fl.innerHTML=`<span class="fl">${t('cg_loc')}</span><div id="cgLocBox"></div>`;
+  [ft,fp,fe,fd,fh,fr,fl,fa,fo].forEach(f=>opt(f));
+  /* orden: nombre, negocio, etiqueta, teléfono, correo, dirección, barrio, localidad o ruta, ubicación, (alias, información adicional) */
+  const ancla=fo.nextSibling;[fn,fb,ft,fp,fe,fd,fh,fr,fl,fa,fo].forEach(f=>wrap.insertBefore(f,ancla));
+  const lg=document.createElement('div');lg.className='cg-leg';lg.innerHTML='<i class="cg-req" aria-hidden="true">*</i> '+t('cg_req');wrap.insertBefore(lg,fn);
+  const ph=cgEl('cli_phone'),em=cgEl('cli_email');ph.setAttribute('type','tel');ph.setAttribute('inputmode','tel');ph.setAttribute('autocomplete','off');em.setAttribute('type','email');em.setAttribute('inputmode','email');em.setAttribute('autocapitalize','none');em.setAttribute('spellcheck','false');
+  CG.ph0=ph.value;CG.em0=em.value;CG.tok++;CG.loc=(c&&cgLocOk(c.loc))?{lat:+c.loc.lat,lng:+c.loc.lng,acc:+c.loc.acc||0,at:c.loc.at||''}:null;CG.loc0=CG.loc?Object.assign({},CG.loc):null;cgLocDraw('');}
+{const _o=openCliForm;openCliForm=function(id){const r=_o.apply(this,arguments);try{if(cgOn())cgPatch(id?cliById(id):null);}catch(e){try{console.error('mods264',e);}catch(_){}}return r;};}
+{const _c=closeCli;closeCli=function(){CG.tok++;return _c.apply(this,arguments);};}
+/* ---- validación: marca el campo, no borra nada ---- */
+function cgMark(k,msg){const e=cgEl(k),f=e&&e.closest('.fld');if(!f)return;let m=f.querySelector('.cg-msg');if(!msg){f.classList.remove('cg-bad');if(m)m.remove();if(e)e.removeAttribute('aria-invalid');return;}
+  f.classList.add('cg-bad');e.setAttribute('aria-invalid','true');if(!m){m=document.createElement('div');m.className='cg-msg';m.setAttribute('role','alert');f.appendChild(m);}m.textContent=msg;}
+function cgPhoneOk(v){return /^\+?\d+$/.test(v);}
+function cgEmailOk(v){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);}
+function cgCheck(){if(!cgEl('cli_biz'))return true;   /* el formulario abierto es el de antes */
+  const v=k=>{const e=cgEl(k);return e?e.value.trim():'';};const bad=[];
+  const tst=(k,ok,msg)=>{if(ok)cgMark(k,'');else{cgMark(k,t(msg));bad.push(k);}};
+  tst('cli_name',!!v('cli_name'),'cg_need_name');tst('cli_biz',!!v('cli_biz'),'cg_need_biz');
+  const ph=v('cli_phone'),em=v('cli_email');
+  tst('cli_phone',!ph||ph===(''+CG.ph0).trim()||cgPhoneOk(ph),'cg_bad_phone');   /* un teléfono viejo que no se tocó no se rechaza */
+  tst('cli_email',!em||em===(''+CG.em0).trim()||cgEmailOk(em),'cg_bad_email');
+  if(!bad.length)return true;
+  const e=cgEl(bad[0]);try{e.scrollIntoView({block:'center',behavior:'instant'});}catch(_){try{e.scrollIntoView();}catch(__){}}try{e.focus({preventScroll:true});}catch(_){}
+  toast(bad.length===1?t({cli_name:'cg_need_name',cli_biz:'cg_need_biz',cli_phone:'cg_bad_phone',cli_email:'cg_bad_email'}[bad[0]]):t('cg_fix'));return false;}
+/* lo que saveClient agrega al cliente (insertado en su guardado): solo lo nuevo; un cliente que no tenía un dato y sigue sin él no gana campos vacíos */
+function cgExtra(){if(!cgEl('cli_biz'))return {};const c=state.cliEdit?cliById(state.cliEdit):null,o={};
+  const put=(k,val)=>{if(val||(c&&k in c))o[k]=val;};
+  o.biz=cgUp(cgEl('cli_biz').value);
+  const sel=cgEl('cli_tag');put('tag',sel?cgUp(sel.value):'');
+  put('hood',cgUp((cgEl('cli_hood')||{}).value));put('route',cgUp((cgEl('cli_route')||{}).value));
+  if(cgLocOk(CG.loc))o.loc={lat:+CG.loc.lat,lng:+CG.loc.lng,acc:+CG.loc.acc||0,at:CG.loc.at||new Date().toISOString()};else if(c&&'loc' in c)o.loc=null;
+  return o;}
+/* por fuera del «agregar cliente desde la venta» (mods226): si falta algo, ese pedido no se pierde */
+{const _s=saveClient;saveClient=function(){if(cgOn()&&!cgCheck())return;return _s.apply(this,arguments);};}
+/* ---- «Añadir etiqueta» ---- */
+async function cgTagAdd(){if(isSeller())return;const raw=await appPrompt(t('cg_tag_ask'),'');if(raw==null)return;const n=cgUp(raw);
+  if(!n){await appAlert(t('cg_tag_empty'));return;}
+  const ya=cgTagFind(n);const sel=cgEl('cli_tag');
+  if(ya){if(sel){if(![...sel.options].some(o=>o.value===ya))sel.insertAdjacentHTML('beforeend',`<option value="${cgEsc(ya)}">${cgEsc(ya)}</option>`);sel.value=ya;}toast(ti('cg_tag_dup',{n:ya}));return;}
+  const ex=(state.receipt&&state.receipt.opts&&Array.isArray(state.receipt.opts.cliTags))?state.receipt.opts.cliTags.slice():[];ex.push(n);setOpt('cliTags',ex);
+  if(sel){sel.insertAdjacentHTML('beforeend',`<option value="${cgEsc(n)}">${cgEsc(n)}</option>`);sel.value=n;}toast(ti('cg_tag_ok',{n}));}
+(function(){const dlg=document.getElementById('clidlg');if(!dlg)return;
+  dlg.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-cg]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.cg;
+    if(a==='loc')return cgLocTake();if(a==='locdel')return cgLocDel();if(a==='tagadd')return cgTagAdd();},true);
+  dlg.addEventListener('input',e=>{const el=e.target;if(!el||!el.id)return;
+    if(el.id==='cf_cli_phone'){const v=el.value,n=v.replace(/[^\d+]/g,'').replace(/(?!^)\+/g,'');if(n!==v){let p=null;try{p=el.selectionStart;}catch(_){}el.value=n;try{if(p!=null){const q=Math.max(0,p-(v.length-n.length));el.setSelectionRange(q,q);}}catch(_){}}}
+    const f=el.closest&&el.closest('.fld.cg-bad');if(f&&/^cf_cli_/.test(el.id))cgMark(el.id.slice(3),'');},true);
+})();
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .cgform .cg-leg{font-size:12px;color:var(--muted);margin:-2px 0 -4px}
+  .cg-req{color:var(--red);font-style:normal;font-weight:700}
+  .cg-opt{font-style:normal;font-weight:400;color:var(--faint)}
+  .cgform .fld.cg-rq .inp{border-width:1.5px}
+  .cgform .fld.cg-bad .inp{border-color:var(--red)}
+  .cg-msg{font-size:12.5px;line-height:1.35;color:var(--red);font-weight:600}
+  .cg-tagrow{display:flex;gap:8px;align-items:stretch}
+  .cg-tagrow select{flex:1 1 0;min-width:0}
+  .cg-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-family:var(--ui);font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .cg-b svg,.cg-map svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .cg-b:active{background:var(--sel)}
+  .cg-b.cg-main{width:100%}
+  .cg-b.cg-del{color:var(--red)}
+  .cg-row{display:flex;gap:8px;flex-wrap:wrap}
+  .cg-row .cg-b{flex:1 1 0}
+  #cgLocBox{display:flex;flex-direction:column;gap:8px}
+  .cg-st{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.4;color:var(--ink);background:var(--card);display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+  .cg-st.cg-ok{border-color:var(--green)}
+  .cg-st.cg-ok b{color:var(--green);font-weight:600}
+  .cg-st.cg-err{border-color:var(--red);color:var(--red)}
+  .cg-st.cg-busy{flex-direction:row;align-items:center;gap:10px;color:var(--muted)}
+  .cg-co{font-size:12.5px;color:var(--muted)}
+  .cg-map{display:inline-flex;align-items:center;gap:6px;min-height:40px;align-self:flex-start;color:var(--ink);font-weight:600;text-decoration:underline}
+  .cg-hint{font-size:12px;line-height:1.4;color:var(--muted)}
+  .cg-spin{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);animation:cgspin .8s linear infinite}
+  @keyframes cgspin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.cg-spin{animation:none}}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

@@ -7144,7 +7144,7 @@ function saleCartHTML(){invCapCart();   /* mods245b: lo que llega de antes tambi
   const chev=svg('<path d="M6 9l6 6 6-6"/>');
   if(!state.salePay&&!state.salePayCleared&&payDef())state.salePay=payDef();   /* mods217: CONTADO si la tienda no eligió */   // forma de pago por defecto (Default)
   const fields=`
-    <div class="tagrow clirow"><div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${cob?t('required'):opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>${cliAddBtn()}</div>   <!-- mods226 -->
+    <div class="tagrow clirow"><div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${cob?t('required'):opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>${cliAddBtn()}${typeof vsSellBtn==='function'?vsSellBtn():''}</div>   <!-- mods226 -->
     <div class="cfld sellike" data-act="salepay"><span class="${state.salePay?'':'ph'}">${mxFieldLbl()||payLbl(state.salePay)||(t('sale_payform')+' '+opt)}</span>${state.salePay?`<button class="clrx" data-act="salepayclear">✕</button>`:chev}</div>
     ${opts().manualDate&&!state.editSale?`<div class="fld"><span class="fl">${t('sale_date')}</span><input autocomplete="off" class="inp" id="saleDateIn" type="date" value="${exEsc(state.saleDate||todayISO())}"></div>`:''}
     <div class="cfld tagrow"><div class="sellike tagsel" data-act="saletagpick"><span class="${state.saleTag?'':'ph'}">${state.saleTag?exEsc(state.saleTag):t('sale_label')+' '+opt}</span>${state.saleTag?`<button class="clrx" data-act="saletagclr">✕</button>`:chev}</div><button class="helpq" data-act="saletaghelp" aria-label="?">?</button></div>
@@ -11153,7 +11153,7 @@ function quoteHeadHTML(){
 }
 function quoteFieldsHTML(){
   const m=state.quoteMode||{};const opt=t('optional');
-  return `<div class="tagrow clirow"><div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>${cliAddBtn()}</div>   <!-- mods226 -->
+  return `<div class="tagrow clirow"><div class="cfld"><input class="inp" id="saleClient" autocomplete="off" placeholder="${t('sale_client')} ${opt}" value="${(state.saleClient||'').replace(/"/g,'&quot;')}"><div class="cliac" id="cliAC"></div></div>${cliAddBtn()}${typeof vsSellBtn==='function'?vsSellBtn():''}</div>   <!-- mods226 -->
     <div class="fld"><span class="fl">${t('qt_due')}</span><input autocomplete="off" class="inp" id="quoteDue" type="date" value="${exEsc(m.due||'')}"></div>
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
 }
@@ -14396,7 +14396,7 @@ try{['input','keydown','compositionupdate'].forEach(ev=>document.addEventListene
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true}];   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
+const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true}];   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases','porders'/* mods147e */,...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -16007,7 +16007,7 @@ function ntfRender(av){
   {const fb=document.querySelector('#notifdlg [data-act="ntffilter"]'),hb=document.querySelector('#notifdlg [data-act="ntfhelp"]');if(fb)fb.setAttribute('aria-label',t('ntf_filter'));if(hb)hb.setAttribute('aria-label',t('ntf_help_lbl'));}
   const avH=f==='all'?(av||[]).map(n=>{
     const act=(n.kind==='request'&&!n.done)?`<div style="display:flex;gap:6px;margin-top:9px"><button class="add-btn" data-act="approve:${n.reqId}">${t('approve')}</button><button class="add-btn" style="border-color:var(--red);color:var(--red)" data-act="deny:${n.reqId}">${t('deny')}</button></div>`:'';
-    if(n.kind==='sale'&&n.sale)return notifSaleCard(n);
+    if(n.kind==='visits'&&typeof vsNtfCard==='function')return vsNtfCard(n);   /* mods266 */if(n.kind==='sale'&&n.sale)return notifSaleCard(n);
     return `<div class="notirow ${n.read?'':'unread'}"><div class="ntext">${exEsc(n.tk?ti(n.tk,n.tp):n.text)}</div>${act}</div>`;
   }).join(''):'';
   let all=[];try{all=ntfItems().filter(x=>f==='all'||x.k===f||(f==='qt'&&x.k==='po'));}catch(_){all=[];}
@@ -16026,7 +16026,7 @@ function ntfGo(a,pinOk){const i=a.indexOf(':');const k=a.slice(0,i),id=a.slice(i
   if(k==='sale')return openSaleDet(id);
   if(k==='purch')return openPurchaseDet(id);   /* mods146b: pago programado de una compra (mods148: ya pasó por el PIN) */
   if(k==='qt'){go('quotes');return openQuote(id);}
-  if(k==='po'){go('porders');return openPO(id);}}
+  if(k==='po'){go('porders');return openPO(id);}if(k==='vis'&&typeof vsOpen==='function')return vsOpen(id);}   /* mods266 */
 // clics de la ventana: ? (ayuda), filtro y cada tarjeta (data-act ntf…); no llegan al despachador general
 (function(){const d=document.getElementById('notifdlg');if(!d)return;
   d.addEventListener('click',e=>{const b=e.target.closest('[data-act^="ntf"]');if(!b||!d.contains(b))return;e.stopPropagation();
@@ -17313,7 +17313,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261115125517';
+const APP_VERSION='20261115225703';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -20313,6 +20313,216 @@ async function cgTagAdd(){const raw=await appPrompt(t('cg_tag_ask'),'');if(raw==
   .cg-spin{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);animation:cgspin .8s linear infinite}
   @keyframes cgspin{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){.cg-spin{animation:none}}
+`;document.head.appendChild(s);}catch(_){}})();
+
+
+
+/* ==== mods266 (2026-11-15): «CONTROL DE CLIENTES» CON SEGUIMIENTO DE VISITAS ====
+   Pedido de Fabio (15-nov, documento «Nueva función: reporte "Control de clientes" con seguimiento de visitas»); «Autorizado» con las
+   ocho recomendaciones: 1) el vendedor registra la visita con un botón junto al campo Cliente de su venta o cotización · 2) solo cuentan
+   las visitas registradas y las cotizaciones de vendedor (las ventas no) · 3) el filtro «por vendedor» es quién hizo la última visita ·
+   4) los días se cuentan con la fecha del equipo, como el resto de la app · 5) un aviso por día en cada equipo del dueño (nunca en los
+   del vendedor), con los «Por visitar» y los que pasaron a «Por visitar» ese día · 6) el día que vence dice «Le toca hoy» y luego
+   «N días de atraso» · 7) el dueño corrige (fecha, nota, borrar) desde el historial de la ficha; el vendedor no toca ninguna; la visita
+   que sale de una cotización desaparece solo si se borra la cotización · 8) la pestaña «Visitas» no usa el rango de fechas ni tiene PDF.
+   QUÉ HACE
+   - Reportes: «Top clientes» se llama «Control de clientes» y trae dos pestañas: «Top clientes» (el reporte de siempre, sin cambios;
+     su PDF y su CSV conservan el nombre «Top Clientes») y «Visitas». Un botón de ajustes (solo el dueño) define «Visitar cada N días».
+   - Ficha del cliente: «Registrar visita» y el historial (de la más reciente a la más antigua); el dueño corrige.
+   - Visitas: documento nuevo `visits` de la tienda (una fila más de store_docs, sin tablas nuevas): {id,cid,cn,day,at,by:{k,id?,n?,dev?},
+     note,src:'m',del?,fix?}. Las cotizaciones de vendedor (q.tat) con cliente cuentan como visita de su día (se leen, no se copian).
+     Un cliente cuenta una visita por día. La frecuencia va en receipt.opts.visitDays (setOpt).
+   - Campana: un aviso por día y por equipo del dueño, que abre «Visitas» filtrada en «Por visitar».
+   Interruptor por equipo: localStorage 'abanico.vs'='0' (el reporte vuelve a ser «Top clientes» y no hay avisos; las visitas se conservan). */
+(function(){try{
+  Object.assign(I18N.es,{vs_rep:'Control de clientes',vs_top_old:'Top Clientes',vs_tab_top:'Top clientes',vs_tab_vis:'Visitas',vs_cfg:'Ajustes de visitas',
+    vs_every:'Visitar cada {n} días',vs_every1:'Visitar cada día',vs_unset:'Frecuencia de visitas sin definir',vs_cfg_q:'Visitar cada cuántos días (número entero, 1 o más). Déjalo vacío para quitar la frecuencia.',
+    vs_cfg_bad:'Escribe un número entero de 1 en adelante.',vs_cfg_ok:'Frecuencia guardada: cada {n} días',vs_cfg_off:'Frecuencia quitada: ya no hay avisos de visitas',vs_cfg_seller:'Solo el dueño puede cambiar la frecuencia de visitas.',
+    vs_ok:'Al día',vs_late:'Por visitar',vs_never:'Nunca visitado',vs_late_today:'Por visitar · le toca hoy',vs_late_n:'Por visitar · {n} días de atraso',vs_late_1:'Por visitar · 1 día de atraso',
+    vs_last:'Última visita: {d} · {w}',vs_ago0:'hoy',vs_ago1:'hace 1 día',vs_agoN:'hace {n} días',vs_next:'Próxima visita: {d}',vs_none:'Sin visitas registradas',
+    vs_all_tags:'Todas las etiquetas',vs_all_routes:'Todas las rutas',vs_all_by:'Todos los vendedores',vs_search:'Buscar cliente',vs_empty:'No hay clientes con estos filtros',
+    vs_open:'Abrir',vs_call:'Llamar',vs_reg:'Registrar visita',vs_reg_t:'Visitas',vs_note_q:'Visita a {n}. Nota (opcional):',vs_done:'Visita registrada',vs_already:'Este cliente ya tiene una visita hoy',
+    vs_pick_cli:'Elige primero un cliente registrado',vs_store:'Tienda',vs_from_qt:'Cotización #{n}',vs_fix:'Corregir',vs_fix_t:'Corregir la visita del {d}',vs_fix_date:'Cambiar la fecha',
+    vs_fix_note:'Cambiar la nota',vs_fix_del:'Borrar la visita',vs_fix_date_q:'Nueva fecha de la visita',vs_fix_note_q:'Nota de la visita',vs_fix_del_q:'¿Borrar la visita del {d}? No se puede deshacer.',
+    vs_bad_date:'La fecha no es válida o es futura.',vs_fixed:'Visita corregida',vs_deleted:'Visita borrada',vs_more:'Mostrar {n} más',vs_hist_more:'y {n} visitas más antiguas',
+    vs_ntf:'{n} clientes pendientes de visita',vs_ntf_1:'1 cliente pendiente de visita',vs_ntf_h:'{n} clientes pendientes de visita: {h} nuevos hoy',vs_ntf_h1:'{n} clientes pendientes de visita: 1 nuevo hoy',
+    vs_ntf_1h:'1 cliente pendiente de visita: nuevo hoy',vs_ntf_go:'Ver clientes por visitar',vs_ntf_tag:'Visitas'});
+  Object.assign(I18N.en,{vs_rep:'Customer control',vs_top_old:'Top Clients',vs_tab_top:'Top clients',vs_tab_vis:'Visits',vs_cfg:'Visit settings',
+    vs_every:'Visit every {n} days',vs_every1:'Visit every day',vs_unset:'Visit frequency not set',vs_cfg_q:'Visit every how many days (whole number, 1 or more). Leave it empty to remove the frequency.',
+    vs_cfg_bad:'Type a whole number from 1 up.',vs_cfg_ok:'Frequency saved: every {n} days',vs_cfg_off:'Frequency removed: no more visit alerts',vs_cfg_seller:'Only the owner can change the visit frequency.',
+    vs_ok:'Up to date',vs_late:'To visit',vs_never:'Never visited',vs_late_today:'To visit · due today',vs_late_n:'To visit · {n} days late',vs_late_1:'To visit · 1 day late',
+    vs_last:'Last visit: {d} · {w}',vs_ago0:'today',vs_ago1:'1 day ago',vs_agoN:'{n} days ago',vs_next:'Next visit: {d}',vs_none:'No visits recorded',
+    vs_all_tags:'All tags',vs_all_routes:'All routes',vs_all_by:'All sellers',vs_search:'Search client',vs_empty:'No clients with these filters',
+    vs_open:'Open',vs_call:'Call',vs_reg:'Record visit',vs_reg_t:'Visits',vs_note_q:'Visit to {n}. Note (optional):',vs_done:'Visit recorded',vs_already:'This client already has a visit today',
+    vs_pick_cli:'Pick a registered client first',vs_store:'Store',vs_from_qt:'Quote #{n}',vs_fix:'Correct',vs_fix_t:'Correct the visit of {d}',vs_fix_date:'Change the date',
+    vs_fix_note:'Change the note',vs_fix_del:'Delete the visit',vs_fix_date_q:'New date of the visit',vs_fix_note_q:'Visit note',vs_fix_del_q:'Delete the visit of {d}? It cannot be undone.',
+    vs_bad_date:'The date is not valid or is in the future.',vs_fixed:'Visit corrected',vs_deleted:'Visit deleted',vs_more:'Show {n} more',vs_hist_more:'and {n} older visits',
+    vs_ntf:'{n} clients pending a visit',vs_ntf_1:'1 client pending a visit',vs_ntf_h:'{n} clients pending a visit: {h} new today',vs_ntf_h1:'{n} clients pending a visit: 1 new today',
+    vs_ntf_1h:'1 client pending a visit: new today',vs_ntf_go:'See clients to visit',vs_ntf_tag:'Visits'});
+  if(vsOn()){I18N.es.rep_top_clients=I18N.es.vs_rep;I18N.en.rep_top_clients=I18N.en.vs_rep;try{REP_TILE_BR.es.top_clients='Control de<br>clientes';}catch(_){}}
+}catch(_){}})();
+function vsOn(){try{return localStorage.getItem('abanico.vs')!=='0';}catch(_){return true;}}
+const VS_IC={pin:'<path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z"/><path d="M9 10l2 2 4-4"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',open:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-4 3.2-6 7-6s7 2 7 6"/>'};
+function vsEsc(v){return (''+(v==null?'':v)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* días calendario entre dos fechas AAAA-MM-DD (b − a), con la fecha del equipo como el resto de la app */
+function vsDays(a,b){const p=s=>{const q=(''+s).split('-').map(Number);return Date.UTC(q[0],q[1]-1,q[2]);};return Math.round((p(b)-p(a))/864e5);}
+function vsN(){const v=(state.receipt&&state.receipt.opts||{}).visitDays;const n=+v;return v!=null&&v!==''&&Number.isInteger(n)&&n>=1?n:null;}
+function vsWho(by){if(!by)return '—';return by.k==='store'?t('vs_store'):(''+(by.n||'—'));}
+/* todas las visitas que cuentan, por cliente: las registradas y las cotizaciones de vendedor; una por día (gana la registrada más reciente) */
+function vsIndex(){const by=new Map();const add=e=>{if(!e.cid||!/^\d{4}-\d\d-\d\d$/.test(e.day||''))return;let m=by.get(e.cid);if(!m){m=new Map();by.set(e.cid,m);}
+    const o=m.get(e.day);if(!o||(o.src!=='m'&&e.src==='m')||(o.src===e.src&&(''+e.at)>(''+o.at)))m.set(e.day,e);};
+  (state.visits||[]).forEach(v=>{if(v&&!v.del)add({...v,src:'m'});});
+  quotesLive().forEach(q=>{if(!q.tat||!q.client||!q.date)return;const c=cliByName(q.client);if(!c)return;add({cid:c.id,day:q.date,at:q.date+'T00:00:00',by:{k:'seller',id:q.tat.by,n:q.tat.n},src:'qt',folio:q.folio,qid:q.id});});
+  const out=new Map();by.forEach((m,cid)=>out.set(cid,[...m.values()].sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:(''+b.at).localeCompare(''+a.at))));return out;}
+/* estado de un cliente con N días: ok · late (con atraso) · never; sin N: solo la última visita */
+function vsStat(list,N,today){const last=list&&list[0];if(!last)return {st:'never'};const d=vsDays(last.day,today);
+  if(!N)return {st:'',last,days:d};const next=isoAdd(last.day,N);return d<N?{st:'ok',last,days:d,next}:{st:'late',last,days:d,next,late:d-N};}
+function vsRows(){const N=vsN(),today=todayISO(),ix=vsIndex();
+  return (state.clients||[]).filter(c=>c&&!c.del&&c.id!=null).map(c=>({c,...vsStat(ix.get(c.id),N,today)}));}
+function vsCounts(rows){const o={ok:0,late:0,never:0};rows.forEach(r=>{if(o[r.st]!=null)o[r.st]++;});return o;}
+/* ---- registrar, corregir ---- */
+async function vsRegister(cid){const c=cliById(cid);if(!c)return false;const today=todayISO();
+  if((vsIndex().get(cid)||[]).some(e=>e.day===today)){toast(t('vs_already'));return false;}
+  const note=await appPrompt(ti('vs_note_q',{n:c.name||''}),'');if(note==null)return false;
+  if((vsIndex().get(cid)||[]).some(e=>e.day===today)){toast(t('vs_already'));return false;}
+  let by;if(isSeller()){const s=(state.profile&&state.profile.seller)||{};by={k:'seller',id:s.id||null,n:(''+(s.name||'')).slice(0,60)};}else{by={k:'store'};try{by.dev=deviceId();}catch(_){}}
+  const v={id:'V'+Date.now().toString(36)+Math.floor(Math.random()*1e4),cid,cn:(''+(c.name||'')).slice(0,80),day:today,at:new Date().toISOString(),by,src:'m'};
+  const n=(''+note).trim();if(n)v.note=n.slice(0,300);
+  state.visits=(state.visits||[]).concat([v]);persist();toast(t('vs_done'));vsRefresh(cid);return true;}
+async function vsFix(vid){if(isSeller())return;const v=(state.visits||[]).find(x=>x&&x.id===vid&&!x.del);if(!v)return;
+  const k=await appMenu(ti('vs_fix_t',{d:v.day}),[t('vs_fix_date'),t('vs_fix_note'),t('vs_fix_del')]);if(k==null||k<0)return;
+  const mark=()=>{const f={at:new Date().toISOString()};try{f.dev=deviceId();}catch(_){}v.fix=f;};
+  if(k===0){const d=await appPrompt(t('vs_fix_date_q'),v.day,'date');if(d==null)return;const s=(''+d).trim();if(!/^\d{4}-\d\d-\d\d$/.test(s)||s>todayISO()){await appAlert(t('vs_bad_date'));return;}
+    if(s===v.day)return;v.day=s;mark();}
+  else if(k===1){const n=await appPrompt(t('vs_fix_note_q'),v.note||'');if(n==null)return;const s=(''+n).trim();if(s)v.note=s.slice(0,300);else delete v.note;mark();}
+  else if(k===2){if(!await appConfirm(ti('vs_fix_del_q',{d:v.day})))return;v.del=true;mark();}
+  state.visits=(state.visits||[]).slice();persist();toast(t(k===2?'vs_deleted':'vs_fixed'));vsRefresh(v.cid);}
+function vsRefresh(cid){const b=document.getElementById('vsCli');if(b&&b.dataset.cid===''+cid){const c=cliById(cid);if(c)b.outerHTML=vsCliHTML(c);}
+  if(state.screen==='repview'&&!document.getElementById('clidlg').classList.contains('on'))render();}
+/* ---- la ficha del cliente: «Registrar visita» y el historial ---- */
+function vsCliHTML(c){const list=vsIndex().get(c.id)||[];const N=vsN(),today=todayISO(),s=vsStat(list,N,today);const own=!isSeller();
+  const badge=s.st?vsBadge(s):'';
+  const items=list.slice(0,30).map(e=>{const tm=e.src==='m'&&e.at&&e.at.length>16?' '+new Date(e.at).toTimeString().slice(0,5):'';
+    return `<div class="vs-h"><div class="vs-hm"><b class="num">${vsEsc(e.day)}${tm}</b> · ${vsEsc(vsWho(e.by))}${e.src==='qt'?' · '+vsEsc(ti('vs_from_qt',{n:e.folio})):''}${e.note?`<div class="vs-hn">${vsEsc(e.note)}</div>`:''}</div>${own&&e.src==='m'?`<button type="button" class="vs-lk" data-vs="fix:${vsEsc(e.id)}">${t('vs_fix')}</button>`:''}</div>`;}).join('');
+  return `<div class="vs-cli" id="vsCli" data-cid="${vsEsc(c.id)}"><div class="vs-ch"><span>${t('vs_reg_t')}</span>${badge}</div>
+    <button type="button" class="vs-b vs-main" data-vs="reg:${vsEsc(c.id)}">${svg(VS_IC.pin)}${t('vs_reg')}</button>
+    ${items?`<div class="vs-hl">${items}${list.length>30?`<div class="vs-hn">${ti('vs_hist_more',{n:list.length-30})}</div>`:''}</div>`:`<div class="vs-hn">${t('vs_none')}</div>`}</div>`;}
+{const _q=cliQuickHTML;cliQuickHTML=function(c){const h=_q.apply(this,arguments);try{if(vsOn()&&c&&c.id!=null)return h+vsCliHTML(c);}catch(e){try{console.error('mods266',e);}catch(_){}}return h;};}
+/* ---- el vendedor: botón junto al campo Cliente de su venta y de su cotización ---- */
+function vsSellBtn(){if(!vsOn()||!isSeller())return '';return `<button type="button" class="vs-sb" data-vs="sell" aria-label="${t('vs_reg')}" title="${t('vs_reg')}">${svg(VS_IC.pin)}</button>`;}
+async function vsSell(){const i=document.getElementById('saleClient');const c=cliByName((i&&i.value)||state.saleClient);if(!c){toast(t('vs_pick_cli'));return;}await vsRegister(c.id);}
+/* ---- Reportes: «Control de clientes» con dos pestañas ---- */
+function vsBadge(r){if(r.st==='ok')return `<span class="vs-st ok">${t('vs_ok')}</span>`;if(r.st==='never')return `<span class="vs-st nv">${t('vs_never')}</span>`;
+  if(r.st==='late')return `<span class="vs-st late">${r.late===0?t('vs_late_today'):r.late===1?t('vs_late_1'):ti('vs_late_n',{n:r.late})}</span>`;return '';}
+function vsTabsHTML(tab){const N=vsN(),own=!isSeller();
+  return `<div class="vs-tabs"><div class="vs-seg"><button type="button" class="${tab==='top'?'on':''}" data-vs="tab:top">${t('vs_tab_top')}</button><button type="button" class="${tab==='vis'?'on':''}" data-vs="tab:vis">${t('vs_tab_vis')}</button></div>
+    ${own?`<button type="button" class="vs-cfg" data-vs="cfg" aria-label="${t('vs_cfg')}" title="${t('vs_cfg')}">${svg(VS_IC.gear)}</button>`:''}</div>
+    <div class="vs-freq">${N?(N===1?t('vs_every1'):ti('vs_every',{n:N})):t('vs_unset')}</div>`;}
+let VS_LIM=150;
+function vsFiltered(){const f=state.vsF||{};const q=fold((f.q||'').trim());const rows=vsRows();
+  return rows.filter(r=>(!f.st||r.st===f.st)&&(!f.tag||(''+(r.c.tag||''))===f.tag)&&(!f.route||(''+(r.c.route||''))===f.route)&&(!f.by||(r.last&&vsWho(r.last.by)===f.by))
+    &&(!q||fold((r.c.name||'')+' '+(r.c.biz||'')+' '+(r.c.alias||'')).includes(q)));}
+function vsSort(rows){const N=vsN(),nm=(a,b)=>(''+(a.c.name||'')).localeCompare(''+(b.c.name||''));
+  if(!N)return rows.sort((a,b)=>(a.last?0:1)-(b.last?0:1)||(b.last&&a.last?(b.last.day<a.last.day?-1:b.last.day>a.last.day?1:0):0)||nm(a,b));
+  const o={late:0,never:1,ok:2};return rows.sort((a,b)=>o[a.st]-o[b.st]||(a.st==='late'?b.late-a.late:0)||(a.st==='ok'?(a.next<b.next?-1:a.next>b.next?1:0):0)||nm(a,b));}
+function vsRowHTML(r){const c=r.c,N=vsN(),tel=c.phone?(''+c.phone).replace(/[^0-9+]/g,''):'';
+  const sub=[c.biz,c.tag,c.route].filter(Boolean).map(vsEsc).join(' · ');
+  const ago=r.last?(r.days===0?t('vs_ago0'):r.days===1?t('vs_ago1'):ti('vs_agoN',{n:r.days})):'';
+  const lv=r.last?`<div class="vs-rl">${ti('vs_last',{d:vsEsc(r.last.day),w:vsEsc(vsWho(r.last.by))})} · ${ago}</div>`:`<div class="vs-rl">${t('vs_none')}</div>`;
+  return `<div class="vs-row ${r.st||''}"><div class="vs-rm"><div class="vs-rn">${vsEsc(c.name||'—')}</div>${sub?`<div class="vs-rs">${sub}</div>`:''}${lv}
+    ${N&&r.next?`<div class="vs-rl">${ti('vs_next',{d:vsEsc(r.next)})}</div>`:''}${N?vsBadge(r):''}</div>
+    <div class="vs-ra"><button type="button" class="vs-ib" data-vs="open:${vsEsc(c.id)}" aria-label="${t('vs_open')}" title="${t('vs_open')}">${svg(VS_IC.open)}</button>
+    ${tel?`<a class="vs-ib" href="tel:${vsEsc(tel)}" aria-label="${t('vs_call')}" title="${t('vs_call')}">${svg(VS_IC.phone)}</a>`:''}
+    <button type="button" class="vs-ib vs-go" data-vs="reg:${vsEsc(c.id)}" aria-label="${t('vs_reg')}" title="${t('vs_reg')}">${svg(VS_IC.pin)}</button></div></div>`;}
+function vsListHTML(){const rows=vsSort(vsFiltered());if(!rows.length)return `<div class="empty" style="margin-top:20px">${t('vs_empty')}</div>`;
+  const sh=rows.slice(0,VS_LIM).map(vsRowHTML).join('');return sh+(rows.length>VS_LIM?`<button type="button" class="vs-b vs-more" data-vs="more">${ti('vs_more',{n:rows.length-VS_LIM})}</button>`:'');}
+function vsViewHTML(){const N=vsN(),f=state.vsF||{},rows=vsRows(),cn=vsCounts(rows);
+  const uniq=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y));
+  const tags=uniq(rows.map(r=>''+(r.c.tag||''))),routes=uniq(rows.map(r=>''+(r.c.route||''))),bys=uniq(rows.map(r=>r.last?vsWho(r.last.by):''));
+  const sel=(k,all,L)=>`<select class="inp vs-sel" data-vsf="${k}"><option value="">${t(all)}</option>${L.map(x=>`<option value="${vsEsc(x)}"${f[k]===x?' selected':''}>${vsEsc(x)}</option>`).join('')}</select>`;
+  const cnt=N?`<div class="vs-cnt">${[['ok','vs_ok'],['late','vs_late'],['never','vs_never']].map(([k,l])=>`<button type="button" class="vs-c ${k}${f.st===k?' on':''}" data-vs="st:${k}"><b class="num">${cn[k]}</b><span>${t(l)}</span></button>`).join('')}</div>`:'';
+  return `<i class="mnhead" style="display:none"></i><div class="vs-view">${cnt}<div class="vs-flt">${sel('tag','vs_all_tags',tags)}${sel('route','vs_all_routes',routes)}${sel('by','vs_all_by',bys)}</div>
+    <div class="isearch vs-q">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="vsQ" placeholder="${t('vs_search')}" value="${vsEsc(f.q||'')}"></div>
+    <div class="vs-list" id="vsList">${vsListHTML()}</div></div>`;}
+{const _r=REP_RENDER.top_clients;REP_RENDER.top_clients=function(){if(!vsOn())return _r.apply(this,arguments);const tab=state.cvTab==='vis'?'vis':'top';
+    if(tab==='vis')return vsTabsHTML(tab)+vsViewHTML();
+    const h=_r.apply(this,arguments);try{if(REP_CSV.top_clients)REP_CSV.top_clients.name=t('vs_top_old');}catch(_){}return vsTabsHTML(tab)+h;};}
+{const _w=REP_BAR_WHEN.top_clients;REP_BAR_WHEN.top_clients=function(){if(vsOn()&&state.cvTab==='vis')return false;return _w?_w():true;};}
+{const _s=mnRepSave;mnRepSave=function(doc,id,suffix){if(id==='top_clients'&&vsOn())return mnPdfDone(doc,mnFile(id,t('vs_top_old')+(suffix?' '+suffix:'')+'.pdf'));return _s.apply(this,arguments);};}   /* el PDF de Top clientes conserva su nombre */
+{const _g=repGet;repGet=function(){state.cvTab='top';return _g.apply(this,arguments);};}
+async function vsCfg(){if(isSeller()){toast(t('vs_cfg_seller'));return;}const N=vsN();const v=await appPrompt(t('vs_cfg_q'),N?String(N):'','number');if(v==null)return;const s=(''+v).trim();
+  if(s===''){if(N!=null){setOpt('visitDays',null);toast(t('vs_cfg_off'));}render();return;}
+  if(!/^\d+$/.test(s)||+s<1){await appAlert(t('vs_cfg_bad'));return;}setOpt('visitDays',+s);toast(ti('vs_cfg_ok',{n:+s}));render();}
+/* abrir «Visitas» (desde el aviso de la campana) */
+function vsOpen(st){go('reportes');state.repSel={top_clients:1};try{repDefaultRange(['top_clients']);}catch(_){}state.cvTab='vis';state.vsF={st:st==='late'?'late':''};VS_LIM=150;state.screen='repview';state._keep=0;render();}
+try{NTF_SEC.vis='reportes';}catch(_){}
+/* ---- el aviso del día (solo equipos del dueño): una vez por día y por equipo ---- */
+function vsNtfCard(n){return `<div class="notirow vs-ntf ${n.read?'':'unread'}" data-act="ntfgo:vis:late"><div class="ntext"><b>${t('vs_ntf_tag')}</b> · ${vsEsc(n.tk?ti(n.tk,n.tp):n.text)}</div><div class="vs-ntf-go">${t('vs_ntf_go')} ›</div></div>`;}
+function vsCheckDaily(){try{if(!vsOn()||isSeller()||!state.profile||state.profile.kind==='bodega')return;const id=currentDataId();if(!id)return;const N=vsN();if(!N)return;
+    if(!(LIVE_TS.clients&&LIVE_TS.receipt))return;   /* los datos de la tienda ya llegaron de la nube en esta sesión */
+    if(!['clients','quotes','visits','receipt'].every(k=>ccSettled(id,k)))return;
+    const today=todayISO(),K='abanico.vsntf.'+id;let done='';try{done=localStorage.getItem(K)||'';}catch(_){}if(done===today)return;
+    if(loadNotif(id).some(x=>x&&x.kind==='visits'&&x.day===today)){try{localStorage.setItem(K,today);}catch(_){}return;}
+    const late=vsRows().filter(r=>r.st==='late');if(!late.length)return;const n=late.length,h=late.filter(r=>r.late===0).length;
+    const k=n===1?(h?'vs_ntf_1h':'vs_ntf_1'):(h===0?'vs_ntf':h===1?'vs_ntf_h1':'vs_ntf_h');
+    pushNotif(id,{kind:'visits',day:today,...nt(k,{n,h})});try{localStorage.setItem(K,today);}catch(_){}
+    const bd=document.getElementById('bellDot');if(bd)bd.hidden=false;
+  }catch(e){try{console.error('mods266',e);}catch(_){}}}
+setInterval(vsCheckDaily,30000);setTimeout(vsCheckDaily,8000);
+/* ---- clics y escritura ---- */
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-vs]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.vs,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
+  if(k==='reg')return vsRegister(v);if(k==='fix')return vsFix(v);if(k==='sell')return vsSell();if(k==='cfg')return vsCfg();
+  if(k==='open')return openCliForm(v);
+  if(k==='tab'){state.cvTab=v==='vis'?'vis':'top';VS_LIM=150;state._keep=0;return render();}
+  if(k==='st'){state.vsF=Object.assign({},state.vsF||{});state.vsF.st=state.vsF.st===v?'':v;VS_LIM=150;state._keep=document.getElementById('screen').scrollTop;return render();}
+  if(k==='more'){VS_LIM+=150;const L=document.getElementById('vsList');if(L)L.innerHTML=vsListHTML();return;}},true);
+document.addEventListener('change',e=>{const el=e.target;if(!el||!el.dataset||!el.dataset.vsf)return;state.vsF=Object.assign({},state.vsF||{});state.vsF[el.dataset.vsf]=el.value;VS_LIM=150;const L=document.getElementById('vsList');if(L)L.innerHTML=vsListHTML();},true);
+document.addEventListener('input',e=>{const el=e.target;if(!el||el.id!=='vsQ')return;state.vsF=Object.assign({},state.vsF||{});state.vsF.q=el.value;VS_LIM=150;clearTimeout(vsQT);vsQT=setTimeout(()=>{const L=document.getElementById('vsList');if(L)L.innerHTML=vsListHTML();},180);});
+let vsQT=0;
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .vs-tabs{display:flex;align-items:center;gap:8px;padding:10px 16px 4px}
+  .vs-seg{flex:1;display:flex;background:var(--sel);border-radius:10px;padding:3px;gap:3px;min-width:0}
+  .vs-seg button{flex:1;min-height:40px;border:0;border-radius:8px;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+  .vs-seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .vs-cfg{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+  .vs-cfg svg,.vs-b svg,.vs-ib svg,.vs-sb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .vs-freq{padding:0 16px 8px;font-size:12.5px;color:var(--muted)}
+  .vs-view{padding:0 16px 24px;display:flex;flex-direction:column;gap:10px}
+  .vs-cnt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .vs-c{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;color:var(--ink);min-height:56px}
+  .vs-c b{font-size:20px}.vs-c span{font-size:11.5px;font-weight:600;text-align:center;line-height:1.2}
+  .vs-c.ok b{color:var(--green)}.vs-c.late b{color:var(--red)}.vs-c.never b{color:var(--muted)}
+  .vs-c.on{border-width:2px;border-color:var(--ink)}
+  .vs-flt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .vs-sel{min-width:0;font-size:13px;padding:9px 26px 9px 8px}
+  .vs-q{margin:0}
+  .vs-list{display:flex;flex-direction:column;gap:8px}
+  .vs-row{display:flex;gap:8px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;background:var(--card);padding:10px}
+  .vs-row.ok{border-left-color:var(--green)}.vs-row.late{border-left-color:var(--red)}.vs-row.never{border-left-color:var(--faint)}
+  .vs-rm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .vs-rn{font-weight:700;font-size:14.5px;color:var(--ink);overflow-wrap:anywhere}
+  .vs-rs,.vs-rl{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+  .vs-st{align-self:flex-start;margin-top:4px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px}
+  .vs-st.ok{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+  .vs-st.late{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+  .vs-st.nv{background:var(--sel);color:var(--muted)}
+  .vs-ra{flex:none;display:flex;flex-direction:column;gap:6px}
+  .vs-ib{width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;text-decoration:none}
+  .vs-ib.vs-go{color:var(--green);border-color:var(--green)}
+  .vs-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .vs-b.vs-main{width:100%;color:var(--green);border-color:var(--green)}
+  .vs-more{width:100%}
+  .vs-cli{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--card)}
+  .vs-ch{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;font-size:14px;color:var(--ink)}
+  .vs-ch .vs-st{margin-top:0}
+  .vs-hl{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+  .vs-h{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink);border-top:1px solid var(--line2);padding-top:6px}
+  .vs-hm{flex:1;min-width:0;overflow-wrap:anywhere}
+  .vs-hn{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+  .vs-lk{flex:none;border:0;background:none;color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;text-decoration:underline;cursor:pointer;min-height:32px;padding:0 4px}
+  .vs-sb{flex:none;width:44px;height:44px;border:none;background:none;padding:0;display:grid;place-items:center;cursor:pointer;color:var(--green);border-radius:50%}
+  .vs-ntf{cursor:pointer}.vs-ntf-go{margin-top:6px;font-size:13px;font-weight:700;color:var(--ink)}
 `;document.head.appendChild(s);}catch(_){}})();
 
 </script>

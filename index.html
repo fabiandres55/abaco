@@ -9107,7 +9107,7 @@ const IC_PHONE='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2
 const IC_MAIL='<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>';
 function scClientes(){
   const q=fold(state.q.toLowerCase());
-  let list=state.clients.slice();
+  let list=state.clients.slice();if(typeof vtCliFilter==='function')list=vtCliFilter(list);   /* mods269 */
   if(q)list=list.filter(c=>qHas(fold((c.name||'')),q)||qHas(fold((c.alias||'')),q));
   list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const total=list.length;const limit=state.invLimit||INV_PAGE;const shown=list.slice(0,limit);
@@ -9125,7 +9125,7 @@ function scClientes(){
     ${('contacts' in navigator)&&('ContactsManager' in window)?`<button class="round" data-act="clicontact" title="${t('prv_from_contacts')}">${svg(PRV_BOOK)}</button>`:''}
     <button class="round" data-act="cli:new">${svg('<circle cx="10" cy="8" r="3.2"/><path d="M4 19c0-3 2.7-5 6-5"/><path d="M17 12v6M14 15h6"/>')}</button>
   </div>`;
-  return '<div class="stickhead">'+head+'</div>'+(total?`<div class="list clilist">${rows}</div>${more}`:`<div class="empty" style="margin-top:30px">${state.clients.length?t('cli_nomatch'):t('cli_empty')}</div>`);
+  return '<div class="stickhead">'+head+(typeof vtCliFltHTML==='function'?vtCliFltHTML():'')+'</div>'+(total?`<div class="list clilist">${rows}</div>${more}`:`<div class="empty" style="margin-top:30px">${state.clients.length?t('cli_nomatch'):t('cli_empty')}</div>`);
 }
 function cliById(id){return state.clients.find(c=>c.id===id);}
 function openCliForm(id){
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261116215806';
+const APP_VERSION='20261117070139';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -20470,7 +20470,7 @@ function vsCheckDaily(){try{if(!vsOn()||isSeller()||!state.profile||state.profil
     pushNotif(id,{kind:'visits',day:today,...nt(k,{n,h})});try{localStorage.setItem(K,today);}catch(_){}
     const bd=document.getElementById('bellDot');if(bd)bd.hidden=false;
   }catch(e){try{console.error('mods266',e);}catch(_){}}}
-setInterval(vsCheckDaily,30000);setTimeout(vsCheckDaily,8000);
+setInterval(()=>vsCheckDaily(),30000);setTimeout(()=>vsCheckDaily(),8000);   /* mods269: por su nombre */
 /* ---- clics y escritura ---- */
 document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-vs]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.vs,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
   if(k==='reg')return vsRegister(v);if(k==='fix')return vsFix(v);if(k==='sell')return vsSell();if(k==='cfg')return vsCfg();
@@ -20823,4 +20823,222 @@ setTimeout(()=>{try{sqPaint();sqKick(0);}catch(_){}},3500);
   .sq-card{opacity:.92}
 `;document.head.appendChild(st);}catch(_){}})();
 /* fin mods267 */
+
+
+/* ==== mods269 (2026-11-16): «CONTROL DE CLIENTES» — LAS VENTAS CUENTAN COMO VISITA, BARRIOS E ÍCONOS CLAROS ====
+   Pedido de Fabio (16-nov, documento «Mejoras a "Control de clientes": ventas como visita, barrios e íconos claros»); «Autorizo» con las
+   ocho recomendaciones: 1) el día N sigue «Al día» (atraso = días − N; ya no hay «le toca hoy») · 2) visita y venta el mismo día cuentan
+   como visita · 3) una venta que todavía está subiendo (cola de mods267) no cuenta hasta quedar confirmada · 4) «Atendidos por» mira de
+   dónde salió la última atención, en cualquier estado · 5) el filtro de vendedores sigue siendo quién hizo la última visita registrada ·
+   6) «Cómo llegar» abre la ruta hasta el cliente · 7) el botón del vendedor junto al campo Cliente solo cambia de ícono · 8) las ventas
+   con un nombre que no es de un cliente registrado quedan fuera (misma regla de Top clientes: el nombre, sin mayúsculas ni espacios).
+   QUÉ HACE
+   - SOLO LEE las ventas (state.sales): una pasada, guardada en memoria hasta que cambien los datos. No crea visitas, no toca ventas,
+     inventario, precios ni clientes. La «última atención» = la fecha más reciente entre la última visita y la última venta.
+   - Tarjeta: «Última visita» y «Última venta» siempre; marca «Por venta» si el estado salió de una venta; «Registrar visita» (con texto
+     e ícono propio) y «Cómo llegar» (ubicación guardada; si no, la dirección; si no, desactivado).
+   - Filtros: barrio (según la localidad escogida), «Sin barrio», «Sin localidad», «Atendidos por: Todos | Visita | Venta». Los mismos de
+     barrio y localidad en la lista de Clientes.
+   - Ajustes de visitas: el interruptor «Contar las ventas como visita» (encendido si no se ha tocado) va en receipt.opts.visitSales.
+   - Formulario de cliente: Barrio y Localidad o ruta sugieren lo que ya existe (y las 20 localidades de Bogotá); al guardar, un valor
+     igual a uno existente (sin mayúsculas, tildes ni espacios de más) queda escrito como el que ya existe. No se cambia ningún cliente solo.
+   Interruptor por equipo: localStorage 'abanico.vt'='0' deja todo como mods266. */
+(function(){try{
+  Object.assign(I18N.es,{vt_sale:'Última venta: {d} · {w}',vt_nosale:'Sin ventas registradas',vt_by_sale:'Por venta',vt_att:'Atendidos por',vt_att_all:'Todos',vt_att_v:'Visita',vt_att_s:'Venta',
+    vt_all_hoods:'Todos los barrios',vt_no_hood:'Sin barrio',vt_no_route:'Sin localidad',vt_all_routes:'Todas las localidades',vt_how:'Cómo llegar',vt_how_none:'Este cliente no tiene ubicación ni dirección guardada',
+    vt_reg_title:'Registrar visita a {n}',vt_reg_line:'Se guardará la visita de hoy ({d}). Puedes escribir una nota (opcional).',vt_note_ph:'Nota (opcional)',
+    vt_sw:'Contar las ventas como visita',vt_sw_hint:'Encendido: la última venta de un cliente también cuenta como atención. Apagado: solo cuentan las visitas registradas.',
+    vt_sw_on:'Las ventas ahora cuentan como visita',vt_sw_off:'Las ventas ya no cuentan como visita',vt_loading:'Leyendo el historial de ventas…'});
+  Object.assign(I18N.en,{vt_sale:'Last sale: {d} · {w}',vt_nosale:'No sales recorded',vt_by_sale:'By sale',vt_att:'Attended by',vt_att_all:'All',vt_att_v:'Visit',vt_att_s:'Sale',
+    vt_all_hoods:'All neighborhoods',vt_no_hood:'No neighborhood',vt_no_route:'No area',vt_all_routes:'All areas',vt_how:'Directions',vt_how_none:'This client has no saved location or address',
+    vt_reg_title:'Record visit to {n}',vt_reg_line:'Today\'s visit ({d}) will be saved. You can type a note (optional).',vt_note_ph:'Note (optional)',
+    vt_sw:'Count sales as visits',vt_sw_hint:'On: a client\'s last sale also counts as attention. Off: only recorded visits count.',
+    vt_sw_on:'Sales now count as visits',vt_sw_off:'Sales no longer count as visits',vt_loading:'Reading the sales history…'});
+}catch(_){}})();
+function vtOn(){try{return vsOn()&&localStorage.getItem('abanico.vt')!=='0';}catch(_){return true;}}
+const VT_IC_REG='<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M9 15.5l2 2 4-4"/>';   /* calendario con chulo: registrar la visita de hoy */
+const VT_NONE='__none__';
+const VT_BOG=['USAQUÉN','CHAPINERO','SANTA FE','SAN CRISTÓBAL','USME','TUNJUELITO','BOSA','KENNEDY','FONTIBÓN','ENGATIVÁ','SUBA','BARRIOS UNIDOS','TEUSAQUILLO','LOS MÁRTIRES','ANTONIO NARIÑO','PUENTE ARANDA','LA CANDELARIA','RAFAEL URIBE URIBE','CIUDAD BOLÍVAR','SUMAPAZ'];
+try{if(vtOn())VS_IC.pin=VT_IC_REG;}catch(_){}
+/* clave para comparar barrios y localidades: sin mayúsculas, tildes ni espacios de más */
+function vtKey(v){return fold((''+(v==null?'':v)).trim().replace(/\s+/g,' '));}
+function vtSalesOn(){return ((state.receipt&&state.receipt.opts)||{}).visitSales!==false;}
+/* ¿ya se leyeron las ventas de este equipo? (al abrir, el historial tarda un momento) */
+function vtSalesLoaded(){try{const id=currentDataId();return !!id&&!(SALES_LOADING[id]&&!SALES_DONE[id]);}catch(_){return true;}}
+/* la última venta de cada cliente registrado: UNA pasada por las ventas, guardada hasta que cambien los datos. La venta se liga al
+   cliente por el nombre (como Top clientes: cliIndex). No cuentan las borradas ni las de fecha futura; las anuladas ya no están. */
+let VT_LS=null;
+function vtLastSales(){const S=state.sales||[],today=todayISO();
+  if(VT_LS&&VT_LS.a===S&&VT_LS.n===S.length&&VT_LS.v===DATA_VER&&VT_LS.c===(state.clients||[]).length&&VT_LS.t===today)return VT_LS.m;
+  const ix=cliIndex(),m=new Map();
+  for(let i=0;i<S.length;i++){const s=S[i];if(!s||s.del)continue;const raw=s.client;if(!raw)continue;const n=(''+raw).trim().toLowerCase();if(!n)continue;
+    const c=ix.get(n);if(!c)continue;const d=''+(s.date||'');if(d.length!==10||d>today||!/^\d{4}-\d\d-\d\d$/.test(d))continue;
+    const o=m.get(c.id);if(!o||d>o.day||(d===o.day&&(+s.folio||0)>(+o.folio||0)))m.set(c.id,{day:d,folio:s.folio,id:s.id});}
+  VT_LS={a:S,n:S.length,v:DATA_VER,c:(state.clients||[]).length,t:today,m};return m;}
+/* estado de un cliente: last/days = última visita · sale/sdays = última venta · att/adays/src = última atención ('v' visita, 's' venta) */
+function vtStat(list,sale,N,today,use){const last=(list&&list[0])||null,o={};
+  if(last){o.last=last;o.days=vsDays(last.day,today);}
+  if(sale){o.sale=sale;o.sdays=vsDays(sale.day,today);}
+  let att=last?last.day:'',src=last?'v':'';
+  if(use&&sale&&(!att||sale.day>att)){att=sale.day;src='s';}   /* el mismo día gana la visita */
+  if(!att){o.st='never';return o;}
+  o.att=att;o.src=src;o.adays=vsDays(att,today);
+  if(!N){o.st='';return o;}
+  o.next=isoAdd(att,N);
+  if(o.adays<=N)o.st='ok';else{o.st='late';o.late=o.adays-N;}
+  return o;}
+let VT_CID=null;   /* la ficha del cliente calcula su estado con vsStat: aquí va de quién es */
+{const _s=vsStat;vsStat=function(list,N,today){if(vtOn()&&VT_CID!=null)return vtStat(list,vtLastSales().get(VT_CID),N,today,vtSalesOn());return _s.apply(this,arguments);};}
+{const _c=vsCliHTML;vsCliHTML=function(c){if(!vtOn())return _c.apply(this,arguments);VT_CID=c&&c.id!=null?c.id:null;try{return _c.apply(this,arguments);}finally{VT_CID=null;}};}
+{const _r=vsRows;vsRows=function(){if(!vtOn())return _r.apply(this,arguments);const N=vsN(),today=todayISO(),ix=vsIndex(),ls=vtLastSales(),use=vtSalesOn();
+    return (state.clients||[]).filter(c=>c&&!c.del&&c.id!=null).map(c=>({c,...vtStat(ix.get(c.id),ls.get(c.id),N,today,use)}));};}
+{const _b=vsBadge;vsBadge=function(r){if(!vtOn())return _b.apply(this,arguments);const pv=r.src==='s'?' · '+t('vt_by_sale'):'';
+    if(r.st==='ok')return `<span class="vs-st ok">${t('vs_ok')}${pv}</span>`;if(r.st==='never')return `<span class="vs-st nv">${t('vs_never')}</span>`;
+    if(r.st==='late')return `<span class="vs-st late">${r.late===1?t('vs_late_1'):ti('vs_late_n',{n:r.late})}${pv}</span>`;return '';};}
+{const _f=vsSort;vsSort=function(rows){if(!vtOn())return _f.apply(this,arguments);const N=vsN(),nm=(a,b)=>(''+(a.c.name||'')).localeCompare(''+(b.c.name||''));
+    if(!N)return rows.sort((a,b)=>(a.att?0:1)-(b.att?0:1)||(a.att&&b.att?(b.att<a.att?-1:b.att>a.att?1:0):0)||nm(a,b));
+    const o={late:0,never:1,ok:2};return rows.sort((a,b)=>o[a.st]-o[b.st]||(a.st==='late'?b.late-a.late:0)||(a.st==='ok'?(a.next<b.next?-1:a.next>b.next?1:0):0)||nm(a,b));};}
+/* ---- barrios y localidades que ya tiene la tienda ---- */
+function vtVals(list,k){const m=new Map();(list||[]).forEach(c=>{if(!c||c.del)return;const v=(''+(c[k]||'')).trim().replace(/\s+/g,' ');if(!v)return;const key=vtKey(v);let o=m.get(key);if(!o){o={n:0,f:{}};m.set(key,o);}o.n++;o.f[v]=(o.f[v]||0)+1;});
+  const out=[];m.forEach((o,key)=>{const label=Object.keys(o.f).sort((a,b)=>o.f[b]-o.f[a]||a.localeCompare(b))[0];out.push({key,label,n:o.n});});return out.sort((a,b)=>a.label.localeCompare(b.label));}
+function vtMatch(c,k,sel){if(!sel)return true;const key=vtKey(c[k]);return sel===VT_NONE?!key:key===vtKey(sel);}
+function vtSelHTML(attr,k,cur,all,none,L){const has=cur&&cur!==VT_NONE&&!L.some(x=>x.key===vtKey(cur));
+  return `<select class="inp vs-sel" ${attr}="${k}"><option value="">${t(all)}</option>${L.map(x=>`<option value="${vsEsc(x.label)}"${cur&&cur!==VT_NONE&&vtKey(cur)===x.key?' selected':''}>${vsEsc(x.label)}</option>`).join('')}${has?`<option value="${vsEsc(cur)}" selected>${vsEsc(cur)}</option>`:''}<option value="${VT_NONE}"${cur===VT_NONE?' selected':''}>${t(none)}</option></select>`;}
+function vtInRoute(list,route){return route?list.filter(c=>vtMatch(c,'route',route)):list;}
+/* ---- «Cómo llegar»: la ubicación guardada; si no, la dirección; si no, nada ---- */
+function vtHow(c){try{if(typeof cgHas==='function'&&cgHas(c))return 'https://www.google.com/maps/dir/?api=1&destination='+(+c.loc.lat).toFixed(6)+','+(+c.loc.lng).toFixed(6);}catch(_){}
+  const a=(''+((c&&c.address)||'')).trim();return a?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(a):'';}
+/* ---- la pestaña Visitas ---- */
+{const _f=vsFiltered;vsFiltered=function(){if(!vtOn())return _f.apply(this,arguments);const f=state.vsF||{};const q=fold((f.q||'').trim());
+    return vsRows().filter(r=>(!f.st||r.st===f.st)&&(!f.tag||(''+(r.c.tag||''))===f.tag)&&vtMatch(r.c,'route',f.route)&&vtMatch(r.c,'hood',f.hood)&&(!f.by||(r.last&&vsWho(r.last.by)===f.by))&&(!f.src||r.src===f.src)
+      &&(!q||fold((r.c.name||'')+' '+(r.c.biz||'')+' '+(r.c.alias||'')).includes(q)));};}
+function vtAgo(d){return d<=0?t('vs_ago0'):d===1?t('vs_ago1'):ti('vs_agoN',{n:d});}
+{const _h=vsRowHTML;vsRowHTML=function(r){if(!vtOn())return _h.apply(this,arguments);const c=r.c,N=vsN(),tel=c.phone?(''+c.phone).replace(/[^0-9+]/g,''):'';
+    const sub=[c.biz,c.tag,c.hood,c.route].filter(Boolean).map(vsEsc).join(' · ');
+    const lv=r.last?ti('vs_last',{d:vsEsc(r.last.day),w:vsEsc(vsWho(r.last.by))})+' · '+vtAgo(r.days):t('vs_none');
+    const ls=r.sale?ti('vt_sale',{d:vsEsc(r.sale.day),w:vtAgo(r.sdays)}):t('vt_nosale');
+    const how=vtHow(c);
+    return `<div class="vs-row vt-row ${r.st||''}" data-cid="${vsEsc(c.id)}"><div class="vt-top"><div class="vs-rm"><div class="vs-rn">${vsEsc(c.name||'—')}</div>${sub?`<div class="vs-rs">${sub}</div>`:''}<div class="vs-rl vt-lv">${lv}</div><div class="vs-rl vt-ls">${ls}</div>
+      ${N&&r.next?`<div class="vs-rl vt-nx">${ti('vs_next',{d:vsEsc(r.next)})}</div>`:''}${N?vsBadge(r):''}</div>
+      <div class="vs-ra"><button type="button" class="vs-ib" data-vs="open:${vsEsc(c.id)}" aria-label="${t('vs_open')}" title="${t('vs_open')}">${svg(VS_IC.open)}</button>
+      ${tel?`<a class="vs-ib" href="tel:${vsEsc(tel)}" aria-label="${t('vs_call')}" title="${t('vs_call')}">${svg(VS_IC.phone)}</a>`:''}</div></div>
+      <div class="vt-acts"><button type="button" class="vs-b vt-reg" data-vs="reg:${vsEsc(c.id)}">${svg(VT_IC_REG)}<span>${t('vs_reg')}</span></button>
+      ${how?`<a class="vs-b vt-how" href="${vsEsc(how)}" target="_blank" rel="noopener">${svg(IC_PIN)}<span>${t('vt_how')}</span></a>`:`<button type="button" class="vs-b vt-how off" disabled aria-disabled="true" title="${t('vt_how_none')}">${svg(IC_PIN)}<span>${t('vt_how')}</span></button>`}</div></div>`;};}
+/* la lista: las tarjetas pesan más que antes (dos botones cada una); la primera tanda es de 60 y «Mostrar más» agrega de a 150 */
+{const _l=vsListHTML;vsListHTML=function(){if(!vtOn())return _l.apply(this,arguments);const rows=vsSort(vsFiltered());if(!rows.length)return `<div class="empty" style="margin-top:20px">${t('vs_empty')}</div>`;
+    const lim=Math.max(60,VS_LIM-90);return rows.slice(0,lim).map(vsRowHTML).join('')+(rows.length>lim?`<button type="button" class="vs-b vs-more" data-vs="more">${ti('vs_more',{n:rows.length-lim})}</button>`:'');};}
+let VT_WAIT=0;
+{const _v=vsViewHTML;vsViewHTML=function(){if(!vtOn())return _v.apply(this,arguments);const N=vsN(),f=state.vsF||{},rows=vsRows(),cn=vsCounts(rows);
+    const uniq=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y));const cl=rows.map(r=>r.c);
+    const tags=uniq(rows.map(r=>''+(r.c.tag||''))),bys=uniq(rows.map(r=>r.last?vsWho(r.last.by):''));
+    const sel=(k,all,L)=>`<select class="inp vs-sel" data-vsf="${k}"><option value="">${t(all)}</option>${L.map(x=>`<option value="${vsEsc(x)}"${f[k]===x?' selected':''}>${vsEsc(x)}</option>`).join('')}</select>`;
+    const cnt=N?`<div class="vs-cnt">${[['ok','vs_ok'],['late','vs_late'],['never','vs_never']].map(([k,l])=>`<button type="button" class="vs-c ${k}${f.st===k?' on':''}" data-vs="st:${k}"><b class="num">${cn[k]}</b><span>${t(l)}</span></button>`).join('')}</div>`:'';
+    const seg=[['','vt_att_all'],['v','vt_att_v'],['s','vt_att_s']].map(([k,l])=>`<button type="button" class="${(f.src||'')===k?'on':''}" data-vt="src:${k}">${t(l)}</button>`).join('');
+    let load='';if(vtSalesOn()&&!vtSalesLoaded()){load=`<div class="vt-load" role="status">${t('vt_loading')}</div>`;
+      if(!VT_WAIT){VT_WAIT=1;const id=currentDataId();salesReady(id).then(()=>{VT_WAIT=0;if(currentDataId()===id&&state.screen==='repview'&&state.cvTab==='vis')render();},()=>{VT_WAIT=0;});}}
+    return `<i class="mnhead" style="display:none"></i><div class="vs-view">${cnt}${load}<div class="vs-flt vt-flt">${sel('tag','vs_all_tags',tags)}${sel('by','vs_all_by',bys)}${vtSelHTML('data-vtf','route',f.route,'vs_all_routes','vt_no_route',vtVals(cl,'route'))}${vtSelHTML('data-vtf','hood',f.hood,'vt_all_hoods','vt_no_hood',vtVals(vtInRoute(cl,f.route),'hood'))}</div>
+      <div class="vt-att"><span>${t('vt_att')}</span><div class="vs-seg vt-seg">${seg}</div></div>
+      <div class="isearch vs-q">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/>')}<input autocomplete="off" id="vsQ" placeholder="${t('vs_search')}" value="${vsEsc(f.q||'')}"></div>
+      <div class="vs-list" id="vsList">${vsListHTML()}</div></div>`;};}
+/* ---- la ventana de preguntas de la app, con lo propio de esta función (título, texto del botón, interruptor) ---- */
+function vtAskClean(){try{const d=document.getElementById('askdlg');if(!d)return;d.querySelectorAll('.vt-askx').forEach(e=>e.remove());const i=d.querySelector('.askin');if(i)i.removeAttribute('placeholder');}catch(_){}}
+function vtAskDeco(o){try{const d=document.getElementById('askdlg');vtAskClean();if(!d||!d.classList.contains('on'))return null;
+    const card=d.querySelector('.askcard'),msg=d.querySelector('.askmsg'),inp=d.querySelector('.askin'),yes=d.querySelector('[data-ask="yes"]');
+    if(o.title)msg.innerHTML='<b>'+vsEsc(o.title)+'</b>'+(o.line?'\n'+vsEsc(o.line):'');
+    if(o.ph&&inp)inp.setAttribute('placeholder',o.ph);if(o.yes&&yes)yes.textContent=o.yes;
+    if(o.sw==null)return null;
+    const x=document.createElement('label');x.className='vt-sw vt-askx';x.innerHTML=`<input type="checkbox" id="vtSw"${o.sw?' checked':''}><span class="vt-swk" aria-hidden="true"></span><span class="vt-swt"><b>${t('vt_sw')}</b><i>${t('vt_sw_hint')}</i></span>`;
+    card.insertBefore(x,d.querySelector('.askmenu'));return x.querySelector('input');}catch(_){return null;}}
+/* registrar la visita: lo mismo de mods266, con la ventana que dice qué se va a guardar */
+{const _g=vsRegister;vsRegister=async function(cid){if(!vtOn())return _g.apply(this,arguments);const c=cliById(cid);if(!c)return false;const today=todayISO();
+    if((vsIndex().get(cid)||[]).some(e=>e.day===today)){toast(t('vs_already'));return false;}
+    const title=ti('vt_reg_title',{n:c.name||''}),line=ti('vt_reg_line',{d:today});
+    const p=appPrompt(title+'\n'+line,'');vtAskDeco({title,line,ph:t('vt_note_ph'),yes:t('vs_reg')});
+    const note=await p;vtAskClean();if(note==null)return false;
+    if((vsIndex().get(cid)||[]).some(e=>e.day===today)){toast(t('vs_already'));return false;}
+    let by;if(isSeller()){const s=(state.profile&&state.profile.seller)||{};by={k:'seller',id:s.id||null,n:(''+(s.name||'')).slice(0,60)};}else{by={k:'store'};try{by.dev=deviceId();}catch(_){}}
+    const v={id:'V'+Date.now().toString(36)+Math.floor(Math.random()*1e4),cid,cn:(''+(c.name||'')).slice(0,80),day:today,at:new Date().toISOString(),by,src:'m'};
+    const n=(''+note).trim();if(n)v.note=n.slice(0,300);
+    state.visits=(state.visits||[]).concat([v]);persist();toast(t('vs_done'));vsRefresh(cid);return true;};}
+/* ajustes de visitas: los días (como siempre) y el interruptor de las ventas */
+{const _c=vsCfg;vsCfg=async function(){if(!vtOn())return _c.apply(this,arguments);if(isSeller()){toast(t('vs_cfg_seller'));return;}const N=vsN(),on0=vtSalesOn();
+    const p=appPrompt(t('vs_cfg_q'),N?String(N):'','number');const sw=vtAskDeco({sw:on0});
+    const v=await p;const on1=sw?!!sw.checked:on0;vtAskClean();if(v==null)return;
+    const chg=on1!==on0;if(chg)setOpt('visitSales',on1);
+    const s=(''+v).trim();
+    if(s===''){if(N!=null){setOpt('visitDays',null);toast(t('vs_cfg_off'));}else if(chg)toast(t(on1?'vt_sw_on':'vt_sw_off'));render();return;}
+    if(!/^\d+$/.test(s)||+s<1){await appAlert(t('vs_cfg_bad'));render();return;}
+    if(+s!==N||!chg){setOpt('visitDays',+s);toast(ti('vs_cfg_ok',{n:+s}));}else toast(t(on1?'vt_sw_on':'vt_sw_off'));
+    render();};}
+/* el aviso del día espera a que las ventas de este equipo estén leídas y al día con la nube (si no, marcaría «Por visitar» de más) */
+{const _d=vsCheckDaily;vsCheckDaily=function(){try{if(vtOn()&&vtSalesOn()){const id=currentDataId();if(id&&(!vtSalesLoaded()||!ccSettled(id,'sales')||!LIVE_TS.sales))return;}}catch(_){}return _d.apply(this,arguments);};}
+/* ---- la lista de Clientes: filtros de localidad y de barrio ---- */
+function vtCliFilter(list){try{if(!vtOn())return list;const f=state.cliF||{};if(!f.route&&!f.hood)return list;return list.filter(c=>c&&vtMatch(c,'route',f.route)&&vtMatch(c,'hood',f.hood));}catch(_){return list;}}
+function vtCliFltHTML(){try{if(!vtOn())return '';const f=state.cliF||{},cl=(state.clients||[]).filter(c=>c&&!c.del);
+    return `<div class="vt-cflt">${vtSelHTML('data-vtc','route',f.route,'vt_all_routes','vt_no_route',vtVals(cl,'route'))}${vtSelHTML('data-vtc','hood',f.hood,'vt_all_hoods','vt_no_hood',vtVals(vtInRoute(cl,f.route),'hood'))}</div>`;}catch(_){return '';}}
+/* al cambiar la localidad, un barrio que no es de esa localidad se suelta */
+function vtFltSet(F,k,v){const f=Object.assign({},F||{});f[k]=v;
+  if(k==='route'&&f.hood&&f.hood!==VT_NONE&&v){const cl=vtInRoute((state.clients||[]).filter(c=>c&&!c.del),v);if(!cl.some(c=>vtKey(c.hood)===vtKey(f.hood)))f.hood='';}
+  return f;}
+/* ---- el formulario de cliente: sugerencias en Barrio y en Localidad o ruta ---- */
+function vtSugList(k,q){const key=vtKey(q);if(!key)return [];const L=vtVals(state.clients,k==='hood'?'hood':'route').map(x=>({key:x.key,label:x.label}));
+  if(k==='route')VT_BOG.forEach(b=>{const kk=vtKey(b);if(!L.some(x=>x.key===kk))L.push({key:kk,label:b});});
+  const a=L.filter(x=>x.key.startsWith(key)),b=L.filter(x=>!x.key.startsWith(key)&&x.key.includes(key));
+  const out=a.sort((x,y)=>x.label.localeCompare(y.label)).concat(b.sort((x,y)=>x.label.localeCompare(y.label))).slice(0,6);
+  return out.length===1&&out[0].label===(''+q).trim()?[]:out;}
+function vtSugDraw(k){const inp=document.getElementById('cf_cli_'+k),box=document.getElementById('vtSug_'+k);if(!inp||!box)return;const L=vtSugList(k,inp.value);
+  if(!L.length){box.hidden=true;box.innerHTML='';return;}
+  box.innerHTML=L.map(x=>`<button type="button" class="vt-chip" data-vtsug="${k}" data-v="${vsEsc(x.label)}">${vsEsc(x.label)}</button>`).join('');box.hidden=false;
+  /* con el teclado abierto queda poco alto: si la sugerencia cae al borde (o debajo), el campo sube al inicio para que se vea entera */
+  try{const vv=window.visualViewport,b=box.getBoundingClientRect(),fin=vv?vv.offsetTop+vv.height:innerHeight;if(b.bottom>fin-64){const fl=inp.closest('.fld')||inp;fl.scrollIntoView({block:'start',behavior:'instant'});}}catch(_){try{box.scrollIntoView({block:'nearest'});}catch(__){}}}
+function vtSugAttach(){try{if(!vtOn())return;['hood','route'].forEach(k=>{const inp=document.getElementById('cf_cli_'+k);if(!inp||document.getElementById('vtSug_'+k))return;
+    const box=document.createElement('div');box.className='vt-sug';box.id='vtSug_'+k;box.hidden=true;box.setAttribute('role','listbox');inp.insertAdjacentElement('afterend',box);
+    inp.addEventListener('input',()=>vtSugDraw(k));inp.addEventListener('focus',()=>vtSugDraw(k));
+    inp.addEventListener('blur',()=>setTimeout(()=>{const b=document.getElementById('vtSug_'+k);if(b&&document.activeElement!==inp){b.hidden=true;}},250));});}catch(e){try{console.error('mods269',e);}catch(_){}}}
+{const _o=openCliForm;openCliForm=function(id){const r=_o.apply(this,arguments);vtSugAttach();return r;};}
+/* al guardar: si el barrio o la localidad ya existe en otro cliente (sin mayúsculas, tildes ni espacios de más), queda escrito igual */
+function vtCanon(k,val,cid){const key=vtKey(val);if(!key)return val;const o=vtVals((state.clients||[]).filter(c=>c&&c.id!==cid),k).find(x=>x.key===key);return o?o.label:val;}
+{const _e=cgExtra;cgExtra=function(){const o=_e.apply(this,arguments);try{if(vtOn()&&o){const cid=state.cliEdit||null;if(o.hood)o.hood=vtCanon('hood',o.hood,cid);if(o.route)o.route=vtCanon('route',o.route,cid);}}catch(e){try{console.error('mods269',e);}catch(_){}}return o;};}
+/* ---- clics y cambios ---- */
+document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-vtsug]');if(b)e.preventDefault();},true);   /* tocar una sugerencia no le quita el foco al campo */
+document.addEventListener('click',e=>{const tg=e.target&&e.target.closest?e.target:null;if(!tg)return;
+  const sg=tg.closest('[data-vtsug]');if(sg){e.preventDefault();e.stopPropagation();const k=sg.dataset.vtsug,inp=document.getElementById('cf_cli_'+k),box=document.getElementById('vtSug_'+k);if(inp){inp.value=sg.dataset.v||'';}if(box){box.hidden=true;box.innerHTML='';}return;}
+  const b=tg.closest('[data-vt]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.vt,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
+  if(k==='src'){state.vsF=Object.assign({},state.vsF||{});state.vsF.src=v;VS_LIM=150;state._keep=document.getElementById('screen').scrollTop;return render();}},true);
+document.addEventListener('change',e=>{const el=e.target;if(!el||!el.dataset)return;
+  if(el.dataset.vtf){state.vsF=vtFltSet(state.vsF,el.dataset.vtf,el.value);VS_LIM=150;state._keep=document.getElementById('screen').scrollTop;return render();}
+  if(el.dataset.vtc){state.cliF=vtFltSet(state.cliF,el.dataset.vtc,el.value);state._keep=0;return render();}},true);
+(function(){try{const s=document.createElement('style');s.textContent=`
+  .vs-row.vt-row{flex-direction:column;gap:8px}
+  .vt-top{display:flex;gap:8px;min-width:0}
+  .vt-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .vt-acts .vs-b{min-width:0;padding:0 8px;font-size:13.5px;text-decoration:none}
+  .vt-acts .vs-b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vt-acts .vs-b svg{flex:none}
+  .vs-b.vt-reg{color:var(--green);border-color:var(--green)}
+  .vs-b.vt-how.off{color:var(--faint);border-color:var(--line2);cursor:default;opacity:.7}
+  .vs-flt.vt-flt{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vt-flt .vs-sel{min-height:40px}
+  .vt-att{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+  .vt-att>span{flex:none}
+  .vt-att .vt-seg{flex:1}
+  .vt-att .vt-seg button{min-height:40px;font-size:13px}
+  .vt-load{font-size:12.5px;color:var(--muted);text-align:center;padding:2px 0}
+  .vt-cflt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0 0 10px;margin-top:-3px}
+  .vt-cflt .vs-sel{min-width:0;min-height:40px;font-size:13px;padding:9px 26px 9px 8px}
+  .vt-sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .vt-sug[hidden]{display:none}
+  .vt-chip{min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--sel);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vt-sw{display:flex;align-items:flex-start;gap:10px;margin:0 4px 16px;cursor:pointer;position:relative}
+  .vt-sw input{position:absolute;opacity:0;width:44px;height:26px;margin:0;cursor:pointer}
+  .vt-swk{flex:none;width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+  .vt-swk::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+  .vt-sw input:checked+.vt-swk{background:var(--green)}
+  .vt-sw input:checked+.vt-swk::after{left:21px}
+  .vt-sw input:focus-visible+.vt-swk{outline:2px solid var(--ink);outline-offset:2px}
+  .vt-swt{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .vt-swt b{font-size:14.5px;color:var(--ink)}
+  .vt-swt i{font-style:normal;font-size:12px;color:var(--muted);line-height:1.35}
+`;document.head.appendChild(s);}catch(_){}})();
+
 </script>

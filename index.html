@@ -7209,6 +7209,7 @@ function saveSale(){if(salesLoadingBlock())return;if(qtSoldBlock())return;   /* 
   if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0,id:'Y'+uidPart()}];if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
   if(state.saleFromQuote&&!lgNow()){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=fol;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
   if(lgNow()){const _q=state.saleFromQuote,_qq=_q?quoteById(_q):null;if(_qq)sale.fromQuote=_qq.folio;   /* mods239: la confirma el servidor */
+    if(typeof sqOn==='function'&&sqOn())return sqSave(sale,items,fol,tot,_q);   /* mods267: se guarda en el equipo y sube por detrás (misma función del servidor) */
     return lgConfirm(JSON.parse(JSON.stringify(sale)),{after:sv=>{if(_qq){_qq.soldSale=sv.folio;_qq.edited=Date.now();}state.saleFromQuote=null;saleSaveTail(sv,items,sv.folio||fol,+sv.total||tot);},
       draft:()=>{state.saleFromQuote=null;saleClearCart();state.screen='ventas';persist();render();}});}
   state.sales.unshift(sale);
@@ -17313,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261115225703';
+const APP_VERSION='20261116215806';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -20525,4 +20526,301 @@ let vsQT=0;
   .vs-ntf{cursor:pointer}.vs-ntf-go{margin-top:6px;font-size:13px;font-weight:700;color:var(--ink)}
 `;document.head.appendChild(s);}catch(_){}})();
 
+
+/* ==== mods267 (2026-11-16): GUARDADO INMEDIATO DE LA VENTA Y SUBIDA EN SEGUNDO PLANO — etapa 1: solo Ventas ====
+   Pedido de Fabio (documento «Nueva función: guardado inmediato y sincronización en segundo plano»; «Autorizo» a la etapa 1 con las
+   recomendaciones A a H).
+   Antes: con el libro encendido (todas las tiendas desde mods245) Guardar esperaba la respuesta del servidor con «Guardando…» y la
+   pantalla bloqueada; sin conexión la venta quedaba de BORRADOR y había que confirmarla a mano.
+   Ahora:
+   - Guardar hace las mismas validaciones de siempre, guarda la venta en el equipo (la lista de pendientes de siempre, relax.lgpend.<tienda>
+     en localStorage, + copia en IndexedDB 'lgq:<tienda>') y responde al instante: «Venta registrada», imprimir, compartir y seguir vendiendo.
+   - Una cola la sube por detrás con la MISMA función del servidor (relax_sale_confirm) y la MISMA clave de operación (lgOp): reintentar
+     nunca duplica (el servidor reconoce la clave, private.relax_ops). En orden de creación; reintenta sola con esperas cada vez más largas
+     (5 s … 5 min), al volver la conexión, al abrir la app y cada 20 s. Lo que queda en store_docs es exactamente lo de hoy.
+   - El servidor descuenta el inventario como hoy: movimiento sobre la versión más reciente, nunca negativo. Si ya no alcanza, la venta NO
+     se pierde: queda «Requiere revisión» con lo que faltó (A: «Abrir en el carrito» para corregirla o «Descartar», que pregunta).
+   - Mientras no sube: el equipo descuenta lo vendido al VALIDAR (No alcanza / Solo hay X), sin escribirlo en el inventario; la venta se ve
+     en el Historial marcada «Subiendo» y abre su recibo; no cuenta en reportes ni en caja (B) y no se edita ni se anula (C).
+   - Indicador junto a la campana (también para el vendedor, D): Sincronizado / Sincronizando (N) / Sin conexión · N pendientes / Error · N.
+     Al tocarlo, el panel con cada venta, su estado, la causa y «Reintentar».
+   - Cada venta guarda el usuario que la hizo: solo se sube con la sesión de ese usuario (E). Cerrar sesión con pendientes avisa; la cola
+     no se borra. El folio lo sigue poniendo el equipo (F). Editar, anular, mermas y ajustes siguen esperando al servidor (H, etapa 2).
+   - Los borradores de antes (sin conexión) pasan a la cola automática.
+   Apagarlo en un equipo: localStorage 'abanico.sq'='0' (todo vuelve a lo de antes: «Guardando…» y borradores). */
+(function(){try{
+  Object.assign(I18N.es,{sq_ok:'Sincronizado',sq_sync:'Sincronizando ({n})',sq_off:'Sin conexión · {n} pendientes',sq_off1:'Sin conexión · 1 pendiente',sq_err:'Error · {n}',
+    sq_title:'Ventas por subir',sq_none:'No hay ventas pendientes: todo está en la nube.',sq_note:'Las ventas ya quedaron registradas en este equipo. Relax las sube solas, en orden, cuando hay conexión.',
+    sq_sale:'Venta #{n}',sq_ago_now:'hace un momento',sq_ago_m:'hace {n} min',sq_ago_h:'hace {n} h',
+    sq_st_cola:'Pendiente',sq_st_enviando:'Subiendo…',sq_st_sin_respuesta:'Comprobando si llegó',sq_st_error:'Error',sq_st_revision:'Requiere revisión',sq_st_otro:'Espera a su usuario',
+    sq_why_net:'Sin conexión o el servidor no respondió. Se reintenta sola.',sq_why_tries:'Intentos: {n}. Próximo intento: {w}.',sq_why_otro:'La hizo otro usuario en este equipo: se sube cuando ese usuario vuelva a entrar.',
+    sq_why_rev:'El servidor no la aceptó: otro equipo vendió esas unidades antes de que esta venta subiera. La venta no se perdió. Ábrela en el carrito para corregirla y vuelve a guardarla, o descártala.',
+    sq_retry:'Reintentar',sq_cart:'Abrir en el carrito',sq_del:'Descartar',sq_soon:'en unos segundos',sq_rev_toast:'Una venta requiere revisión: toca el indicador de arriba.',
+    sq_saved_badge:'Subiendo',sq_rev_badge:'Requiere revisión',sq_wait_edit:'Esta venta todavía está subiendo: se podrá ver el detalle, editar o anular cuando llegue a la nube.',
+    sq_save_fail:'No se pudo guardar la venta en este equipo (sin espacio). No se registró: el carrito sigue igual.',
+    sq_logout_q:'Hay {n} venta(s) que todavía no suben a la nube. Si sales, quedan guardadas en este equipo y se suben cuando vuelvas a entrar con tu cuenta.',sq_wait:'Esperar',sq_logout_anyway:'Salir igual',
+    sq_qt_busy:'Esa cotización ya tiene una venta subiendo.',sq_del_q:'¿Descartar la venta #{n}? No se subirá a la nube y no descontará inventario. Esta acción no se puede deshacer.',sq_e_net:'sin conexión',
+    sq_busy:'Esa venta se está subiendo en este momento. Espera un instante.'});
+  Object.assign(I18N.en,{sq_ok:'Synced',sq_sync:'Syncing ({n})',sq_off:'Offline · {n} pending',sq_off1:'Offline · 1 pending',sq_err:'Error · {n}',
+    sq_title:'Sales to upload',sq_none:'No pending sales: everything is in the cloud.',sq_note:'These sales are already saved on this device. Relax uploads them by itself, in order, when there is a connection.',
+    sq_sale:'Sale #{n}',sq_ago_now:'just now',sq_ago_m:'{n} min ago',sq_ago_h:'{n} h ago',
+    sq_st_cola:'Pending',sq_st_enviando:'Uploading…',sq_st_sin_respuesta:'Checking if it arrived',sq_st_error:'Error',sq_st_revision:'Needs review',sq_st_otro:'Waiting for its user',
+    sq_why_net:'No connection or the server did not answer. It retries by itself.',sq_why_tries:'Attempts: {n}. Next attempt: {w}.',sq_why_otro:'Another user made it on this device: it uploads when that user signs in again.',
+    sq_why_rev:'The server did not accept it: another device sold those units before this sale was uploaded. The sale was not lost. Open it in the cart to fix it and save it again, or discard it.',
+    sq_retry:'Retry',sq_cart:'Open in the cart',sq_del:'Discard',sq_soon:'in a few seconds',sq_rev_toast:'A sale needs review: tap the indicator at the top.',
+    sq_saved_badge:'Uploading',sq_rev_badge:'Needs review',sq_wait_edit:'This sale is still uploading: details, editing and voiding are available once it reaches the cloud.',
+    sq_save_fail:'The sale could not be saved on this device (no space). It was not registered: the cart is unchanged.',
+    sq_logout_q:'There are {n} sale(s) not yet uploaded to the cloud. If you sign out, they stay saved on this device and upload when you sign in again with your account.',sq_wait:'Wait',sq_logout_anyway:'Sign out anyway',
+    sq_qt_busy:'That quote already has a sale uploading.',sq_del_q:'Discard sale #{n}? It will not be uploaded to the cloud and will not take stock. This cannot be undone.',sq_e_net:'offline',
+    sq_busy:'That sale is uploading right now. Wait a moment.'});
+}catch(_){}})();
+function sqOn(){try{return localStorage.getItem('abanico.sq')!=='0';}catch(_){return true;}}
+var SQ_IDB={},SQ_LOADED={},SQ_LOADING={},SQ_PENDW={},SQ_RUN=false,SQ_T=null,SQ_SAVING=false,SQ_N={ok:0,rej:0,err:0,net:0,saved:0};
+const SQ_BACK=[5,15,30,60,120,300],SQ_ERR_TRIES=4;
+function sqUid(){try{return (typeof AUTH!=='undefined'&&AUTH&&AUTH.id)||'';}catch(_){return '';}}
+/* --- ventas que ya no deben volver (confirmadas o descartadas): por si la copia de IndexedDB quedó atrás --- */
+function sqGoneK(id){return 'abanico.sqgone.'+id;}
+function sqGone(id){try{return new Set(JSON.parse(localStorage.getItem(sqGoneK(id))||'[]')||[]);}catch(_){return new Set();}}
+function sqGoneAdd(id,op){try{const L=JSON.parse(localStorage.getItem(sqGoneK(id))||'[]')||[];if(L.indexOf(op)<0){L.push(op);localStorage.setItem(sqGoneK(id),JSON.stringify(L.slice(-400)));}}catch(_){}}
+/* --- la lista de pendientes de siempre (localStorage) + su copia en IndexedDB, con número de versión ---
+   Chrome guarda localStorage con retraso (con muchos datos, más de un minuto: medido en el Huawei); si se cierra a la fuerza, al abrir
+   vuelve una lista vieja (con ventas ya subidas o descartadas). IndexedDB queda guardado al terminar cada escritura. Cada cambio de la
+   lista sube un número (SQ_GEN) que va en las dos copias: al abrir, manda la copia con el número más alto (casi siempre IndexedDB). */
+var SQ_GEN={};
+function sqGenK(id){return 'abanico.sqgen.'+id;}
+function sqIdbVal(v){if(Array.isArray(v))return {g:0,L:v};if(v&&typeof v==='object'&&Array.isArray(v.L))return {g:+v.g||0,L:v.L};return null;}
+function sqIdbWrite(id){const g=SQ_GEN[id]||0;return idbKvPut('lgq:'+id,{g,L:SQ_IDB[id]||[]});}
+async function sqLoadIdb(id){
+  if(!id||SQ_LOADED[id])return;if(SQ_LOADING[id])return SQ_LOADING[id];
+  SQ_LOADING[id]=(async()=>{let v;try{v=await idbKvGet('lgq:'+id);}catch(_){v=undefined;}
+    const I=sqIdbVal(v);let ls=[];try{ls=JSON.parse(localStorage.getItem(LG_PK(id))||'[]')||[];}catch(_){ls=[];}
+    let lg=0;try{lg=+(localStorage.getItem(sqGenK(id))||0)||0;}catch(_){}
+    const G=sqGone(id);let base=(I&&I.g>=lg&&(I.g>0||I.L.length))?I.L:ls;   /* manda la copia más nueva */
+    base=base.filter(x=>x&&x.op&&!G.has(x.op));
+    let merged=base;
+    if(SQ_PENDW[id]){const W=SQ_PENDW[id],have=new Set(W.map(x=>x&&x.op));merged=W.concat(base.filter(x=>!have.has(x.op)));}   /* un cambio hecho mientras se leía */
+    SQ_GEN[id]=Math.max(I?I.g:0,lg)+1;SQ_IDB[id]=merged;SQ_LOADED[id]=true;delete SQ_PENDW[id];
+    try{localStorage.setItem(sqGenK(id),''+SQ_GEN[id]);}catch(_){}
+    try{if(merged.length)localStorage.setItem(LG_PK(id),JSON.stringify(merged));else localStorage.removeItem(LG_PK(id));}catch(_){}
+    try{await sqIdbWrite(id);}catch(_){}
+    try{sqPaint();}catch(_){}})();
+  return SQ_LOADING[id];}
+{const _lp=lgPend;lgPend=function(id){
+  try{if(sqOn()){const k=id||currentDataId();if(k&&SQ_LOADED[k])return (SQ_IDB[k]||[]).slice();if(k)sqLoadIdb(k);}}catch(_){}
+  return _lp.apply(this,arguments);};}   /* ya leída: la lista en memoria (la misma que se guarda en las dos copias) */
+/* Otra pestaña del mismo navegador comparte las dos copias, pero cada una tiene su lista en memoria. Al guardar: lo que la otra
+   agregó (está en localStorage y esta pestaña nunca lo tuvo) NO se pisa, y lo ya subido o descartado (sqGone) no vuelve. */
+function sqMergeLs(id,L){const G=sqGone(id);L=L.filter(x=>x&&x.op&&!G.has(x.op));
+  try{const prev=new Set((SQ_IDB[id]||[]).map(x=>x&&x.op)),mine=new Set(L.map(x=>x.op));
+    const ext=(JSON.parse(localStorage.getItem(LG_PK(id))||'[]')||[]).filter(x=>x&&x.op&&!prev.has(x.op)&&!mine.has(x.op)&&!G.has(x.op));
+    if(ext.length)L=L.concat(ext);}catch(_){}
+  return L;}
+function sqLsGen(id){try{return +(localStorage.getItem(sqGenK(id))||0)||0;}catch(_){return 0;}}
+{const _ps=lgPendSave;lgPendSave=function(id,L){
+  try{if(sqOn()&&id){L=(L||[]).slice();
+    if(SQ_LOADED[id]){L=sqMergeLs(id,L);SQ_GEN[id]=Math.max(SQ_GEN[id]||0,sqLsGen(id))+1;SQ_IDB[id]=L.slice();try{localStorage.setItem(sqGenK(id),''+SQ_GEN[id]);}catch(_){}sqIdbWrite(id);}
+    else{SQ_PENDW[id]=L.slice();sqLoadIdb(id);}}}catch(_){}
+  const r=_ps.call(this,id,L);try{sqPaint();}catch(_){}return r;};}
+/* la otra pestaña cambió la lista: esta la toma (sin escribir nada), conservando lo propio que la otra no tenía */
+addEventListener('storage',e=>{try{if(!sqOn())return;const id=currentDataId();if(!id||!SQ_LOADED[id]||e.key!==LG_PK(id))return;
+  let inc;try{inc=JSON.parse(e.newValue||'[]')||[];}catch(_){return;}
+  const G=sqGone(id),own=SQ_IDB[id]||[],ownBy=new Map(own.map(x=>[x&&x.op,x])),have=new Set(inc.map(x=>x&&x.op));
+  SQ_IDB[id]=inc.filter(x=>x&&x.op&&!G.has(x.op)).map(x=>SQ_RUN_SENDING[x.op]&&ownBy.has(x.op)?ownBy.get(x.op):x)
+    .concat(own.filter(x=>x&&x.op&&!have.has(x.op)&&!G.has(x.op)));
+  const g=sqLsGen(id);if(g>(SQ_GEN[id]||0))SQ_GEN[id]=g;
+  sqRefreshViews();}catch(_){}});
+{const _pd=lgPendDel;lgPendDel=function(id,op){try{if(sqOn()&&id&&op)sqGoneAdd(id,op);}catch(_){}return _pd.apply(this,arguments);};}
+/* --- estados --- */
+function sqIsQ(x){return !!x&&x.kind==='sale'&&!!x.q;}
+function sqLive(x){return sqIsQ(x)&&['cola','enviando','sin_respuesta','error'].indexOf(x.st)>=0;}   /* se va a subir (cuenta al validar el inventario) */
+function sqMine(x){const u=sqUid();return !x.uid||!u||x.uid===u;}
+function sqList(id){id=id||currentDataId();if(!id)return [];return lgPend(id).filter(x=>sqIsQ(x)&&(sqLive(x)||x.st==='revision')).sort((a,b)=>(a.at||0)-(b.at||0));}
+function sqBad(x){return x.st==='revision'||x.st==='error'||(sqLive(x)&&(x.tries||0)>=SQ_ERR_TRIES&&sbOnline());}
+function sqBack(n){return SQ_BACK[Math.max(0,Math.min(SQ_BACK.length-1,(n||1)-1))];}
+/* los borradores de antes (y una subida que quedó a medias) pasan a la cola */
+function sqMigrate(id){let ch=false;const L=lgPend(id).map(x=>{if(!x||x.kind!=='sale')return x;const y={...x};
+  if(!y.q){if(y.st==='borrador'){y.q=1;y.st='cola';}else if(y.st==='sin_respuesta'||y.st==='enviando'){y.q=1;y.st='sin_respuesta';}else if(y.st==='rechazada'){y.q=1;y.st='revision';}else return x;
+    y.uid=y.uid||sqUid();y.tries=y.tries||0;y.next=0;ch=true;return y;}
+  if(y.st==='enviando'&&!SQ_RUN_SENDING[y.op]){y.st='sin_respuesta';ch=true;return y;}
+  return x;});
+  if(ch)lgPendSave(id,L);}
+var SQ_RUN_SENDING={};
+/* --- lo que todavía no subió se descuenta al VALIDAR, sin escribirlo en el inventario --- */
+function sqHeld(){const H={};try{const id=currentDataId();if(!id||!sqOn()||!lgNow())return H;
+  lgPend(id).forEach(x=>{if(!sqLive(x))return;((x.sale&&x.sale.items)||[]).forEach(i=>{const k=''+i.id;H[k]=(H[k]||0)+(+i.q||0);});});}catch(_){}return H;}
+function sqWithHeld(fn){return function(){const H=sqHeld(),ks=Object.keys(H);if(!ks.length)return fn.apply(this,arguments);const saved=[];
+  try{ks.forEach(k=>{const p=P(+k)||P(k);if(!p)return;const s=+p.stock||0;let n=Math.round((s-H[k])*1000)/1000;if(s>=0&&n<0)n=0;saved.push([p,p.stock]);p.stock=n;});return fn.apply(this,arguments);}
+  finally{saved.forEach(([p,s])=>{p.stock=s;});}};}   /* misma fórmula de siempre; el saldo vuelve a su valor antes de salir (nada se guarda en medio) */
+invShort=sqWithHeld(invShort);invMaxQ=sqWithHeld(invMaxQ);invCapMsg=sqWithHeld(invCapMsg);
+/* --- la venta pendiente, como se ve (recibo, impresión, historial) --- */
+function sqView(x){const s=JSON.parse(JSON.stringify(x.sale||{}));s._sq=x.st;s._op=x.op;return s;}
+function sqFind(saleId){const id=currentDataId();if(!id)return null;const x=lgPend(id).find(y=>sqIsQ(y)&&y.sale&&''+y.sale.id===''+saleId);return x?sqView(x):null;}
+{const _sd=shDoc;shDoc=function(S){const r=_sd.apply(this,arguments);if(r||!sqOn())return r;try{const s=S||SH;if(s&&s.kind==='sale')return sqFind(s.id)||r;}catch(_){}return r;};}
+{const _iv=imprVenta;imprVenta=function(id){if(sqOn()&&!(state.sales||[]).some(x=>''+x.id===''+id)){const v=sqFind(id);if(v)return imprEnviar(v,{manual:true});}return _iv.apply(this,arguments);};}
+{const _gr=genReceiptById;genReceiptById=async function(id){if(sqOn()&&!(state.sales||[]).some(x=>''+x.id===''+id)){const v=sqFind(id);if(v)return genSaleReceiptPDF(v);}return _gr.apply(this,arguments);};}
+{const _hf=histFiltered;histFiltered=function(){const L=_hf.apply(this,arguments);try{if(!sqOn()||HIST_F)return L;const V=sqList().map(sqView);if(!V.length)return L;
+  const have=new Set(L.map(s=>''+s.id));return V.filter(v=>!have.has(''+v.id)).reverse().concat(L);}catch(_){return L;}};}
+{const _hc=histCardHTML;histCardHTML=function(s){const h=_hc.apply(this,arguments);if(!s||!s._sq)return h;try{
+  const rev=s._sq==='revision';const b=`<span class="sq-badge${rev?' rev':''}">${svg(rev?SQ_IC.err:SQ_IC.sync)} ${t(rev?'sq_rev_badge':'sq_saved_badge')}</span>`;
+  return h.replace('class="scard" data-saledet="'+s.id+'"','class="scard sq-card" data-sqdet="'+exEsc(s.id)+'"').replace('<div class="scard-bot">','<div class="scard-bot">'+b);}catch(_){return h;}};}
+{const _lb=lgDraftBanner;lgDraftBanner=function(){if(sqOn())return '';return _lb.apply(this,arguments);};}   /* el indicador reemplaza el aviso de borradores */
+{const _lo=lgPendOpen;lgPendOpen=function(){if(sqOn())return sqOpen();return _lo.apply(this,arguments);};}
+{const _qb=qtSoldBlock;qtSoldBlock=function(){const r=_qb.apply(this,arguments);if(r||!sqOn())return r;try{const qid=state.saleFromQuote;if(qid==null)return false;const q=quoteById(qid);const f=q&&q.folio;
+  if(lgPend().some(x=>sqLive(x)&&(''+x.qid===''+qid||(f!=null&&x.sale&&''+x.sale.fromQuote===''+f)))){toast(t('sq_qt_busy'));return true;}}catch(_){}return false;};}
+/* --- Guardar: la venta queda en el equipo y se confirma al instante (saveSale llama aquí en vez de lgConfirm) --- */
+async function sqSave(sale,items,fol,tot,qid){
+  const id=currentDataId();if(!id||SQ_SAVING)return;SQ_SAVING=true;
+  try{
+    const pend={op:lgOp(),kind:'sale',sale:JSON.parse(JSON.stringify(sale)),at:Date.now(),st:'cola',q:1,uid:sqUid(),tries:0,next:0};
+    if(qid!=null)pend.qid=qid;
+    lgPendPut(id,pend);
+    let inLs=false;try{inLs=(JSON.parse(localStorage.getItem(LG_PK(id))||'[]')||[]).some(x=>x&&x.op===pend.op);}catch(_){}
+    if(!SQ_LOADED[id])await Promise.race([sqLoadIdb(id),new Promise(r=>setTimeout(r,5000))]);
+    const inIdb=SQ_LOADED[id]?await Promise.race([sqIdbWrite(id),new Promise(r=>setTimeout(()=>r(false),2500))]):false;
+    if(!inLs&&!inIdb){lgPendDel(id,pend.op);await appAlert(t('sq_save_fail'));render();return;}
+    SQ_N.saved++;
+    state.saleFromQuote=null;   /* la cotización queda vendida cuando el servidor confirma (pend.qid) */
+    saleSaveTail(sqView(pend),items,fol,tot);   /* lo de siempre: vaciar el carrito, «Venta registrada», imprimir, compartir */
+    sqPaint();sqKick(250);
+  }finally{SQ_SAVING=false;}}
+/* --- la cola --- */
+/* al volver la conexión, al volver a la app y al abrirla: lo que esperaba por la red se intenta ya (no espera su turno de reintento) */
+var SQ_WOKE={};
+function sqWake(){try{const id=currentDataId();if(!id||!sqOn()||!SQ_LOADED[id])return;const now=Date.now();let ch=false;
+  const L=lgPend(id).map(x=>{if(sqIsQ(x)&&(x.st==='cola'||x.st==='sin_respuesta')&&(x.next||0)>now&&!SQ_RUN_SENDING[x.op]){ch=true;return {...x,next:0};}return x;});
+  if(ch)lgPendSave(id,L);}catch(_){}}
+function sqKick(ms){try{clearTimeout(SQ_T);}catch(_){}SQ_T=setTimeout(()=>{SQ_T=null;sqRun();},Math.max(0,ms||0));}
+async function sqRun(){
+  if(SQ_RUN||!sqOn())return;const id=currentDataId();if(!id||!state.profile)return;
+  SQ_RUN=true;
+  try{
+    await sqLoadIdb(id);
+    if(!lgNow())return;   /* sin el libro, las ventas se guardan como antes (no pasan por la cola) */
+    if(!sqUid()){try{await authGetSession();}catch(_){}if(!sqUid())return;}
+    sqMigrate(id);
+    if(!SQ_WOKE[id]){SQ_WOKE[id]=1;sqWake();}   /* al abrir la app */
+    for(let n=0;n<200;n++){
+      if(id!==currentDataId()||!sqOn())break;
+      if(!sbOnline())break;
+      const now=Date.now();let x=null,wait=0;
+      for(const e of sqList(id)){if(!sqLive(e)||!sqMine(e))continue;
+        if((e.next||0)>now){if(e.st==='error')continue;wait=e.next-now;break;}   /* error del servidor: no frena a las siguientes; sin red: se respeta el orden */
+        x=e;break;}
+      if(!x){if(wait)sqKick(wait+50);break;}
+      const r=await sqSend(id,x);
+      if(r==='net'){sqKick(sqBack(x.tries)*1000+50);break;}
+    }
+  }catch(e){try{console.error('mods267 cola',e);}catch(_){}}
+  finally{SQ_RUN=false;try{sqPaint();}catch(_){}}
+}
+async function sqSend(id,x){
+  x={...x,st:'enviando',tries:(x.tries||0)+1,last:Date.now()};SQ_RUN_SENDING[x.op]=1;lgPendPut(id,x);
+  let r=null;
+  try{try{await lgPreFlush(id);}catch(_){}
+    r=await lgCall('relax_sale_confirm',{p_store:id,p_op:x.op,p_sale:x.sale});
+    if(r.net&&r.sent){const s2=await lgCall('relax_op_status',{p_store:id,p_op:x.op});if(s2.data&&s2.data.found)r={data:s2.data.result};}}
+  finally{delete SQ_RUN_SENDING[x.op];}
+  if(r&&r.data&&r.data.ok){SQ_N.ok++;
+    try{if(lgFast(id,r.data))lgApplyBg(id);else await lgApply(id);}catch(_){}
+    lgPendDel(id,x.op);   /* después de tener el saldo nuevo: nunca se cuenta dos veces ni se deja de contar */
+    try{const sv=(state.sales||[]).find(s=>''+s.id===''+x.sale.id)||r.data.sale||x.sale;qtMarkSold(x.sale,sv);if(x.qid!=null){const q=quoteById(x.qid);if(q&&q.soldSale==null){q.soldSale=sv.folio;q.edited=Date.now();persist();}}}catch(_){}
+    sqRefreshViews();return 'ok';}
+  if(r&&r.data&&r.data.ok===false){SQ_N.rej++;
+    lgPendPut(id,{...x,st:'revision',why:r.data.errors||[],err:'',next:0});
+    try{if(r.data.errors&&r.data.errors.some(e=>e&&e.code==='config_changed'))lgApply(id);else lgRejDiff(id,r.data.errors);}catch(_){}
+    try{toast(t('sq_rev_toast'));}catch(_){}sqRefreshViews();return 'rev';}
+  if(r&&r.error){SQ_N.err++;const m=''+(r.error.message||'');
+    if(/relax_ledger_off/.test(m)){try{await lgRefresh();}catch(_){}if(!lgNow()){sqLocal(id,x);return 'ok';}}
+    lgPendPut(id,{...x,st:'error',err:lgErrMsg(r.error),next:Date.now()+sqBack(x.tries)*1000});sqRefreshViews();return 'err';}
+  SQ_N.net++;
+  lgPendPut(id,{...x,st:(r&&r.sent)?'sin_respuesta':'cola',err:'',next:Date.now()+sqBack(x.tries)*1000});return 'net';
+}
+/* el libro se apagó para esta tienda mientras la venta esperaba: se guarda como se guardaba sin el libro */
+function sqLocal(id,x){try{const s=JSON.parse(JSON.stringify(x.sale));(s.items||[]).forEach(i=>{const p=P(+i.id)||P(i.id);if(p)stockAdd(p,-(+i.q||0));});
+  state.sales.unshift(s);lgPendDel(id,x.op);persist();persistSales();sqRefreshViews();}catch(e){try{console.error('mods267 local',e);}catch(_){}}}
+function sqRefreshViews(){try{sqPaint();}catch(_){}try{if(document.getElementById('sqdlg')&&document.getElementById('sqdlg').classList.contains('on'))sqFill();}catch(_){}
+  try{if(typeof sbScheduleRender==='function')sbScheduleRender(300);}catch(_){}}
+/* --- el indicador, junto a la campana --- */
+const SQ_IC={ok:'<path d="M5 12l5 5L20 7"/>',sync:'<path d="M20 11a8 8 0 00-14.3-4.9M4 13a8 8 0 0014.3 4.9"/><path d="M5.7 3v3.3H9M18.3 21v-3.3H15"/>',
+  off:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',err:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>'};
+function sqState(){const id=currentDataId();const L=id?sqList(id):[];const bad=L.filter(sqBad).length,live=L.filter(x=>sqLive(x)&&!sqBad(x)).length;
+  if(bad)return {k:'err',n:bad,txt:ti('sq_err',{n:bad})};
+  if(live&&!sbOnline())return {k:'off',n:live,txt:live===1?t('sq_off1'):ti('sq_off',{n:live})};
+  if(live)return {k:'sync',n:live,txt:ti('sq_sync',{n:live})};
+  return {k:'ok',n:0,txt:t('sq_ok')};}
+function sqEl(){let b=document.getElementById('sqInd');if(b)return b;const bar=document.querySelector('#device>.appbar');if(!bar)return null;
+  b=document.createElement('button');b.type='button';b.id='sqInd';b.className='iconbtn sq-ind';b.setAttribute('data-act','sqopen');
+  const bell=bar.querySelector('[data-act="notifs"]');bar.insertBefore(b,bell||null);return b;}
+function sqPaint(){try{const b=sqEl();if(!b)return;const on=sqOn()&&!!currentDataId()&&!!state.profile&&(lgNow()||sqList().length>0);b.hidden=!on;if(!on)return;
+  const s=sqState();b.className='iconbtn sq-ind sq-'+s.k;b.setAttribute('aria-label',s.txt);b.title=s.txt;b.dataset.sq=s.k;b.dataset.n=s.n;
+  b.innerHTML=svg(SQ_IC[s.k])+(s.n?`<span class="sq-n num">${s.n}</span>`:'');}catch(_){}}
+/* --- el panel --- */
+function sqDlg(){let d=document.getElementById('sqdlg');if(d)return d;d=document.createElement('div');d.className='sheetdlg full';d.id='sqdlg';d.style.zIndex='21';
+  d.innerHTML='<div class="sheetcard"><div class="sheet-h"><span id="sqH"></span><button class="sheet-x" data-act="sqclose" aria-label="✕">✕</button></div><div class="sheet-list" id="sqBody"></div></div>';
+  (document.getElementById('device')||document.body).appendChild(d);return d;}
+function sqOpen(){sqDlg();sqFill();document.getElementById('sqdlg').classList.add('on');}
+function sqClose(){const d=document.getElementById('sqdlg');if(d)d.classList.remove('on');}
+function sqAgo(at){const s=Math.max(0,Math.round((Date.now()-(at||0))/1000));if(s<60)return t('sq_ago_now');if(s<3600)return ti('sq_ago_m',{n:Math.floor(s/60)});if(s<86400)return ti('sq_ago_h',{n:Math.floor(s/3600)});
+  const d=new Date(at||0),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes());}
+function sqFill(){const b=document.getElementById('sqBody'),h=document.getElementById('sqH');if(!b)return;const s=sqState();if(h)h.textContent=t('sq_title')+' · '+s.txt;
+  const L=sqList();if(!L.length){b.innerHTML=`<div class="sq-head sq-${s.k}">${svg(SQ_IC[s.k])}<b>${exEsc(s.txt)}</b></div><div class="empty" style="margin-top:24px">${t('sq_none')}</div>`;return;}
+  b.innerHTML=`<div class="sq-head sq-${s.k}">${svg(SQ_IC[s.k])}<b>${exEsc(s.txt)}</b></div><div class="lgp-note">${t('sq_note')}</div>`+L.map(x=>{const sl=x.sale||{};
+    const otro=!sqMine(x),st=otro?'otro':x.st;
+    const ls=(sl.items||[]).map(i=>{const p=P(+i.id);const nm=nmV(p?p.name:(i.name||'—'));return i.pk?`${qtyLoc(i.pk.c)} ${exEsc(i.pk.n)} · ${exEsc(nm)}`:`${qtyLoc(i.q)}${i.m?' m':''} · ${exEsc(nm)}`;}).join('<br>');
+    let why='';
+    if(otro)why=t('sq_why_otro');
+    else if(x.st==='revision')why=t('sq_why_rev')+(x.why&&x.why.length?'<br>'+lgErrList(x.why).map(exEsc).join('<br>'):'');
+    else if(x.st==='error')why=exEsc(x.err||'')+'<br>'+ti('sq_why_tries',{n:x.tries||0,w:sqWhen(x.next)});
+    else if((x.tries||0)>0)why=t('sq_why_net')+'<br>'+ti('sq_why_tries',{n:x.tries||0,w:sqWhen(x.next)});
+    const acts=otro?'':(x.st==='revision'||x.st==='error'?`<button class="btn" data-act="sqretry:${exEsc(x.op)}">${t('sq_retry')}</button><button class="btn ghost" data-act="sqcart:${exEsc(x.op)}">${t('sq_cart')}</button><button class="btn ghost" data-act="sqdel:${exEsc(x.op)}">${t('sq_del')}</button>`
+      :(x.st==='enviando'?'':`<button class="btn" data-act="sqretry:${exEsc(x.op)}">${t('sq_retry')}</button>`));
+    return `<div class="lgp-card sq-row" data-sqop="${exEsc(x.op)}"><div class="lgp-h"><b>${exEsc(ti('sq_sale',{n:sl.folio||''}))} · ${exEsc(sqAgo(x.at))}</b><span class="lgp-st sq-st-${st}">${t('sq_st_'+st)}</span><b class="num">${money(+sl.total||0)}</b></div>
+      <div class="lgp-ls">${ls}</div>${why?`<div class="lgp-why">${why}</div>`:''}${acts?`<div class="lgp-a">${acts}</div>`:''}</div>`;}).join('');}
+function sqWhen(at){const s=Math.round(((at||0)-Date.now())/1000);if(s<=5)return t('sq_soon');if(s<60)return s+' s';return Math.ceil(s/60)+' min';}
+async function sqAct(a,op){const id=currentDataId();if(!id)return;const find=()=>lgPend(id).find(y=>y&&y.op===op);let x=find();if(!x){sqFill();return;}
+  /* una venta que se está enviando en este instante (reintento automático) no se abre en el carrito ni se descarta: podría quedar
+     confirmada en el servidor Y otra vez en el carrito. Solo «Requiere revisión» y «Error» (el servidor NO la guardó) se pueden sacar. */
+  const busy=y=>y.st==='enviando'||!!SQ_RUN_SENDING[op],out=y=>!busy(y)&&(y.st==='revision'||y.st==='error');
+  if(a==='sqretry'&&busy(x)){sqFill();return;}
+  if((a==='sqcart'||a==='sqdel')&&!out(x)){toast(t('sq_busy'));sqFill();return;}
+  if(a==='sqdel'){if(!await appConfirm(ti('sq_del_q',{n:(x.sale&&x.sale.folio)||''})))return;x=find();if(!x){sqFill();return;}if(!out(x)){toast(t('sq_busy'));sqFill();return;}   /* pudo cambiar mientras se preguntaba */
+    lgPendDel(id,op);sqFill();sqPaint();render();return;}
+  if(a==='sqretry'){lgPendPut(id,{...x,st:x.st==='sin_respuesta'?'sin_respuesta':'cola',next:0,tries:x.st==='revision'||x.st==='error'?0:(x.tries||0),why:x.st==='revision'?x.why:undefined});sqFill();sqKick(0);return;}
+  if(a==='sqcart'){sqClose();return lgPendAct('lgpcart',op);}}
+document.addEventListener('click',e=>{try{const el=e.target.closest&&e.target.closest('[data-act^="sq"],[data-sqdet]');if(!el)return;
+  if(el.hasAttribute('data-sqdet')){e.stopPropagation();e.preventDefault();toast(t('sq_wait_edit'));try{openShareRecibo(el.getAttribute('data-sqdet'));}catch(_){}return;}
+  const act=el.getAttribute('data-act')||'';const i=act.indexOf(':'),a=i<0?act:act.slice(0,i),op=i<0?'':act.slice(i+1);
+  if(a==='sqopen'){e.stopPropagation();e.preventDefault();sqOpen();return;}
+  if(a==='sqclose'){e.stopPropagation();e.preventDefault();sqClose();return;}
+  if(a==='sqretry'||a==='sqcart'||a==='sqdel'){e.stopPropagation();e.preventDefault();sqAct(a,op);}}catch(_){}},true);
+/* --- cerrar sesión con ventas sin subir: avisa; la cola no se borra --- */
+{const _lo=doLogout;doLogout=async function(){try{if(sqOn()){const id=currentDataId();const n=id?sqList(id).filter(x=>sqMine(x)).length:0;
+  if(n){const ok=await appConfirmL(ti('sq_logout_q',{n}),t('sq_wait'),t('sq_logout_anyway'));if(!ok){sqOpen();return;}}}}catch(_){}return _lo.apply(this,arguments);};}
+/* --- cuándo se mueve la cola --- */
+{const _lr=lgRefresh;lgRefresh=async function(){const on=await _lr.apply(this,arguments);try{sqPaint();if(on&&sqOn())sqKick(800);}catch(_){}return on;};}
+addEventListener('online',()=>{try{sqWake();sqPaint();sqKick(700);}catch(_){}});
+addEventListener('offline',()=>{try{sqPaint();}catch(_){}});
+document.addEventListener('visibilitychange',()=>{try{if(!document.hidden){sqWake();sqPaint();sqKick(500);}}catch(_){}});
+setInterval(()=>{try{sqPaint();if(!SQ_T)sqKick(0);}catch(_){}},20000);
+setTimeout(()=>{try{sqPaint();sqKick(0);}catch(_){}},3500);
+(function(){try{const st=document.createElement('style');st.textContent=`
+  :root{--sq-ok:#e8f3ec;--sq-sync:#fff;--sq-off:#ffd27a;--sq-err:#ffb4a8;--sq-n-bg:#fff;--sq-n-ink:var(--pri-d);--sq-rev:var(--red);--sq-badge:var(--amber)}
+  .sq-ind{position:relative;flex:none;width:40px}
+  .sq-ind>svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .sq-ind.sq-ok{color:var(--sq-ok)}.sq-ind.sq-sync{color:var(--sq-sync)}.sq-ind.sq-off{color:var(--sq-off)}.sq-ind.sq-err{color:var(--sq-err)}
+  .sq-ind.sq-sync>svg{animation:sqspin 1.4s linear infinite}
+  @keyframes sqspin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.sq-ind.sq-sync>svg{animation:none}}
+  .sq-ind .sq-n{position:absolute;top:3px;right:0;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--sq-n-bg);color:var(--sq-n-ink);font-size:11px;font-weight:700;line-height:17px;text-align:center}
+  .sq-head{display:flex;align-items:center;gap:10px;margin:12px 16px 4px;font-size:15px}
+  .sq-head>svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .sq-head.sq-ok{color:var(--green)}.sq-head.sq-sync{color:var(--ink)}.sq-head.sq-off{color:var(--amber)}.sq-head.sq-err{color:var(--red)}
+  .sq-row .lgp-why{margin-top:6px;font-size:12.5px;color:var(--muted)}
+  .lgp-st.sq-st-revision,.lgp-st.sq-st-error{color:var(--sq-rev)}
+  .sq-badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--sq-badge);margin-right:auto}
+  .sq-badge.rev{color:var(--sq-rev)}
+  .sq-badge>svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2}
+  .sq-card{opacity:.92}
+`;document.head.appendChild(st);}catch(_){}})();
+/* fin mods267 */
 </script>

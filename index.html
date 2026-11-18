@@ -7070,7 +7070,7 @@ function uniqUpper(list){const seen=new Set(),out=[];(list||[]).forEach(v=>{cons
 // formas de pago: las de la tienda; la primera vez, las que usan las ventas (los nombres de Mi Negocio primero) o las de siempre
 function payMethodList(){
   if(!Array.isArray(state.payMethods)||!state.payMethods.length){
-    const used=(state.sales||[]).map(s=>(''+(s.pay||'')).trim()).filter(Boolean);used.sort((a,b)=>(a.indexOf('pm_')===0)-(b.indexOf('pm_')===0));
+    const used=(state.sales||[]).map(s=>(''+(s.pay||'')).trim()).filter(v=>v&&v.toUpperCase()!=='MIXTO');   /* mods270 */used.sort((a,b)=>(a.indexOf('pm_')===0)-(b.indexOf('pm_')===0));
     const prev=PICK_MODE;PICK_MODE='pay';state.payMethods=uniqUpper(used.length?used:PAY_METHODS.map(m=>'pm_'+m));if(used.length)state.payMethods.sort((x,y)=>payLbl(x).localeCompare(payLbl(y)));PICK_MODE=prev;   // como Mi Negocio: CONTADO, DAVIPLATA, NEQUI
   }
   return state.payMethods;
@@ -7199,14 +7199,14 @@ function saveSale(){if(salesLoadingBlock())return;if(qtSoldBlock())return;   /* 
   const cobrar=(state.saleStatus||'pagado')==='cobrar';const init0=saleInitAmt();
   if(cobrar&&!(state.saleClient||'').trim()){toast(t('cli_required'));const c=document.getElementById('saleClient');if(c)c.focus();return;}
   if(cobrar&&init0>0&&init0>=cartTotal()-0.005){toast(t('init_too_much'));return;}
-  if(mxBlock(cobrar))return;   /* mods248: el pago mixto tiene que cuadrar con el total */
+  if(typeof mpgSaveBlock==='function'&&mpgSaveBlock(cobrar))return;   /* mods270 */if(mxBlock(cobrar))return;   /* mods248: el pago mixto tiene que cuadrar con el total */
   if(cobrar){const ps=(state.saleSched||[]).filter(x=>x&&+x.p>0),sm=ps.reduce((a,x)=>a+(+x.p||0),0);if(ps.length&&sm>Math.max(0,cartTotal()-init0)+0.005){appAlert(t('sched_over')).then(()=>openSched('sale'));return;}}   /* mods148: el carrito cambió después de programar */
   const fol=nextSaleFolio();const id='S'+uidPart();
   if(!lgNow())items.forEach(i=>{const p=P(i.id);if(p)stockAdd(p,-cBaseQ(i));});   /* mods239: con el libro lo resta el servidor */
   const d=new Date();const tm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;const tot=cartTotal();
   const sale={id,folio:fol,ts:Date.now(),dev:deviceId(),addr:(state.saleAddr||'').trim()||undefined,date:(opts().manualDate&&state.saleDate)||todayISO(),time:tm,items:items.map(i=>itemSnap(i.id,i.q,linePrice(i.id))),total:tot,pay:state.salePay||'',client:canonCli(state.saleClient),tag:(state.saleTag||'').trim(),note:(state.saleNote||'').trim(),status:state.saleStatus||'pagado',...sellerSign()};   /* mods206: firmada por el vendedor */
-  {const sv=svcLinesForSale();if(sv.length)sale.svcs=sv;}{const mx=mxForSale();if(mx)sale.mix=mx;}   /* mods248 */
-  if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0,id:'Y'+uidPart()}];if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
+  {const sv=svcLinesForSale();if(sv.length)sale.svcs=sv;}{const mx=mxForSale();if(mx)sale.mix=mx;}   /* mods248 */if(typeof mpgSaleCash==='function')mpgSaleCash(sale);   /* mods270 */
+  if(cobrar){if(init0>0)sale.pays=[{f:sale.date,h:tm,p:init0,id:'Y'+uidPart(),...(typeof mpgInitM==='function'?mpgInitM():{})}];   /* mods270: + medio */if((state.saleSched||[]).length)sale.sched=state.saleSched.map(x=>({f:x.f,h:x.h||'00:00',p:+x.p||0}));}   // Pago Inicial = primer abono
   if(state.saleFromQuote&&!lgNow()){const qq=quoteById(state.saleFromQuote);if(qq){qq.soldSale=fol;qq.edited=Date.now();sale.fromQuote=qq.folio;}state.saleFromQuote=null;}
   if(lgNow()){const _q=state.saleFromQuote,_qq=_q?quoteById(_q):null;if(_qq)sale.fromQuote=_qq.folio;   /* mods239: la confirma el servidor */
     if(typeof sqOn==='function'&&sqOn())return sqSave(sale,items,fol,tot,_q);   /* mods267: se guarda en el equipo y sube por detrás (misma función del servidor) */
@@ -12055,7 +12055,7 @@ function vdSummary(vid,from,to){const inD=d=>!!d&&d>=from&&d<=to;const mine=(sta
   const r={count:0,sold:0,credit:0,byPay:{},cash:0,collected:0,cashSale:0,cashAb:0};
   const addP=(pay,amt,ab)=>{if(!(amt>0))return;const k=pay?(payLbl(pay)||pay):t('mc_nopay');r.byPay[k]=(r.byPay[k]||0)+amt;r.collected+=amt;if(mcIsCash(pay)){r.cash+=amt;if(ab)r.cashAb+=amt;else r.cashSale+=amt;}};
   for(const x of mine){const d=saleDate(x);if(inD(d)){r.count++;r.sold+=saleTotal(x);r.credit+=recDue('sale',x);}
-    if(Array.isArray(x.pays)&&x.pays.length)x.pays.forEach(p=>{if(inD(p.f))addP(x.pay,+p.p||0,1);});
+    if(Array.isArray(x.pays)&&x.pays.length)x.pays.forEach(p=>{if(inD(p.f))addP((typeof mpgOn==='function'&&mpgOn()&&p.m)||x.pay,+p.p||0,1);});   /* mods270: el medio del abono */
     else if(inD(d)&&!saleIsCreditStrict(x))mxParts(x).forEach(pp=>addP(pp.pay,pp.v));   /* mods248 */}
   const v=(state.sellers||[]).find(z=>z&&z.id===vid);r.pct=v&&+v.com>0?+v.com:0;r.com=Math.round(r.sold*r.pct)/100;return r;}
 function mcMonth(d){return [d.slice(0,8)+'01',d];}
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261117070139';
+const APP_VERSION='20261117191912';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -21040,5 +21040,143 @@ document.addEventListener('change',e=>{const el=e.target;if(!el||!el.dataset)ret
   .vt-swt b{font-size:14.5px;color:var(--ink)}
   .vt-swt i{font-style:normal;font-size:12px;color:var(--muted);line-height:1.35}
 `;document.head.appendChild(s);}catch(_){}})();
+
+/* ==== mods270 (2026-11-17): CADA PAGO QUEDA CON SU FORMA DE PAGO REAL ====
+   Pedido de Fabio (17-nov, documento «Corrección: cada pago debe quedar registrado con su forma de pago real»; «Autorizado» con estas
+   respuestas: CONTADO sigue marcado de entrada y conserva su nombre (cuenta como efectivo) · una venta PAGADA no se guarda sin forma de
+   pago · el reporte «Formas de pago» pasa a mostrar dinero recibido · el efectivo esperado sigue solo en «Mi caja» del vendedor).
+   Sin cambios en la base de datos y sin reescribir ventas guardadas: todo va en campos nuevos dentro de la venta, que el servidor conserva.
+   QUÉ HACE
+   1. Venta nueva PAGADA sin forma de pago: no se guarda y se explica (mpgSaveBlock). «Por cobrar» sigue igual: su medio va en cada abono.
+      En una tienda sin «CONTADO» en su lista y sin Default, la venta nueva abre con su efectivo marcado (mpgSaleDef); antes abría vacía.
+   2. Vuelto: con un medio en efectivo aparece «Recibido (opcional)» y «Cambio». La venta guarda rec (recibido) y cam (cambio); el valor
+      de la venta no cambia. Si lo recibido no alcanza, no se guarda. Sale en el detalle, el PDF, el texto, el ticket y la tirilla.
+   3. Abonos de una venta: cada abono guarda su medio en «m». La ventana «Agregar pago» lo pide (marcado el de siempre); «Confirmar pago
+      total» lo pregunta; el Pago inicial toma la forma de pago de la venta. Los abonos viejos (sin «m») siguen contando con la forma de
+      pago de su venta, como antes. Compras, gastos, ingresos y nómina no se tocan.
+   4. «Mi caja» (vdSummary, cambio en el código de siempre) y el reporte «Formas de pago»: dinero RECIBIDO por medio = ventas pagadas en
+      su fecha (las mixtas repartidas) + abonos en la fecha del abono con su medio. Lo que está por cobrar no se cuenta.
+      En el reporte, CONTADO y EFECTIVO van en una sola fila («son lo mismo», Fabio 17-nov).
+   5. «MIXTO» nunca es una opción suelta de la lista: solo se registra con su reparto, al hacer la venta. (La lista de formas de pago que
+      se arma con las de las ventas podía traer la palabra MIXTO y, elegida en el detalle de una venta guardada, quedaba sin desglose.)
+   Interruptor por equipo: localStorage 'abanico.mpg'='0' deja todo como mods269 (los datos ya guardados no se tocan). */
+(function(){try{
+  Object.assign(I18N.es,{mpg_need_pay:'Elige la forma de pago antes de guardar la venta.',mpg_rec:'Recibido',mpg_chg:'Cambio',mpg_short:'Falta {f}',
+    mpg_rec_short:'Lo recibido ({r}) no alcanza para el total de la venta ({t}). Corrige el valor o deja el campo vacío.',
+    mpg_pay_m:'Forma de pago del abono',mpg_pick:'Elige la forma de pago',mpg_ask_m:'¿Con qué forma de pago se recibe?',
+    mpg_init_hint:'El pago inicial queda registrado con la forma de pago que elijas abajo.',
+    mpg_mx_new:'El pago mixto se registra al hacer la venta, con el valor de cada medio. En una venta ya guardada elige un solo medio.',
+    mpg_rep_note:'Ventas: dinero recibido en el periodo (ventas pagadas y abonos, cada uno en su fecha y con su medio). Lo que está por cobrar no se cuenta. Contado y efectivo van en una sola fila.'});
+  Object.assign(I18N.en,{mpg_need_pay:'Choose the payment method before saving the sale.',mpg_rec:'Received',mpg_chg:'Change',mpg_short:'Missing {f}',
+    mpg_rec_short:'The amount received ({r}) does not cover the sale total ({t}). Fix it or leave the field empty.',
+    mpg_pay_m:'Payment method of this payment',mpg_pick:'Choose the payment method',mpg_ask_m:'Which payment method was used?',
+    mpg_init_hint:'The initial payment is recorded with the payment method you choose below.',
+    mpg_mx_new:'A mixed payment is recorded when the sale is made, with the amount of each method. On a saved sale choose a single method.',
+    mpg_rep_note:'Sales: money received in the period (paid sales and payments, each on its date and with its method). Receivables are not counted. Cash goes in a single row.'});
+}catch(e){console.error('mods270 textos',e);}})();
+function mpgOn(){try{return localStorage.getItem('abanico.mpg')!=='0';}catch(_){return true;}}
+function mpgIsMx(v){return (''+(v==null?'':v)).trim().toUpperCase()===MX_LBL;}
+function mpgMethods(){try{return mxMethods();}catch(_){return [];}}
+/* el medio marcado de entrada en un abono: el de siempre (CONTADO o el Default de la tienda); con un solo medio, ese */
+function mpgDefM(){const L=mpgMethods();let d='';try{d=payDef()||mpgCashDef()||'';}catch(_){}if(d&&L.indexOf(d)>=0)return d;return L.length===1?L[0]:'';}
+/* tiendas sin «CONTADO» en su lista y sin Default: el medio marcado de entrada en la VENTA es su efectivo (Efectivo). Compras no se tocan */
+function mpgCashDef(){try{const L=mpgMethods();return L.find(v=>v==='pm_efectivo')||L.find(v=>mxCash(v))||'';}catch(_){return '';}}
+function mpgSaleDef(){try{if(mpgOn()&&!state.salePay&&!state.salePayCleared&&!state.quoteMode&&!state.editSale&&!payDef()){const d=mpgCashDef();if(d)state.salePay=d;}}catch(_){}}
+
+/* ---------------- 1 y 2. venta nueva: forma de pago obligatoria si es pagada, y vuelto ---------------- */
+function mpgRecC(){const v=(''+(state.saleRec==null?'':state.saleRec)).trim().replace(',','.');if(!v)return 0;const n=+v;return isFinite(n)&&n>0?Math.round(n*100):0;}
+function mpgRecShown(){try{return mpgOn()&&!state.quoteMode&&!state.editSale&&(state.saleStatus||'pagado')!=='cobrar'&&!!state.salePay&&!mpgIsMx(state.salePay)&&mxCash(state.salePay);}catch(_){return false;}}
+function mpgChgTxt(){const r=mpgRecC();if(!r)return '—';const tot=toC(cartTotal());return r<tot?ti('mpg_short',{f:money((tot-r)/100)}):money((r-tot)/100);}
+function mpgRecHTML(){return `<div class="cobro mpg-rec" style="margin-top:0"><div class="cobro-r"><span class="l">${exEsc(t('mpg_rec'))} $ ${exEsc(t('optional'))}</span><input autocomplete="off" class="inp num" id="mpgRec" type="number" inputmode="decimal" step="any" min="0" placeholder="$" value="${exEsc(state.saleRec||'')}"></div>
+    <div class="cobro-debt"><span class="l">${exEsc(t('mpg_chg'))} $</span><b class="num" id="mpgChg">${exEsc(mpgChgTxt())}</b></div></div>`;}
+/* la llama saveSale antes de guardar: true = no se guarda (ya se avisó) */
+function mpgSaveBlock(cobrar){try{if(!mpgOn())return false;mpgSaleDef();
+  if(!cobrar&&!(''+(state.salePay||'')).trim()){appAlert(t('mpg_need_pay')).then(()=>{try{openSalePay();}catch(_){}});return true;}
+  if(mpgRecShown()){const r=mpgRecC(),tot=toC(cartTotal());if(r>0&&r<tot){appAlert(ti('mpg_rec_short',{r:money(r/100),t:money(tot/100)}));return true;}}
+  return false;}catch(e){console.error('mods270 guardar',e);return false;}}
+/* la llama saveSale con la venta ya armada: recibido y cambio de una venta en efectivo con un solo medio */
+function mpgSaleCash(sale){try{if(!sale||!mpgRecShown()||sale.status!=='pagado'||mxIs(sale))return;const r=mpgRecC(),tot=toC(sale.total);if(r>0&&r>=tot){sale.rec=r/100;sale.cam=(r-tot)/100;}}catch(e){console.error('mods270 vuelto',e);}}
+/* el Pago inicial de una venta por cobrar toma la forma de pago de la venta */
+function mpgInitM(){try{return mpgOn()&&state.salePay&&!mpgIsMx(state.salePay)?{m:state.salePay}:{};}catch(_){return {};}}
+{const _sc=saleCartHTML;saleCartHTML=function(){mpgSaleDef();let h=_sc.apply(this,arguments);try{if(mpgRecShown()){const m=h.match(/<div class="cfld sellike" data-act="salepay">[\s\S]*?<\/div>/);if(m)h=h.replace(m[0],()=>m[0]+mpgRecHTML());}}catch(e){console.error('mods270 recibido',e);}return h;};}
+{const _ch=cobroHTML;cobroHTML=function(){const h=_ch.apply(this,arguments);try{if(mpgOn())return h+`<div class="osub mpg-init" style="margin-top:6px">${exEsc(t('mpg_init_hint'))}</div>`;}catch(_){}return h;};}
+document.addEventListener('input',e=>{const el=e.target;if(!el||el.id!=='mpgRec')return;state.saleRec=el.value;const c=document.getElementById('mpgChg');if(c)c.textContent=mpgChgTxt();},true);
+{const _st=saleSaveTail;saleSaveTail=function(){try{return _st.apply(this,arguments);}finally{state.saleRec='';}};}
+{const _cc=saleClearCart;saleClearCart=function(){const r=_cc.apply(this,arguments);state.saleRec='';return r;};}
+{const _sx=saleCancel;saleCancel=async function(){const r=await _sx.apply(this,arguments);try{if(!saleHas())state.saleRec='';}catch(_){}return r;};}
+/* recibido y cambio en el PDF, el texto, el ticket y la tirilla (los mismos renglones del pago mixto). El cambio se calcula con el total
+   de hoy: si la venta se editó y lo recibido ya no alcanza, no se muestra */
+{const _ml=mxLines;mxLines=function(s,ui){const L=_ml.apply(this,arguments);try{if(L.length||!mpgOn()||!s||s.rec==null||mxIs(s)||!s.pay||!mxCash(s.pay))return L;
+  const r=toC(s.rec),tot=toC(saleTotal(s));if(!(r>0)||r<tot)return L;return [t('mx_received')+': '+money(r/100),t('mx_change')+': '+money((r-tot)/100)];}catch(_){return L;}};}
+
+/* ---------------- 3. abonos con su medio ---------------- */
+/* igual que addPay, con el medio en «m» (solo ventas) */
+function mpgAdd(kind,id,amount,date,time,m){
+  const r=recGet(kind,id);if(!r)return false;const due=recDue(kind,r);
+  amount=Math.round((+amount||0)*100)/100;if(!(amount>0)){toast(t('pay_need'));return false;}
+  if(amount>due+0.005){toast(ti('pay_too_much',{d:money(due)}));return false;}
+  if(!Array.isArray(r.pays)||!r.pays.length){r.pays=[];}
+  const p={f:date||todayISO(),h:time||'',p:amount,id:'Y'+uidPart()};if(m)p.m=m;
+  r.pays.push(p);r.payEdited=new Date().toISOString();
+  const paidNow=recDue(kind,r)<=0.5;recSetPaid(kind,r,paidNow);
+  recSaveChange(kind);recRefresh(kind,id);toast(paidNow?t('pay_done_all'):ti('pay_done',{m:money(amount),d:money(recDue(kind,r))}));return true;
+}
+{const _ap=addPay;addPay=function(kind,id,amount,date,time){
+  if(kind!=='sale'||!mpgOn())return _ap.apply(this,arguments);
+  const L=mpgMethods();if(!L.length)return _ap.apply(this,arguments);
+  const sel=document.getElementById('mpgPayM'),dlg=document.getElementById('cfgdlg');
+  if(sel&&dlg&&dlg.classList.contains('on')){if(!sel.value){toast(t('mpg_pick'));return false;}return mpgAdd(kind,id,amount,date,time,sel.value);}
+  return _ap.apply(this,arguments);};}   /* sin la ventana a la vista (llamada directa): como siempre */
+/* «Confirmar pago total» de una venta (no tiene ventana): la misma pregunta de siempre y después el medio. Compras: como siempre */
+document.addEventListener('click',e=>{try{if(!mpgOn())return;const el=e.target&&e.target.closest&&e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act||'';
+  if(a.indexOf('payall:sale:')!==0)return;const L=mpgMethods();if(!L.length)return;
+  const id=decodeURIComponent(a.split(':')[2]||''),r=recGet('sale',id);if(!r)return;const due=recDue('sale',r);
+  e.preventDefault();e.stopPropagation();
+  appConfirm(ti('pay_all_confirm',{m:money(due)})).then(async ok=>{if(!ok)return;let m=L.length===1?L[0]:null;
+    if(m==null){const k=await appMenu(t('mpg_ask_m'),L.map(v=>''+(payLbl(v)||v)));if(typeof k!=='number'||k<0||k>=L.length)return;m=L[k];}
+    mpgAdd('sale',id,due,todayISO(),g3NowHM(),m);});
+}catch(err){console.error('mods270 pago total',err);}},true);
+{const _op=openPayAdd;openPayAdd=function(kind,id){const r=_op.apply(this,arguments);try{
+  if(mpgOn()&&kind==='sale'&&PAY_T&&PAY_T.kind==='sale'){const g=document.querySelector('#cfgBody .g3pa'),L=mpgMethods();
+    if(g&&L.length&&!document.getElementById('mpgPayM')){const d=mpgDefM();
+      g.insertAdjacentHTML('beforebegin',`<div class="mpg-pm" style="padding:18px 20px 0;display:flex;flex-direction:column;gap:6px"><span class="fl">${exEsc(t('mpg_pay_m'))}</span><select class="inp" id="mpgPayM">${d?'':`<option value="">${exEsc(t('mpg_pick'))}</option>`}${L.map(v=>`<option value="${exEsc(v)}"${v===d?' selected':''}>${exEsc(''+(payLbl(v)||v))}</option>`).join('')}</select></div>`);}}
+}catch(e){console.error('mods270 abono',e);}return r;};}
+/* detalle de la venta (los dos): el medio junto a cada abono y, en efectivo, recibido y cambio debajo de la forma de pago */
+function mpgDeco(id){try{if(!mpgOn())return;const s=(state.sales||[]).find(x=>''+x.id===''+id);const body=document.getElementById('saleBody');if(!s||!body)return;
+  const b=[...body.querySelectorAll('[data-act]')].find(x=>x.dataset.act==='sdpay:'+s.id);if(!b)return;   /* el detalle a la vista es el de ESTA venta */
+  if(!mxIs(s)&&!body.querySelector('.mpg-det')){const L=mxLines(s,true);const ln=b.closest('.sd-line')||b.closest('.g3pd-pay');
+    if(L.length&&ln)ln.insertAdjacentHTML('afterend',`<div class="${ln.classList.contains('sd-line')?'sd-line ':''}mpg-det" style="display:flex;flex-direction:column;align-items:stretch;gap:2px;padding-left:34px">${L.map(l=>`<div class="sd-tx" style="white-space:pre-wrap;font-size:13px">${exEsc(l)}</div>`).join('')}</div>`);}
+  const pays=Array.isArray(s.pays)?s.pays:[];if(!pays.length)return;
+  const rows=[...body.querySelectorAll('.payblock .pay-row, .g3pd-pays .g3pd-pr')];if(rows.length!==pays.length)return;
+  rows.forEach((row,i)=>{const m=pays[i]&&pays[i].m;if(!m||row.querySelector('.mpg-m'))return;const sp=row.querySelector('.g3pd-prd')||row.querySelector('span');if(sp)sp.insertAdjacentHTML('beforeend',`<span class="mpg-m" style="font-weight:600"> · ${exEsc(''+(payLbl(m)||m))}</span>`);});
+}catch(e){console.error('mods270 detalle',e);}}
+{const _od=openSaleDet;openSaleDet=async function(id){const r=await _od.apply(this,arguments);mpgDeco(id);return r;};}
+{const _or=openRecvDet;openRecvDet=async function(id){const r=await _or.apply(this,arguments);mpgDeco(id);return r;};}
+
+/* ---------------- 4. reporte «Formas de pago»: dinero recibido por medio ---------------- */
+/* «Contado y efectivo son lo mismo» (Fabio, 17-nov): en el reporte van en UNA fila, también en compras, ingresos y gastos. Se llama CONTADO
+   si la tienda lo tiene en su lista; si no, EFECTIVO. Solo los nombres exactos (una forma de pago propia que contenga la palabra no se une) */
+function mpgIsCashName(n){const u=(''+(n==null?'':n)).trim().toUpperCase();return u==='CONTADO'||u==='EFECTIVO'||u==='CASH';}
+function mpgCashRow(){try{return payMethodList().some(v=>(''+(payLbl(v)||v)).trim().toUpperCase()==='CONTADO')?'CONTADO':(PM_MN.pm_efectivo||'EFECTIVO');}catch(_){return 'EFECTIVO';}}
+{const _rp=repPayFormsData;repPayFormsData=function(){const L=_rp.apply(this,arguments);if(!mpgOn())return L;try{
+  const nm=v=>{if(!v)return t('sin_info');const k=PM_MN[v]?v:null;return (k?PM_MN[k]:(''+payLbl(v))).toUpperCase();};
+  const by={};L.forEach(o=>{o.v=0;by[o.name]=o;});const g=v=>{const k=nm(v);return by[k]||(by[k]={name:k,v:0,c:0,i:0,g:0});};
+  (state.sales||[]).forEach(x=>{if(!x||x.del)return;
+    if(Array.isArray(x.pays)&&x.pays.length)x.pays.forEach(p=>{if(p&&inR(p.f))g(p.m||x.pay).v+=(+p.p||0);});
+    else if(inR(saleDate(x))&&!saleIsCreditStrict(x))mxParts(x).forEach(pp=>{g(pp.pay).v+=pp.v;});});
+  let rows=Object.values(by).filter(o=>Math.abs(o.v)>0.004||Math.abs(o.c)>0.004||Math.abs(o.i)>0.004||Math.abs(o.g)>0.004);
+  const cash=rows.filter(o=>mpgIsCashName(o.name));   /* CONTADO y EFECTIVO: una sola fila */
+  if(cash.length){const m={name:mpgCashRow(),v:0,c:0,i:0,g:0};cash.forEach(o=>{m.v+=o.v;m.c+=o.c;m.i+=o.i;m.g+=o.g;});rows=rows.filter(o=>!mpgIsCashName(o.name));rows.push(m);}
+  return rows.map(o=>Object.assign(o,{b:o.v-o.c+o.i-o.g}));
+}catch(e){console.error('mods270 reporte',e);return _rp.apply(this,arguments);}};}
+{const _rf=repPayForms;const w=function(){const h=_rf.apply(this,arguments);try{if(mpgOn()&&(''+h).indexOf('class="pfl"')>=0)return h+`<div class="osub mpg-note" style="padding:10px 16px 18px">${exEsc(t('mpg_rep_note'))}</div>`;}catch(_){}return h;};
+  repPayForms=w;try{if(typeof REP_RENDER!=='undefined'&&REP_RENDER&&REP_RENDER.pay_forms===_rf)REP_RENDER.pay_forms=w;}catch(_){}}
+
+/* ---------------- 5. «MIXTO» nunca como opción suelta ---------------- */
+{const _fp=fillPick;fillPick=function(){const r=_fp.apply(this,arguments);try{if(mpgOn()&&PICK_MODE==='pay'&&!PICK_HIST){
+  payMethodList().forEach((v,i)=>{if(!mpgIsMx(v))return;const b=document.querySelector('#payOptions [data-act="pkset:'+i+'"]');const row=b&&b.closest('.pkrow');if(row)row.remove();});}}catch(_){}return r;};}
+document.addEventListener('click',e=>{try{if(!mpgOn())return;const el=e.target&&e.target.closest&&e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act||'';
+  if(a.indexOf('pkset:')!==0||PICK_MODE!=='pay'||PICK_HIST)return;if(!mpgIsMx(payMethodList()[+a.slice(6)]))return;
+  e.preventDefault();e.stopPropagation();if(PICK_SALE||PICK_TGT)appAlert(t('mpg_mx_new'));else mxOpen();}catch(_){}},true);
 
 </script>

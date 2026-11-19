@@ -3723,7 +3723,7 @@ function cartOrderFrom(ids){state.cartAt={};let n=0;(ids||[]).forEach(id=>{if(st
 // Para mostrar el pedido, como Mi Negocio: en el orden en que se agregó (el primero arriba, el último abajo)
 function cartItemsRecent(){cartOrderSync();const at=state.cartAt;return cartRows().sort((a,b)=>(at[a.id]||0)-(at[b.id]||0));}
 const linePrice=id=>(state.cartPrice&&state.cartPrice[id]!=null)?(+state.cartPrice[id]||0):pkHabPrice(id);   /* mods239: el precio habitual de la presentación elegida */
-const cartTotal=()=>cartItems().reduce((t,i)=>t+linePrice(i.id)*i.q,0)+svcCartTotal();
+const cartTotal=()=>cartItems().reduce((t,i)=>t+(acxIs(i.id)?0:linePrice(i.id)*i.q),0)+svcCartTotal();   /* mods274 */
 const pcartItems=()=>Object.entries(state.pcart).filter(([,q])=>q>0).map(([id,q])=>({id:+id,q})).filter(i=>P(i.id));
 const pLineCost=id=>(state.pcost&&state.pcost[id]!=null)?(+state.pcost[id]||0):pcHabC(id);   /* mods239 */
 const pLineSale=id=>(state.pprice&&state.pprice[id]!=null)?(+state.pprice[id]||0):pcHabS(id);   /* mods239 */
@@ -3749,7 +3749,7 @@ function invHeader(){
   <div class="chipsw"><div class="chips" id="invChips">
     <span class="fchip ${(state.filterUnit||state.filterInfo)?'act':''}" data-act="filter">${svg('<path d="M3 5h18M6 12h12M10 19h4"/>')} ${t('chip_filter')}</span>
     <span class="fchip" data-act="reserva">${svg('<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 16.5v.5"/>')} ${t('chip_reserve')}</span>
-    <span class="fchip" data-act="merma">${svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/>')} ${t('chip_merma')}</span>${acChip()}   <!-- mods248 -->
+    <span class="fchip" data-act="merma">${svg('<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/>')} ${t('chip_merma')}</span>
     <span class="fchip" data-act="catalog">${svg('<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/>')} ${t('chip_catalog')}</span>
     <span class="fchip io" data-act="io">${svg('<path d="M8 17l-4-4 4-4"/><path d="M4 13h9"/><path d="M16 7l4 4-4 4"/><path d="M20 11h-9"/>')} ${t('chip_io')}</span>
     <span class="fchip" data-act="invopts">${svg(ICO_WRENCH)} ${t('chip_invopts')}</span>
@@ -4000,7 +4000,7 @@ function mermaRangeOk(){
   const x=a.value,y=b.value;state.mermaView={mode:'date',from:x<=y?x:y,to:x<=y?y:x};mermaRangeClose();mermaRefresh();
 }
 // "Buscar por Producto" (41g): el selector de la venta en modo 'mermafilter'
-function pickMermaLike(){return state.pickMode==='merma'||state.pickMode==='mermafilter'||state.pickMode==='autocons';}   /* mods248 */   // sin carrito ni contador
+function pickMermaLike(){return state.pickMode==='merma'||state.pickMode==='mermafilter';}   // sin carrito ni contador
 function openMermaFilterPick(){
   state.pickMode='mermafilter';state.saleProdQ='';state.spAdded='';state.spLastId=null;state.saleCatOpen={};state.spLimit=SP_PAGE;
   const d=document.getElementById('saleproddlg');d.style.zIndex='17';fillSaleProd();d.classList.add('on');document.getElementById('saleprodBody').scrollTop=0;
@@ -7126,16 +7126,16 @@ function saleCartHTML(){invCapCart();   /* mods245b: lo que llega de antes tambi
   const items=cartItemsRecent();
   const trash=svg('<path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/>');
   const rows=items.map(i=>{const p=P(i.id);if(!p&&!state.editSale)return '';const price=linePrice(i.id);const sub=price*i.q;const pn=pkLineName(p,i.id,price);const tx=cqtyTxt(i.id,i.q),emp=cqtyEmpty(tx),over=cartOver(p,i.id,i.q);   /* mods142a */
-    return `<div class="crow${over?' over':''}" data-crow="${i.id}">
+    return `<div class="crow${over?' over':''}${acxIs(i.id)?' acx':''}" data-crow="${i.id}">
       <div class="crow-name">${p?exEsc(nmV(p.name)):exEsc(nmV((state.editSale&&(state.editSale.names||{})[i.id])||'—'))}</div>${p?cPkChips(p,i.id):''}
       <div class="crow-grid">
         <div class="cfield"><span class="cfl qlab"><button class="qbtn" data-act="cqm:${i.id}" aria-label="−">−</button>${cQtyLbl(p,i.id)}<button class="qbtn" data-act="cqp:${i.id}" aria-label="+">+</button></span><input autocomplete="off" class="cinp num" data-cqty="${i.id}" type="text" inputmode="${cNeedInt(i.id)?'numeric':'decimal'}" enterkeyhint="done" value="${exEsc(tx)}"></div>
         <div class="cfield"><span class="cfl">${t('cx_sale_s')} ${moneySym()}${cPriceSuf(p,i.id)}</span><input autocomplete="off" class="cinp num" data-cprice="${i.id}" type="number" inputmode="numeric" value="${price}"${isSeller()?` readonly tabindex="-1" title="${t('vd_price_lock')}"`:''}>   <!-- mods224 --></div>
-        <div class="cfield"><span class="cfl">${t('sale_subtotal')} ${moneySym()}</span><span class="csub num">${emp?'...':moneyNum(sub)}</span></div>
+        <div class="cfield"><span class="cfl">${t('sale_subtotal')} ${moneySym()}</span><span class="csub num">${emp?'...':moneyNum(acxIs(i.id)?0:sub)}</span></div>
       </div>
       ${pn?`<div class="cpx">${svg(IC_TAG)}<span>${(''+pn).replace(/</g,'&lt;')}</span></div>`:''}${adjCap(i.id)}${cBrkHTML(i.id)?`<div class="cbrk">${cBrkHTML(i.id)}</div>`:''}
-      <div class="crow-ico"><button class="cico info" data-act="cinfo:${i.id}" title="${t('ic_info')}"><span class="ci-i">i</span></button><span class="crow-mid">${pkXpList(p,i.id).length?`<button class="cico tag" data-act="ctag:${i.id}" title="${t('ic_price')}">${svg(IC_TAG)}</button>`:''}<button class="cico pct" data-act="cdisc:${i.id}" title="${t('ic_disc')}"><span class="ci-pct">+%</span></button></span><button class="cico del" data-cdel="${i.id}" title="${t('remove')}">${trash}</button></div>
-      ${invAdjNote(i.id)}<div class="cwarn"${over?'':' hidden'}>${cwarnTri()}<span>${t('sale_over_stock')}</span></div>
+      <div class="crow-ico"><button class="cico info" data-act="cinfo:${i.id}" title="${t('ic_info')}"><span class="ci-i">i</span></button><span class="crow-mid">${pkXpList(p,i.id).length?`<button class="cico tag" data-act="ctag:${i.id}" title="${t('ic_price')}">${svg(IC_TAG)}</button>`:''}<button class="cico pct" data-act="cdisc:${i.id}" title="${t('ic_disc')}"><span class="ci-pct">+%</span></button></span>${acxBtn(i.id)}<button class="cico del" data-cdel="${i.id}" title="${t('remove')}">${trash}</button></div>
+      ${acxRowNote(i.id)}${invAdjNote(i.id)}<div class="cwarn"${over?'':' hidden'}>${cwarnTri()}<span>${t('sale_over_stock')}</span></div>
     </div>`;}).join('');
   const st=state.saleStatus||'pagado';
   const seg=`<div class="segrow"><button class="seg ${st==='pagado'?'on':''}" data-act="salestatus:pagado">${st==='pagado'?svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'):svg('<circle cx="12" cy="12" r="9"/>')} ${t('sale_paid')}</button><button class="seg ${st==='cobrar'?'on':''}" data-act="salestatus:cobrar">${st==='cobrar'?svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'):svg('<circle cx="12" cy="12" r="9"/>')} ${t('sale_pending')}</button></div>`;
@@ -7151,7 +7151,7 @@ function saleCartHTML(){invCapCart();   /* mods245b: lo que llega de antes tambi
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
   const actions=`<div class="saveact"><button class="cancelbtn" data-act="salecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savesale">${svg('<path d="M5 12l5 5L20 7"/>')} ${state.editSale?t('sale_edit_save'):t('save')}</button></div>`;
   const cobro=cob&&!state.editSale?cobroHTML():'';
-  return `<div class="cartwrap">${rows}${svcRowsHTML()}${state.quoteMode?'':seg}${total}${cobro}${state.quoteMode?quoteFieldsHTML():fields}${state.quoteMode?quoteActionsHTML():actions}</div>`;
+  return `<div class="cartwrap">${rows}${svcRowsHTML()}${acxNoteField()}${state.quoteMode?'':seg}${total}${cobro}${state.quoteMode?quoteFieldsHTML():fields}${state.quoteMode?quoteActionsHTML():actions}</div>`;
 }
 /* ---------------- Editar una venta del historial ----------------
    Carga la venta en "Nueva venta" (cantidad, precio, quitar, agregar con "Seleccione el producto",
@@ -7431,7 +7431,7 @@ function revealCat(b,c){
 function saleSearchAdd(id){id=+id;const c=state.cart;c[id]=(+c[id]||0)+1;/* mods142a: suma 1 aunque "Incrementar…" esté apagado, como MN */cartOrderSync();state.q='';render();
   try{const inp=document.querySelector(`#body [data-cqty="${id}"]`);const row=inp&&inp.closest('.crow');if(row)showRow(row);}catch(_){}
 }
-function saleAdd(id){id=+id;if(state.pickMode==='mermafilter')return mermaFilterPick(id);/* mods143b: Buscar por Producto en Merma */if(state.pickMode==='copy')return formCopyPick(id);/* mods143a: ⧉ Copiar */if(state.pickMode==='autocons'){const d=document.getElementById('saleproddlg');d.classList.remove('on');d.style.zIndex='';state.pickMode='sale';return acPick(id);}   /* mods248 */if(state.pickMode==='merma'){const d=document.getElementById('saleproddlg');d.classList.remove('on');d.style.zIndex='';state.pickMode='sale';return mermaPick(id);}if(state.pickMode==='compra')return pcPickAdd(id);/* mods146a: no suma; Agregar vacío; sigue abierto */const p=P(id);const c=curPickCart();if(c===state.cart&&!invCanAdd(id,1))return;   /* mods245b */c[id]=(+c[id]||0)+1;/* mods142a: suma 1 siempre, como MN */if(c===state.cart)cartOrderSync();if(p){state.spAdded=p.name+(p.key?' ('+p.key+')':'');state.spLastId=id;}const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;/* se mantiene abierto para seguir agregando */}
+function saleAdd(id){id=+id;if(state.pickMode==='mermafilter')return mermaFilterPick(id);/* mods143b: Buscar por Producto en Merma */if(state.pickMode==='copy')return formCopyPick(id);/* mods143a: ⧉ Copiar */if(state.pickMode==='merma'){const d=document.getElementById('saleproddlg');d.classList.remove('on');d.style.zIndex='';state.pickMode='sale';return mermaPick(id);}if(state.pickMode==='compra')return pcPickAdd(id);/* mods146a: no suma; Agregar vacío; sigue abierto */const p=P(id);const c=curPickCart();if(c===state.cart&&!invCanAdd(id,1))return;   /* mods245b */c[id]=(+c[id]||0)+1;/* mods142a: suma 1 siempre, como MN */if(c===state.cart)cartOrderSync();if(p){state.spAdded=p.name+(p.key?' ('+p.key+')':'');state.spLastId=id;}const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;/* se mantiene abierto para seguir agregando */}
 function saleDec(id){id=+id;const c=curPickCart();delete c[id];if(state.pickMode==='compra')pcForget(id);/* mods146a */else if(state.cartPrice)delete state.cartPrice[id];updateCartBar();const b=document.getElementById('saleprodBody');const sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}
 function updateClientAC(){
   const inp=document.getElementById('saleClient');const box=document.getElementById('cliAC');if(!inp||!box)return;
@@ -9056,7 +9056,7 @@ function scAjustes(){
     ${rd(o.cam!=='front',t('cfg_cam_back'),'cam','back')}${rd(o.cam==='front',t('cfg_cam_front'),'cam','front')}
     ${cb(o.scanCont,t('cfg_scan_cont'),'scanCont')}
     <div class="cfg-h" style="font-weight:700;color:var(--ink)">${t('cfg_other_h')}</div>
-    ${cb(o.incQty,t('cfg_o_incqty'),'incQty')}${cb(o.manualDate,t('cfg_o_date'),'manualDate')}${cb(o.notifyCli,t('cfg_o_notify'),'notifyCli')}${cb(o.newline,t('cfg_o_newline'),'newline')}${cb(state.repCharts!==false,t('cfg_o_charts'),'charts')}
+    ${cb(o.incQty,t('cfg_o_incqty'),'incQty')}${cb(o.manualDate,t('cfg_o_date'),'manualDate')}${cb(o.notifyCli,t('cfg_o_notify'),'notifyCli')}${cb(o.newline,t('cfg_o_newline'),'newline')}${cb(state.repCharts!==false,t('cfg_o_charts'),'charts')}${acxAdmin()?cb(o.acxSellers===true,t('acx_cfg_sellers'),'acxSellers'):''}
     <button class="cfg-btn cfg-orange" data-act="cfglock" style="margin-top:6px">${t('cfg_restrict').toUpperCase()}${o.lock?' · '+t('cfg_lock_on'):''}</button>
     <div class="cfg-div"></div>
     <div class="cfg-h" style="font-weight:700;color:var(--ink)">${t('cfg_export_h')}</div>
@@ -11421,7 +11421,7 @@ function cwarnTri(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path cl
 // actualiza en su lugar la línea (subtotal, amarillo y aviso), el Total y la Deuda: sin render, así el teclado sigue abierto
 function cartLiveRefresh(id){
   const q=+state.cart[id]||0,tx=cqtyTxt(id,q);const row=document.querySelector('#body [data-crow="'+id+'"]');
-  if(row){const ov=cartOver(P(id),id,q);row.classList.toggle('over',ov);const w=row.querySelector('.cwarn');if(w)w.hidden=!ov;const sb=row.querySelector('.csub');if(sb)sb.textContent=cqtyEmpty(tx)?'...':moneyNum(linePrice(id)*q);const bk=row.querySelector('.cbrk');if(bk)bk.innerHTML=cBrkHTML(id);}
+  if(row){const ov=cartOver(P(id),id,q);row.classList.toggle('over',ov);const w=row.querySelector('.cwarn');if(w)w.hidden=!ov;const sb=row.querySelector('.csub');if(sb)sb.textContent=cqtyEmpty(tx)?'...':moneyNum(acxIs(id)?0:linePrice(id)*q);   /* mods274 */const bk=row.querySelector('.cbrk');if(bk)bk.innerHTML=cBrkHTML(id);}
   const tb=document.querySelector('#body .ctotal b');if(tb)tb.textContent=cartAnyEmpty()?'...':moneyNum(cartTotal());
   const d=document.getElementById('saleDebt');if(d)d.textContent=money(Math.max(0,cartTotal()-saleInitAmt()));
 }
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261118123735';
+const APP_VERSION='20261119050617';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -17700,19 +17700,9 @@ function plImpGuard(inp){const k=plKnown();if(k==='ok'||k==='good')return false;
    - Solo ventas de contado: el crédito, el pago inicial y los abonos siguen igual.
    - El desglose sale en el detalle, el recibo PDF, el ticket, el texto para compartir, la tirilla ESC/POS, Mi caja/arqueo del vendedor
      (vdSummary: entra como efectivo solo lo APLICADO, no lo entregado), el reporte Formas de pago y el filtro del historial. */
-var MX_LBL='MIXTO',MX=null,AC_BUSY=false,AC_VIEW={q:'',from:'',to:'',st:''},AC_KIND='merma',AC_RECON=false;
+var MX_LBL='MIXTO',MX=null;
 (function(){try{
-  Object.assign(I18N.es,{ac_chip:'Autoconsumo',ac_title:'Autoconsumo',ac_add:'Registrar autoconsumo',ac_product:'Producto',ac_qty:'Cantidad',ac_resp:'Responsable',
-    ac_reason:'Motivo o comentario',ac_reason_ph:'Ej.: aseo, cafetería, uso en la tienda',ac_date:'Fecha',ac_time:'Hora',ac_cost:'Costo (referencia)',ac_avail:'Disponible: {n}',
-    ac_need_prod:'Elige el producto',ac_need_qty:'Escribe una cantidad mayor que 0',ac_need_int:'Este producto se maneja por unidades enteras',ac_need_resp:'Escribe quién es el responsable',
-    ac_need_date:'La fecha no puede ser futura',ac_saved:'Autoconsumo registrado: {n} · {q}',ac_st_pend:'Pendiente de confirmar',ac_st_ok:'Confirmado',ac_st_rech:'Rechazado: no se descontó',
-    ac_retry:'Reintentar',ac_empty:'Sin registros de autoconsumo',ac_by:'Registró',ac_noseller:'Solo el dueño o el administrador registran autoconsumo',ac_q_ph:'Buscar producto, responsable o motivo',
-    ac_from:'Desde',ac_to:'Hasta',ac_all:'Todos',ac_export:'Exportar CSV',ac_count:'{n} registros · costo {c}',
-    ac_not_sale:'El autoconsumo no es una venta: descuenta del inventario y queda valorado al costo, como la merma.',
-    ac_unknown:'No se sabe todavía si el servidor descontó el inventario. El registro queda PENDIENTE y se confirma solo; no lo registres de nuevo.',
-    ac_offline:'Sin conexión: el registro queda PENDIENTE y se envía solo cuando vuelva la conexión. No lo registres de nuevo.',ac_dup:'Ya se está guardando',
-    ac_pick:'Elegir producto',ac_total:'Costo total',
-    mx_opt:'Pago mixto (varios medios)',mx_title:'Pago mixto',mx_total:'Total de la venta',mx_given:'{m} entregado',mx_others:'Otros medios',mx_cash_need:'Efectivo a cobrar',
+  Object.assign(I18N.es,{mx_opt:'Pago mixto (varios medios)',mx_title:'Pago mixto',mx_total:'Total de la venta',mx_given:'{m} entregado',mx_others:'Otros medios',mx_cash_need:'Efectivo a cobrar',
     mx_received:'Efectivo recibido',mx_change:'Cambio',mx_missing:'Falta',mx_ok_lbl:'Cuadra con el total',
     mx_over:'Lo que no es efectivo ({a}) supera el total ({t}). Con transferencias no se da cambio.',mx_one_cash:'Usa una sola forma de efectivo',
     mx_need_two:'Para pagar con un solo medio, elígelo directamente en Forma de pago',mx_cash_unneeded:'Los otros medios ya cubren el total: no hace falta efectivo',
@@ -17720,17 +17710,7 @@ var MX_LBL='MIXTO',MX=null,AC_BUSY=false,AC_VIEW={q:'',from:'',to:'',st:''},AC_K
     mx_credit:'El pago mixto es para ventas de contado. Para una venta a crédito usa Pago inicial y abonos.',mx_changed:'El total de la venta cambió ({t}): vuelve a repartir el pago mixto.',
     mx_unverified:'informado, sin verificar',mx_noedit:'Esta venta tiene pago mixto: para cambiar sus productos, anúlala y regístrala otra vez.',mx_single:'Usar un solo medio',
     mx_empty:'No hay formas de pago en la lista de la tienda',mx_bad:'Revisa los importes: escribe solo números'});
-  Object.assign(I18N.en,{ac_chip:'Own use',ac_title:'Own use',ac_add:'Register own use',ac_product:'Product',ac_qty:'Quantity',ac_resp:'Responsible',
-    ac_reason:'Reason or comment',ac_reason_ph:'E.g.: cleaning, coffee, store use',ac_date:'Date',ac_time:'Time',ac_cost:'Cost (reference)',ac_avail:'Available: {n}',
-    ac_need_prod:'Choose the product',ac_need_qty:'Enter a quantity greater than 0',ac_need_int:'This product is handled in whole units',ac_need_resp:'Enter who is responsible',
-    ac_need_date:'The date cannot be in the future',ac_saved:'Own use registered: {n} · {q}',ac_st_pend:'Waiting for confirmation',ac_st_ok:'Confirmed',ac_st_rech:'Rejected: nothing was deducted',
-    ac_retry:'Retry',ac_empty:'No own-use records',ac_by:'Registered by',ac_noseller:'Only the owner or the administrator register own use',ac_q_ph:'Search product, person or reason',
-    ac_from:'From',ac_to:'To',ac_all:'All',ac_export:'Export CSV',ac_count:'{n} records · cost {c}',
-    ac_not_sale:'Own use is not a sale: it is deducted from stock and valued at cost, like shrinkage.',
-    ac_unknown:'It is not known yet whether the server deducted the stock. The record stays PENDING and confirms by itself; do not register it again.',
-    ac_offline:'Offline: the record stays PENDING and is sent when the connection returns. Do not register it again.',ac_dup:'Already saving',
-    ac_pick:'Choose product',ac_total:'Total cost',
-    mx_opt:'Mixed payment (several methods)',mx_title:'Mixed payment',mx_total:'Sale total',mx_given:'{m} handed over',mx_others:'Other methods',mx_cash_need:'Cash to collect',
+  Object.assign(I18N.en,{mx_opt:'Mixed payment (several methods)',mx_title:'Mixed payment',mx_total:'Sale total',mx_given:'{m} handed over',mx_others:'Other methods',mx_cash_need:'Cash to collect',
     mx_received:'Cash received',mx_change:'Change',mx_missing:'Missing',mx_ok_lbl:'Matches the total',
     mx_over:'Non-cash ({a}) exceeds the total ({t}). No change is given on transfers.',mx_one_cash:'Use a single cash method',
     mx_need_two:'To pay with one method, choose it directly in Payment method',mx_cash_unneeded:'The other methods already cover the total: no cash is needed',
@@ -17739,112 +17719,6 @@ var MX_LBL='MIXTO',MX=null,AC_BUSY=false,AC_VIEW={q:'',from:'',to:'',st:''},AC_K
     mx_unverified:'reported, not verified',mx_noedit:'This sale has a mixed payment: to change its products, void it and register it again.',mx_single:'Use a single method',
     mx_empty:'The store has no payment methods',mx_bad:'Check the amounts: numbers only'});
 }catch(_){}})();
-/* ---------------- AUTOCONSUMO ---------------- */
-function acCan(){try{return !!state.profile&&!isSeller()&&!isTat();}catch(_){return false;}}
-function acChip(){return acCan()?` <span class="fchip" data-act="acopen">${svg('<path d="M6 3h12v4H6z"/><path d="M8 7v13h8V7"/><path d="M11 11h2"/>')} ${t('ac_chip')}</span>`:'';}
-function acWho(){try{if(isSeller()&&state.profile.seller)return (''+(state.profile.seller.name||'')).trim().toUpperCase();}catch(_){}
-  const e=(AUTH&&AUTH.email)||'';return ((e.split('@')[0]||'')||((state.profile&&state.profile.name)||'')).toUpperCase();}
-function acAll(){return (state.autoCons||[]).filter(r=>r&&!r.del);}
-function acStLbl(r){return t(r.st==='pend'?'ac_st_pend':r.st==='rech'?'ac_st_rech':'ac_st_ok');}
-function acFiltered(){const v=AC_VIEW,q=fold((v.q||'').toLowerCase().trim());
-  let l=(state.autoCons||[]).filter(r=>r&&(v.st==='rech'?r.st==='rech':!r.del));
-  if(v.st==='pend')l=l.filter(r=>r.st==='pend');else if(v.st==='ok')l=l.filter(r=>r.st!=='pend');
-  if(v.from)l=l.filter(r=>(''+(r.date||''))>=v.from);if(v.to)l=l.filter(r=>(''+(r.date||''))<=v.to);
-  if(q)l=l.filter(r=>fold([r.name,r.key,r.resp,r.note,r.by].join(' ').toLowerCase()).includes(q));
-  return l.map((r,i)=>({r,i,k:(''+(r.date||''))+' '+(r.time||'')})).sort((a,b)=>a.k<b.k?1:a.k>b.k?-1:(b.r.ts||0)-(a.r.ts||0)||a.i-b.i).map(o=>o.r);}
-function acQtyTxt(r){const p=P(+r.pid);return qtyLoc(+r.qty||0)+' '+(r.m!=null?(r.m?'m':'u'):baseShort(p));}
-function acCardHTML(r){const dt=[r.date,r.time].filter(Boolean).join('  ')||t('sin_info');const tot=(+r.qty||0)*(+r.cost||0);
-  const stc=r.st==='pend'?'var(--amber)':r.st==='rech'?'var(--red)':'var(--green)';
-  return `<div class="scard" data-acid="${exEsc(r.id)}"><div class="scard-row">${svg(S_CAL)}<span>${exEsc(dt)}</span><b style="margin-left:auto;color:${stc};font-size:12px">${exEsc(acStLbl(r))}</b></div>
-    <div class="scard-row">${svg(S_BOX2)}<span>${exEsc(nmV(r.name||''))}${r.key?' · '+exEsc(r.key):''}</span></div>
-    <div class="scard-row">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>')}<span>${t('ac_resp')}: ${exEsc(r.resp||t('sin_info'))}</span></div>
-    ${r.note?`<div class="scard-row">${svg(S_INFO)}<span>${exEsc(r.note)}</span></div>`:''}
-    <div class="scard-row" style="color:var(--muted);font-size:12px"><span>${t('ac_by')}: ${exEsc(r.by||'')}${r.dev?' · '+exEsc(r.dev):''}</span></div>
-    <div class="scard-bot"><span class="scard-tot" style="text-align:left"><span class="scard-tl">${t('ac_qty')}</span><b class="num">${exEsc(acQtyTxt(r))}</b></span><span class="scard-tot"><span class="scard-tl">${t('ac_total')}</span><b class="num">${money(tot)}</b></span></div>
-    ${r.st==='pend'&&r.dev===deviceId()?`<button class="btn ghost" style="margin-top:8px" data-act="acretry:${exEsc(r.id)}">${t('ac_retry')}</button>`:''}</div>`;}
-function acListHTML(){const l=acFiltered();const c=l.filter(r=>r.st!=='rech').reduce((a,r)=>a+(+r.qty||0)*(+r.cost||0),0);
-  return `<div class="osub" style="margin:4px 2px 10px">${ti('ac_count',{n:l.length,c:money(c)})}</div>`+(l.length?`<div class="scards">${l.map(acCardHTML).join('')}</div>`:`<div class="empty" style="margin-top:40px">${t('ac_empty')}</div>`);}
-function acFill(){const b=document.getElementById('acBody');if(!b)return;const v=AC_VIEW,today=todayISO();
-  if(!b.querySelector('#acList')){b.innerHTML=`<div class="ac-flt" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px">
-      <input class="inp" id="acQ" autocomplete="off" placeholder="${exEsc(t('ac_q_ph'))}" value="${exEsc(v.q)}">
-      <div class="two"><div class="fld"><span class="fl">${t('ac_from')}</span><input class="inp" type="date" id="acFrom" max="${today}" value="${exEsc(v.from)}"></div>
-        <div class="fld"><span class="fl">${t('ac_to')}</span><input class="inp" type="date" id="acTo" max="${today}" value="${exEsc(v.to)}"></div></div>
-      <div class="two"><select class="inp" id="acSt"><option value="">${t('ac_all')}</option><option value="ok">${t('ac_st_ok')}</option><option value="pend">${t('ac_st_pend')}</option><option value="rech">${t('ac_st_rech')}</option></select>
-        <button class="btn ghost" data-act="accsv">${t('ac_export')}</button></div>
-      <div class="osub">${t('ac_not_sale')}</div></div><div id="acList"></div>`;
-    const st=b.querySelector('#acSt');if(st)st.value=v.st||'';}
-  document.getElementById('acList').innerHTML=acListHTML();}   /* solo la lista: los campos de filtro no se rehacen (el teclado no se cierra) */
-function acOpen(){if(!acCan()){toast(t('ac_noseller'));return;}AC_VIEW={q:'',from:'',to:'',st:''};const b=document.getElementById('acBody');if(b)b.innerHTML='';
-  document.getElementById('acTitle').textContent=t('ac_title');acFill();document.getElementById('acdlg').classList.add('on');if(b)b.scrollTop=0;acReconcile();}
-function acClose(){const d=document.getElementById('acdlg');if(d)d.classList.remove('on');}
-function acCsv(){const l=acFiltered();const rows=[['fecha','hora','clave','producto','cantidad','unidad','costo_unitario','costo_total','responsable','motivo','registro','equipo','estado','operacion']];
-  l.forEach(r=>rows.push([r.date||'',r.time||'',r.key||'',nmV(r.name||''),+r.qty||0,(acQtyTxt(r).split(' ').pop()),+r.cost||0,(+r.qty||0)*(+r.cost||0),r.resp||'',r.note||'',r.by||'',r.dev||'',acStLbl(r),r.op||'']));
-  const csv=String.fromCharCode(65279)+rows.map(x=>x.map(ioCsvCell).join(',')).join('\r\n');if(ioDownload('autoconsumo.csv','text/csv;charset=utf-8',csv))toast(t('io_done_exp'));}
-function acNewForm(){const now=new Date(),pad=n=>(''+n).padStart(2,'0');const id='AC'+uidPart();
-  return {id,op:'AC'+lgOp().replace(/^op/,''),pid:null,name:'',qty:'',resp:acWho(),note:'',date:todayISO(),time:pad(now.getHours())+':'+pad(now.getMinutes())};}
-function acAddHTML(){const f=state.acForm||{},p=f.pid!=null?P(+f.pid):null,u=p?baseShort(p):'',chev=svg('<path d="M6 9l6 6 6-6"/>');
-  const emps=[...new Set([acWho(),...((typeof empLive==='function'?empLive():[]).map(e=>(''+(e.name||'')).trim().toUpperCase()))].filter(Boolean))];
-  const qn=qtyVal(unsignedTxt(f.qty)),cost=p?(+p.cost||0):0;
-  return `<div style="display:flex;flex-direction:column;gap:14px">
-    <div class="fld"><span class="fl">${t('ac_product')}</span><div class="inp sellike" data-act="acpick"><span class="${p?'':'ph'}">${exEsc(p?nmV(p.name):t('ac_pick'))}${p&&p.key?' · '+exEsc(p.key):''}</span>${chev}</div>
-      ${p?`<div class="osub" id="acAvail">${ti('ac_avail',{n:qtyLoc(+p.stock||0)+' '+u})}</div>`:''}</div>
-    <div class="two"><div class="fld"><span class="fl">${t('ac_qty')}${u?' ('+u+')':''}</span><input autocomplete="off" class="inp num" id="ac_qty" type="text" inputmode="${p&&isUInt(p)?'numeric':'decimal'}" data-uns="${p&&isUInt(p)?'1':'3'}" enterkeyhint="next" value="${exEsc(f.qty??'')}" placeholder="0"></div>
-      <div class="fld"><span class="fl">${t('ac_cost')}${u==='m'?' /m':''}</span><div class="inp num" style="display:flex;align-items:center;color:var(--muted)">${money(cost)}</div></div></div>
-    <div class="fld"><span class="fl">${t('ac_resp')}</span><input autocomplete="off" class="inp" id="ac_resp" list="acRespL" value="${exEsc(f.resp||'')}"><datalist id="acRespL">${emps.map(n=>`<option value="${exEsc(n)}">`).join('')}</datalist></div>
-    <div class="fld"><span class="fl">${t('ac_reason')}</span><input autocomplete="off" class="inp" id="ac_note" value="${exEsc(f.note||'')}" placeholder="${exEsc(t('ac_reason_ph'))}"></div>
-    <div class="two"><div class="fld"><span class="fl">${t('ac_date')}</span><input autocomplete="off" class="inp" id="ac_date" type="date" max="${todayISO()}" value="${exEsc(f.date||'')}"></div>
-      <div class="fld"><span class="fl">${t('ac_time')}</span><input autocomplete="off" class="inp" id="ac_time" type="time" value="${exEsc(f.time||'')}"></div></div>
-    <div class="kpis" style="margin:2px 0 0"><div class="kpi hero"><div class="k-l">${t('ac_total')}</div><div class="k-v num" id="ac_total">${money(qn*cost)}</div></div></div>
-    <div class="osub">${t('ac_not_sale')}</div></div>`;}
-function acReadForm(){const f=state.acForm;if(!f)return;const g=id=>document.getElementById(id);if(g('ac_qty'))f.qty=g('ac_qty').value;if(g('ac_resp'))f.resp=g('ac_resp').value;
-  if(g('ac_note'))f.note=g('ac_note').value;if(g('ac_date'))f.date=g('ac_date').value;if(g('ac_time'))f.time=g('ac_time').value;}
-function acPaintForm(){const b=document.getElementById('acAddBody');if(!b)return;b.innerHTML=acAddHTML();const q=document.getElementById('ac_qty');
-  if(q)q.addEventListener('input',()=>{acReadForm();const f=state.acForm,p=f&&f.pid!=null?P(+f.pid):null,el=document.getElementById('ac_total');if(el)el.textContent=money(qtyVal(unsignedTxt(f.qty))*(p?(+p.cost||0):0));});}
-function acAddOpen(){if(!acCan()){toast(t('ac_noseller'));return;}state.acForm=acNewForm();document.getElementById('acAddTitle').textContent=t('ac_add');acPaintForm();document.getElementById('acadddlg').classList.add('on');document.getElementById('acAddBody').scrollTop=0;}
-function acAddClose(){const d=document.getElementById('acadddlg');if(d)d.classList.remove('on');}
-function acOpenPick(){acReadForm();state.pickMode='autocons';state.saleProdQ='';state.spAdded='';state.spLastId=null;state.saleCatOpen={};state.spLimit=SP_PAGE;
-  const d=document.getElementById('saleproddlg');d.style.zIndex='18';fillSaleProd();d.classList.add('on');document.getElementById('saleprodBody').scrollTop=0;}
-function acPick(pid){const p=P(+pid);if(!p)return;const f=state.acForm||(state.acForm=acNewForm());if(f.pid!==p.id)f.qty='';f.pid=p.id;f.name=p.name;acPaintForm();}
-async function acSend(rec,quiet){const id=currentDataId();const L=[{id:rec.pid,q:q3(+rec.qty)}];if(!quiet)lgBusy(true,t('lg_busy_e'));let r=null;
-  try{r=await lgCall('relax_stock_out',{p_store:id,p_op:rec.op,p_kind:AC_KIND,p_lines:L});
-    if(r.error&&!acHard(r.error))r={net:true,sent:true};   /* 9-nov: un error que NO es del libro (503, puerta de enlace…) no dice si descontó: se pregunta */
-    if(r.net&&r.sent){const s2=await lgCall('relax_op_status',{p_store:id,p_op:rec.op});if(s2.data&&s2.data.found)r={data:s2.data.result};}}
-  finally{if(!quiet)lgBusy(false);}return r||{net:true,sent:false};}
-/* rechazo seguro = error propio de las funciones del libro (la transacción no se hizo); cualquier otro error queda en duda */
-function acHard(err){return /relax_/.test(''+((err&&err.message)||err||''));}
-/* aplica la respuesta del servidor al registro (ui: aviso y cierre del formulario) */
-async function acAfter(rec,r,ui){const x=(state.autoCons||[]).find(z=>z&&z.id===rec.id);if(!x)return '';
-  if(r&&r.data&&r.data.ok){x.st='ok';x.okAt=Date.now();persist();try{await lgApply(currentDataId());}catch(_){}acFill();if(state.screen==='inventario')render();
-    if(ui){acAddClose();const p=P(+x.pid);toast(ti('ac_saved',{n:nmV(x.name||''),q:acQtyTxt(x)}));}return 'ok';}
-  if(r&&((r.data&&r.data.ok===false)||(r.error&&acHard(r.error)))){x.st='rech';x.del=true;x.errs=r.data&&r.data.errors||[{code:'error',m:''+((r.error&&r.error.message)||'').slice(0,120)}];persist();acFill();
-    try{await lgApply(currentDataId());}catch(_){}
-    if(ui){if(r.data&&r.data.errors)await appAlert(t('lg_rej_t')+'\n\n'+lgErrList(r.data.errors).join('\n'));else await appAlert(lgErrMsg(r.error));}return 'rech';}
-  x.st='pend';persist();acFill();if(ui){acAddClose();await appAlert(t(r&&r.sent?'ac_unknown':'ac_offline'));}return 'pend';}
-async function acSave(){if(AC_BUSY||(typeof LG_BUSY!=='undefined'&&LG_BUSY)){toast(t('ac_dup'));return;}acReadForm();const f=state.acForm;if(!f)return;
-  const p=P(+f.pid);if(!p){toast(t('ac_need_prod'));return;}
-  const qty=qtyVal(unsignedTxt(f.qty));if(!(qty>0)){toast(t('ac_need_qty'));return;}
-  if(isUInt(p)&&qty!==Math.trunc(qty)){toast(t('ac_need_int'));return;}
-  const resp=(''+(f.resp||'')).trim().toUpperCase();if(!resp){toast(t('ac_need_resp'));return;}
-  const date=(f.date||todayISO()).slice(0,10);if(date>todayISO()){toast(t('ac_need_date'));return;}
-  if((state.autoCons||[]).some(r=>r&&r.id===f.id))return;   /* ese formulario ya se guardó (doble toque) */
-  if(invBlock({[p.id]:qty},'inv_fix'))return;   /* mods245: nunca negativo */
-  const rec={id:f.id,op:f.op,pid:p.id,name:p.name||'',key:p.key||'',qty,...(isDist(p)?{m:1}:{m:0}),cost:+p.cost||0,resp,note:(''+(f.note||'')).trim().toUpperCase(),date,time:f.time||'',by:acWho(),dev:deviceId(),ts:Date.now()};
-  AC_BUSY=true;try{
-    if(lgNow()){rec.st='pend';state.autoCons=[rec,...(state.autoCons||[])];persist();acFill();   /* anotado ANTES de pedir el descuento: si algo se corta, se reconcilia con su op */
-      const r=await acSend(rec,false);await acAfter(rec,r,true);}
-    else{const o=invSnap(p);stockAdd(p,-qty);invLogAdd(2,p,o);rec.st='ok';state.autoCons=[rec,...(state.autoCons||[])];persist();acFill();if(state.screen==='inventario')render();acAddClose();
-      toast(ti('ac_saved',{n:nmV(p.name),q:acQtyTxt(rec)}));}
-  }finally{AC_BUSY=false;}}
-/* pendientes de ESTE equipo: se pregunta al servidor por su op; si no la tiene, se reenvía la MISMA op (no descuenta dos veces) */
-async function acReconcile(){if(AC_RECON||AC_BUSY||!lgNow()||(typeof LG_BUSY!=='undefined'&&LG_BUSY))return;const id=currentDataId();
-  const L=(state.autoCons||[]).filter(r=>r&&r.st==='pend'&&!r.del&&r.dev===deviceId()&&r.op);if(!L.length||!sbOnline())return;AC_RECON=true;
-  try{for(const rec of L){if(currentDataId()!==id)break;const s=await lgCall('relax_op_status',{p_store:id,p_op:rec.op});
-      if(s.data&&s.data.found){await acAfter(rec,{data:s.data.result},false);continue;}
-      if(s.data&&!s.data.found){const r=await acSend(rec,true);await acAfter(rec,r,false);}}}
-  catch(_){}finally{AC_RECON=false;}}
-async function acRetry(rid){const rec=(state.autoCons||[]).find(r=>r&&r.id===rid);if(!rec||rec.st!=='pend')return;if(AC_BUSY)return;AC_BUSY=true;
-  try{const id=currentDataId();const s=await lgCall('relax_op_status',{p_store:id,p_op:rec.op});
-    const r=(s.data&&s.data.found)?{data:s.data.result}:(s.data?await acSend(rec,false):s);await acAfter(rec,r,true);}finally{AC_BUSY=false;}}
 /* ---------------- PAGO MIXTO ---------------- */
 function mxIs(s){return !!s&&Array.isArray(s.mix)&&s.mix.length>0;}
 function mxParts(s){return mxIs(s)?s.mix.map(x=>({pay:x.pay,v:+x.v||0})):[{pay:s.pay,v:saleTotal(s)}];}
@@ -17879,7 +17753,7 @@ function mxOpen(){if((state.saleStatus||'pagado')==='cobrar'){appAlert(t('mx_cre
     <div style="display:flex;flex-direction:column;gap:10px">${ms.map((m,i)=>`<div class="fld"><span class="fl">${mxCash(m)?exEsc(ti('mx_given',{m:payLbl(m)})):exEsc(payLbl(m))}</span>
       <input class="inp num" data-mx="${i}" type="text" inputmode="decimal" data-uns="1" autocomplete="off" enterkeyhint="next" placeholder="${exEsc(moneySym())} 0" value="${exEsc(rows[m])}"></div>`).join('')}</div>
     <div class="empcard" id="mxSum" style="margin-top:14px"></div><div class="osub" style="margin-top:10px">${t('mx_note')}</div>
-    <button class="btn ghost" style="margin-top:12px" data-act="mxsingle">${t('mx_single')}</button>`:`<div class="empty">${t('mx_empty')}</div>`;
+    ${typeof mxgOn==='function'&&mxgOn()?mxgBtn():`<button class="btn ghost" style="margin-top:12px" data-act="mxsingle">${t('mx_single')}</button>`}`:`<div class="empty">${t('mx_empty')}</div>`;
   MX.ms=ms;b.querySelectorAll('[data-mx]').forEach(inp=>inp.addEventListener('input',()=>{MX.rows[MX.ms[+inp.dataset.mx]]=inp.value;mxPaint();}));
   document.getElementById('mxTitle').textContent=t('mx_title');mxPaint();document.getElementById('mxdlg').classList.add('on');}
 function mxPaint(){const el=document.getElementById('mxSum');if(!el||!MX)return;const R=mxCalc(MX.rows,mxTotC());
@@ -17901,24 +17775,13 @@ function mxForSale(){return state.salePay===MX_LBL&&Array.isArray(state.saleMix)
 (function(){try{
   const ref=document.getElementById('mermaadddlg');const host=ref||document.getElementById('device');
   const H=(id,tid,bid,close,ok,fab)=>`<div class="histdlg" id="${id}"><div class="histbar"><button class="sheet-x" data-act="${close}">✕</button><span class="histbar-t" id="${tid}"></span>${ok?`<button class="hicon" data-act="${ok}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></button>`:''}</div><div class="histbody" id="${bid}"></div>${fab?`<button class="fab" data-act="${fab}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>`:''}</div>`;
-  const html=H('acdlg','acTitle','acBody','acclose','',  'acadd')+H('acadddlg','acAddTitle','acAddBody','acaddclose','acsave','')+H('mxdlg','mxTitle','mxBody','mxclose','mxsave','');
+  const html=H('mxdlg','mxTitle','mxBody','mxclose','mxsave','');
   if(ref)ref.insertAdjacentHTML('afterend',html);else if(host)host.insertAdjacentHTML('beforeend',html);
-  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE){BACK_CLOSE.acdlg=acClose;BACK_CLOSE.acadddlg=acAddClose;BACK_CLOSE.mxdlg=mxClose;}}catch(_){}
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE){BACK_CLOSE.mxdlg=mxClose;}}catch(_){}
 }catch(e){console.error('mods248 ventanas',e);}})();
 document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act||'';
   const go=f=>{e.preventDefault();e.stopPropagation();f();};
-  if(a==='acopen')return go(acOpen);if(a==='acclose')return go(acClose);if(a==='acadd')return go(acAddOpen);if(a==='acaddclose')return go(acAddClose);
-  if(a==='acsave')return go(acSave);if(a==='acpick')return go(acOpenPick);if(a==='accsv')return go(acCsv);if(a.indexOf('acretry:')===0)return go(()=>acRetry(a.slice(8)));
   if(a==='mxopen')return go(mxOpen);if(a==='mxclose')return go(mxClose);if(a==='mxsave')return go(mxSave);if(a==='mxsingle')return go(()=>{mxClose();openPick('pay');});},true);
-document.addEventListener('input',e=>{const el=e.target;if(!el||!el.id)return;
-  if(el.id==='acQ'){AC_VIEW.q=el.value;const l=document.getElementById('acList');if(l)l.innerHTML=acListHTML();}
-},true);
-document.addEventListener('change',e=>{const el=e.target;if(!el||!el.id)return;
-  if(el.id==='acFrom'||el.id==='acTo'||el.id==='acSt'){AC_VIEW.from=(document.getElementById('acFrom')||{}).value||'';AC_VIEW.to=(document.getElementById('acTo')||{}).value||'';AC_VIEW.st=(document.getElementById('acSt')||{}).value||'';
-    const l=document.getElementById('acList');if(l)l.innerHTML=acListHTML();}},true);
-addEventListener('online',()=>{setTimeout(()=>{try{acReconcile();}catch(_){}},2500);});
-setInterval(()=>{try{if(!document.hidden&&currentDataId()&&(state.autoCons||[]).some(r=>r&&r.st==='pend'&&!r.del&&r.dev===deviceId()))acReconcile();}catch(_){}},45000);
-setTimeout(()=>{try{acReconcile();}catch(_){}},8000);
 /* forma de pago: «Pago mixto» en la lista de la venta nueva (no en el detalle de una venta guardada, ni en compras, ni a crédito) */
 {const _fp=fillPick;fillPick=function(){const r=_fp.apply(this,arguments);try{
   if(PICK_MODE==='pay'&&!PICK_TGT&&!PICK_HIST&&(state.saleStatus||'pagado')!=='cobrar'&&!state.quoteMode){const o=document.getElementById('payOptions');
@@ -21601,5 +21464,411 @@ function rcAbDeco(id){try{if(!rcPayOn())return;const s=(state.sales||[]).find(x=
 document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-rcab]');if(!b)return;e.preventDefault();e.stopPropagation();rcAbPdf(b.dataset.rcab);}catch(_){}},true);
 /* la imagen JPG: forma de pago y sus renglones (esc = el escapador de buildSaleReceiptJPG) */
 function rcPayJPG(s,esc){if(!rcPayOn()||!s)return '';try{return (s.pay?'<br><b>'+esc(mnNativePayment())+':</b> '+esc(payLbl(s.pay)):'')+rcPayLines(s).map(x=>'<br>'+esc(x)).join('');}catch(_){return '';}}
+
+
+/* ==== mods273 (2026-11-18): PAGO MIXTO — BOTÓN VERDE «GUARDAR PAGO» EN LUGAR DE «USAR UN SOLO MEDIO» ====
+   Pedido de Fabio (18-nov): «en pago mixto, abajo, donde dice usar solo un medio de pago confunde porque no tendría sentido tenerlo
+   allí; debe ir efectuar pago o guardar, de color verde, con la estética que hemos trabajado». «Autorizado» el mismo día, con el
+   rótulo «Guardar pago».
+   Qué hace: en la ventana «Pago mixto», el botón de abajo deja de ser «Usar un solo medio» y pasa a ser el botón verde de guardar
+   que ya usan las demás ventanas (clase savebtn). Hace lo mismo que el ✓ de arriba (mxSave): revisa que el reparto cuadre con el
+   total y vuelve a la venta. La venta se sigue guardando con su botón de siempre.
+   Lo que NO cambia: la ✕ de arriba, las cuentas del reparto, lo que se guarda en la venta. (El ✓ de arriba se quita: ver más abajo.) Para pagar con un solo medio se
+   cierra la ventana (✕) y se elige en «Forma de pago», como siempre.
+   Una sola inserción en el código de siempre (mxOpen, de mods248): ver cambios/mods273.js.
+   Interruptor por equipo: localStorage 'abanico.mxg'='0' (vuelve «Usar un solo medio»). */
+function mxgOn(){try{return localStorage.getItem('abanico.mxg')!=='0';}catch(_){return true;}}
+(function(){try{Object.assign(I18N.es,{mxg_save:'Guardar pago'});Object.assign(I18N.en,{mxg_save:'Save payment'});}catch(e){console.error('mods273 textos',e);}})();
+/* Fabio, 18-nov, al ver el botón: «si aparece el botón de guardar pago no tiene sentido tener el botón de chulito en la parte superior
+   derecha». En la ventana «Pago mixto» el ✓ de arriba ya no se muestra (queda la ✕ para cerrar). Con el interruptor apagado vuelve. */
+{const _mo=mxOpen;mxOpen=function(){const r=_mo.apply(this,arguments);try{const b=document.querySelector('#mxdlg .hicon[data-act="mxsave"]');if(b)b.style.display=mxgOn()?'none':'';}catch(_){}return r;};}
+function mxgBtn(){return '<div class="saveact" style="margin-top:16px"><button class="savebtn" data-act="mxsave">'+svg('<path d="M5 12l5 5L20 7"/>')+' '+exEsc(t('mxg_save'))+'</button></div>';}
+
+
+/* ==== mods268 (2026-11-18): AL ABRIR, LOS DATOS VIEJOS DEL EQUIPO NO SE SUBEN COMO SI FUERAN BORRADOS ====
+   Hallazgo de mods267 (16-nov, «el inventario sube al cerrar Chrome a la fuerza») y caso real del 18-nov: el socio de Fabio agregó una
+   forma de pago y, horas después, un celular la borró de la nube 4,6 s después de abrir la app, sin que nadie tocara nada.
+   «Autorizado» por Fabio el 18-nov.
+   Causa: los datos de la tienda en el equipo van en localStorage, que Chrome escribe al disco CON RETRASO (más de un minuto con muchos
+   datos); la «base» de la sincronización (lo último que este equipo vio en la nube) va en IndexedDB, AL INSTANTE. Si el navegador se
+   cierra a la fuerza (o Android lo mata) poco después de un cambio, al abrir queda lo local VIEJO con la base NUEVA; la mezcla de tres
+   vías lo lee como «aquí se borró / aquí cambió» y lo sube: se borran listas y el inventario se infla.
+   Qué hace: una MARCA DE VERSIÓN.
+   - Cada vez que se guardan los datos locales, se escribe una marca (un número que solo crece) en localStorage, junto a los datos:
+     si el navegador pierde los datos, pierde también la marca.
+   - Cada vez que cambia la base de un documento, se anota en IndexedDB (al instante) qué marca tienen los datos locales que YA
+     conocen esa base.
+   - Al abrir la tienda, antes de mezclar o subir nada: si la marca que sobrevivió en localStorage es MÁS VIEJA que la anotada para un
+     documento, lo local de ese documento es anterior a su base → se adopta la base (lo último que este equipo vio en la nube, que
+     incluye lo que este mismo equipo alcanzó a subir) en vez de subir lo viejo.
+   Lo que NO cambia: las ventas (viven en IndexedDB, no en localStorage), la mezcla, las subidas, la base de datos, el formato de lo
+   guardado. Con un cierre normal las marcas coinciden y no se adopta nada. Un equipo sin marca (la primera vez) sigue como antes.
+   Límite conocido: un cambio hecho en ese equipo que NO alcanzó a subir antes del cierre a la fuerza se pierde en ese equipo (ya se
+   perdía cuando el navegador no lo alcanzaba a escribir).
+   Solo se envuelven funciones (no se edita el código de siempre): setBase, clearBases, saveDataOf, loadBases, loadData.
+   Interruptor por equipo: localStorage 'abanico.lv'='0' (todo vuelve a ser como antes). Registro de lo adoptado: 'abanico.lv.log'. */
+function lvOn(){try{return localStorage.getItem('abanico.lv')!=='0';}catch(_){return true;}}
+const LV={ok:{},run:{},bg:{},pb:{},top:{},mt:{}};
+function lvLbl(id){try{const v=+localStorage.getItem('abanico.dg.'+id);return isFinite(v)&&v>0?v:null;}catch(_){return null;}}
+function lvLog(e){try{const L=JSON.parse(localStorage.getItem('abanico.lv.log')||'[]');L.push(e);localStorage.setItem('abanico.lv.log',JSON.stringify(L.slice(-12)));}catch(_){}}
+/* marca nueva para lo local (después de cada guardado, o cuando cambió una base y lo local ya la conocía) y, con ella, las bases pendientes de anotar */
+function lvStamp(id){if(!id||!LV.ok[id])return;const g=Math.max(Date.now(),(LV.top[id]||0)+1);
+  try{localStorage.setItem('abanico.dg.'+id,''+g);}catch(_){return;}   /* sin marca nueva no se anota nada: nunca una base «más nueva» que lo guardado sin que lo sea */
+  LV.top[id]=g;const pb=LV.pb[id];
+  if(pb&&pb.size){const bg=LV.bg[id]||(LV.bg[id]={});pb.forEach(k=>{bg[k]=g;});pb.clear();try{idbKvPut('basegen:'+id,bg);}catch(_){}}}
+/* al abrir la tienda (una vez por sesión y por tienda), con las bases ya cargadas y antes de mezclar o subir */
+async function lvCheck(id,bg){
+  if(LV.ok[id])return true;if(id!==currentDataId())return false;
+  if(sbHoldApply()){await sbWaitHold(300000);if(id!==currentDataId())return false;}   /* una pregunta o un formulario abierto: se espera, como lo que llega de la nube */
+  const g0=lvLbl(id);const B=(bg&&typeof bg==='object'&&!Array.isArray(bg))?bg:{};LV.bg[id]=B;
+  let top=g0||0;Object.keys(B).forEach(k=>{if(typeof B[k]==='number'&&B[k]>top)top=B[k];});LV.top[id]=top;
+  const took=[];
+  if(g0!=null&&BK_RESTORING!==id){let ow=new Set();try{ow=restoreOw(id);}catch(_){}
+    for(const key of syncKeys()){if(key==='sales'||ow.has(key))continue;   /* las ventas del equipo van en IndexedDB: no sufren el retraso */
+      const bk=B[key];if(typeof bk!=='number'||!(bk>g0))continue;   /* lo local ya conocía esa base */
+      const b=baseOf(id,key);if(!b)continue;const local=sbDocData(key);if(local===undefined)continue;
+      let lj;try{lj=JSON.stringify(local);}catch(_){continue;}if(lj===b.json)continue;
+      const prev=SYNC_APPLYING;SYNC_APPLYING=true;try{setStateDoc(key,JSON.parse(b.json),id);}finally{SYNC_APPLYING=prev;}
+      took.push({k:key,l:Array.isArray(local)?local.length:null,b:b.arr?b.map.size:null});}}
+  LV.ok[id]=true;
+  if(took.length){lvLog({t:new Date().toISOString(),id,g0,v:(typeof APP_VERSION!=='undefined'?APP_VERSION:''),docs:took});
+    try{persistLocal();}catch(_){}
+    try{if(document.getElementById('onbo').classList.contains('on'))renderOnbo();else render();}catch(_){}}
+  else lvStamp(id);   /* bases que cambiaron antes de terminar la revisión: quedan anotadas ya */
+  return true;}
+{const _sb=setBase;setBase=function(id,key,data,noSave){const r=_sb.apply(this,arguments);
+  try{if(!noSave&&id&&key&&lvOn()){(LV.pb[id]||(LV.pb[id]=new Set())).add(key);
+    if(!LV.mt[id]){LV.mt[id]=1;Promise.resolve().then(()=>{LV.mt[id]=0;try{lvStamp(id);}catch(_){}});}}}catch(_){}   /* al terminar este paso: si no hubo un guardado local después, lo local ya la conocía */
+  return r;};}
+{const _cb=clearBases;clearBases=function(id){const r=_cb.apply(this,arguments);
+  try{LV.bg[id]={};if(LV.pb[id])LV.pb[id].clear();localStorage.removeItem('abanico.dg.'+id);idbKvPut('basegen:'+id,null);}catch(_){}return r;};}
+{const _sd=saveDataOf;saveDataOf=function(id,d){const r=_sd.apply(this,arguments);try{if(lvOn())lvStamp(id);}catch(_){}return r;};}
+{const _lb=loadBases;loadBases=function(id){
+  if(!id||LV.ok[id]||!lvOn())return _lb.apply(this,arguments);
+  if(LV.run[id])return LV.run[id];
+  const p=(async()=>{let bg=null;try{bg=await Promise.race([idbKvGet('basegen:'+id),new Promise(r=>setTimeout(()=>r(null),4000))]);}catch(_){}
+    await _lb(id);
+    try{await lvCheck(id,bg);}catch(e){console.error('mods268',e);LV.ok[id]=true;}})();
+  LV.run[id]=p;const q=()=>{if(LV.run[id]===p)delete LV.run[id];};p.then(q,q);return p;};}
+/* la revisión corre apenas se abre la tienda, también sin conexión (solo lee este equipo) */
+{const _ld=loadData;loadData=function(id){const r=_ld.apply(this,arguments);
+  try{if(id&&lvOn())setTimeout(()=>{try{if(id===currentDataId())loadBases(id);}catch(_){}},0);}catch(_){}return r;};}
+
+
+/* ==== mods274 (2026-11-18): AUTOCONSUMO DESDE VENTAS (la taza de café) Y RETIRO DEL AUTOCONSUMO ANTERIOR ====
+   Pedido de Fabio (18-nov, documento «Autoconsumo de productos: nueva forma de registrarlo y retiro de la forma anterior», 13 criterios).
+   «autorizo» al diagnóstico y «autorizo» al plan el mismo día. SIN cambios en la base de datos.
+   Qué es: un producto que el dueño o el personal toma de la tienda para su propio uso. Sale del inventario pero NO es una venta.
+   - VENTAS: cada producto del carrito tiene el botón de la taza. Marcado dice «Este producto va a autoconsumo», se resalta y no suma al
+     total a cobrar (cartTotal lo deja fuera). La marca es por producto; tocar otra vez la quita. No hay taza en cotizaciones ni al editar
+     una venta guardada.
+   - AL GUARDAR (saveSale envuelta): con el carrito COMPLETO se aplican los mismos frenos de la venta (línea en 0, enteros, «No alcanza el
+     inventario», caja cerrada). Después las líneas marcadas se apartan: lo que queda sigue por el guardado de la venta DE SIEMPRE, sin
+     cambios; si esa venta no se guarda, las líneas vuelven al carrito. Solo cuando la venta quedó guardada (o cuando todo era autoconsumo)
+     se registran los autoconsumos. Todo autoconsumo = sin venta, sin folio, sin forma de pago, sin comprobante.
+   - DESCUENTO: el mismo libro del servidor que usa la venta (relax_stock_out, tipo «merma» con operación de prefijo AC: el servidor no
+     tiene un tipo «autoconsumo» y no se cambió la base). Cada registro lleva SU operación: se anota PENDIENTE antes de pedir el descuento
+     y se confirma con relax_op_status y la MISMA operación; repetirla no descuenta dos veces. Sin libro: stockAdd + historial.
+   - REGISTRO: el documento 'autocons' de siempre (mods248). Campos nuevos: v:2, price (precio de venta de referencia), pk (presentación),
+     sale (la venta con la que se guardó), vend, void {at,by}. Los registros anteriores no se reescriben.
+   - PERMISOS: el administrador siempre; los vendedores solo con «Permitir autoconsumo a vendedores» (Ajustes, apagado por defecto).
+     Solo el administrador anula: las unidades vuelven al inventario como entra una compra y el registro queda marcado, no se borra.
+   - REPORTES: módulo «Autoconsumo» (fechas, producto, quién; tres totales; lista; «Por producto»; anulados marcados; PDF).
+   - La taza y su color (--cafe) son los mismos en Ventas, la confirmación, Reportes y el historial de inventario.
+   Interruptor por equipo: localStorage 'abanico.acx'='0' (no se muestra la taza; el reporte sigue). */
+function acxOn(){try{return localStorage.getItem('abanico.acx')!=='0';}catch(_){return true;}}
+const ACX_CUP_D='<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.6a2.4 2.4 0 0 1 0 4.8H16"/><path d="M7.6 2.8c-.9 1.1.9 1.9 0 3.1M11.4 2.8c-.9 1.1.9 1.9 0 3.1"/><path d="M3 21.6h14"/>';
+function acxCup(cls){return '<svg viewBox="0 0 24 24" class="acx-cup'+(cls?' '+cls:'')+'" aria-hidden="true">'+ACX_CUP_D+'</svg>';}
+var ACX_STASH=null,ACX_BUSY=false,ACX_RECON=false;
+(function(){try{
+  const s=document.createElement('style');s.id='acxStyle';s.textContent=`
+  :root{--cafe:#8a5a2b;--cafe-bg:#f7efe5;--cafe-line:#dcc6ab}
+  html[data-theme="dark"]{--cafe:#d9a66b;--cafe-bg:#3a2e22;--cafe-line:#6e553a}
+  .acx-cup{width:22px;height:22px;stroke:var(--cafe);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .cico.acx{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--cafe);margin-right:10px;padding:0}
+  .cico.acx svg{stroke:var(--cafe)}
+  .cico.acx.on{background:var(--cafe)}
+  .cico.acx.on svg{stroke:#fff}
+  .crow.acx{background:var(--cafe-bg);border-color:var(--cafe);border-width:1.5px}
+  .acx-note{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--cafe);color:#fff;font-size:13px;font-weight:600;line-height:1.25}
+  .acx-note .acx-cup,.acx-flash .acx-cup{stroke:#fff}
+  .acx-fld{margin:2px 0 4px;padding:10px 12px;border:1.5px solid var(--cafe);border-radius:12px;background:var(--cafe-bg)}
+  .acx-h{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--cafe);font-size:14px;margin-bottom:8px}
+  .acx-h small{margin-left:auto;font-weight:600;font-size:12.5px}
+  .acx-done{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:22px}
+  .acx-done.on{display:flex}
+  .acx-done-box{width:100%;max-width:340px;background:var(--card);border-radius:16px;padding:22px 18px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 12px 30px -12px rgba(0,0,0,.5)}
+  .acx-done-cup{width:76px;height:76px;border-radius:50%;background:var(--cafe);display:grid;place-items:center}
+  .acx-done-cup .acx-cup{width:42px;height:42px;stroke:#fff}
+  .acx-done-t{font-size:19px;font-weight:700;color:var(--cafe);text-align:center}
+  .acx-done-l{width:100%;font-size:13.5px;color:var(--ink);display:flex;flex-direction:column;gap:4px;max-height:34vh;overflow:auto}
+  .acx-done-l div{display:flex;justify-content:space-between;gap:10px}
+  .acx-done-l div span:first-child{overflow-wrap:anywhere}
+  .acx-done-s{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.35}
+  .acx-done .savebtn{flex:none;width:100%;max-width:260px;margin-top:4px}
+  .acx-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:70;display:none;align-items:center;gap:8px;background:var(--cafe);color:#fff;font-weight:700;font-size:14px;padding:10px 16px;border-radius:22px;box-shadow:0 6px 16px -6px rgba(0,0,0,.5);max-width:88%}
+  .acx-flash.on{display:flex}
+  .reptile.rc-cafe{background:var(--cafe)}
+  .reptile.rc-cafe .acx-cup{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:1.7}
+  .acx-rep{display:flex;flex-direction:column;gap:10px;padding:10px}
+  .acx-rep .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .acx-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .acx-tot>div{background:var(--card);border:1px solid var(--cafe-line);border-top:3px solid var(--cafe);border-radius:10px;padding:8px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .acx-tot span{font-size:11.5px;color:var(--muted);line-height:1.2}
+  .acx-tot b{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
+  .acx-tot small{font-size:10.5px;color:var(--muted)}
+  .acx-tabs{display:flex;gap:8px}
+  .acx-tabs button{flex:1;border:1.5px solid var(--cafe);background:var(--card);color:var(--cafe);font:600 13.5px var(--ui);border-radius:20px;padding:8px 6px;cursor:pointer}
+  .acx-tabs button.on{background:var(--cafe);color:#fff}
+  .acx-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--cafe);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--ink)}
+  .acx-card.void{opacity:.62;border-left-color:var(--muted)}
+  .acx-card .r{display:flex;justify-content:space-between;gap:10px}
+  .acx-card .r>span:first-child{color:var(--muted)}
+  .acx-card .n{font-weight:700;display:flex;align-items:center;gap:8px;overflow-wrap:anywhere}
+  .acx-card .n .acx-cup{width:18px;height:18px}
+  .acx-badge{align-self:flex-start;font-size:11.5px;font-weight:700;border-radius:10px;padding:2px 9px;background:var(--muted);color:#fff}
+  .acx-badge.pend{background:var(--amber)}
+  .acx-void{align-self:flex-end;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:16px;padding:6px 14px;font:600 12.5px var(--ui);cursor:pointer}
+  .acx-hist{display:inline-flex;align-items:center;gap:6px;color:var(--cafe);font-weight:700;font-size:12.5px}
+  .acx-hist .acx-cup{width:16px;height:16px}
+  .acx-empty{text-align:center;color:var(--muted);padding:26px 10px;font-size:14px}`;
+  document.head.appendChild(s);
+  Object.assign(I18N.es,{acx_name:'Autoconsumo',acx_row:'Este producto va a autoconsumo',acx_btn:'Marcar como autoconsumo',acx_note_ph:'Nota del autoconsumo (opcional). Ej.: para la oficina',
+    acx_n:'{n} producto(s) · no se cobran',acx_done:'Autoconsumo registrado',acx_done_pend:'Queda pendiente de confirmar y se confirma solo. No lo registres de nuevo.',
+    acx_done_note:'Nota: {n}',acx_ok:'Aceptar',acx_dup:'Ya se está guardando',acx_rej:'El autoconsumo NO se descontó del inventario:',acx_rej_sale:'La venta sí quedó guardada.',
+    acx_cfg_sellers:'Permitir autoconsumo a vendedores',rep_autocons:'Autoconsumo',acx_f_prod:'Producto',acx_f_who:'Registró',acx_all:'Todos',acx_flash_n:'{n} producto(s)',
+    acx_t_units:'Unidades consumidas',acx_t_cost:'Costo total',acx_t_sale:'Valor a precio de venta',acx_nodata:'Sin dato',acx_nodata_n:'sin dato en {n}',
+    acx_v_list:'Registros',acx_v_prod:'Por producto',acx_qty:'Cantidad',acx_cu:'Costo unitario',acx_ct:'Costo total',acx_by:'Registró',acx_note:'Nota',acx_resp:'Responsable: {n}',
+    acx_voided:'Anulado',acx_voided_by:'Anulado · {d} · {n}',acx_pending:'Pendiente de confirmar',acx_void:'Anular',acx_void_q:'¿Anular este autoconsumo?\n\n{n} · {q}\n\nLas unidades vuelven al inventario y el registro queda marcado como anulado.',
+    acx_void_ok:'Autoconsumo anulado: {q} vuelven al inventario',acx_void_noprod:'El producto ya no existe en el inventario: no se puede devolver.',acx_void_off:'Sin conexión: conéctate para anular.',
+    acx_empty:'Sin autoconsumos en este periodo',acx_h:'Autoconsumo',acx_h_void:'Autoconsumo anulado',acx_pdf_date:'Fecha',acx_units:'{n} registro(s)'});
+  Object.assign(I18N.en,{acx_name:'Own use',acx_row:'This product goes to own use',acx_btn:'Mark as own use',acx_note_ph:'Own-use note (optional). E.g.: for the office',
+    acx_n:'{n} product(s) · not charged',acx_done:'Own use registered',acx_done_pend:'It stays pending and confirms by itself. Do not register it again.',
+    acx_done_note:'Note: {n}',acx_ok:'OK',acx_dup:'Already saving',acx_rej:'Own use was NOT deducted from stock:',acx_rej_sale:'The sale was saved.',
+    acx_cfg_sellers:'Allow own use for sellers',rep_autocons:'Own use',acx_f_prod:'Product',acx_f_who:'By',acx_all:'All',acx_flash_n:'{n} product(s)',
+    acx_t_units:'Units consumed',acx_t_cost:'Total cost',acx_t_sale:'Value at sale price',acx_nodata:'No data',acx_nodata_n:'no data in {n}',
+    acx_v_list:'Records',acx_v_prod:'By product',acx_qty:'Quantity',acx_cu:'Unit cost',acx_ct:'Total cost',acx_by:'Registered by',acx_note:'Note',acx_resp:'Responsible: {n}',
+    acx_voided:'Voided',acx_voided_by:'Voided · {d} · {n}',acx_pending:'Waiting for confirmation',acx_void:'Void',acx_void_q:'Void this own-use record?\n\n{n} · {q}\n\nThe units go back to stock and the record stays marked as voided.',
+    acx_void_ok:'Own use voided: {q} back in stock',acx_void_noprod:'The product no longer exists in stock: it cannot be returned.',acx_void_off:'Offline: connect to void.',
+    acx_empty:'No own-use records in this period',acx_h:'Own use',acx_h_void:'Own use voided',acx_pdf_date:'Date',acx_units:'{n} record(s)'});
+  const host=document.getElementById('device');
+  if(host)host.insertAdjacentHTML('beforeend','<div class="acx-done" id="acxDone"><div class="acx-done-box" id="acxDoneBox"></div></div><div class="acx-flash" id="acxFlash"></div>');
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.acxDone=()=>acxDoneClose();}catch(_){}
+}catch(e){console.error('mods274 arranque',e);}})();
+
+/* ---------------- quién puede y qué está marcado ---------------- */
+function acxAdmin(){try{return !!state.profile&&state.profile.kind==='tienda'&&!isSeller();}catch(_){return false;}}
+function acxSellerOk(){try{return isSeller()&&!isTat()&&opts().acxSellers===true;}catch(_){return false;}}
+/* ¿se muestra la taza en este carrito? (no en cotizaciones, ni al editar una venta guardada) */
+function acxShow(){try{return acxOn()&&!!state.profile&&!state.quoteMode&&!state.editSale&&(acxAdmin()||acxSellerOk());}catch(_){return false;}}
+function acxIs(id){try{return !!(state.cartAc&&state.cartAc[''+id])&&acxShow();}catch(_){return false;}}
+function acxMarked(){return cartItems().filter(i=>acxIs(i.id));}
+function acxWho(){try{if(isSeller()&&state.profile.seller)return (''+(state.profile.seller.name||'')).trim().toUpperCase();}catch(_){}
+  const e=(AUTH&&AUTH.email)||'';return ((e.split('@')[0]||'')||((state.profile&&state.profile.name)||'')).toUpperCase();}
+function acxDKey(){return 'abanico.acx.draft.'+(currentDataId()||'');}
+function acxDraft(){try{const m=state.cartAc||{};if(Object.keys(m).length)localStorage.setItem(acxDKey(),JSON.stringify({ac:m,note:state.acxNote||''}));else localStorage.removeItem(acxDKey());}catch(_){}}
+/* las marcas siguen al carrito: una línea que ya no está pierde su marca */
+function acxPrune(){try{const m=state.cartAc;if(!m)return;let ch=false;Object.keys(m).forEach(k=>{if(!state.cart||state.cart[k]==null){delete m[k];ch=true;}});
+  if(!Object.keys(m).length&&state.acxNote){state.acxNote='';ch=true;}if(ch)acxDraft();}catch(_){}}
+function acxToggle(id){if(!acxShow())return;const k=''+id;if(!state.cart||state.cart[k]==null)return;
+  const e=document.getElementById('acxNote');if(e)state.acxNote=e.value;
+  const m=Object.assign({},state.cartAc||{});if(m[k])delete m[k];else m[k]=1;state.cartAc=m;acxDraft();
+  try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}
+/* piezas de la fila del carrito (las llama saleCartHTML) */
+function acxBtn(id){if(!acxShow())return '';const on=acxIs(id);
+  return `<button class="cico acx${on?' on':''}" data-act="acx:${id}" title="${exEsc(t('acx_btn'))}" aria-label="${exEsc(t('acx_name'))}" aria-pressed="${on}">${acxCup()}</button>`;}
+function acxRowNote(id){return acxIs(id)?`<div class="acx-note">${acxCup()}<span>${exEsc(t('acx_row'))}</span></div>`:'';}
+function acxNoteField(){acxPrune();if(!acxShow())return '';const n=acxMarked().length;if(!n)return '';
+  return `<div class="acx-fld"><div class="acx-h">${acxCup()}<span>${exEsc(t('acx_name'))}</span><small>${exEsc(ti('acx_n',{n}))}</small></div>
+    <input class="inp" id="acxNote" autocomplete="off" maxlength="120" placeholder="${exEsc(t('acx_note_ph'))}" value="${exEsc(state.acxNote||'')}"></div>`;}
+function acxQtyTxt(r){const p=P(+r.pid);return qtyLoc(+r.qty||0)+' '+(r.m!=null?(r.m?'m':'u'):baseShort(p));}
+
+/* ---------------- la confirmación y el aviso corto ---------------- */
+function acxDoneClose(){const d=document.getElementById('acxDone');if(d)d.classList.remove('on');}
+function acxDoneOpen(recs,note,pend){const b=document.getElementById('acxDoneBox'),d=document.getElementById('acxDone');if(!b||!d)return;
+  b.innerHTML=`<div class="acx-done-cup">${acxCup()}</div><div class="acx-done-t">${exEsc(t('acx_done'))}</div>
+    <div class="acx-done-l">${recs.map(r=>`<div><span>${exEsc(nmV(r.name||''))}</span><b class="num">${exEsc(acxQtyTxt(r))}</b></div>`).join('')}</div>
+    ${note?`<div class="acx-done-s">${exEsc(ti('acx_done_note',{n:note}))}</div>`:''}${pend?`<div class="acx-done-s">${exEsc(t('acx_done_pend'))}</div>`:''}
+    <button class="savebtn" data-act="acxok">${exEsc(t('acx_ok'))}</button>`;d.classList.add('on');}
+var ACX_FT=null;function acxFlash(txt){const f=document.getElementById('acxFlash');if(!f)return;f.innerHTML=acxCup()+'<span>'+exEsc(txt)+'</span>';f.classList.add('on');clearTimeout(ACX_FT);ACX_FT=setTimeout(()=>f.classList.remove('on'),3600);}
+
+/* ---------------- registro y descuento ---------------- */
+/* una línea del carrito → lo que se va a registrar (costo y precio del momento; cantidad en la unidad base) */
+function acxLine(i){const p=P(+i.id),k=cPk(i.id);return {cid:''+i.id,pid:p.id,name:p.name||'',key:p.key||'',qty:cBaseQ(i),m:isDist(p)?1:0,cost:+p.cost||0,price:+p.price||0,...(k?{pk:{n:k.n,f:k.f,c:+i.q||0}}:{})};}
+function acxHard(err){return /relax_/.test(''+((err&&err.message)||err||''));}   /* rechazo seguro = error propio del libro; cualquier otro queda en duda */
+async function acxSend(rec){const id=currentDataId();let r=null;
+  try{r=await lgCall('relax_stock_out',{p_store:id,p_op:rec.op,p_kind:'merma',p_lines:[{id:rec.pid,q:q3(+rec.qty)}]});
+    if(r.error&&!acxHard(r.error))r={net:true,sent:true};   /* un error que no es del libro (503, puerta de enlace…) no dice si descontó: se pregunta */
+    if(r.net&&r.sent){const s2=await lgCall('relax_op_status',{p_store:id,p_op:rec.op});if(s2.data&&s2.data.found)r={data:s2.data.result};}}catch(_){}
+  return r||{net:true,sent:false};}
+/* marca en el historial de inventario el movimiento de un autoconsumo (ac:1) o de su anulación (ac:2) */
+function acxHist(p,old,kind){try{const n0=(state.invLog||[]).length?state.invLog[0].id:null;invLogAdd(2,p,old);const e=(state.invLog||[])[0];if(e&&e.id!==n0)e.ac=kind;}catch(_){}}
+/* aplica la respuesta del servidor a un registro: 'ok' | 'rech' | 'pend' */
+async function acxAfter(rec,r){const x=(state.autoCons||[]).find(z=>z&&z.id===rec.id);if(!x)return '';
+  if(r&&r.data&&r.data.ok){x.st='ok';x.okAt=Date.now();persist();try{await lgApply(currentDataId());}catch(_){}
+    try{const p=P(+x.pid);if(p)acxHist(p,{q:(+p.stock||0)+(+x.qty||0),c:+p.cost||0,v:+p.price||0,r:+p.reserve||0},1);persist();}catch(_){}return 'ok';}
+  if(r&&((r.data&&r.data.ok===false)||(r.error&&acxHard(r.error)))){x.st='rech';x.del=true;x.errs=(r.data&&r.data.errors)||[{code:'error',m:(''+((r.error&&r.error.message)||'')).slice(0,120)}];persist();
+    try{await lgApply(currentDataId());}catch(_){}return 'rech';}
+  x.st='pend';persist();return 'pend';}
+/* avisa lo que el servidor rechazó (no se descontó). L = [[registro, respuesta]…] */
+function acxRejAlert(L,conVenta){const M=[];L.forEach(x=>{const r=x[1];if(r&&r.data&&r.data.errors)M.push(...lgErrList(r.data.errors));else M.push(nmV(x[0].name||'')+': '+lgErrMsg(r&&r.error));});
+  return appAlert(t('acx_rej')+'\n\n'+M.join('\n')+(conVenta?'\n\n'+t('acx_rej_sale'):''));}
+/* registra los autoconsumos de un guardado. saleId = la venta con la que se guardaron (si la hubo) */
+async function acxRegister(lines,note,saleId){
+  const now=new Date(),pad=n=>(''+n).padStart(2,'0'),date=todayISO(),time=pad(now.getHours())+':'+pad(now.getMinutes()),by=acxWho(),dev=deviceId();
+  let vend=null;try{if(isSeller()&&state.profile.seller)vend=state.profile.seller.id;}catch(_){}
+  const recs=lines.map((l,n)=>({id:'AC'+uidPart()+n,op:'AC'+lgOp().replace(/^op/,''),v:2,pid:l.pid,name:l.name,key:l.key,qty:l.qty,m:l.m,cost:l.cost,price:l.price,...(l.pk?{pk:l.pk}:{}),
+    note:(''+(note||'')).trim().slice(0,120),date,time,by,dev,ts:Date.now()+n,...(saleId?{sale:saleId}:{}),...(vend!=null?{vend}:{})}));
+  const res=[];ACX_BUSY=true;
+  try{
+    if(lgNow()){recs.forEach(r=>{r.st='pend';});state.autoCons=[...recs.slice().reverse(),...(state.autoCons||[])];persist();   /* anotados ANTES de pedir el descuento */
+      if(!saleId)lgBusy(true,t('lg_busy_e'));
+      try{for(const rec of recs){const r=await acxSend(rec);res.push([rec,await acxAfter(rec,r),r]);}}finally{if(!saleId)lgBusy(false);}}
+    else{for(const rec of recs){const p=P(+rec.pid);if(p){const o=invSnap(p);stockAdd(p,-rec.qty);acxHist(p,o,1);}rec.st='ok';res.push([rec,'ok',null]);}
+      state.autoCons=[...recs.slice().reverse(),...(state.autoCons||[])];persist();}
+  }finally{ACX_BUSY=false;}
+  try{if(state.screen==='inventario'||state.screen==='nueva'||state.screen==='repview')render();}catch(_){}
+  const bien=res.filter(x=>x[1]!=='rech').map(x=>x[0]),mal=res.filter(x=>x[1]==='rech'),pend=res.some(x=>x[1]==='pend');
+  if(mal.length)await acxRejAlert(mal.map(x=>[x[0],x[2]]),!!saleId);
+  if(bien.length){if(saleId)acxFlash(t('acx_done')+' · '+ti('acx_flash_n',{n:bien.length}));else acxDoneOpen(bien,recs[0].note,pend);}
+  return res;}
+/* pendientes de ESTE equipo: se pregunta por su operación; si el servidor no la tiene, se reenvía la MISMA (no descuenta dos veces) */
+async function acxReconcile(){if(ACX_RECON||ACX_BUSY||!lgNow()||(typeof LG_BUSY!=='undefined'&&LG_BUSY))return;const id=currentDataId();
+  const L=(state.autoCons||[]).filter(r=>r&&r.st==='pend'&&!r.del&&r.dev===deviceId()&&r.op);if(!L.length||!sbOnline())return;ACX_RECON=true;
+  const mal=[];
+  try{for(const rec of L){if(currentDataId()!==id)break;const s=await lgCall('relax_op_status',{p_store:id,p_op:rec.op});
+      if(s.data&&s.data.found){const r={data:s.data.result};if(await acxAfter(rec,r)==='rech')mal.push([rec,r]);continue;}
+      if(s.data&&!s.data.found){const r=await acxSend(rec);if(await acxAfter(rec,r)==='rech')mal.push([rec,r]);}}
+    try{if(state.screen==='repview')render();}catch(_){}
+    if(mal.length)acxRejAlert(mal,L.some(r=>r.sale));}   /* un pendiente que el servidor rechaza al confirmarse también se avisa */
+  catch(_){}finally{ACX_RECON=false;}}
+addEventListener('online',()=>{setTimeout(()=>{try{acxReconcile();}catch(_){}},2500);});
+setInterval(()=>{try{if(!document.hidden&&currentDataId()&&(state.autoCons||[]).some(r=>r&&r.st==='pend'&&!r.del&&r.dev===deviceId()))acxReconcile();}catch(_){}},45000);
+setTimeout(()=>{try{acxReconcile();}catch(_){}},8000);
+
+/* ---------------- guardar: venta de siempre + autoconsumo aparte ---------------- */
+function acxClearCart(){state.cart={};state.cartPrice={};state.scart={};state.scPrice={};state.scName={};state.cartAdj={};state.saleDate='';state.saleAddr='';state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';
+  state.saleStatus='pagado';state.saleInit='';state.saleSched=[];state.salePayCleared=false;state.saleMix=null;state.saleFromQuote=null;state.cartAc={};state.acxNote='';acxDraft();}
+/* la venta no se guardó: las líneas apartadas vuelven al carrito, con su marca */
+function acxRestore(){const S=ACX_STASH;if(!S)return;ACX_STASH=null;
+  try{const pkm=cartPkMap();Object.keys(S.keep).forEach(k=>{if(state.cart[k]==null){state.cart[k]=S.keep[k];if(S.pk[k]&&!pkm[k])pkm[k]=S.pk[k];}});
+    state.cartAc=Object.assign({},S.marks);state.acxNote=S.note||'';acxDraft();render();}catch(e){console.error('mods274 devolver',e);}}
+function acxWatch(){const S=ACX_STASH;if(!S)return;const t0=Date.now();
+  const tick=()=>{if(ACX_STASH!==S)return;   /* ya lo resolvió saleSaveTail */
+    const busy=(typeof SQ_SAVING!=='undefined'&&SQ_SAVING)||(typeof LG_BUSY!=='undefined'&&LG_BUSY);
+    if(busy&&Date.now()-t0<180000){setTimeout(tick,120);return;}acxRestore();};
+  setTimeout(tick,0);}
+{const _ss=saveSale;saveSale=function(){
+  if(!acxShow())return _ss.apply(this,arguments);
+  const M=acxMarked();if(!M.length)return _ss.apply(this,arguments);   /* venta normal: el guardado de siempre, sin tocar */
+  if(ACX_BUSY||ACX_STASH||(typeof LG_BUSY!=='undefined'&&LG_BUSY)||(typeof SQ_SAVING!=='undefined'&&SQ_SAVING)){toast(t('acx_dup'));return;}
+  {const e=document.getElementById('acxNote');if(e)state.acxNote=e.value;}
+  /* los frenos de la venta, con el carrito COMPLETO (también lo que va a autoconsumo tiene que alcanzar) */
+  if(typeof cjSaleBlock==='function'&&cjSaleBlock())return;if(salesLoadingBlock())return;if(qtSoldBlock())return;
+  if(lgNeedAsk()){LG_ASKED[currentDataId()]=1;return lgRefresh().then(()=>saveSale());}
+  if(cartZeroBlock())return;if(cartIntBlock())return;if(invCartBlock())return;if(invAdjAsk(()=>saveSale()))return;
+  const lines=M.map(acxLine),note=(''+(state.acxNote||'')).trim();
+  const hayVenta=cartItems().some(i=>!acxIs(i.id))||svcCartItems().length>0;
+  if(!hayVenta){   /* todo es autoconsumo: sin venta, sin folio, sin forma de pago, sin comprobante */
+    acxClearCart();try{saveCartDraft();}catch(_){}render();
+    return acxRegister(lines,note,null).catch(e=>{console.error('mods274 registrar',e);});}
+  /* venta + autoconsumo: se apartan las líneas marcadas y lo demás sigue por el guardado de la venta de siempre */
+  const keep={},pk={},pkm=cartPkMap();M.forEach(i=>{const k=''+i.id;keep[k]=state.cart[k];if(pkm[k])pk[k]=pkm[k];});
+  ACX_STASH={lines,note,keep,pk,marks:Object.assign({},state.cartAc||{})};
+  M.forEach(i=>{delete state.cart[''+i.id];});
+  let r;try{r=_ss.apply(this,arguments);}catch(e){acxRestore();throw e;}
+  acxWatch();return r;};}
+/* la venta quedó guardada: ahora sí se registran los autoconsumos que iban con ella */
+{const _st=saleSaveTail;saleSaveTail=function(sale){const S=ACX_STASH;ACX_STASH=null;const r=_st.apply(this,arguments);
+  try{state.cartAc={};state.acxNote='';acxDraft();}catch(_){}
+  if(S)acxRegister(S.lines,S.note,(sale&&sale.id)||'venta').catch(e=>{console.error('mods274 registrar',e);});
+  return r;};}
+{const _rc=restoreCartDraft;restoreCartDraft=function(id){const r=_rc.apply(this,arguments);
+  try{state.cartAc={};state.acxNote='';if(r==='sale'){const d=JSON.parse(localStorage.getItem('abanico.acx.draft.'+id)||'null');
+    if(d&&d.ac){const m={};Object.keys(d.ac).forEach(k=>{if(state.cart&&state.cart[k]!=null)m[k]=1;});state.cartAc=m;state.acxNote=Object.keys(m).length?(''+(d.note||'')):'';}}}catch(_){}
+  return r;};}
+
+/* ---------------- anular (solo el administrador) ---------------- */
+async function acxVoid(rid){if(!acxAdmin())return;let x=(state.autoCons||[]).find(r=>r&&r.id===rid);if(!x||x.del||x.void||x.st==='pend'||x.st==='rech')return;
+  if(!sbOnline()){toast(t('acx_void_off'));return;}
+  if(!await appConfirm(ti('acx_void_q',{n:nmV(x.name||''),q:acxQtyTxt(x)})))return;
+  try{await sbPullAndApply(currentDataId(),['autocons','products']);}catch(_){}   /* por si otro equipo ya lo anuló */
+  x=(state.autoCons||[]).find(r=>r&&r.id===rid);if(!x||x.del||x.void)return render();
+  const p=P(+x.pid);if(!p){await appAlert(t('acx_void_noprod'));return;}
+  const o=invSnap(p);stockAdd(p,+x.qty||0);acxHist(p,o,2);   /* las unidades vuelven como entra una compra */
+  x.void={at:Date.now(),by:acxWho()};persist();render();toast(ti('acx_void_ok',{q:acxQtyTxt(x)}));}
+
+/* ---------------- Reportes: módulo «Autoconsumo» ---------------- */
+function acxRepState(){return state.acxRep||(state.acxRep={prod:'',who:'',view:'list'});}
+function acxRepAll(){return (state.autoCons||[]).filter(r=>r&&!r.del&&r.st!=='rech'&&inR(r.date));}
+function acxRepRows(){const f=acxRepState();let l=acxRepAll();if(f.prod)l=l.filter(r=>''+r.pid===f.prod);if(f.who)l=l.filter(r=>(''+(r.by||''))===f.who);
+  return l.map((r,i)=>({r,i,k:(''+(r.date||''))+' '+(r.time||'')})).sort((a,b)=>a.k<b.k?1:a.k>b.k?-1:(b.r.ts||0)-(a.r.ts||0)||a.i-b.i).map(o=>o.r);}
+function acxCounts(r){return r.st==='ok'&&!r.void;}   /* suma a los totales: confirmado y sin anular */
+function acxTotals(l){const s={u:0,c:0,v:0,nv:0,n:0};l.filter(acxCounts).forEach(r=>{const q=+r.qty||0;s.n++;s.u+=q;s.c+=q*(+r.cost||0);if(r.price!=null)s.v+=q*(+r.price||0);else s.nv++;});return s;}
+function acxByProd(l){const by={};l.filter(acxCounts).forEach(r=>{const k='p'+r.pid;const o=by[k]||(by[k]={name:nmV(r.name||''),key:r.key||'',m:r.m,pid:r.pid,q:0,tot:0,n:0});const q=+r.qty||0;o.q+=q;o.tot+=q*(+r.cost||0);o.n++;});
+  return Object.values(by).sort((a,b)=>b.tot-a.tot||a.name.localeCompare(b.name));}
+function acxNoteTxt(r){return [r.note||'',(r.v!==2&&r.resp)?ti('acx_resp',{n:r.resp}):''].filter(Boolean).join(' · ');}
+function acxCardHTML(r){const q=+r.qty||0,st=r.void?'void':'';const d=r.void?new Date(r.void.at):null,z=n=>String(n).padStart(2,'0');
+  const vd=d?(d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())):'';
+  return `<div class="acx-card ${st}" data-acxid="${exEsc(r.id)}">
+    ${r.void?`<span class="acx-badge">${exEsc(ti('acx_voided_by',{d:vd,n:r.void.by||''}))}</span>`:(r.st==='pend'?`<span class="acx-badge pend">${exEsc(t('acx_pending'))}</span>`:'')}
+    <div class="n">${acxCup()}<span>${exEsc(nmV(r.name||''))}${r.key?' · '+exEsc(r.key):''}</span></div>
+    <div class="r"><span>${exEsc([r.date,r.time].filter(Boolean).join('  ')||t('sin_info'))}</span><b class="num">${exEsc(acxQtyTxt(r))}${r.pk?' ('+exEsc(qtyLoc(+r.pk.c||0)+' × '+(r.pk.n||''))+')':''}</b></div>
+    <div class="r"><span>${exEsc(t('acx_cu'))}</span><b class="num">${money(+r.cost||0)}</b></div>
+    <div class="r"><span>${exEsc(t('acx_ct'))}</span><b class="num">${money(q*(+r.cost||0))}</b></div>
+    <div class="r"><span>${exEsc(t('acx_t_sale'))}</span><b class="num">${r.price!=null?money(q*(+r.price||0)):exEsc(t('acx_nodata'))}</b></div>
+    <div class="r"><span>${exEsc(t('acx_by'))}</span><b>${exEsc(r.by||t('acx_nodata'))}</b></div>
+    ${acxNoteTxt(r)?`<div class="r"><span>${exEsc(t('acx_note'))}</span><b style="text-align:right;overflow-wrap:anywhere">${exEsc(acxNoteTxt(r))}</b></div>`:''}
+    ${acxAdmin()&&r.st==='ok'&&!r.void?`<button class="acx-void" data-act="acxvoid:${exEsc(r.id)}">${exEsc(t('acx_void'))}</button>`:''}</div>`;}
+function acxRep(){const f=acxRepState(),all=acxRepAll();
+  if(f.prod&&!all.some(r=>''+r.pid===f.prod))f.prod='';if(f.who&&!all.some(r=>(''+(r.by||''))===f.who))f.who='';
+  const l=acxRepRows(),T=acxTotals(l);
+  const prods=[...new Map(all.map(r=>[''+r.pid,nmV(r.name||'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1])),whos=[...new Set(all.map(r=>''+(r.by||'')).filter(Boolean))].sort();
+  const sel=(id,cur,first,opts)=>`<select class="inp" id="${id}"><option value="">${exEsc(first)}</option>${opts.map(o=>`<option value="${exEsc(o[0])}"${o[0]===cur?' selected':''}>${exEsc(o[1])}</option>`).join('')}</select>`;
+  const head=repDateHead({event:true,cls:'m10'});
+  const tot=`<div class="acx-tot"><div><span>${exEsc(t('acx_t_units'))}</span><b class="num">${exEsc(qtyLoc(Math.round(T.u*1000)/1000))}</b></div>
+    <div><span>${exEsc(t('acx_t_cost'))}</span><b class="num">${money(T.c)}</b></div>
+    <div><span>${exEsc(t('acx_t_sale'))}</span><b class="num">${T.n&&T.nv===T.n?exEsc(t('acx_nodata')):money(T.v)}</b>${T.nv&&T.nv<T.n?`<small>${exEsc(ti('acx_nodata_n',{n:T.nv}))}</small>`:''}</div></div>`;
+  const tabs=`<div class="acx-tabs"><button class="${f.view!=='prod'?'on':''}" data-act="acxview:list">${exEsc(t('acx_v_list'))}</button><button class="${f.view==='prod'?'on':''}" data-act="acxview:prod">${exEsc(t('acx_v_prod'))}</button></div>`;
+  let body;
+  if(!l.length)body=`<div class="acx-empty">${exEsc(t('acx_empty'))}</div>`;
+  else if(f.view==='prod')body=acxByProd(l).map(o=>`<div class="acx-card"><div class="n">${acxCup()}<span>${exEsc(o.name)}${o.key?' · '+exEsc(o.key):''}</span></div>
+      <div class="r"><span>${exEsc(t('acx_qty'))}</span><b class="num">${exEsc(qtyLoc(Math.round(o.q*1000)/1000)+' '+(o.m?'m':'u'))}</b></div><div class="r"><span>${exEsc(t('acx_ct'))}</span><b class="num">${money(o.tot)}</b></div></div>`).join('')||`<div class="acx-empty">${exEsc(t('acx_empty'))}</div>`;
+  else body=l.map(acxCardHTML).join('');
+  return head+`<div class="acx-rep"><div class="acx-h">${acxCup()}<span>${exEsc(t('acx_name'))}</span><small>${exEsc(ti('acx_units',{n:l.length}))}</small></div>
+    <div class="two">${sel('acxRProd',f.prod,t('acx_f_prod')+': '+t('acx_all'),prods)}${sel('acxRWho',f.who,t('acx_f_who')+': '+t('acx_all'),whos.map(w=>[w,w]))}</div>${tot}${tabs}${body}</div>`;}
+(function(){try{
+  REP_TILES.push(['autocons','cafe']);REP_CMAP.cafe='rc-cafe';REP_RENDER.autocons=acxRep;RANGE_REPORTS.add('autocons');PDF_REPORTS.add('autocons');REP_BAR.autocons=['pdf','cal'];
+  MN_PDF.autocons=async function(JS){const r=repEnsureRange(),f=acxRepState(),l=acxRepRows();if(!l.length)return toast(t('mr_empty'));const T=acxTotals(l);
+    const doc=await mnRepDoc(JS);let y=mnRepHead(doc,{from:r.from,to:r.to,title:t('rep_autocons')+(f.view==='prod'?' · '+t('acx_v_prod'):'')});
+    if(f.view==='prod')y=mnRepTable(doc,y,[t('mr_h_product'),t('mr_h_qty'),t('acx_ct')],acxByProd(l).map(o=>[o.name+(o.key?' · '+o.key:''),mnNum(o.q)+(o.m?' m':''),mnAmount(o.tot)]),{w:[321,107,107],fs:11,hfs:10,nameCol:0,product:true});
+    else y=mnRepTable(doc,y,[t('acx_pdf_date'),t('mr_h_product'),t('mr_h_qty'),t('acx_cu'),t('acx_ct'),t('acx_by'),t('acx_note')],
+      l.map(x=>[[x.date,x.time].filter(Boolean).join(' '),nmV(x.name||'')+(x.void?' ('+t('acx_voided')+')':x.st==='pend'?' ('+t('acx_pending')+')':''),mnNum(+x.qty||0)+(x.m?' m':''),mnAmount(+x.cost||0),mnAmount((+x.qty||0)*(+x.cost||0)),x.by||'',acxNoteTxt(x)]),
+      {w:[72,150,45,62,66,70,70],fs:8,hfs:8,nameCol:1});
+    mnNativeTotal(doc,y+20,[[t('acx_t_units'),mnNum(Math.round(T.u*1000)/1000)],[t('acx_t_cost')+' '+moneySym(),mnAmount(T.c)],[t('acx_t_sale')+' '+moneySym(),T.n&&T.nv===T.n?t('acx_nodata'):mnAmount(T.v)]]);
+    await mnRepSave(doc,'autocons',repRangeTxt());};
+}catch(e){console.error('mods274 reportes',e);}})();
+/* el mosaico lleva la taza (no el ícono de los demás) y, al abrirlo solo, el periodo empieza en el mes actual */
+{const _sr=scReportes;scReportes=function(){let h=_sr.apply(this,arguments);try{const a='data-reptile="autocons">',i=h.indexOf(a);
+  if(i>=0){const j=h.indexOf('<svg viewBox="0 0 24 24" class="mnf',i),k=j>=0?h.indexOf('</svg>',j):-1;if(j>=0&&k>=0)h=h.slice(0,j)+acxCup()+h.slice(k+6);}}catch(_){}return h;};
+  try{if(typeof SCREENS!=='undefined'&&SCREENS&&SCREENS.reportes===_sr)SCREENS.reportes=scReportes;}catch(_){}}   /* la pantalla se abre desde SCREENS */
+{const _dr=repDefaultRange;repDefaultRange=function(ids){const r=_dr.apply(this,arguments);
+  try{if(ids&&ids.length===1&&ids[0]==='autocons'){const n=new Date(),z=x=>String(x).padStart(2,'0');state.repRange={from:n.getFullYear()+'-'+z(n.getMonth()+1)+'-01',to:n.getFullYear()+'-'+z(n.getMonth()+1)+'-'+z(n.getDate())};state.acxRep={prod:'',who:'',view:'list'};}}catch(_){}
+  return r;};}
+/* historial de inventario: el movimiento de un autoconsumo lleva la taza */
+{const _gh=g7PlHist;g7PlHist=function(h){let s=_gh.apply(this,arguments);try{if(h&&(h.ac===1||h.ac===2))s=s.replace('<div class="g7h-n">','<div class="acx-hist">'+acxCup()+'<span>'+exEsc(t(h.ac===2?'acx_h_void':'acx_h'))+'</span></div><div class="g7h-n">');}catch(_){}return s;};}
+
+/* ---------------- toques y campos ---------------- */
+document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act||'';
+  const go=f=>{e.preventDefault();e.stopPropagation();f();};
+  if(a.indexOf('acx:')===0)return go(()=>acxToggle(a.slice(4)));if(a==='acxok')return go(acxDoneClose);
+  if(a.indexOf('acxvoid:')===0)return go(()=>{acxVoid(a.slice(8));});
+  if(a.indexOf('acxview:')===0)return go(()=>{acxRepState().view=a.slice(8)==='prod'?'prod':'list';try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();});},true);
+document.addEventListener('input',e=>{const el=e.target;if(!el)return;
+  if(el.id==='acxNote'){state.acxNote=el.value;acxDraft();return;}
+  /* el subtotal de una línea de autoconsumo se queda en 0 al escribir la cantidad o el precio */
+  try{const id=el.dataset&&(el.dataset.cqty!=null?el.dataset.cqty:el.dataset.cprice);if(id!=null&&acxIs(id))setTimeout(()=>{const sb=document.querySelector('#body [data-crow="'+id+'"] .csub');if(sb&&sb.textContent!=='...')sb.textContent=moneyNum(0);},0);}catch(_){}},true);
+document.addEventListener('change',e=>{const el=e.target;if(!el||!el.id)return;
+  if(el.id==='acxRProd'||el.id==='acxRWho'){const f=acxRepState();if(el.id==='acxRProd')f.prod=el.value||'';else f.who=el.value||'';try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}},true);
 
 </script>

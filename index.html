@@ -14397,7 +14397,7 @@ try{['input','keydown','compositionupdate'].forEach(ev=>document.addEventListene
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true}];   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
+const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true},{key:'routes',st:'routes',core:true}];   /* mods275: rutas de visita */   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases','porders'/* mods147e */,...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261119050617';
+const APP_VERSION='20261119144840';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -21870,5 +21870,349 @@ document.addEventListener('input',e=>{const el=e.target;if(!el)return;
   try{const id=el.dataset&&(el.dataset.cqty!=null?el.dataset.cqty:el.dataset.cprice);if(id!=null&&acxIs(id))setTimeout(()=>{const sb=document.querySelector('#body [data-crow="'+id+'"] .csub');if(sb&&sb.textContent!=='...')sb.textContent=moneyNum(0);},0);}catch(_){}},true);
 document.addEventListener('change',e=>{const el=e.target;if(!el||!el.id)return;
   if(el.id==='acxRProd'||el.id==='acxRWho'){const f=acxRepState();if(el.id==='acxRProd')f.prod=el.value||'';else f.who=el.value||'';try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}},true);
+
+
+/* ==== mods275 (2026-11-19): RUTAS DE VISITA — ETAPA 1: MAPA DE CLIENTES, RUTAS Y ORDEN POR BARRIO ====
+   Pedido de Fabio (19-nov, documento «Nueva función: Rutas de visita, mapa de clientes y seguimiento de vendedores», 3 etapas).
+   Etapa 1 «Autorizo» (19-nov) con el mapa de OpenStreetMap dentro de la app («Cómo llegar» sigue abriendo Google Maps).
+   SIN cambios en la base de datos y sin tablas nuevas: las rutas son un documento más de la tienda (`routes`, en MOD_DOCS).
+   QUÉ HACE (solo el dueño; el vendedor todavía no ve nada: «Mi ruta» es la etapa 2)
+   - Menú: «Rutas» (después de Clientes). Abre una ventana a pantalla completa con tres vistas: Mapa · Rutas · Sin ubicación.
+   - Mapa: un pin por cliente con ubicación guardada (c.loc); al tocarlo, nombre, negocio, barrio, ruta y «Abrir ficha». Filtros por
+     localidad, barrio y ruta. Color según la ruta; gris sin ruta. Los pines cercanos se agrupan y se separan al acercar. Con una ruta
+     escogida, los pines salen numerados en el orden del recorrido, con su trazo.
+   - Sin ubicación: los clientes sin c.loc, con acceso a su ficha para tomársela.
+   - Rutas: nombre, localidad, barrios, vendedor, días (opcional) y color. Al escoger localidad y barrios la app PROPONE los clientes
+     que coinciden y no están en otra ruta; se quitan o se agregan desde la lista o tocando pines. Un cliente va en UNA sola ruta: si ya
+     está en otra, la app avisa y pregunta antes de moverlo. Editar, duplicar (sin clientes: siguen en la original), desactivar, eliminar.
+   - Orden: barrio por barrio (se termina uno antes de pasar al siguiente); dentro del barrio, por cercanía en línea recta entre los que
+     tienen ubicación; los que no tienen, al final de su barrio. Se cambia arrastrando o con las flechas.
+   CÓMO SE GUARDA: routes=[{id,name,zone,hoods[],seller,days[],color,on,stops:[id de cliente…],ts,edited,del?}]. La pertenencia a una ruta
+   va en la ruta (stops), NO en el cliente: los clientes no se reescriben. El campo del cliente «Localidad o ruta» (c.route) se lee como localidad.
+   EXTERNO: Leaflet 1.9.4 y leaflet.markercluster 1.5.3 (cdnjs; se cargan solo al abrir Rutas) y las teselas de tile.openstreetmap.org.
+   Interruptor por equipo: localStorage 'abanico.rt'='0' (no aparece «Rutas»; lo guardado se conserva). */
+function rtOn(){try{return localStorage.getItem('abanico.rt')!=='0';}catch(_){return true;}}
+function rtAdmin(){try{return !!state.profile&&state.profile.kind==='tienda'&&!isSeller();}catch(_){return false;}}
+var RT=null,RT_MAP=null,RT_LAY=null,RT_LIBS=null,RT_DRAG=null,RT_L=null;   /* RT_L = Leaflet (window.L); en la app «L» a secas es el idioma */
+const RT_COLORS=['#1e88e5','#e53935','#43a047','#fb8c00','#8e24aa','#00897b','#d81b60','#6d4c41','#3949ab','#c0ca33','#00acc1','#f4511e'],RT_GRAY='#8d949b';
+const RT_CDN='https://cdnjs.cloudflare.com/ajax/libs/',RT_MC_SHA='020a517be9a15b99cf2033cd420b561e0f27b1b6ddd49cbb60a057f335327fb4';   /* sha-256 de leaflet.markercluster.min.js 1.5.3 */
+(function(){try{
+  const s=document.createElement('style');s.id='rtStyle';s.textContent=`
+  #rtdlg .histbody{padding:0 0 24px}
+  #rtdlg [hidden]{display:none!important}
+  .rt-pad{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .rt-tabs{display:flex;gap:6px}
+  .rt-tabs button{flex:1;border:1.5px solid var(--pri);background:var(--card);color:var(--ink);font:600 13px var(--ui);border-radius:20px;padding:9px 4px;cursor:pointer}
+  .rt-tabs button.on{background:var(--pri);color:#fff}
+  .rt-flt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .rt-flt select{min-width:0;padding-left:8px;padding-right:22px;font-size:13px;text-overflow:ellipsis}
+  .rt-mapw{position:relative;flex:none;height:46vh;min-height:260px;margin:0 14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#dfe3e6;z-index:0}
+  .rt-mapw[hidden]{display:none}
+  .rt-mapw.ed{height:36vh;min-height:220px}
+  #rtMap{position:absolute;inset:0}
+  .rt-mapmsg{position:absolute;left:8px;right:8px;top:8px;z-index:500;background:rgba(255,255,255,.94);color:#222;border-radius:8px;padding:7px 10px;font-size:12.5px;text-align:center;pointer-events:none}
+  .rt-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);display:grid;place-items:center}
+  .rt-pin b{transform:rotate(45deg);color:#fff;font:700 11.5px var(--ui);line-height:1}
+  .rt-pin.off{width:20px;height:20px;opacity:.85}
+  .rt-pinw{width:36px;height:40px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;box-sizing:border-box}   /* zona de toque más grande que el pin */
+  .rt-pop{font:13.5px var(--ui);color:#222;min-width:170px;display:flex;flex-direction:column;gap:3px}
+  .rt-pop b{font-size:14.5px}
+  .rt-pop span{color:#555}
+  .rt-pop button{margin-top:6px;border:none;border-radius:16px;background:#2e7d4f;color:#fff;font:600 13px var(--ui);padding:8px 10px;cursor:pointer}
+  .rt-pop button.sec{background:#565b60}
+  .rt-leg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--ink)}
+  .rt-leg span{display:inline-flex;align-items:center;gap:5px}
+  .rt-dot{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block}
+  .rt-card{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--muted);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--ink)}
+  .rt-card.off{opacity:.6}
+  .rt-card .n{font-weight:700;font-size:15px;overflow-wrap:anywhere}
+  .rt-card .r{color:var(--muted);overflow-wrap:anywhere}
+  .rt-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .rt-acts button,.rt-mini{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:6px 12px;font:600 12.5px var(--ui);cursor:pointer}
+  .rt-acts button.red{border-color:var(--red);color:var(--red)}
+  .rt-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;color:var(--ink)}
+  .rt-row .tx{flex:1;min-width:0}
+  .rt-row .tx b{display:block;overflow-wrap:anywhere}
+  .rt-row .tx span{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+  .rt-num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 12px var(--ui)}
+  .rt-ib{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;font:700 15px var(--ui);padding:0}
+  .rt-ib svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+  .rt-grip{touch-action:none;cursor:grab;color:var(--muted)}
+  .rt-grip svg{fill:currentColor;stroke:none}
+  .rt-hood{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--sel);font-weight:700;font-size:13px;color:var(--ink)}
+  .rt-hood .tx{flex:1;min-width:0;overflow-wrap:anywhere}
+  .rt-list{display:flex;flex-direction:column;gap:6px}
+  .rt-drag{opacity:.55;outline:2px dashed var(--pri)}
+  .rt-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .rt-chip{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:6px 11px;font:600 12.5px var(--ui);cursor:pointer}
+  .rt-chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+  .rt-sws{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+  .rt-sw{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+  .rt-sw.on{border-color:var(--ink)}
+  .rt-h{font-weight:700;font-size:14px;color:var(--ink);margin-top:6px;display:flex;align-items:center;gap:8px}
+  .rt-h small{font-weight:600;color:var(--muted);margin-left:auto}
+  .rt-empty{text-align:center;color:var(--muted);padding:22px 10px;font-size:14px}
+  .leaflet-container{font:12px var(--ui)}`;
+  document.head.appendChild(s);
+  Object.assign(I18N.es,{m_rutas:'Rutas',rt_title:'Rutas',rt_tab_map:'Mapa',rt_tab_routes:'Rutas',rt_tab_noloc:'Sin ubicación',rt_all_zones:'Localidad',rt_all_hoods:'Barrio',rt_all_routes:'Ruta',
+    rt_no_route:'Sin ruta',rt_no_hood:'Sin barrio',rt_no_zone:'Sin localidad',rt_n_map:'{n} cliente(s) en el mapa · {m} sin ubicación',rt_map_none:'Ningún cliente con ubicación para este filtro',
+    rt_map_wait:'Cargando el mapa…',rt_map_fail:'No se pudo cargar el mapa. Revisa la conexión; las listas siguen funcionando.',rt_open_cli:'Abrir ficha',rt_take_loc:'Abrir cliente',
+    rt_noloc_help:'Estos clientes no tienen ubicación guardada: abre el cliente y toca «Tomar ubicación» estando en su negocio.',rt_noloc_none:'Todos los clientes tienen ubicación',rt_noloc_ph:'Buscar cliente',rt_f_zone_none:'Ningún cliente tiene localidad escrita. Escríbela en la ficha del cliente («Localidad o ruta») o agrega los clientes con el buscador.',
+    rt_new:'Nueva ruta',rt_none:'Aún no hay rutas. Crea la primera con «Nueva ruta».',rt_edit:'Editar',rt_dup:'Duplicar',rt_off:'Desactivar',rt_on:'Activar',rt_del:'Eliminar',rt_inactive:'Inactiva',
+    rt_seller_none:'Sin vendedor',rt_n_cli:'{n} cliente(s)',rt_edit_title:'Editar ruta',rt_new_title:'Nueva ruta',rt_f_name:'Nombre de la ruta',rt_f_name_ph:'Ej.: Kennedy 1',rt_f_zone:'Localidad',
+    rt_f_zone_pick:'Escoge la localidad',rt_f_hoods:'Barrios que incluye',rt_f_hoods_none:'Escoge primero la localidad',rt_f_hoods_empty:'Esta localidad no tiene barrios escritos en los clientes',
+    rt_f_seller:'Vendedor asignado',rt_f_days:'Días de la ruta (opcional)',rt_f_color:'Color',rt_d0:'Dom',rt_d1:'Lun',rt_d2:'Mar',rt_d3:'Mié',rt_d4:'Jue',rt_d5:'Vie',rt_d6:'Sáb',
+    rt_members:'Clientes de la ruta',rt_add_ph:'Buscar un cliente para agregar',rt_add:'Agregar',rt_remove:'Quitar',rt_in_other:'En la ruta {r}',rt_move_q:'{c} ya está en la ruta «{r}».\n\n¿Moverlo a esta ruta?',
+    rt_order:'Orden del recorrido',rt_auto:'Ordenar por cercanía',rt_auto_ok:'Orden por cercanía aplicado',rt_no_members:'La ruta todavía no tiene clientes',rt_noloc_tag:'sin ubicación',
+    rt_need_name:'Escribe el nombre de la ruta',rt_dup_name:'Ya hay una ruta con ese nombre',rt_saved:'Ruta guardada: {n}',rt_del_q:'¿Eliminar la ruta «{n}»?\n\nLos clientes y sus visitas no se borran.',
+    rt_deleted:'Ruta eliminada',rt_copy:'{n} (copia)',rt_dup_ok:'Ruta duplicada sin clientes: siguen en la ruta original',rt_pop_add:'Agregar a esta ruta',rt_pop_rm:'Quitar de esta ruta',
+    rt_discard_q:'¿Salir sin guardar los cambios de la ruta?',rt_up:'Subir',rt_down:'Bajar',rt_proposed:'{n} cliente(s) propuestos por localidad y barrios'});
+  Object.assign(I18N.en,{m_rutas:'Routes',rt_title:'Routes',rt_tab_map:'Map',rt_tab_routes:'Routes',rt_tab_noloc:'No location',rt_all_zones:'Area',rt_all_hoods:'Neighborhood',rt_all_routes:'Route',
+    rt_no_route:'No route',rt_no_hood:'No neighborhood',rt_no_zone:'No area',rt_n_map:'{n} client(s) on the map · {m} without location',rt_map_none:'No client with a location for this filter',
+    rt_map_wait:'Loading the map…',rt_map_fail:'The map could not be loaded. Check the connection; the lists still work.',rt_open_cli:'Open record',rt_take_loc:'Open client',
+    rt_noloc_help:'These clients have no saved location: open the client and tap «Take location» while at their business.',rt_noloc_none:'Every client has a location',rt_noloc_ph:'Search client',rt_f_zone_none:'No client has an area written. Write it in the client record («Area or route») or add clients with the search box.',
+    rt_new:'New route',rt_none:'No routes yet. Create the first one with «New route».',rt_edit:'Edit',rt_dup:'Duplicate',rt_off:'Deactivate',rt_on:'Activate',rt_del:'Delete',rt_inactive:'Inactive',
+    rt_seller_none:'No seller',rt_n_cli:'{n} client(s)',rt_edit_title:'Edit route',rt_new_title:'New route',rt_f_name:'Route name',rt_f_name_ph:'E.g.: Kennedy 1',rt_f_zone:'Area',
+    rt_f_zone_pick:'Choose the area',rt_f_hoods:'Neighborhoods included',rt_f_hoods_none:'Choose the area first',rt_f_hoods_empty:'This area has no neighborhoods written in the clients',
+    rt_f_seller:'Assigned seller',rt_f_days:'Route days (optional)',rt_f_color:'Color',rt_d0:'Sun',rt_d1:'Mon',rt_d2:'Tue',rt_d3:'Wed',rt_d4:'Thu',rt_d5:'Fri',rt_d6:'Sat',
+    rt_members:'Route clients',rt_add_ph:'Search a client to add',rt_add:'Add',rt_remove:'Remove',rt_in_other:'In route {r}',rt_move_q:'{c} is already in route «{r}».\n\nMove it to this route?',
+    rt_order:'Visit order',rt_auto:'Sort by proximity',rt_auto_ok:'Proximity order applied',rt_no_members:'The route has no clients yet',rt_noloc_tag:'no location',
+    rt_need_name:'Enter the route name',rt_dup_name:'There is already a route with that name',rt_saved:'Route saved: {n}',rt_del_q:'Delete the route «{n}»?\n\nClients and their visits are not deleted.',
+    rt_deleted:'Route deleted',rt_copy:'{n} (copy)',rt_dup_ok:'Route duplicated without clients: they stay in the original route',rt_pop_add:'Add to this route',rt_pop_rm:'Remove from this route',
+    rt_discard_q:'Leave without saving the route changes?',rt_up:'Up',rt_down:'Down',rt_proposed:'{n} client(s) proposed by area and neighborhoods'});
+  try{IC.rutas='<path d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M8 17h6a3 3 0 0 0 3-3v-1a3 3 0 0 0-3-3h-4a3 3 0 0 1-3-3V6h7"/>';}catch(_){}
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('rtdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="rtdlg"><div class="histbar"><button class="sheet-x" data-rt="x">✕</button><span class="histbar-t" id="rtTitle"></span><button class="hicon" data-rt="save" id="rtSave" hidden><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></button></div><div class="histbody" id="rtBody"><div id="rtTop"></div><div class="rt-mapw" id="rtMapW" hidden><div id="rtMap"></div><div class="rt-mapmsg" id="rtMapMsg" hidden></div></div><div id="rtBottom"></div></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.rtdlg=()=>rtBack();}catch(_){}
+  /* al cerrar la ficha de un cliente abierta desde aquí, la vista se actualiza (pudo tomar la ubicación) */
+  try{const cd=document.getElementById('clidlg');if(cd)new MutationObserver(()=>{if(RT&&!cd.classList.contains('on'))setTimeout(()=>{try{if(RT)rtRender();}catch(_){}},150);}).observe(cd,{attributes:true,attributeFilter:['class']});}catch(_){}
+}catch(e){console.error('mods275 arranque',e);}})();
+
+/* ---------------- datos ---------------- */
+function rtE(s){return exEsc(''+(s==null?'':s));}
+function rtClients(){return (state.clients||[]).filter(c=>c&&c.id!=null&&!c.del);}
+function rtHas(c){try{return !!c&&cgLocOk(c.loc);}catch(_){return false;}}
+function rtRoutes(){return (state.routes||[]).filter(r=>r&&r.id&&!r.del);}
+function rtById(id){return rtRoutes().find(r=>r.id===id)||null;}
+function rtCli(id){return rtClients().find(c=>''+c.id===''+id)||null;}
+function rtName(c){return (''+(c.name||'')).replace(/^\.{3}\s*/,'');}
+/* la ruta de cada cliente (solo cuenta el primero que lo tenga: un cliente va en una sola) */
+function rtOwner(){const m=new Map();rtRoutes().forEach(r=>(r.stops||[]).forEach(id=>{const k=''+id;if(!m.has(k))m.set(k,r);}));return m;}
+function rtLabels(k){const m=new Map();rtClients().forEach(c=>{const v=(''+(c[k]||'')).trim();if(!v)return;const key=vtKey(v);if(!m.has(key))m.set(key,v);});return [...m.entries()].map(([key,label])=>({key,label})).sort((a,b)=>a.label.localeCompare(b.label));}
+function rtHoodsOf(zone){const zk=vtKey(zone),m=new Map();rtClients().forEach(c=>{if(zk&&vtKey(c.route)!==zk)return;const v=(''+(c.hood||'')).trim();if(!v)return;const key=vtKey(v);if(!m.has(key))m.set(key,v);});
+  return [...m.entries()].map(([key,label])=>({key,label})).sort((a,b)=>a.label.localeCompare(b.label));}
+function rtSellerName(id){if(id==null||id==='')return t('rt_seller_none');const s=sellersLive().find(x=>''+x.id===''+id);return s?(''+(s.name||'')):t('rt_seller_none');}
+function rtDist(a,b){const R=6371000,q=Math.PI/180,dl=(b.lat-a.lat)*q,dg=(b.lng-a.lng)*q,x=Math.sin(dl/2)**2+Math.cos(a.lat*q)*Math.cos(b.lat*q)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));}
+/* barrios en el orden en que aparecen en la lista; cada cliente pertenece al barrio escrito en su ficha */
+function rtGroups(stops){const G=[],ix=new Map();(stops||[]).forEach(id=>{const c=rtCli(id);if(!c)return;const k=vtKey(c.hood);let g=ix.get(k);if(!g){g={key:k,label:(''+(c.hood||'')).trim()||t('rt_no_hood'),ids:[]};ix.set(k,g);G.push(g);}g.ids.push(c.id);});return G;}
+/* el recorrido siempre termina un barrio antes de pasar al siguiente */
+function rtNormal(stops){const o=[];rtGroups(stops).forEach(g=>g.ids.forEach(id=>o.push(id)));return o;}
+/* orden propuesto: dentro de cada barrio, el más cercano al anterior; los que no tienen ubicación, al final de su barrio */
+function rtAuto(stops){const out=[];let last=null;
+  rtGroups(stops).forEach(g=>{const con=g.ids.map(rtCli).filter(rtHas),sin=g.ids.map(rtCli).filter(c=>c&&!rtHas(c));
+    const rest=con.slice();let cur=last;
+    if(!cur&&rest.length){rest.sort((a,b)=>b.loc.lat-a.loc.lat||a.loc.lng-b.loc.lng);cur=null;}   /* el primer barrio empieza por el de más al norte */
+    while(rest.length){let bi=0;if(cur){let bd=Infinity;rest.forEach((c,i)=>{const d=rtDist(cur,c.loc);if(d<bd){bd=d;bi=i;}});}const c=rest.splice(bi,1)[0];out.push(c.id);cur=c.loc;}
+    if(cur)last=cur;sin.sort((a,b)=>rtName(a).localeCompare(rtName(b))).forEach(c=>out.push(c.id));});
+  return out;}
+function rtFreeColor(){const used=new Set(rtRoutes().map(r=>r.color));return RT_COLORS.find(c=>!used.has(c))||RT_COLORS[rtRoutes().length%RT_COLORS.length];}
+
+/* ---------------- la ventana ---------------- */
+function rtOpen(){if(!rtOn()||!rtAdmin())return;RT={view:'home',tab:'map',f:{zone:'',hood:'',route:''},ed:null,q:''};document.getElementById('rtdlg').classList.add('on');rtRender();}
+function rtClose(){const d=document.getElementById('rtdlg');if(d)d.classList.remove('on');RT=null;rtMapClear();}
+async function rtBack(){if(!RT)return rtClose();if(RT.view==='edit'){if(RT.ed&&RT.ed.dirty&&!await appConfirm(t('rt_discard_q')))return;RT.view='home';RT.tab='routes';RT.ed=null;return rtRender();}rtClose();}
+function rtSel(id,cur,first,opts){return `<select class="inp" id="${id}"><option value="">${rtE(first)}</option>${opts.map(o=>`<option value="${rtE(o[0])}"${o[0]===cur?' selected':''}>${rtE(o[1])}</option>`).join('')}</select>`;}
+/* los clientes que cumplen los filtros del mapa */
+function rtFiltered(){const f=RT.f,own=rtOwner();return rtClients().filter(c=>{
+    if(f.zone&&(f.zone==='-'?!!vtKey(c.route):vtKey(c.route)!==f.zone))return false;
+    if(f.hood&&(f.hood==='-'?!!vtKey(c.hood):vtKey(c.hood)!==f.hood))return false;
+    if(f.route){const r=own.get(''+c.id);if(f.route==='-'?!!r:!(r&&r.id===f.route))return false;}return true;});}
+/* huella de lo que se ve: si otro equipo cambia rutas o ubicaciones mientras la ventana está abierta, la vista se actualiza */
+function rtSig(){try{return JSON.stringify((state.routes||[]).map(r=>r&&[r.id,r.edited,r.del?1:0]))+'|'+rtClients().map(c=>c.id+(rtHas(c)?':'+c.loc.lat+','+c.loc.lng:'')+'/'+vtKey(c.hood)+'/'+vtKey(c.route)).join(';');}catch(_){return '';}}
+function rtRender(){if(!RT)return;const top=document.getElementById('rtTop'),bot=document.getElementById('rtBottom'),mw=document.getElementById('rtMapW'),sv=document.getElementById('rtSave');if(!top||!bot)return;
+  if(RT.view==='edit')return rtEditRender();
+  RT.sig=rtSig();
+  document.getElementById('rtTitle').textContent=t('rt_title');sv.hidden=true;
+  const all=rtClients(),nol=all.filter(c=>!rtHas(c)),R=rtRoutes();
+  const tabs=`<div class="rt-tabs"><button class="${RT.tab==='map'?'on':''}" data-rt="tab:map">${t('rt_tab_map')}</button><button class="${RT.tab==='routes'?'on':''}" data-rt="tab:routes">${t('rt_tab_routes')} (${R.length})</button><button class="${RT.tab==='noloc'?'on':''}" data-rt="tab:noloc">${t('rt_tab_noloc')} (${nol.length})</button></div>`;
+  if(RT.tab==='map'){const f=RT.f,L=rtFiltered(),con=L.filter(rtHas);
+    const zones=rtLabels('route'),hoods=rtHoodsOf(f.zone&&f.zone!=='-'?(zones.find(z=>z.key===f.zone)||{}).label:'');
+    if(f.hood&&f.hood!=='-'&&!hoods.some(h=>h.key===f.hood))f.hood='';
+    top.innerHTML=`<div class="rt-pad">${tabs}<div class="rt-flt">${rtSel('rtFZone',f.zone,t('rt_all_zones'),[...zones.map(z=>[z.key,z.label]),['-',t('rt_no_zone')]])}${rtSel('rtFHood',f.hood,t('rt_all_hoods'),[...hoods.map(z=>[z.key,z.label]),['-',t('rt_no_hood')]])}${rtSel('rtFRoute',f.route,t('rt_all_routes'),[...R.map(r=>[r.id,r.name]),['-',t('rt_no_route')]])}</div>
+      <div class="osub" id="rtCount">${rtE(ti('rt_n_map',{n:con.length,m:L.length-con.length}))}</div></div>`;
+    mw.hidden=false;mw.classList.remove('ed');
+    bot.innerHTML=`<div class="rt-pad"><div class="rt-leg">${R.map(r=>`<span><i class="rt-dot" style="background:${rtE(r.color||RT_GRAY)}"></i>${rtE(r.name)}${r.on===false?' ('+t('rt_inactive')+')':''}</span>`).join('')}<span><i class="rt-dot" style="background:${RT_GRAY}"></i>${t('rt_no_route')}</span></div></div>`;
+    rtMapDraw();return;}
+  mw.hidden=true;rtMapClear();
+  if(RT.tab==='routes'){const own=rtOwner();
+    top.innerHTML=`<div class="rt-pad">${tabs}<button class="btn" data-rt="new">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('rt_new')}</button></div>`;
+    bot.innerHTML=`<div class="rt-pad">${R.length?R.map(r=>{const n=(r.stops||[]).filter(id=>rtCli(id)&&own.get(''+id)===r).length;
+      return `<div class="rt-card${r.on===false?' off':''}" style="border-left-color:${rtE(r.color||RT_GRAY)}" data-rtid="${rtE(r.id)}"><div class="n">${rtE(r.name)}${r.on===false?' · '+t('rt_inactive'):''}</div>
+        <div class="r">${rtE([r.zone||t('rt_no_zone'),(r.hoods||[]).join(', ')].filter(Boolean).join(' · '))}</div><div class="r">${rtE(rtSellerName(r.seller))} · ${rtE(ti('rt_n_cli',{n}))}${(r.days||[]).length?' · '+(r.days||[]).slice().sort().map(d=>t('rt_d'+d)).join(', '):''}</div>
+        <div class="rt-acts"><button data-rt="edit:${rtE(r.id)}">${t('rt_edit')}</button><button data-rt="see:${rtE(r.id)}">${t('rt_tab_map')}</button><button data-rt="dup:${rtE(r.id)}">${t('rt_dup')}</button><button data-rt="onoff:${rtE(r.id)}">${t(r.on===false?'rt_on':'rt_off')}</button><button class="red" data-rt="del:${rtE(r.id)}">${t('rt_del')}</button></div></div>`;}).join(''):`<div class="rt-empty">${t('rt_none')}</div>`}</div>`;
+    return;}
+  top.innerHTML=`<div class="rt-pad">${tabs}<div class="osub">${t(nol.length?'rt_noloc_help':'rt_noloc_none')}</div>${nol.length>8?`<input class="inp" id="rtNlQ" autocomplete="off" placeholder="${rtE(t('rt_noloc_ph'))}" value="${rtE(RT.nq||'')}">`:''}</div>`;
+  bot.innerHTML=`<div class="rt-pad"><div class="rt-list" id="rtNlList">${rtNolocHTML()}</div></div>`;}
+function rtNolocHTML(){const q=fold(((RT&&RT.nq)||'').toLowerCase().trim());
+  return rtClients().filter(c=>!rtHas(c)&&(!q||fold([c.name,c.biz,c.hood,c.route].join(' ').toLowerCase()).includes(q))).sort((a,b)=>rtName(a).localeCompare(rtName(b))).map(c=>`<div class="rt-row" data-rtnl="${rtE(c.id)}"><div class="tx"><b>${rtE(rtName(c))}</b><span>${rtE([c.biz,c.hood,c.route].filter(Boolean).join(' · ')||t('sin_info'))}</span></div><button class="rt-mini" data-rt="cli:${rtE(c.id)}">${t('rt_take_loc')}</button></div>`).join('')||`<div class="rt-empty">${t('sin_info')}</div>`;}
+
+/* ---------------- el mapa (Leaflet + OpenStreetMap; se carga solo aquí) ---------------- */
+function rtLibs(){if(RT_LIBS)return RT_LIBS;
+  /* las hojas de estilo también se esperan: si una no baja (sin conexión), se quita para volver a pedirla en el siguiente intento */
+  const css=u=>new Promise((res,rej)=>{const h=RT_CDN+u,old=document.querySelector('link[href="'+h+'"]');if(old&&old.__rtok)return res();if(old)try{old.remove();}catch(_){}
+    const l=document.createElement('link');l.rel='stylesheet';l.href=h;l.onload=()=>{l.__rtok=1;res();};l.onerror=()=>{try{l.remove();}catch(_){}rej(new Error('css'));};document.head.appendChild(l);});
+  RT_LIBS=(async()=>{await Promise.all(['leaflet/1.9.4/leaflet.min.css','leaflet.markercluster/1.5.3/MarkerCluster.min.css','leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css'].map(css));
+    if(!(window.L&&window.L.map))await scrLoad(RT_CDN+'leaflet/1.9.4/leaflet.min.js');const LF=window.L;if(!(LF&&LF.map))throw new Error('leaflet');
+    /* La app ya tiene un nombre global «L» (el idioma) y el agrupador de pines busca «L» como si fuera el mapa: por eso no se carga como
+       etiqueta, sino que se baja, se comprueba que sea exactamente el archivo esperado y se ejecuta dándole el mapa con ese nombre. */
+    if(!LF.markerClusterGroup){const r=await fetch(RT_CDN+'leaflet.markercluster/1.5.3/leaflet.markercluster.min.js');if(!r.ok)throw new Error('cluster');const buf=await r.arrayBuffer();
+      if(window.crypto&&crypto.subtle){const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',buf))].map(b=>b.toString(16).padStart(2,'0')).join('');if(h!==RT_MC_SHA)throw new Error('cluster distinto');}
+      new Function('L',new TextDecoder().decode(buf)).call(window,LF);if(!LF.markerClusterGroup)throw new Error('cluster');}
+    RT_L=LF;return true;})();
+  RT_LIBS.catch(()=>{RT_LIBS=null;});return RT_LIBS;}
+function rtMapMsg(k){const m=document.getElementById('rtMapMsg');if(!m)return;m.hidden=!k;m.textContent=k?t(k):'';}
+function rtMapClear(){try{if(RT_LAY){RT_LAY.forEach(l=>{try{RT_MAP&&RT_MAP.removeLayer(l);}catch(_){}});}}catch(_){}RT_LAY=[];if(RT)RT.pins=[];}
+async function rtMapReady(){if(RT_MAP){try{RT_MAP.invalidateSize();}catch(_){}return true;}
+  rtMapMsg('rt_map_wait');try{await rtLibs();}catch(_){rtMapMsg('rt_map_fail');return false;}
+  if(RT_MAP)return true;const el=document.getElementById('rtMap');if(!el||!RT_L)return false;
+  RT_MAP=RT_L.map(el,{zoomControl:true,attributionControl:true}).setView([4.65,-74.1],11);
+  RT_L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(RT_MAP);
+  RT_LAY=[];setTimeout(()=>{try{RT_MAP.invalidateSize();}catch(_){}},60);return true;}
+function rtIcon(color,num,off){return RT_L.divIcon({className:'',html:`<div class="rt-pinw"><div class="rt-pin${off?' off':''}" style="background:${color}">${num?`<b>${num}</b>`:''}</div></div>`,iconSize:[36,40],iconAnchor:[18,40],popupAnchor:[0,-34]});}
+/* dibuja los pines. Con una ruta escogida (o al editar), los de esa ruta van numerados y con su trazo; los demás se agrupan */
+async function rtMapDraw(){const tok=(RT.tok=(RT.tok||0)+1);if(!await rtMapReady())return;if(!RT||RT.tok!==tok)return;rtMapClear();rtMapMsg('');
+  const ed=RT.view==='edit'?RT.ed:null,own=rtOwner(),pins=[];let order=null,color=null;
+  if(ed){order=ed.stops;color=ed.color;}else if(RT.f.route&&RT.f.route!=='-'){const r=rtById(RT.f.route);if(r){order=rtNormal(r.stops);color=r.color;}}
+  const num=new Map();if(order)order.forEach((id,i)=>num.set(''+id,i+1));
+  const L0=(ed?rtClients():rtFiltered()).filter(rtHas);
+  const cl=RT_L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:46}),top=RT_L.layerGroup(),pts=[];
+  L0.forEach(c=>{const k=''+c.id,n=num.get(k)||0,r=own.get(k);let col=RT_GRAY,off=false;
+    if(ed){if(n)col=color;else{off=true;col=r&&r.id!==ed.id?(r.color||RT_GRAY):RT_GRAY;}}else col=r?(r.color||RT_GRAY):RT_GRAY;
+    const m=RT_L.marker([c.loc.lat,c.loc.lng],{icon:rtIcon(col,n,off),title:rtName(c),rtid:c.id});
+    m.bindPopup(()=>rtPopup(c),{maxWidth:240});(n?top:cl).addLayer(m);pins.push({id:c.id,n,color:col,lat:c.loc.lat,lng:c.loc.lng,route:r?r.id:null});
+    if(ed?!!n:true)pts.push([c.loc.lat,c.loc.lng]);});
+  RT_MAP.addLayer(cl);RT_MAP.addLayer(top);RT_LAY.push(cl,top);
+  if(order){const line=order.map(rtCli).filter(rtHas).map(c=>[c.loc.lat,c.loc.lng]);if(line.length>1){const pl=RT_L.polyline(line,{color:color||RT_GRAY,weight:3,opacity:.75,dashArray:'6 6'});RT_MAP.addLayer(pl);RT_LAY.push(pl);}}
+  RT.pins=pins;const fit=pts.length?pts:pins.map(p=>[p.lat,p.lng]);
+  const sig=(ed?'e'+ed.id:'h')+'|'+JSON.stringify(RT.f)+'|'+fit.length;
+  if(fit.length&&RT.fitSig!==sig){RT.fitSig=sig;try{RT_MAP.fitBounds(fit,{padding:[30,30],maxZoom:16});}catch(_){}}
+  if(!pins.length)rtMapMsg('rt_map_none');RT.drawn=tok;}
+/* si el mapa no pudo cargar por falta de conexión, se vuelve a intentar al regresar la señal */
+window.addEventListener('online',()=>{try{const w=document.getElementById('rtMapW');if(RT&&!RT_MAP&&w&&!w.hidden)rtMapDraw();}catch(_){}});
+function rtPopup(c){const own=rtOwner().get(''+c.id),ed=RT&&RT.view==='edit'?RT.ed:null,d=document.createElement('div');d.className='rt-pop';
+  let btn=`<button data-rt="cli:${rtE(c.id)}" class="sec">${t('rt_open_cli')}</button>`;
+  if(ed)btn=(ed.stops.some(id=>''+id===''+c.id)?`<button data-rt="rm:${rtE(c.id)}" class="sec">${t('rt_pop_rm')}</button>`:`<button data-rt="add:${rtE(c.id)}">${t('rt_pop_add')}</button>`);
+  d.innerHTML=`<b>${rtE(rtName(c))}</b>${c.biz?`<span>${rtE(c.biz)}</span>`:''}<span>${rtE((''+(c.hood||'')).trim()||t('rt_no_hood'))}</span><span>${rtE(own?own.name:t('rt_no_route'))}</span>${btn}`;return d;}
+
+/* ---------------- crear y editar una ruta ---------------- */
+function rtEditOpen(id){const r=id?rtById(id):null;
+  RT.ed={id:r?r.id:'R'+uidPart(),isNew:!r,name:r?r.name:'',zone:r?(r.zone||''):'',hoods:r?(r.hoods||[]).slice():[],seller:r&&r.seller!=null?''+r.seller:'',days:r?(r.days||[]).slice():[],color:r?(r.color||rtFreeColor()):rtFreeColor(),
+    on:r?r.on!==false:true,stops:r?rtNormal(r.stops):[],moves:{},removed:new Set(),dirty:false};
+  RT.view='edit';RT.q='';RT.fitSig='';rtRender();}
+/* los que coinciden con la localidad y los barrios escogidos y no están en otra ruta */
+function rtProposed(ed){if(!vtKey(ed.zone)||!ed.hoods.length)return [];const zk=vtKey(ed.zone),hk=new Set(ed.hoods.map(vtKey)),own=rtOwner();
+  return rtClients().filter(c=>vtKey(c.route)===zk&&hk.has(vtKey(c.hood))).filter(c=>{const o=own.get(''+c.id);return !o||o.id===ed.id;});}
+function rtPropose(){const ed=RT.ed;let n=0;rtProposed(ed).forEach(c=>{if(ed.removed.has(''+c.id)||ed.stops.some(id=>''+id===''+c.id))return;ed.stops.push(c.id);n++;});
+  if(n){ed.stops=rtAuto(ed.stops);ed.dirty=true;toast(ti('rt_proposed',{n}));}}
+async function rtAdd(cid){const ed=RT.ed,c=rtCli(cid);if(!ed||!c||ed.stops.some(id=>''+id===''+c.id))return;
+  const o=rtOwner().get(''+c.id);if(o&&o.id!==ed.id&&!ed.moves[''+c.id]){if(!await appConfirm(ti('rt_move_q',{c:rtName(c),r:o.name})))return;if(!RT||RT.ed!==ed)return;ed.moves[''+c.id]=o.id;}
+  ed.removed.delete(''+c.id);ed.stops.push(c.id);ed.stops=rtNormal(ed.stops);ed.dirty=true;try{RT_MAP&&RT_MAP.closePopup();}catch(_){}rtEditRender();}
+function rtRemove(cid){const ed=RT.ed;if(!ed)return;ed.stops=ed.stops.filter(id=>''+id!==''+cid);ed.removed.add(''+cid);delete ed.moves[''+cid];ed.dirty=true;try{RT_MAP&&RT_MAP.closePopup();}catch(_){}rtEditRender();}
+function rtMoveCli(cid,dir){const ed=RT.ed,G=rtGroups(ed.stops);const g=G.find(x=>x.ids.some(id=>''+id===''+cid));if(!g)return;const i=g.ids.findIndex(id=>''+id===''+cid),j=i+dir;if(j<0||j>=g.ids.length)return;
+  const x=g.ids[i];g.ids[i]=g.ids[j];g.ids[j]=x;ed.stops=[].concat(...G.map(x=>x.ids));ed.dirty=true;rtEditRender();}
+function rtMoveHood(key,dir){const ed=RT.ed,G=rtGroups(ed.stops);const i=G.findIndex(g=>g.key===key),j=i+dir;if(i<0||j<0||j>=G.length)return;const x=G[i];G[i]=G[j];G[j]=x;ed.stops=[].concat(...G.map(g=>g.ids));ed.dirty=true;rtEditRender();}
+function rtEditRead(){const ed=RT&&RT.ed;if(!ed)return;const g=id=>document.getElementById(id);if(g('rtName'))ed.name=g('rtName').value;}
+function rtOrderHTML(ed){const G=rtGroups(ed.stops);if(!G.length)return `<div class="rt-empty">${t('rt_no_members')}</div>`;let n=0;const grip=svg('<circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/>');
+  return G.map((g,gi)=>`<div class="rt-grp" data-rtg="${rtE(g.key)}"><div class="rt-hood"><span class="rt-ib rt-grip" data-rtgrip="h">${grip}</span><span class="tx">${rtE(g.label)} (${g.ids.length})</span>
+      <button class="rt-ib" data-rt="hup:${rtE(g.key)}" aria-label="${t('rt_up')}"${gi?'':' disabled'}>▲</button><button class="rt-ib" data-rt="hdn:${rtE(g.key)}" aria-label="${t('rt_down')}"${gi<G.length-1?'':' disabled'}>▼</button></div>
+    <div class="rt-list" style="margin-top:6px">${g.ids.map((id,i)=>{const c=rtCli(id);n++;return `<div class="rt-row" data-rtc="${rtE(id)}"><span class="rt-ib rt-grip" data-rtgrip="c">${grip}</span><span class="rt-num" style="background:${rtE(ed.color)}">${n}</span>
+        <div class="tx"><b>${rtE(rtName(c))}</b><span>${rtE([c.biz,rtHas(c)?'':t('rt_noloc_tag')].filter(Boolean).join(' · '))}</span></div>
+        <button class="rt-ib" data-rt="cup:${rtE(id)}" aria-label="${t('rt_up')}"${i?'':' disabled'}>▲</button><button class="rt-ib" data-rt="cdn:${rtE(id)}" aria-label="${t('rt_down')}"${i<g.ids.length-1?'':' disabled'}>▼</button><button class="rt-ib" data-rt="rm:${rtE(id)}" aria-label="${t('rt_remove')}">✕</button></div>`;}).join('')}</div></div>`).join('');}
+function rtFindHTML(ed){const q=fold((RT.q||'').toLowerCase().trim());if(!q)return '';const own=rtOwner(),inR=new Set(ed.stops.map(x=>''+x));
+  const L=rtClients().filter(c=>!inR.has(''+c.id)&&fold([c.name,c.biz,c.hood,c.route].join(' ').toLowerCase()).includes(q)).slice(0,12);
+  return `<div class="rt-list">${L.map(c=>{const o=own.get(''+c.id);return `<div class="rt-row" data-rtf="${rtE(c.id)}"><div class="tx"><b>${rtE(rtName(c))}</b><span>${rtE([c.biz,c.hood,o&&o.id!==ed.id?ti('rt_in_other',{r:o.name}):''].filter(Boolean).join(' · '))}</span></div><button class="rt-mini" data-rt="add:${rtE(c.id)}">${t('rt_add')}</button></div>`;}).join('')||`<div class="osub">${t('sin_info')}</div>`}</div>`;}
+function rtEditRender(){const ed=RT.ed,top=document.getElementById('rtTop'),bot=document.getElementById('rtBottom'),mw=document.getElementById('rtMapW'),sv=document.getElementById('rtSave');if(!ed||!top)return;
+  document.getElementById('rtTitle').textContent=t(ed.isNew?'rt_new_title':'rt_edit_title');sv.hidden=false;ed.stops=rtNormal(ed.stops);
+  const zones=rtLabels('route'),hoods=vtKey(ed.zone)?rtHoodsOf(ed.zone):[],hk=new Set(ed.hoods.map(vtKey));
+  top.innerHTML=`<div class="rt-pad"><div class="fld"><span class="fl">${t('rt_f_name')}</span><input class="inp" id="rtName" autocomplete="off" maxlength="60" placeholder="${rtE(t('rt_f_name_ph'))}" value="${rtE(ed.name)}"></div>
+    <div class="fld"><span class="fl">${t('rt_f_zone')}</span>${zones.length?rtSel('rtZone',vtKey(ed.zone),t('rt_f_zone_pick'),zones.map(z=>[z.key,z.label])):`<div class="osub">${t('rt_f_zone_none')}</div>`}</div>
+    <div class="fld"${zones.length?'':' hidden'}><span class="fl">${t('rt_f_hoods')}</span>${!vtKey(ed.zone)?`<div class="osub">${t('rt_f_hoods_none')}</div>`:hoods.length?`<div class="rt-chips">${hoods.map(h=>`<button class="rt-chip${hk.has(h.key)?' on':''}" data-rt="hood:${rtE(h.key)}">${rtE(h.label)}</button>`).join('')}</div>`:`<div class="osub">${t('rt_f_hoods_empty')}</div>`}</div>
+    <div class="fld"><span class="fl">${t('rt_f_seller')}</span>${rtSel('rtSeller',ed.seller,t('rt_seller_none'),sellersLive().map(s=>[''+s.id,''+(s.name||'')]))}</div>
+    <div class="fld"><span class="fl">${t('rt_f_days')}</span><div class="rt-chips">${[1,2,3,4,5,6,0].map(d=>`<button class="rt-chip${ed.days.includes(d)?' on':''}" data-rt="day:${d}">${t('rt_d'+d)}</button>`).join('')}</div></div>
+    <div class="fld"><span class="fl">${t('rt_f_color')}</span><div class="rt-sws">${RT_COLORS.map(c=>`<button class="rt-sw${c===ed.color?' on':''}" style="background:${c}" data-rt="color:${c}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div class="rt-h">${t('rt_members')}<small>${rtE(ti('rt_n_cli',{n:ed.stops.length}))}</small></div>
+    <input class="inp" id="rtFind" autocomplete="off" placeholder="${rtE(t('rt_add_ph'))}" value="${rtE(RT.q||'')}"><div id="rtFound">${rtFindHTML(ed)}</div></div>`;
+  mw.hidden=false;mw.classList.add('ed');
+  bot.innerHTML=`<div class="rt-pad"><div class="rt-h">${t('rt_order')}<small><button class="rt-mini" data-rt="auto">${t('rt_auto')}</button></small></div><div id="rtOrder">${rtOrderHTML(ed)}</div></div>`;
+  rtMapDraw();}
+function rtSave(){const ed=RT&&RT.ed;if(!ed)return;rtEditRead();const name=(''+(ed.name||'')).trim().replace(/\s+/g,' ');
+  if(!name){toast(t('rt_need_name'));const e=document.getElementById('rtName');if(e)e.focus();return;}
+  if(rtRoutes().some(r=>r.id!==ed.id&&vtKey(r.name)===vtKey(name))){toast(t('rt_dup_name'));return;}
+  const stops=rtNormal(ed.stops),mine=new Set(stops.map(x=>''+x)),L=(state.routes||[]).slice();
+  /* un cliente va en una sola ruta: los que entran aquí salen de la ruta donde estaban */
+  for(let i=0;i<L.length;i++){const r=L[i];if(!r||r.del||r.id===ed.id||!(r.stops||[]).some(id=>mine.has(''+id)))continue;L[i]=Object.assign({},r,{stops:(r.stops||[]).filter(id=>!mine.has(''+id)),edited:Date.now()});}
+  const zl=(rtLabels('route').find(z=>z.key===vtKey(ed.zone))||{}).label||'';
+  const rec={id:ed.id,name,zone:zl,hoods:ed.hoods.slice(),seller:ed.seller===''?null:ed.seller,days:ed.days.slice().sort(),color:ed.color,on:ed.on!==false,stops,ts:Date.now(),edited:Date.now()};
+  const i=L.findIndex(r=>r&&r.id===ed.id);if(i>=0)rec.ts=L[i].ts||rec.ts;if(i>=0)L[i]=rec;else L.push(rec);
+  state.routes=L;persist();RT.view='home';RT.tab='routes';RT.ed=null;RT.fitSig='';rtRender();toast(ti('rt_saved',{n:name}));}
+async function rtDelete(id){const r=rtById(id);if(!r||!await appConfirm(ti('rt_del_q',{n:r.name})))return;state.routes=(state.routes||[]).map(x=>x&&x.id===id?Object.assign({},x,{del:true,stops:[],edited:Date.now()}):x);persist();if(RT){if(RT.f.route===id)RT.f.route='';rtRender();}toast(t('rt_deleted'));}
+function rtOnOff(id){state.routes=(state.routes||[]).map(x=>x&&x.id===id?Object.assign({},x,{on:x.on===false,edited:Date.now()}):x);persist();rtRender();}
+function rtDup(id){const r=rtById(id);if(!r)return;let name=ti('rt_copy',{n:r.name}),k=2;while(rtRoutes().some(x=>vtKey(x.name)===vtKey(name)))name=ti('rt_copy',{n:r.name})+' '+(k++);
+  state.routes=[...(state.routes||[]),{id:'R'+uidPart(),name,zone:r.zone||'',hoods:(r.hoods||[]).slice(),seller:r.seller==null?null:r.seller,days:(r.days||[]).slice(),color:rtFreeColor(),on:true,stops:[],ts:Date.now(),edited:Date.now()}];
+  persist();rtRender();toast(t('rt_dup_ok'));}
+
+/* ---------------- arrastrar para ordenar (barrios y clientes) ---------------- */
+function rtDragStart(e,grip){const ed=RT&&RT.ed;if(!ed)return;const kind=grip.dataset.rtgrip,el=grip.closest(kind==='h'?'.rt-grp':'.rt-row');if(!el)return;const box=el.parentNode;
+  RT_DRAG={kind,el,box,id:e.pointerId,y:e.clientY};el.classList.add('rt-drag');try{grip.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();requestAnimationFrame(rtDragTick);}
+function rtDragMove(e){const D=RT_DRAG;if(!D||e.pointerId!==D.id)return;e.preventDefault();D.y=e.clientY;rtDragPlace();}
+/* pone lo que se arrastra en el lugar que corresponde a la altura del dedo */
+function rtDragPlace(){const D=RT_DRAG;if(!D||D.y==null)return;const sel=D.kind==='h'?'.rt-grp':'.rt-row',sib=[...D.box.children].filter(x=>x.matches&&x.matches(sel)&&x!==D.el);
+  let before=null;for(const s of sib){const r=s.getBoundingClientRect();if(D.y<r.top+r.height/2){before=s;break;}}
+  if(before){if(D.el.nextElementSibling!==before)D.box.insertBefore(D.el,before);}else if(D.box.lastElementChild!==D.el)D.box.appendChild(D.el);}
+/* con el dedo cerca del borde de arriba o de abajo, la lista se desplaza sola (para llevar algo más lejos de lo que cabe en la pantalla) */
+function rtDragTick(){const D=RT_DRAG;if(!D)return;try{const b=document.getElementById('rtBody');if(b&&D.y!=null){const r=b.getBoundingClientRect(),z=56;let d=0;
+      if(D.y<r.top+z)d=-Math.ceil((r.top+z-D.y)/6)-2;else if(D.y>r.bottom-z)d=Math.ceil((D.y-(r.bottom-z))/6)+2;
+      if(d){const s0=b.scrollTop;b.scrollTop=s0+d;if(b.scrollTop!==s0)rtDragPlace();}}}catch(_){}requestAnimationFrame(rtDragTick);}
+function rtDragEnd(e){const D=RT_DRAG;if(!D||(e&&e.pointerId!==D.id))return;RT_DRAG=null;D.el.classList.remove('rt-drag');const ed=RT&&RT.ed;if(!ed)return;
+  const ids=[...document.querySelectorAll('#rtOrder .rt-row')].map(x=>x.dataset.rtc),by=new Map(ed.stops.map(x=>[''+x,x]));const nu=ids.map(k=>by.get(k)).filter(x=>x!==undefined);
+  if(nu.length===ed.stops.length&&nu.some((x,i)=>x!==ed.stops[i])){ed.stops=rtNormal(nu);ed.dirty=true;}rtEditRender();}
+document.addEventListener('pointerdown',e=>{try{const g=e.target&&e.target.closest&&e.target.closest('#rtOrder [data-rtgrip]');if(g)rtDragStart(e,g);}catch(_){}},true);
+document.addEventListener('pointermove',e=>{try{if(RT_DRAG)rtDragMove(e);}catch(_){}},{capture:true,passive:false});
+document.addEventListener('pointerup',e=>{try{if(RT_DRAG)rtDragEnd(e);}catch(_){}},true);
+document.addEventListener('pointercancel',e=>{try{if(RT_DRAG)rtDragEnd(e);}catch(_){}},true);
+
+/* ---------------- menú, toques y campos ---------------- */
+{const _cd=currentDrawer;currentDrawer=function(){const L=_cd.apply(this,arguments);try{if(rtOn()&&rtAdmin()&&Array.isArray(L)&&!L.some(x=>x&&x.id==='rutas')){const i=L.findIndex(x=>x&&x.id==='clientes');if(i>=0){const N=L.slice();N.splice(i+1,0,{id:'rutas'});return N;}}}catch(_){}return L;};}
+{const _rd=render;render=function(){const x=_rd.apply(this,arguments);try{if(RT&&RT.view==='home'&&RT.sig!==undefined&&rtSig()!==RT.sig)rtRender();}catch(_){}return x;};}
+document.addEventListener('click',e=>{try{const di=e.target&&e.target.closest&&e.target.closest('[data-di="rutas"]');
+    if(di){e.preventDefault();e.stopPropagation();drawer(false);rtOpen();return;}
+    const b=e.target&&e.target.closest&&e.target.closest('[data-rt]');if(!b||!RT)return;e.preventDefault();e.stopPropagation();const a=b.dataset.rt,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1),ed=RT.ed;
+    if(k==='x')return rtBack();if(k==='save')return rtSave();
+    if(k==='tab'){RT.tab=v;RT.fitSig='';return rtRender();}
+    if(k==='cli'){try{RT_MAP&&RT_MAP.closePopup();}catch(_){}const c=rtCli(v);if(c)openCliForm(c.id);return;}
+    if(k==='new')return rtEditOpen(null);if(k==='edit')return rtEditOpen(v);if(k==='dup')return rtDup(v);if(k==='onoff')return rtOnOff(v);if(k==='del')return rtDelete(v);
+    if(k==='see'){RT.f={zone:'',hood:'',route:v};RT.tab='map';RT.fitSig='';return rtRender();}
+    if(!ed)return;rtEditRead();
+    if(k==='hood'){const j=ed.hoods.findIndex(h=>vtKey(h)===v);if(j>=0)ed.hoods.splice(j,1);else{const h=rtHoodsOf(ed.zone).find(x=>x.key===v);if(h)ed.hoods.push(h.label);}ed.dirty=true;rtPropose();return rtEditRender();}
+    if(k==='day'){const d=+v,j=ed.days.indexOf(d);if(j>=0)ed.days.splice(j,1);else ed.days.push(d);ed.dirty=true;return rtEditRender();}
+    if(k==='color'){ed.color=v;ed.dirty=true;return rtEditRender();}
+    if(k==='add')return rtAdd(v);if(k==='rm')return rtRemove(v);
+    if(k==='cup')return rtMoveCli(v,-1);if(k==='cdn')return rtMoveCli(v,1);if(k==='hup')return rtMoveHood(v,-1);if(k==='hdn')return rtMoveHood(v,1);
+    if(k==='auto'){ed.stops=rtAuto(ed.stops);ed.dirty=true;toast(t('rt_auto_ok'));return rtEditRender();}
+  }catch(er){console.error('mods275 toque',er);}},true);
+document.addEventListener('change',e=>{try{const el=e.target;if(!el||!el.id||!RT)return;
+    if(el.id==='rtFZone'){RT.f.zone=el.value||'';RT.f.hood='';RT.fitSig='';return rtRender();}
+    if(el.id==='rtFHood'){RT.f.hood=el.value||'';RT.fitSig='';return rtRender();}
+    if(el.id==='rtFRoute'){RT.f.route=el.value||'';RT.fitSig='';return rtRender();}
+    const ed=RT.ed;if(!ed)return;
+    if(el.id==='rtZone'){rtEditRead();const z=rtLabels('route').find(x=>x.key===el.value);ed.zone=z?z.label:'';ed.hoods=[];ed.dirty=true;return rtEditRender();}
+    if(el.id==='rtSeller'){ed.seller=el.value||'';ed.dirty=true;return;}
+  }catch(_){}},true);
+document.addEventListener('input',e=>{try{const el=e.target;if(!el||!RT)return;
+    if(el.id==='rtNlQ'){RT.nq=el.value;const f=document.getElementById('rtNlList');if(f)f.innerHTML=rtNolocHTML();return;}
+    if(!RT.ed)return;
+    if(el.id==='rtName'){RT.ed.name=el.value;RT.ed.dirty=true;return;}
+    if(el.id==='rtFind'){RT.q=el.value;const f=document.getElementById('rtFound');if(f)f.innerHTML=rtFindHTML(RT.ed);}
+  }catch(_){}},true);
 
 </script>

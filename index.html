@@ -14397,7 +14397,7 @@ try{['input','keydown','compositionupdate'].forEach(ev=>document.addEventListene
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true},{key:'routes',st:'routes',core:true}];   /* mods275: rutas de visita */   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
+const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true},{key:'routes',st:'routes',core:true},{key:'rounds',st:'rounds',core:true}];   /* mods275: rutas de visita · mods276: recorridos */   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases','porders'/* mods147e */,...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261119144840';
+const APP_VERSION='20261119230417';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -22214,5 +22214,241 @@ document.addEventListener('input',e=>{try{const el=e.target;if(!el||!RT)return;
     if(el.id==='rtName'){RT.ed.name=el.value;RT.ed.dirty=true;return;}
     if(el.id==='rtFind'){RT.q=el.value;const f=document.getElementById('rtFound');if(f)f.innerHTML=rtFindHTML(RT.ed);}
   }catch(_){}},true);
+
+
+
+/* ==== mods276 (2026-11-19): RUTAS DE VISITA — ETAPA 2: EL RECORRIDO DEL VENDEDOR Y LAS VISITAS CON RESULTADO ====
+   Pedido de Fabio (19-nov, el mismo documento de mods275, punto 4). «Si» (19-nov) al plan con las cuatro recomendaciones:
+   1) todos los perfiles de vendedor usan «Mi ruta» (el TAT crea cotización; Vitrina y E-commerce, venta) · 2) al vender o cotizar a un
+   cliente de la ruta durante el recorrido se guarda sola una visita con la posición de ese momento · 3) «el vendedor solo ve sus rutas»
+   se cumple en la app (en el servidor sigue la regla de siempre: los miembros de la tienda leen los documentos de la tienda) ·
+   4) un recorrido a la vez por vendedor; se cierra solo si cambia el día; los días de la ruta solo informan.
+   SIN cambios en la base de datos y sin tablas nuevas: los recorridos son un documento más de la tienda (`rounds`, en MOD_DOCS).
+   QUÉ HACE (solo el vendedor; el seguimiento del dueño es la etapa 3)
+   - Menú del vendedor: «Mi ruta» (solo si tiene rutas activas asignadas). Ventana a pantalla completa: sus rutas → la ruta.
+   - «Iniciar recorrido» / «Finalizar recorrido». Con el recorrido iniciado: la lista en el orden definido, por barrio, y el mismo
+     recorrido en el mapa; el avance («3 de 12 visitados · 2 compraron · 1 no compraron»).
+   - Cada cliente: «Cómo llegar» (como en Control de clientes), «Llamar», «Registrar visita» y «Crear cotización» (TAT) o «Crear venta».
+   - Estado: Pendiente (gris) · Visitado · Compró (verde: una venta o cotización de ese vendedor a ese cliente dentro del recorrido) ·
+     Visitado · No compró (naranja: visita sin compra, con su motivo).
+   - Las ventas y las cotizaciones SOLO SE LEEN (state.sales, la cola de mods267 y state.quotes): no se toca saveSale ni saveQuote.
+   CÓMO SE GUARDA
+   - rounds=[{id,rid,rn,sid,sn,day,t0,t1,stops:[id de cliente…],dev,ts,edited,auto?}] (stops = copia del orden al iniciar).
+   - Las visitas van en el MISMO documento `visits` de Control de clientes (mods266), con campos opcionales: rd (recorrido), res ('no'|'buy'),
+     why (motivo), nb (texto base), auto ('sale'|'quote') y ref, pos {lat,lng,acc}, dist (metros hasta el cliente), site (a menos de 100 m),
+     nopos (por qué no hubo posición). El motivo y «En el sitio / Lejos del cliente» quedan también en `note`, así el dueño los ve en el
+     historial de la ficha sin tocar ese reporte.
+   Interruptor por equipo: localStorage 'abanico.rj'='0' (no aparece «Mi ruta»; lo guardado se conserva). */
+function rjOn(){try{return rtOn()&&localStorage.getItem('abanico.rj')!=='0';}catch(_){return true;}}
+var RJ=null,RJ_MAP=null,RJ_LAY=[],RJ_SCAN='',RJ_T=0;
+const RJ_WHY=['closed','noneed','nomoney','absent','other'],RJ_NEAR=100,RJ_COL={pend:'#8d949b',buy:'#2e7d4f',no:'#ef6c00'};
+(function(){try{
+  const s=document.createElement('style');s.id='rjStyle';s.textContent=`
+  #rjdlg .histbody{padding:0 0 24px}
+  #rjdlg [hidden]{display:none!important}
+  #rjMap{position:absolute;inset:0}
+  .rj-box{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:var(--ink)}
+  .rj-box.on{border:2px solid #2e7d4f}
+  .rj-prog{font-weight:700;font-size:14px}
+  .btn.rj-go{background:#2e7d4f}
+  .btn.rj-stop{background:var(--card);color:var(--red);border:1.5px solid var(--red)}
+  .rj-cli{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--ink)}
+  .rj-hd{display:flex;align-items:center;gap:8px}
+  .rj-hd .tx{flex:1;min-width:0}
+  .rj-hd .tx b{display:block;overflow-wrap:anywhere}
+  .rj-hd .tx span{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+  .rj-stt{align-self:flex-start;border-radius:6px;padding:4px 8px;font:600 12.5px var(--ui);color:#fff;overflow-wrap:anywhere}
+  .rj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .rj-acts .rt-mini{display:flex;align-items:center;justify-content:center;min-height:36px;text-align:center;text-decoration:none;box-sizing:border-box}
+  .rj-acts .pri{background:var(--pri);border-color:var(--pri);color:#fff}
+  .rj-acts .dis{opacity:.4;pointer-events:none}`;
+  document.head.appendChild(s);
+  Object.assign(I18N.es,{m_miruta:'Mi ruta',rj_title:'Mi ruta',rj_my:'Mis rutas',rj_none:'No tienes rutas asignadas. La tienda te las asigna desde «Rutas».',rj_see:'Ver ruta',rj_today:'Hoy',
+    rj_start:'Iniciar recorrido',rj_end:'Finalizar recorrido',rj_on:'Recorrido en curso · desde las {h}',rj_done:'Recorrido de hoy finalizado a las {h}',
+    rj_prog:'{v} de {n} visitados · {b} compraron · {x} no compraron',rj_other:'Tienes un recorrido en curso en «{r}».',rj_go:'Ir a ese recorrido',rj_one:'Ya tienes un recorrido en curso: finalízalo primero.',
+    rj_explain:'Durante el recorrido, cada visita que registres y cada venta o cotización que hagas a un cliente de la ruta guarda la hora y tu ubicación en ese momento, para que la tienda sepa que estuviste en el sitio.\n\nFuera del recorrido no se guarda ninguna ubicación.\n\n¿Iniciar el recorrido?',
+    rj_started:'Recorrido iniciado',rj_end_q:'¿Finalizar el recorrido?\n\nQuedan {n} cliente(s) sin visitar.',rj_end_q0:'¿Finalizar el recorrido?',rj_ended:'Recorrido finalizado',
+    rj_mode_list:'Lista',rj_mode_map:'Mapa',rj_how:'Cómo llegar',rj_call:'Llamar',rj_visit:'Registrar visita',rj_quote:'Crear cotización',rj_sale:'Crear venta',
+    rj_pend:'Pendiente',rj_buy:'Visitado · Compró',rj_no:'Visitado · No compró',rj_hint:'Inicia el recorrido para registrar visitas y ventas de esta ruta.',rj_need_start:'Inicia el recorrido primero',
+    rj_already:'Este cliente ya está visitado en este recorrido',rj_why_q:'Visita a {n} sin compra.\n¿Cuál fue el motivo?',rj_why_closed:'Cerrado',rj_why_noneed:'No necesita',rj_why_nomoney:'Sin dinero',
+    rj_why_absent:'No estaba el encargado',rj_why_other:'Otro',rj_other_q:'Escribe el motivo',rj_other_need:'Escribe el motivo de la visita sin compra',rj_saved:'Visita registrada: {n}',
+    rj_auto_sale:'Venta #{n}',rj_auto_quote:'Cotización #{n}',rj_auto_ok:'{n} quedó «Visitado · Compró»',rj_site:'En el sitio ({m} m)',rj_far:'Lejos del cliente ({d})',rj_nopos:'Sin ubicación del vendedor',
+    rj_busy_q:'Termina o cancela la cotización en curso',rj_busy_s:'Termina de editar la venta en curso',rj_swap_q:'La venta en curso es de {a}.\n\n¿Cambiar el cliente a {b}?',rj_in_list:'Ver en la lista',
+    rj_gone:'Esta ruta ya no está asignada a ti.',rj_for:'Cliente: {n}',rj_auto_closed:'Se cerró sola al cambiar el día'});
+  Object.assign(I18N.en,{m_miruta:'My route',rj_title:'My route',rj_my:'My routes',rj_none:'You have no assigned routes. The store assigns them from «Routes».',rj_see:'Open route',rj_today:'Today',
+    rj_start:'Start round',rj_end:'Finish round',rj_on:'Round in progress · since {h}',rj_done:'Today\'s round finished at {h}',
+    rj_prog:'{v} of {n} visited · {b} bought · {x} did not buy',rj_other:'You have a round in progress in «{r}».',rj_go:'Go to that round',rj_one:'You already have a round in progress: finish it first.',
+    rj_explain:'During the round, every visit you record and every sale or quote you make to a client of the route saves the time and your location at that moment, so the store knows you were on site.\n\nOutside the round no location is saved.\n\nStart the round?',
+    rj_started:'Round started',rj_end_q:'Finish the round?\n\n{n} client(s) have not been visited.',rj_end_q0:'Finish the round?',rj_ended:'Round finished',
+    rj_mode_list:'List',rj_mode_map:'Map',rj_how:'Directions',rj_call:'Call',rj_visit:'Record visit',rj_quote:'Create quote',rj_sale:'Create sale',
+    rj_pend:'Pending',rj_buy:'Visited · Bought',rj_no:'Visited · Did not buy',rj_hint:'Start the round to record visits and sales of this route.',rj_need_start:'Start the round first',
+    rj_already:'This client is already visited in this round',rj_why_q:'Visit to {n} without a purchase.\nWhat was the reason?',rj_why_closed:'Closed',rj_why_noneed:'Does not need',rj_why_nomoney:'No money',
+    rj_why_absent:'The person in charge was not there',rj_why_other:'Other',rj_other_q:'Write the reason',rj_other_need:'Write the reason for the visit without a purchase',rj_saved:'Visit recorded: {n}',
+    rj_auto_sale:'Sale #{n}',rj_auto_quote:'Quote #{n}',rj_auto_ok:'{n} is now «Visited · Bought»',rj_site:'On site ({m} m)',rj_far:'Far from the client ({d})',rj_nopos:'No seller location',
+    rj_busy_q:'Finish or cancel the quote in progress',rj_busy_s:'Finish editing the sale in progress',rj_swap_q:'The sale in progress is for {a}.\n\nChange the client to {b}?',rj_in_list:'See in the list',
+    rj_gone:'This route is no longer assigned to you.',rj_for:'Client: {n}',rj_auto_closed:'It closed by itself when the day changed'});
+  try{IC.miruta='<path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>';}catch(_){}
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('rjdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="rjdlg"><div class="histbar"><button class="sheet-x" data-rj="x">✕</button><span class="histbar-t" id="rjTitle"></span></div><div class="histbody" id="rjBody"><div id="rjTop"></div><div class="rt-mapw" id="rjMapW" hidden><div id="rjMap"></div><div class="rt-mapmsg" id="rjMapMsg" hidden></div></div><div id="rjBottom"></div></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.rjdlg=()=>rjBack();}catch(_){}
+}catch(e){console.error('mods276 arranque',e);}})();
+
+/* ---------------- datos ---------------- */
+function rjMe(){try{const s=isSeller()&&state.profile&&state.profile.seller;return s&&s.id!=null?{id:''+s.id,n:(''+(s.name||'')).slice(0,60)}:null;}catch(_){return null;}}
+/* las rutas activas asignadas a este vendedor */
+function rjMine(){const me=rjMe();if(!me)return [];return rtRoutes().filter(r=>r.on!==false&&r.seller!=null&&''+r.seller===me.id);}
+function rjRounds(){return (state.rounds||[]).filter(x=>x&&x.id&&!x.del);}
+function rjOpenRound(){const me=rjMe();if(!me)return null;return rjRounds().find(x=>''+x.sid===me.id&&!x.t1)||null;}
+/* el último recorrido de hoy de esa ruta (para mostrar cómo quedó después de finalizarlo) */
+function rjLast(rid){const me=rjMe(),d=todayISO();if(!me)return null;return rjRounds().filter(x=>''+x.sid===me.id&&x.rid===rid&&x.day===d).sort((a,b)=>(b.t0||0)-(a.t0||0))[0]||null;}
+function rjHour(ms){try{return new Date(ms).toTimeString().slice(0,5);}catch(_){return '';}}
+function rjDistTxt(m){return m<1000?Math.round(m)+' m':(Math.round(m/100)/10).toString().replace('.',',')+' km';}
+/* las ventas de la tienda y las que todavía están subiendo desde este equipo (cola de mods267) */
+function rjSalesAll(){const m=new Map();(state.sales||[]).forEach(s=>{if(s&&s.id!=null&&!s.del&&!s.void)m.set(''+s.id,s);});
+  try{if(typeof sqList==='function')sqList().forEach(x=>{const s=x&&x.sale;if(s&&s.id!=null&&x.st!=='revision'&&!m.has(''+s.id))m.set(''+s.id,s);});}catch(_){}return [...m.values()];}
+/* lo que este vendedor les vendió o les cotizó a los clientes del recorrido, dentro del recorrido: cliente → {ts,items[]} */
+function rjBuys(rd){const m=new Map(),ids=new Set((rd.stops||[]).map(x=>''+x)),t1=rd.t1||Infinity,sid=''+rd.sid;
+  const put=(name,o)=>{const c=cliByName(name);if(!c||!ids.has(''+c.id))return;const k=''+c.id;let b=m.get(k);if(!b){b={ts:o.ts,items:[]};m.set(k,b);}b.items.push(o);if(o.ts<b.ts)b.ts=o.ts;};
+  rjSalesAll().forEach(s=>{if(s.vend==null||''+s.vend!==sid||!s.client)return;const ts=+s.ts||0;if(ts<rd.t0||ts>t1)return;put(s.client,{kind:'sale',ref:s.id,folio:s.folio,total:+s.total||0,ts});});
+  quotesLive().forEach(q=>{if(!q.tat||''+q.tat.by!==sid||!q.client||q.date!==rd.day)return;const ts=+q.sent||0;if(ts&&(ts<rd.t0||ts>t1))return;put(q.client,{kind:'quote',ref:q.id,folio:q.folio,total:+q.total||0,ts:ts||rd.t0});});
+  m.forEach(b=>b.items.sort((a,c)=>a.ts-c.ts));return m;}
+/* las visitas del recorrido: las registradas desde aquí y las que el mismo vendedor registró por el botón de siempre durante el recorrido */
+function rjVisits(rd){const ids=new Set((rd.stops||[]).map(x=>''+x)),t1=rd.t1||Infinity,m=new Map();
+  (state.visits||[]).forEach(v=>{if(!v||v.del||!ids.has(''+v.cid))return;const at=Date.parse(v.at)||0;
+    if(!(v.rd===rd.id||(!v.rd&&v.by&&v.by.k==='seller'&&''+v.by.id===''+rd.sid&&at>=rd.t0&&at<=t1)))return;const k=''+v.cid;if(!m.has(k))m.set(k,[]);m.get(k).push(v);});
+  m.forEach(L=>L.sort((a,b)=>(''+a.at).localeCompare(''+b.at)));return m;}
+/* el estado de cada cliente del recorrido: pend · buy · no */
+function rjStates(rd){const B=rjBuys(rd),V=rjVisits(rd),m=new Map();
+  (rd.stops||[]).forEach(id=>{const k=''+id,b=B.get(k),vs=V.get(k)||[];
+    if(b)m.set(k,{st:'buy',at:b.ts,buy:b,v:vs.find(x=>x.auto)||vs[vs.length-1]||null});
+    else if(vs.length){const v=vs[vs.length-1];m.set(k,{st:'no',at:Date.parse(v.at)||0,v});}
+    else m.set(k,{st:'pend'});});return m;}
+function rjCount(S){const o={n:0,buy:0,no:0};S.forEach(x=>{o.n++;if(x.st==='buy')o.buy++;else if(x.st==='no')o.no++;});o.vis=o.buy+o.no;return o;}
+function rjProg(S){const c=rjCount(S);return ti('rj_prog',{v:c.vis,n:c.n,b:c.buy,x:c.no});}
+
+/* ---------------- la posición del vendedor en el momento de la visita ---------------- */
+function rjGeo(ms){ms=ms||12000;return new Promise(res=>{let done=false;const fin=o=>{if(done)return;done=true;res(o);};
+  try{const geo=navigator.geolocation;if(!geo||typeof geo.getCurrentPosition!=='function'||window.isSecureContext===false)return fin({err:'none'});
+    geo.getCurrentPosition(p=>{const c=p&&p.coords;if(!c||!isFinite(c.latitude)||!isFinite(c.longitude))return fin({err:'fail'});
+        fin({lat:Math.round(c.latitude*1e6)/1e6,lng:Math.round(c.longitude*1e6)/1e6,acc:isFinite(c.accuracy)?Math.round(c.accuracy):0});},
+      e=>fin({err:e&&e.code===1?'denied':e&&e.code===3?'time':'fail'}),{enableHighAccuracy:true,timeout:ms,maximumAge:0});
+    setTimeout(()=>fin({err:'time'}),ms+1500);}catch(_){fin({err:'none'});}});}
+function rjSiteTxt(v){if(v.dist!=null)return v.site?ti('rj_site',{m:v.dist}):ti('rj_far',{d:rjDistTxt(v.dist)});return v.nopos?t('rj_nopos'):'';}
+/* guarda la visita de una vez (no se pierde si la posición tarda) y le pone la posición cuando llega */
+function rjAddVisit(rd,c,o,pp){const me=rjMe();if(!me)return null;
+  const v=Object.assign({id:'V'+Date.now().toString(36)+Math.floor(Math.random()*1e4),cid:c.id,cn:(''+(c.name||'')).slice(0,80),day:todayISO(),at:new Date().toISOString(),by:{k:'seller',id:me.id,n:me.n},src:'m',rd:rd.id},o);
+  v.nb=(''+(v.nb||'')).slice(0,220);v.note=v.nb;state.visits=(state.visits||[]).concat([v]);persist();rjLocate(v.id,pp||rjGeo());return v;}
+async function rjLocate(vid,pp){let p=null;try{p=await pp;}catch(_){}
+  const v=(state.visits||[]).find(x=>x&&x.id===vid&&!x.del);if(!v)return;const c=rtCli(v.cid);
+  if(p&&!p.err){v.pos={lat:p.lat,lng:p.lng,acc:p.acc};if(c&&rtHas(c)){v.dist=Math.round(rtDist({lat:p.lat,lng:p.lng},{lat:+c.loc.lat,lng:+c.loc.lng}));v.site=v.dist<RJ_NEAR;}}
+  else v.nopos=(p&&p.err)||'fail';
+  v.note=[v.nb,rjSiteTxt(v)].filter(Boolean).join(' · ').slice(0,300);persist();try{if(RJ)rjRender();}catch(_){}}
+/* registrar una visita sin compra: pide el motivo */
+async function rjVisit(cid){const rd=rjOpenRound(),c=rtCli(cid);if(!c)return;if(!rd){toast(t('rj_need_start'));return;}
+  const S=rjStates(rd).get(''+c.id);if(!S){toast(t('rj_gone'));return;}if(S.st!=='pend'){toast(t('rj_already'));return;}
+  const pp=rjGeo();   /* la posición se pide al tocar: es la de ese momento */
+  const k=await appMenu(ti('rj_why_q',{n:rtName(c)}),RJ_WHY.map(w=>t('rj_why_'+w)));if(typeof k!=='number'||k<0||k>=RJ_WHY.length)return;
+  const why=RJ_WHY[k];let nb=t('rj_why_'+why);
+  if(why==='other'){const n=await appPrompt(t('rj_other_q'),'');if(n==null)return;const s=(''+n).trim();if(!s){toast(t('rj_other_need'));return;}nb=nb+': '+s;}
+  const now=rjOpenRound();if(!now||now.id!==rd.id)return;const S2=rjStates(now).get(''+c.id);if(!S2||S2.st!=='pend'){toast(t('rj_already'));return;}
+  rjAddVisit(now,c,{res:'no',why,nb},pp);toast(ti('rj_saved',{n:rtName(c)}));rjRender();}
+/* una venta o cotización a un cliente de la ruta durante el recorrido deja sola su visita, con la posición de ese momento */
+function rjScan(){try{if(!rjOn())return;const rd=rjOpenRound();if(!rd)return;
+    const sig=rd.id+'|'+(state.sales||[]).length+'|'+(state.quotes||[]).length+'|'+(typeof sqList==='function'?sqList().length:0);if(sig===RJ_SCAN)return;RJ_SCAN=sig;
+    let last=null;rjBuys(rd).forEach((b,k)=>{if((state.visits||[]).some(v=>v&&!v.del&&v.rd===rd.id&&''+v.cid===k&&v.auto))return;const c=rtCli(k),it=b.items[0];if(!c||!it)return;
+      rjAddVisit(rd,c,{res:'buy',auto:it.kind,ref:it.ref,nb:ti(it.kind==='sale'?'rj_auto_sale':'rj_auto_quote',{n:it.folio})});last=c;});
+    if(last)toast(ti('rj_auto_ok',{n:rtName(last)}));}catch(e){try{console.error('mods276 visitas',e);}catch(_){}}}
+/* un recorrido que quedó abierto de un día anterior se cierra solo */
+function rjAutoClose(){try{const me=rjMe();if(!me||!Array.isArray(state.rounds))return;const d=todayISO();let ch=false;
+    const L=state.rounds.map(x=>{if(x&&!x.del&&!x.t1&&''+x.sid===me.id&&x.day&&x.day<d){ch=true;return Object.assign({},x,{t1:new Date(x.day+'T23:59:59').getTime(),auto:1,edited:Date.now()});}return x;});
+    if(ch){state.rounds=L;persist();}}catch(_){}}
+
+/* ---------------- iniciar y finalizar ---------------- */
+async function rjStart(rid){const me=rjMe(),r=rtById(rid);if(!me||!r||!rjMine().some(x=>x.id===rid))return;if(rjOpenRound()){toast(t('rj_one'));return;}
+  let seen=false;try{seen=localStorage.getItem('abanico.rj.exp')==='1';}catch(_){}
+  if(!seen){if(!await appConfirm(t('rj_explain')))return;try{localStorage.setItem('abanico.rj.exp','1');}catch(_){}}
+  if(rjOpenRound())return;const stops=rtNormal(r.stops);if(!stops.length){toast(t('rt_no_members'));return;}
+  const rd={id:'J'+uidPart(),rid:r.id,rn:r.name,sid:me.id,sn:me.n,day:todayISO(),t0:Date.now(),t1:null,stops,ts:Date.now(),edited:Date.now()};try{rd.dev=deviceId();}catch(_){}
+  state.rounds=(state.rounds||[]).concat([rd]);persist();RJ_SCAN='';rjGeo(8000);   /* el permiso de ubicación se pide desde ya */
+  toast(t('rj_started'));rjRender();}
+async function rjEnd(){const rd=rjOpenRound();if(!rd)return;const c=rjCount(rjStates(rd));if(!await appConfirm(c.n-c.vis?ti('rj_end_q',{n:c.n-c.vis}):t('rj_end_q0')))return;
+  if(!rjOpenRound())return;rjScan();state.rounds=(state.rounds||[]).map(x=>x&&x.id===rd.id?Object.assign({},x,{t1:Date.now(),edited:Date.now()}):x);persist();toast(t('rj_ended'));rjRender();}
+
+/* ---------------- la ventana ---------------- */
+function rjOpen(){if(!rjOn()||!rjMe())return;rjAutoClose();const rd=rjOpenRound(),M=rjMine();RJ={view:'list',rid:null,mode:'list',via:false};
+  if(rd){RJ.view='route';RJ.rid=rd.rid;}else if(M.length===1){RJ.view='route';RJ.rid=M[0].id;}
+  document.getElementById('rjdlg').classList.add('on');rjRender();}
+function rjClose(){const d=document.getElementById('rjdlg');if(d)d.classList.remove('on');RJ=null;}
+function rjBack(){if(RJ&&RJ.view==='route'&&RJ.via){RJ.view='list';RJ.rid=null;RJ.mode='list';return rjRender();}rjClose();}
+function rjSig(){try{const me=rjMe();if(!me)return '';return JSON.stringify(rjMine().map(r=>[r.id,r.edited]))+'|'+JSON.stringify(rjRounds().filter(x=>''+x.sid===me.id).map(x=>[x.id,x.t1,x.edited]))
+    +'|'+(state.visits||[]).map(v=>v&&v.rd?v.id+(v.del?'x':'')+(v.dist==null?'':v.dist)+(v.nopos||''):'').join('')+'|'+(state.visits||[]).length+'|'+(state.sales||[]).length+'|'+(state.quotes||[]).length+'|'+(typeof sqList==='function'?sqList().length:0)+'|'+rtClients().length;}catch(_){return '';}}
+function rjStateTxt(st){if(!st||st.st==='pend')return t('rj_pend');const h=st.at?' · '+rjHour(st.at):'';
+  if(st.st==='buy')return t('rj_buy')+h+' · '+st.buy.items.map(i=>ti(i.kind==='sale'?'rj_auto_sale':'rj_auto_quote',{n:i.folio})).join(', ');
+  return t('rj_no')+h+(st.v&&(st.v.nb||st.v.note)?' · '+(st.v.nb||st.v.note):'');}
+function rjRender(){if(!RJ)return;const top=document.getElementById('rjTop'),bot=document.getElementById('rjBottom'),mw=document.getElementById('rjMapW');if(!top||!bot)return;
+  RJ.sig=rjSig();const M=rjMine(),open=rjOpenRound();
+  if(RJ.view!=='route'){document.getElementById('rjTitle').textContent=t('rj_my');mw.hidden=true;const wd=new Date().getDay();
+    top.innerHTML=`<div class="rt-pad">${open?`<div class="rj-box on"><div>${rtE(ti('rj_other',{r:open.rn||''}))}</div><button class="btn rj-go" data-rj="open:${rtE(open.rid)}">${t('rj_go')}</button></div>`:''}</div>`;
+    bot.innerHTML=`<div class="rt-pad">${M.length?M.map(r=>{const n=rtNormal(r.stops).length,hoy=(r.days||[]).includes(wd);
+      return `<div class="rt-card" style="border-left-color:${rtE(r.color||RT_GRAY)}" data-rjr="${rtE(r.id)}"><div class="n">${rtE(r.name)}${hoy?' · '+t('rj_today'):''}</div>
+        <div class="r">${rtE([r.zone||t('rt_no_zone'),(r.hoods||[]).join(', ')].filter(Boolean).join(' · '))}</div><div class="r">${rtE(ti('rt_n_cli',{n}))}${(r.days||[]).length?' · '+(r.days||[]).slice().sort().map(d=>t('rt_d'+d)).join(', '):''}</div>
+        <div class="rt-acts"><button data-rj="open:${rtE(r.id)}">${t('rj_see')}</button></div></div>`;}).join(''):`<div class="rt-empty">${t('rj_none')}</div>`}</div>`;return;}
+  const r=rtById(RJ.rid),mine=!!r&&M.some(x=>x.id===RJ.rid),rd=open&&open.rid===RJ.rid?open:null,other=open&&!rd?open:null,cur=rd||rjLast(RJ.rid);
+  if(!cur&&!mine){RJ.view='list';RJ.rid=null;toast(t('rj_gone'));return rjRender();}
+  const name=(r&&r.name)||(cur&&cur.rn)||'',color=(r&&r.color)||RT_COLORS[0],stops=(cur?cur.stops:rtNormal(r.stops)).filter(id=>rtCli(id)),S=cur?rjStates(cur):null;
+  document.getElementById('rjTitle').textContent=name;
+  let box='';
+  if(rd)box=`<div class="rj-box on"><div>${rtE(ti('rj_on',{h:rjHour(rd.t0)}))}</div><div class="rj-prog" id="rjProg">${rtE(rjProg(S))}</div><button class="btn rj-stop" data-rj="end">${t('rj_end')}</button></div>`;
+  else{box=`<div class="rj-box">${cur?`<div>${rtE(ti('rj_done',{h:rjHour(cur.t1)}))}${cur.auto?' · '+t('rj_auto_closed'):''}</div><div class="rj-prog" id="rjProg">${rtE(rjProg(S))}</div>`:`<div>${t('rj_hint')}</div>`}
+      ${other?`<div>${rtE(ti('rj_other',{r:other.rn||''}))}</div><button class="btn rj-go" data-rj="open:${rtE(other.rid)}">${t('rj_go')}</button>`:mine?`<button class="btn rj-go" data-rj="start:${rtE(RJ.rid)}">${t('rj_start')}</button>`:`<div>${t('rj_gone')}</div>`}</div>`;}
+  top.innerHTML=`<div class="rt-pad">${box}<div class="rt-tabs"><button class="${RJ.mode==='list'?'on':''}" data-rj="mode:list">${t('rj_mode_list')}</button><button class="${RJ.mode==='map'?'on':''}" data-rj="mode:map">${t('rj_mode_map')}</button></div></div>`;
+  if(RJ.mode==='map'){mw.hidden=false;
+    bot.innerHTML=`<div class="rt-pad"><div class="rt-leg">${S?['pend','buy','no'].map(k=>`<span><i class="rt-dot" style="background:${RJ_COL[k]}"></i>${t('rj_'+k)}</span>`).join(''):`<span><i class="rt-dot" style="background:${rtE(color)}"></i>${rtE(name)}</span>`}</div></div>`;
+    rjMapDraw(stops,S,color);return;}
+  mw.hidden=true;const tat=isTat();let n=0;
+  bot.innerHTML=`<div class="rt-pad">${rtGroups(stops).map(g=>`<div class="rt-hood"><span class="tx">${rtE(g.label)} (${g.ids.length})</span></div><div class="rt-list">${g.ids.map(id=>{const c=rtCli(id),st=S?S.get(''+id):null,k=st?st.st:'',how=vtHow(c),tel=(''+(c.phone||'')).replace(/[^0-9+*#]/g,'');n++;
+      return `<div class="rj-cli" data-rjc="${rtE(id)}" data-rjst="${k||'none'}"><div class="rj-hd"><span class="rt-num" style="background:${k?RJ_COL[k]:rtE(color)}">${n}</span><div class="tx"><b>${rtE(rtName(c))}</b><span>${rtE([c.biz,rtHas(c)?'':t('rt_noloc_tag')].filter(Boolean).join(' · '))}</span></div></div>
+        ${st?`<div class="rj-stt" style="background:${RJ_COL[k]}">${rtE(rjStateTxt(st))}</div>`:''}
+        <div class="rj-acts"><a class="rt-mini${how?'':' dis'}" data-rjhow="1" ${how?`href="${rtE(how)}" target="_blank" rel="noopener"`:''}>${t('rj_how')}</a><a class="rt-mini${tel?'':' dis'}" data-rjtel="1" ${tel?`href="tel:${rtE(tel)}"`:''}>${t('rj_call')}</a>
+          <button class="rt-mini${rd&&k==='pend'?'':' dis'}" data-rj="visit:${rtE(id)}">${t('rj_visit')}</button><button class="rt-mini pri${rd?'':' dis'}" data-rj="sell:${rtE(id)}">${t(tat?'rj_quote':'rj_sale')}</button></div></div>`;}).join('')}</div>`).join('')||`<div class="rt-empty">${t('rt_no_members')}</div>`}</div>`;}
+
+/* ---------------- el mapa del recorrido (el mismo Leaflet de «Rutas», en su propio recuadro) ---------------- */
+function rjMapMsg(k){const m=document.getElementById('rjMapMsg');if(!m)return;m.hidden=!k;m.textContent=k?t(k):'';}
+async function rjMapDraw(stops,S,color){const tok=(RJ.tok=(RJ.tok||0)+1);
+  if(!RJ_MAP){rjMapMsg('rt_map_wait');try{await rtLibs();}catch(_){if(RJ&&RJ.tok===tok)rjMapMsg('rt_map_fail');return;}if(!RJ||RJ.tok!==tok)return;const el=document.getElementById('rjMap');if(!el||!RT_L)return;
+    if(!RJ_MAP){RJ_MAP=RT_L.map(el,{zoomControl:true,attributionControl:true}).setView([4.65,-74.1],11);RT_L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(RJ_MAP);}}
+  if(!RJ||RJ.tok!==tok)return;try{RJ_MAP.invalidateSize();}catch(_){}
+  RJ_LAY.forEach(l=>{try{RJ_MAP.removeLayer(l);}catch(_){}});RJ_LAY=[];rjMapMsg('');
+  const g=RT_L.layerGroup(),pts=[],pins=[];
+  stops.forEach((id,i)=>{const c=rtCli(id);if(!c||!rtHas(c))return;const st=S?S.get(''+id):null,col=st?RJ_COL[st.st]:color,ll=[+c.loc.lat,+c.loc.lng];
+    const m=RT_L.marker(ll,{icon:rtIcon(col,i+1,false),title:rtName(c),rtid:c.id});m.bindPopup(()=>rjPopup(c,st),{maxWidth:240});g.addLayer(m);pts.push(ll);pins.push({id:c.id,n:i+1,color:col,st:st?st.st:''});});
+  RJ_MAP.addLayer(g);RJ_LAY.push(g);if(pts.length>1){const pl=RT_L.polyline(pts,{color:color||RT_GRAY,weight:3,opacity:.7,dashArray:'6 6'});RJ_MAP.addLayer(pl);RJ_LAY.push(pl);}
+  RJ.pins=pins;const sig=RJ.rid+'|'+pts.length;if(pts.length&&RJ.fitSig!==sig){RJ.fitSig=sig;try{RJ_MAP.fitBounds(pts,{padding:[30,30],maxZoom:16});}catch(_){}}
+  if(!pts.length)rjMapMsg('rt_map_none');setTimeout(()=>{try{RJ_MAP&&RJ_MAP.invalidateSize();}catch(_){}},80);RJ.drawn=tok;}
+function rjPopup(c,st){const d=document.createElement('div');d.className='rt-pop';
+  d.innerHTML=`<b>${rtE(rtName(c))}</b>${c.biz?`<span>${rtE(c.biz)}</span>`:''}<span>${rtE((''+(c.hood||'')).trim()||t('rt_no_hood'))}</span>${st?`<span>${rtE(rjStateTxt(st))}</span>`:''}<button data-rj="row:${rtE(c.id)}" class="sec">${t('rj_in_list')}</button>`;return d;}
+window.addEventListener('online',()=>{try{const w=document.getElementById('rjMapW');if(RJ&&!RJ_MAP&&w&&!w.hidden)rjRender();}catch(_){}});
+
+/* ---------------- crear la cotización o la venta del cliente ---------------- */
+async function rjSell(cid){const c=rtCli(cid);if(!c)return;if(!rjOpenRound()){toast(t('rj_need_start'));return;}const name=''+(c.name||'');
+  if(isTat()){if(state.quoteMode||state.editSale){toast(t('rj_busy_q'));return;}rjClose();startQuote(null);if(state.quoteMode){state.saleClient=name;render();toast(ti('rj_for',{n:rtName(c)}));}return;}
+  if(state.editSale){toast(t('rj_busy_s'));return;}const cur=(''+(state.saleClient||'')).trim();
+  if(saleHas()&&cur&&cur.toLowerCase()!==name.trim().toLowerCase()&&!await appConfirm(ti('rj_swap_q',{a:cur,b:rtName(c)})))return;
+  rjClose();state.saleClient=name;go('nueva');toast(ti('rj_for',{n:rtName(c)}));}
+
+/* ---------------- menú, toques y avisos ---------------- */
+/* el menú lateral solo se dibuja al entrar: si al vendedor le asignan (o le quitan) su primera ruta con la app abierta, se vuelve a dibujar */
+function rjMenuSync(){try{if(!isSeller())return;const dl=document.getElementById('drawerList');if(!dl||!dl.children.length)return;const want=!!(rjOn()&&(rjMine().length||rjOpenRound())),has=!!dl.querySelector('[data-di="miruta"]');if(want!==has)renderDrawer();}catch(_){}}
+{const _cd=currentDrawer;currentDrawer=function(){const L=_cd.apply(this,arguments);try{if(rjOn()&&isSeller()&&Array.isArray(L)&&!L.some(x=>x&&x.id==='miruta')&&(rjMine().length||rjOpenRound())){const N=L.slice();N.splice(1,0,{id:'miruta'});return N;}}catch(_){}return L;};}
+{const _rd=render;render=function(){const x=_rd.apply(this,arguments);try{if(isSeller()&&rjOn()){if(RJ&&RJ.sig!==undefined&&rjSig()!==RJ.sig)rjRender();clearTimeout(RJ_T);RJ_T=setTimeout(()=>{rjAutoClose();rjScan();rjMenuSync();},350);}}catch(_){}return x;};}
+document.addEventListener('click',e=>{try{const di=e.target&&e.target.closest&&e.target.closest('[data-di="miruta"]');
+    if(di){e.preventDefault();e.stopPropagation();drawer(false);rjOpen();return;}
+    const b=e.target&&e.target.closest&&e.target.closest('[data-rj]');if(!b||!RJ)return;e.preventDefault();e.stopPropagation();const a=b.dataset.rj,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
+    if(k==='x')return rjBack();
+    if(k==='open'){RJ.via=RJ.view==='list'||RJ.via;RJ.view='route';RJ.rid=v;RJ.mode='list';RJ.fitSig='';return rjRender();}
+    if(k==='mode'){RJ.mode=v==='map'?'map':'list';return rjRender();}
+    if(k==='start')return rjStart(v);if(k==='end')return rjEnd();if(k==='visit')return rjVisit(v);if(k==='sell')return rjSell(v);
+    if(k==='row'){try{RJ_MAP&&RJ_MAP.closePopup();}catch(_){}RJ.mode='list';rjRender();const el=[...document.querySelectorAll('#rjBottom .rj-cli')].find(x=>x.dataset.rjc===v);if(el)try{el.scrollIntoView({block:'center'});}catch(_){}return;}
+  }catch(er){console.error('mods276 toque',er);}},true);
 
 </script>

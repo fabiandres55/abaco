@@ -14397,7 +14397,7 @@ try{['input','keydown','compositionupdate'].forEach(ev=>document.addEventListene
 /* ---- Protección: una lista vacía nunca pisa automáticamente una con datos ---- */
 // Documentos de los módulos tipo Mi Negocio: key = documento en la nube, st = campo en state, core = protegido contra vacíos
 // (las listas core usan borrado suave del:true, así nunca quedan vacías por una acción del usuario)
-const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true},{key:'routes',st:'routes',core:true},{key:'rounds',st:'rounds',core:true}];   /* mods275: rutas de visita · mods276: recorridos */   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
+const MOD_DOCS=[{key:'invlog',st:'invLog',core:true},{key:'extras',st:'extraMoves',core:true},{key:'extracats',st:'extraCats'},{key:'providers',st:'providers',core:true},{key:'employees',st:'employees',core:true},{key:'payroll',st:'payroll',core:true},{key:'attendance',st:'attendance',core:true},{key:'services',st:'services',core:true},{key:'events',st:'events',core:true},{key:'quotes',st:'quotes',core:true},{key:'units',st:'units'},{key:'paymethods',st:'payMethods'},{key:'saletags',st:'saleTags'},{key:'sellers',st:'sellers',core:true},{key:'cashcuts',st:'cashCuts',core:true},{key:'cashdenoms',st:'cashDenoms'},{key:'autocons',st:'autoCons',core:true},{key:'visits',st:'visits',core:true},{key:'cashbox',st:'cashBox',core:true},{key:'routes',st:'routes',core:true},{key:'rounds',st:'rounds',core:true},{key:'live',st:'live',core:true}];   /* mods275: rutas de visita · mods276: recorridos · mods277: última ubicación del recorrido en curso */   /* mods271: cierres y aperturas de caja */   /* mods266: visitas a clientes */   /* mods248: autoconsumo */   /* mods243: billetes y monedas de la caja */   /* mods207: cierres de caja */   /* mods205: vendedores de la tienda */
 const modDoc=k=>MOD_DOCS.find(x=>x.key===k);
 function modLocal(){const o={};MOD_DOCS.forEach(m=>o[m.st]=state[m.st]||[]);return o;}
 const CORE_KEYS=new Set(['products','sales','clients','purchases','porders'/* mods147e */,...MOD_DOCS.filter(m=>m.core).map(m=>m.key)]);
@@ -17314,7 +17314,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261119230417';
+const APP_VERSION='20261120101348';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -22450,5 +22450,242 @@ document.addEventListener('click',e=>{try{const di=e.target&&e.target.closest&&e
     if(k==='start')return rjStart(v);if(k==='end')return rjEnd();if(k==='visit')return rjVisit(v);if(k==='sell')return rjSell(v);
     if(k==='row'){try{RJ_MAP&&RJ_MAP.closePopup();}catch(_){}RJ.mode='list';rjRender();const el=[...document.querySelectorAll('#rjBottom .rj-cli')].find(x=>x.dataset.rjc===v);if(el)try{el.scrollIntoView({block:'center'});}catch(_){}return;}
   }catch(er){console.error('mods276 toque',er);}},true);
+
+
+
+
+/* ==== mods277 (2026-11-20): RUTAS DE VISITA — ETAPA 3: UBICACIÓN DEL VENDEDOR EN VIVO Y SEGUIMIENTO DEL DUEÑO ====
+   Pedido de Fabio (19-nov, el mismo documento de mods275, puntos 5, 6 y 7; criterios 9 y 10). «Si autorizo» (20-nov) al plan con las
+   cuatro recomendaciones: 1) se guarda SOLO la última posición de cada recorrido en curso (sin rastro del camino; las visitas ya traen
+   la suya) · 2) se revisa cada 30 s y se envía si se movió más de 25 m, o cada 2 min si está quieto · 3) la pantalla se mantiene
+   encendida durante el recorrido (es la única forma de que una app web siga enviando) · 4) la privacidad entre vendedores va en la app
+   (en el servidor sigue la regla de siempre: solo los miembros de la tienda leen los documentos de la tienda).
+   SIN cambios en la base de datos y sin tablas nuevas: un documento más de la tienda (`live`, en MOD_DOCS) con UN registro por vendedor.
+   LÍMITE: Relax es una app web; el teléfono solo entrega la ubicación con la app abierta y la pantalla encendida.
+   QUÉ HACE EL VENDEDOR
+   - Solo con un recorrido iniciado: cada 30 s pide la posición (la misma rjGeo de las visitas) y la envía si cambió lo suficiente.
+     Sin recorrido no se pide ni se guarda nada. Al finalizar, el registro queda sin posición (`end`).
+   - Antes del primer recorrido la app explica que la ubicación se comparte con la tienda (una vez; 'abanico.rk.exp').
+   - Aviso fijo mientras comparte: debajo del encabezado y dentro de «Mi ruta» (verde: compartiendo; naranja: sin permiso o sin señal).
+   - Sin permiso o sin señal las visitas siguen igual; el dueño ve «sin permiso» o «Sin señal desde [hora]».
+   QUÉ VE EL DUEÑO («Rutas» → «Seguimiento»)
+   - En curso: el mapa con cada vendedor (nombre y hora de la última posición; atenuado y «Sin señal desde [hora]» si pasa de 5 min) y
+     los clientes de su ruta con el color del estado; el avance, el valor vendido o cotizado y la lista de clientes (estado, hora,
+     «En el sitio / Lejos», valor o motivo). Se actualiza sola. Anteriores: por vendedor, ruta y fecha.
+   CÓMO SE GUARDA: live=[{id:'L'+vendedor,sid,sn,rd (recorrido),st:'ok'|'denied'|'nosig',lat,lng,acc,at (hora de esa posición),end?,dev,edited}].
+   - Gana la última escritura de cada registro (no se mezclan campos de dos posiciones) y la posición NUNCA viaja dentro del aviso
+     entre equipos: el aviso solo dice «cambió» y cada equipo lo baja de la nube con su sesión.
+   Interruptor por equipo: localStorage 'abanico.rk'='0' (no comparte ni muestra «Seguimiento»; «Mi ruta» sigue como en mods276). */
+function rkOn(){try{return rjOn()&&localStorage.getItem('abanico.rk')!=='0';}catch(_){return true;}}
+var RK=null,RK_MAP=null,RK_LAY=[],RK_MK={},RK_T=0,RK_PT=0,RK_IV=0,RK_RX={};
+var RK_CFG={every:30000,move:25,beat:120000,old:300000,geo:20000};   /* cada cuánto se revisa · metros para «se movió» · latido si está quieto · «sin señal» · espera de la posición */
+var RK_S={t:0,busy:false,st:'',lock:null,locking:false};
+(function(){try{
+  const s=document.createElement('style');s.id='rkStyle';s.textContent=`
+  #rkdlg .histbody{padding:0 0 24px}
+  #rkdlg [hidden]{display:none!important}
+  #rkMap{position:absolute;inset:0}
+  .rk-ind{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;padding:5px 10px;background:#2e7d4f;color:#fff;font:600 12px var(--ui);text-align:center;line-height:1.25}
+  .rk-ind[hidden]{display:none}
+  .rk-ind.warn{background:#ef6c00}
+  .rk-ind i{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;animation:rkPulse 1.8s ease-in-out infinite}
+  @keyframes rkPulse{50%{opacity:.3}}
+  .btn.rk-open{background:var(--card);color:var(--ink);border:1.5px solid var(--pri);padding:10px}
+  .rk-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none;display:inline-block}
+  .rk-dot.on{background:#2e7d4f;animation:rkPulse 1.8s ease-in-out infinite}
+  .rk-card{border-right:1px solid var(--line)}
+  .rk-card.on{border-top:2px solid #2e7d4f;border-right:2px solid #2e7d4f;border-bottom:2px solid #2e7d4f}
+  .rk-loc{font-weight:600;font-size:13px;color:var(--muted)}
+  .rk-loc.ok{color:#2e7d4f}
+  .rk-loc.warn{color:#ef6c00}
+  .rk-det{font-size:12.5px;color:var(--ink);overflow-wrap:anywhere}
+  .rk-flt{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .rk-flt select,.rk-flt input{min-width:0;font-size:13px;padding-left:8px}
+  .rk-flt input{grid-column:1 / -1}
+  .rk-mk{position:relative;width:22px;height:22px}
+  .rk-mk-d{width:22px;height:22px;border-radius:50%;background:#1565c0;border:3px solid #fff;box-shadow:0 0 0 2px #1565c0,0 1px 5px rgba(0,0,0,.5);box-sizing:border-box}
+  .rk-mk-l{position:absolute;top:27px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.96);color:#222;border-radius:6px;padding:2px 7px;font:700 11.5px var(--ui);white-space:nowrap;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.35);display:flex;flex-direction:column;line-height:1.3}
+  .rk-mk-l span{font-weight:600;color:#1565c0}
+  .rk-mk.old .rk-mk-d{background:#8d949b;box-shadow:0 0 0 2px #8d949b,0 1px 5px rgba(0,0,0,.4);opacity:.6}
+  .rk-mk.old .rk-mk-l{color:#666}
+  .rk-mk.old .rk-mk-l span{color:#b3541e}`;
+  document.head.appendChild(s);
+  Object.assign(I18N.es,{rk_title:'Seguimiento',rk_btn0:'Seguimiento de recorridos',rk_btn:'Seguimiento · {n} en curso',rk_tab_live:'En curso ({n})',rk_tab_hist:'Anteriores',
+    rk_none:'No hay recorridos en curso. Cuando un vendedor inicie su recorrido, aparece aquí.',rk_since:'En curso · desde las {h}',rk_range:'{d} · de {a} a {b}',rk_open_tag:'sin finalizar',
+    rk_loc_ok:'Última ubicación: {h}',rk_loc_old:'Sin señal desde {h}',rk_loc_denied:'El vendedor no dio el permiso de ubicación',rk_loc_denied_at:'Sin permiso de ubicación · última: {h}',
+    rk_loc_nosig:'Sin señal de ubicación en el teléfono del vendedor',rk_loc_wait:'Esperando la primera ubicación del vendedor',rk_mk_denied:'Sin permiso · {h}',
+    rk_total0:'Total cotizado o vendido: {t}',rk_total_s:'Total vendido: {t}',rk_total_q:'Total cotizado: {t}',rk_total2:'Total: {t} (vendido {s} · cotizado {q})',
+    rk_see:'Ver clientes',rk_see_past:'Ver recorrido',rk_leg_seller:'Vendedor',rk_all_sellers:'Vendedor',rk_all_routes:'Ruta',rk_hist_none:'No hay recorridos anteriores con ese filtro',
+    rk_hist_more:'Se muestran los {n} más recientes. Usa los filtros para ver otros.',
+    rk_ind_ok:'Compartiendo tu ubicación con la tienda',rk_ind_wait:'Buscando tu ubicación para compartirla con la tienda…',rk_ind_denied:'Sin permiso de ubicación: la tienda no ve dónde estás',
+    rk_ind_nosig:'Sin señal de ubicación: la tienda ve la última que llegó',rk_ind_off:'Sin conexión: la tienda verá tu ubicación cuando vuelva la señal',
+    rk_explain:'Durante el recorrido tu ubicación se comparte con la tienda: el dueño ve en un mapa dónde estás y la hora de la última actualización.\n\nSolo se comparte mientras el recorrido está iniciado y la app está abierta; la pantalla se mantiene encendida para poder enviarla. Al finalizar el recorrido deja de compartirse. Fuera del recorrido no se guarda ninguna ubicación.\n\nEl teléfono te va a pedir el permiso de ubicación.\n\n¿Iniciar el recorrido?'});
+  Object.assign(I18N.en,{rk_title:'Tracking',rk_btn0:'Round tracking',rk_btn:'Tracking · {n} in progress',rk_tab_live:'In progress ({n})',rk_tab_hist:'Previous',
+    rk_none:'No rounds in progress. When a seller starts a round, it appears here.',rk_since:'In progress · since {h}',rk_range:'{d} · from {a} to {b}',rk_open_tag:'not finished',
+    rk_loc_ok:'Last location: {h}',rk_loc_old:'No signal since {h}',rk_loc_denied:'The seller did not grant the location permission',rk_loc_denied_at:'No location permission · last: {h}',
+    rk_loc_nosig:'No location signal on the seller\'s phone',rk_loc_wait:'Waiting for the seller\'s first location',rk_mk_denied:'No permission · {h}',
+    rk_total0:'Total quoted or sold: {t}',rk_total_s:'Total sold: {t}',rk_total_q:'Total quoted: {t}',rk_total2:'Total: {t} (sold {s} · quoted {q})',
+    rk_see:'See clients',rk_see_past:'Open round',rk_leg_seller:'Seller',rk_all_sellers:'Seller',rk_all_routes:'Route',rk_hist_none:'No previous rounds for that filter',
+    rk_hist_more:'Showing the {n} most recent. Use the filters to see others.',
+    rk_ind_ok:'Sharing your location with the store',rk_ind_wait:'Finding your location to share it with the store…',rk_ind_denied:'No location permission: the store cannot see where you are',
+    rk_ind_nosig:'No location signal: the store sees the last one received',rk_ind_off:'Offline: the store will see your location when the signal returns',
+    rk_explain:'During the round your location is shared with the store: the owner sees on a map where you are and the time of the last update.\n\nIt is only shared while the round is started and the app is open; the screen stays on so it can be sent. When you finish the round it stops being shared. Outside the round no location is saved.\n\nThe phone will ask for the location permission.\n\nStart the round?'});
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('rkdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="rkdlg"><div class="histbar"><button class="sheet-x" data-rk="x">✕</button><span class="histbar-t" id="rkTitle"></span></div><div class="histbody" id="rkBody"><div id="rkTop"></div><div class="rt-mapw" id="rkMapW" hidden><div id="rkMap"></div><div class="rt-mapmsg" id="rkMapMsg" hidden></div></div><div id="rkBottom"></div></div></div>`);
+  /* el aviso fijo del vendedor: debajo del encabezado y dentro de «Mi ruta» */
+  const ab=host&&host.querySelector(':scope > .appbar');if(ab&&!document.getElementById('rkInd'))ab.insertAdjacentHTML('afterend','<div class="rk-ind" id="rkInd" hidden><i></i><span></span></div>');
+  const jb=document.querySelector('#rjdlg > .histbar');if(jb&&!document.getElementById('rkInd2'))jb.insertAdjacentHTML('afterend','<div class="rk-ind" id="rkInd2" hidden><i></i><span></span></div>');
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.rkdlg=()=>rkBack();}catch(_){}
+}catch(e){console.error('mods277 arranque',e);}})();
+
+/* ---------------- el documento `live`: gana la última escritura de cada registro y el cambio no viaja en el aviso ---------------- */
+{const _ma=mergeArr;mergeArr=function(key,base,local,remote){if(key!=='live')return _ma.apply(this,arguments);
+  const m=new Map(),ord=[];const put=x=>{if(!x||typeof x!=='object'||x.id==null)return;const k=''+x.id,o=m.get(k);if(!o){ord.push(k);m.set(k,x);}else if((+x.edited||0)>(+o.edited||0))m.set(k,x);};
+  (remote||[]).forEach(put);(local||[]).forEach(put);return ord.map(k=>m.get(k));};}
+{const _mk=sbMkDelta;sbMkDelta=function(key){if(key==='live')return null;return _mk.apply(this,arguments);};}
+function rkLive(){return (state.live||[]).filter(x=>x&&x.id!=null);}
+
+/* ---------------- el vendedor: compartir la ubicación solo durante el recorrido ---------------- */
+function rkMine(){const me=rjMe();return me?(rkLive().find(x=>''+x.id==='L'+me.id)||null):null;}
+function rkPush(){try{const id=currentDataId();if(!id)return;if(SYNC_APPLYING){clearTimeout(RK_PT);RK_PT=setTimeout(rkPush,1500);return;}sbPushDoc(id,'live',state.live||[]);}catch(_){}}
+function rkPut(o){const me=rjMe();if(!me||!currentDataId())return;const rec=Object.assign({id:'L'+me.id,sid:me.id,sn:me.n},o,{edited:Date.now()});try{rec.dev=deviceId();}catch(_){}
+  const L=rkLive();state.live=L.some(x=>x.id===rec.id)?L.map(x=>x.id===rec.id?rec:x):L.concat([rec]);try{persistLocal();}catch(_){}rkPush();}
+/* al cerrarse el recorrido (a mano o solo, al cambiar el día) el registro queda sin posición */
+function rkEndIfClosed(){try{const cur=rkMine();if(!cur||cur.end||!cur.rd)return;const rd=rjRounds().find(x=>x.id===cur.rd);if(!rd||!rd.t1)return;rkPut({rd:cur.rd,end:rd.t1});}catch(_){}}
+async function rkWake(on){try{if(!on){const l=RK_S.lock;RK_S.lock=null;if(l)try{await l.release();}catch(_){}return;}
+    if(RK_S.lock||RK_S.locking||!navigator.wakeLock||document.hidden)return;RK_S.locking=true;
+    try{const l=await navigator.wakeLock.request('screen');RK_S.lock=l;l.addEventListener('release',()=>{if(RK_S.lock===l)RK_S.lock=null;});}finally{RK_S.locking=false;}}catch(_){}}
+function rkIndSync(){try{const on=rkOn()&&isSeller()&&!!rjOpenRound(),st=RK_S.st;if(!on)RK_S.st='';
+    const k=!on?'':st==='denied'?'rk_ind_denied':st==='nosig'?'rk_ind_nosig':st==='ok'?(sbOnline()?'rk_ind_ok':'rk_ind_off'):'rk_ind_wait';
+    ['rkInd','rkInd2'].forEach(id=>{const e=document.getElementById(id);if(!e)return;e.hidden=!on;if(on&&e.dataset.k!==k){e.dataset.k=k;e.classList.toggle('warn',k!=='rk_ind_ok');e.lastChild.textContent=t(k);}if(!on)e.dataset.k='';});}catch(_){}}
+/* una revisión: pide la posición y la envía si es la primera del recorrido, si se movió, si cambió el estado o si ya toca el latido */
+async function rkTick(force){try{if(!rkOn()||!isSeller()){rkIndSync();return;}const me=rjMe();if(!me)return;
+    const rd=rjOpenRound();if(!rd){rkEndIfClosed();rkWake(false);rkIndSync();return;}
+    rkWake(true);rkIndSync();if(RK_S.busy)return;if(!force&&Date.now()-RK_S.t<RK_CFG.every-3000)return;RK_S.busy=true;RK_S.t=Date.now();
+    try{const p=await rjGeo(RK_CFG.geo);const now=rjOpenRound();if(!now||now.id!==rd.id||!rkOn())return;
+      const st=p&&!p.err?'ok':(p&&p.err==='denied'?'denied':'nosig'),cur=rkMine(),same=!!cur&&cur.rd===rd.id&&!cur.end,had=same&&cur.lat!=null&&!!cur.at;
+      if(st!=='ok'){if(!same||cur.st!==st)rkPut(Object.assign({rd:rd.id,st},had?{lat:cur.lat,lng:cur.lng,acc:cur.acc,at:cur.at}:{}));}
+      else{const far=had?rtDist({lat:+cur.lat,lng:+cur.lng},{lat:p.lat,lng:p.lng}):Infinity,min=Math.max(RK_CFG.move,Math.min(+p.acc||0,100));
+        if(!had||cur.st!=='ok'||far>=min||Date.now()-cur.at>=RK_CFG.beat)rkPut({rd:rd.id,st:'ok',lat:p.lat,lng:p.lng,acc:p.acc,at:Date.now()});}
+      RK_S.st=st;}finally{RK_S.busy=false;rkIndSync();}}catch(e){try{console.error('mods277 ubicación',e);}catch(_){}}}
+/* la explicación de que la ubicación se comparte, antes del primer recorrido (una vez); después sigue el inicio de siempre */
+{const _st=rjStart;rjStart=async function(rid){try{if(rkOn()){let seen=false;try{seen=localStorage.getItem('abanico.rk.exp')==='1';}catch(_){}
+      if(!seen&&rjMe()&&rtById(rid)&&rjMine().some(x=>x.id===rid)&&!rjOpenRound()){if(!await appConfirm(t('rk_explain')))return;try{localStorage.setItem('abanico.rk.exp','1');localStorage.setItem('abanico.rj.exp','1');}catch(_){}}}}catch(_){}
+    const r=await _st.apply(this,arguments);try{rkTick(true);}catch(_){}return r;};}
+{const _en=rjEnd;rjEnd=async function(){const r=await _en.apply(this,arguments);try{rkEndIfClosed();rkWake(false);rkIndSync();}catch(_){}return r;};}
+RK_IV=setInterval(()=>{try{if(isSeller())rkTick(false);}catch(_){}},RK_CFG.every);
+document.addEventListener('visibilitychange',()=>{try{if(!document.hidden&&isSeller()&&rkOn()&&rjOpenRound())rkTick(true);}catch(_){}});
+window.addEventListener('online',()=>{try{rkIndSync();}catch(_){}});window.addEventListener('offline',()=>{try{rkIndSync();}catch(_){}});
+
+/* ---------------- el dueño: datos del seguimiento ---------------- */
+function rkAdmin(){try{return rkOn()&&rtAdmin();}catch(_){return false;}}
+function rkOpenRounds(){const d=todayISO();return rjRounds().filter(x=>!x.t1&&x.day===d).sort((a,b)=>(a.t0||0)-(b.t0||0));}
+function rkPast(){const d=todayISO();return rjRounds().filter(x=>x.t1||(x.day&&x.day<d)).sort((a,b)=>(b.t0||0)-(a.t0||0));}
+function rkDay(d){const p=(''+(d||'')).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:''+(d||'');}
+function rkSeller(rd){return (''+(rd.sn||'')).trim()||rtSellerName(rd.sid);}
+/* la hora en que este equipo vio llegar la última posición (por si el reloj del teléfono del vendedor está corrido) */
+function rkRxScan(){rkLive().forEach(r=>{const x=RK_RX[r.id];if(!x)RK_RX[r.id]={at:r.at,rx:0};else if(x.at!==r.at)RK_RX[r.id]={at:r.at,rx:Date.now()};});}
+function rkSeen(r){const x=RK_RX[r.id];let at=+r.at||0;if(x&&x.at===r.at&&x.rx)at=Math.max(at,x.rx);return Math.min(at,Date.now());}
+/* la ubicación del vendedor de un recorrido en curso: ok · old (más de 5 min) · denied · denied_at · nosig · wait · end */
+function rkLoc(rd){if(rd.t1||rd.day!==todayISO())return {k:'end'};const r=rkLive().find(x=>''+x.sid===''+rd.sid&&x.rd===rd.id&&!x.end);if(!r)return {k:'wait'};
+  const has=r.lat!=null&&r.lng!=null&&isFinite(+r.lat)&&isFinite(+r.lng)&&!!r.at;if(!has)return {k:r.st==='denied'?'denied':r.st==='nosig'?'nosig':'wait'};
+  const den=r.st==='denied',old=Date.now()-rkSeen(r)>RK_CFG.old;return {k:den?'denied_at':old?'old':'ok',lat:+r.lat,lng:+r.lng,at:+r.at,dim:den||old};}
+function rkLocTxt(L){const h={h:rjHour(L.at)};return L.k==='ok'?ti('rk_loc_ok',h):L.k==='old'?ti('rk_loc_old',h):L.k==='denied'?t('rk_loc_denied'):L.k==='denied_at'?ti('rk_loc_denied_at',h):L.k==='nosig'?t('rk_loc_nosig'):L.k==='wait'?t('rk_loc_wait'):'';}
+function rkMkTxt(L){const h={h:rjHour(L.at)};return L.k==='old'?ti('rk_loc_old',h):L.k==='denied_at'?ti('rk_mk_denied',h):h.h;}
+/* el valor de lo que compró un cliente: una cotización que ya se volvió venta cuenta una sola vez (como venta) */
+function rkVal(b,SM){const fq=new Set();b.items.forEach(i=>{if(i.kind==='sale'){const s=SM.get(''+i.ref);if(s&&s.fromQuote!=null)fq.add(''+s.fromQuote);}});
+  let sold=0,quo=0;b.items.forEach(i=>{if(i.kind==='sale')sold+=+i.total||0;else if(!fq.has(''+i.folio))quo+=+i.total||0;});return {sold,quo,tot:sold+quo};}
+function rkTotTxt(v){return v.sold&&v.quo?ti('rk_total2',{t:money(v.tot),s:money(v.sold),q:money(v.quo)}):ti(v.sold?'rk_total_s':v.quo?'rk_total_q':'rk_total0',{t:money(v.tot)});}
+function rkCalc(rd,SM){const S=rjStates(rd),B=rjBuys(rd),r=rtById(rd.rid),tot={sold:0,quo:0,tot:0};B.forEach(b=>{const v=rkVal(b,SM);tot.sold+=v.sold;tot.quo+=v.quo;tot.tot+=v.tot;});
+  return {rd,S,B,c:rjCount(S),tot,color:(r&&r.color)||RT_COLORS[0],stops:rtNormal(rd.stops||[])};}
+/* hora de la visita · en el sitio o lejos · el pedido y su valor, o el motivo de no compra */
+function rkDet(st,SM){if(!st||st.st==='pend')return '';const p=[];if(st.at)p.push(rjHour(st.at));const site=st.v?rjSiteTxt(st.v):'';if(site)p.push(site);
+  if(st.st==='buy'){p.push(st.buy.items.map(i=>ti(i.kind==='sale'?'rj_auto_sale':'rj_auto_quote',{n:i.folio})).join(', '));p.push(money(rkVal(st.buy,SM).tot));}
+  else if(st.v&&(st.v.nb||st.v.note))p.push(st.v.nb||st.v.note);return p.join(' · ');}
+function rkSigData(){try{return JSON.stringify(rjRounds().map(x=>[x.id,x.t1,x.edited]))+'|'+(state.visits||[]).map(v=>v&&v.rd?v.id+(v.del?'x':'')+(v.dist==null?'':v.dist)+(v.nopos||''):'').join('')+'|'+(state.visits||[]).length
+    +'|'+(state.sales||[]).length+'/'+(state.sales||[]).filter(s=>s&&(s.void||s.del)).length+'|'+JSON.stringify((state.quotes||[]).map(q=>q&&[q.id,q.edited,q.del?1:0]))+'|'+rtClients().length+'|'+todayISO()+'|'+JSON.stringify(rtRoutes().map(r=>[r.id,r.color]));}catch(_){return '';}}
+function rkSigLive(){try{return JSON.stringify(rkOpenRounds().map(rd=>{const L=rkLoc(rd);return [rd.id,L.k,L.lat,L.lng,L.at];}));}catch(_){return '';}}
+
+/* ---------------- el dueño: la ventana «Seguimiento» ---------------- */
+function rkOpen(){if(!rkAdmin())return;RK={view:'live',rd:null,from:'live',h:{seller:'',route:'',day:''}};document.getElementById('rkdlg').classList.add('on');
+  clearInterval(RK_T);RK_T=setInterval(rkCheck,4000);rkRender();}
+function rkClose(){const d=document.getElementById('rkdlg');if(d)d.classList.remove('on');RK=null;clearInterval(RK_T);RK_T=0;rkMapClear();rkBtnSync();}
+function rkBack(){if(RK&&RK.view==='round'){RK.view=RK.from||'live';RK.rd=null;RK.fitSig='';return rkRender();}rkClose();}
+/* se actualiza sola: con cada cambio que llega y, por si acaso, cada 4 s mientras está abierta (también pasa a «Sin señal» con el tiempo) */
+function rkCheck(){try{if(!RK)return rkBtnSync();rkRxScan();if(rkSigData()!==RK.sig)return rkRender();const s=rkSigLive();if(s!==RK.sigL){RK.sigL=s;rkLocSync();}}catch(_){}}
+function rkLegHTML(live){return `<div class="rt-leg">${['pend','buy','no'].map(k=>`<span><i class="rt-dot" style="background:${RJ_COL[k]}"></i>${t('rj_'+k)}</span>`).join('')}${live?`<span><i class="rt-dot" style="background:#1565c0"></i>${t('rk_leg_seller')}</span>`:''}</div>`;}
+function rkBoxHTML(X,btn){const rd=X.rd,hoy=rd.day===todayISO();
+  const when=rd.t1?ti('rk_range',{d:rkDay(rd.day),a:rjHour(rd.t0),b:rjHour(rd.t1)})+(rd.auto?' · '+t('rj_auto_closed'):''):hoy?ti('rk_since',{h:rjHour(rd.t0)}):rkDay(rd.day)+' · '+rjHour(rd.t0)+' · '+t('rk_open_tag');
+  return `<div class="rt-card rk-card${!rd.t1&&hoy?' on':''}" style="border-left-color:${rtE(X.color)}" data-rkrd="${rtE(rd.id)}"><div class="n">${rtE(rkSeller(rd))} · ${rtE(rd.rn||'')}</div><div class="r" data-rkwhen="1">${rtE(when)}</div>
+    ${!rd.t1&&hoy?`<div class="rk-loc" data-rkloc="${rtE(rd.id)}"></div>`:''}<div class="rj-prog" data-rkprog="1">${rtE(rjProg(X.S))}</div><div class="r" data-rktot="1">${rtE(rkTotTxt(X.tot))}</div>
+    ${btn?`<div class="rt-acts"><button data-rk="rd:${rtE(rd.id)}">${t(rd.t1||!hoy?'rk_see_past':'rk_see')}</button></div>`:''}</div>`;}
+function rkClientsHTML(X,SM){let n=0;
+  return rtGroups(X.stops).map(g=>`<div class="rt-hood"><span class="tx">${rtE(g.label)} (${g.ids.length})</span></div><div class="rt-list">${g.ids.map(id=>{const c=rtCli(id),st=X.S.get(''+id)||{st:'pend'},k=st.st,det=rkDet(st,SM);n++;
+      return `<div class="rj-cli" data-rkc="${rtE(id)}" data-rkst="${k}"><div class="rj-hd"><span class="rt-num" style="background:${RJ_COL[k]}">${n}</span><div class="tx"><b>${rtE(rtName(c))}</b><span>${rtE([c.biz,rtHas(c)?'':t('rt_noloc_tag')].filter(Boolean).join(' · '))}</span></div></div>
+        <div class="rj-stt" style="background:${RJ_COL[k]}">${t('rj_'+k)}</div>${det?`<div class="rk-det">${rtE(det)}</div>`:''}</div>`;}).join('')}</div>`).join('')||`<div class="rt-empty">${t('rt_no_members')}</div>`;}
+function rkRender(){if(!RK)return;const top=document.getElementById('rkTop'),bot=document.getElementById('rkBottom'),mw=document.getElementById('rkMapW'),ttl=document.getElementById('rkTitle');if(!top||!bot)return;
+  rkRxScan();RK.sig=rkSigData();const SM=new Map(rjSalesAll().map(s=>[''+s.id,s])),open=rkOpenRounds();
+  if(RK.view==='round'){const rd=rjRounds().find(x=>x.id===RK.rd);if(!rd){RK.view=RK.from||'live';RK.rd=null;return rkRender();}
+    const X=rkCalc(rd,SM),live=!rd.t1&&rd.day===todayISO();ttl.textContent=rkSeller(rd)+' · '+(rd.rn||'');top.innerHTML='';mw.hidden=false;
+    bot.innerHTML=`<div class="rt-pad">${rkLegHTML(live)}${rkBoxHTML(X,false)}${rkClientsHTML(X,SM)}</div>`;RK.list=[X];rkLocDom();RK.sigL=rkSigLive();rkMapDraw('r|'+rd.id);return;}
+  ttl.textContent=t('rk_title');
+  const tabs=`<div class="rt-tabs"><button class="${RK.view==='live'?'on':''}" data-rk="view:live">${ti('rk_tab_live',{n:open.length})}</button><button class="${RK.view==='hist'?'on':''}" data-rk="view:hist">${t('rk_tab_hist')}</button></div>`;
+  if(RK.view==='hist'){const all=rkPast(),h=RK.h,sel=new Map(),rts=new Map();all.forEach(x=>{if(!sel.has(''+x.sid))sel.set(''+x.sid,rkSeller(x));if(!rts.has(''+x.rid))rts.set(''+x.rid,x.rn||'');});
+    if(h.seller&&!sel.has(h.seller))h.seller='';if(h.route&&!rts.has(h.route))h.route='';
+    const L=all.filter(x=>(!h.seller||''+x.sid===h.seller)&&(!h.route||''+x.rid===h.route)&&(!h.day||x.day===h.day)),show=L.slice(0,40);mw.hidden=true;rkMapClear();RK.list=[];
+    top.innerHTML=`<div class="rt-pad">${tabs}<div class="rk-flt">${rtSel('rkFSeller',h.seller,t('rk_all_sellers'),[...sel.entries()])}${rtSel('rkFRoute',h.route,t('rk_all_routes'),[...rts.entries()])}<input class="inp" type="date" id="rkFDay" value="${rtE(h.day)}" max="${rtE(todayISO())}"></div></div>`;
+    bot.innerHTML=`<div class="rt-pad">${show.length?show.map(rd=>rkBoxHTML(rkCalc(rd,SM),true)).join('')+(L.length>show.length?`<div class="osub">${rtE(ti('rk_hist_more',{n:show.length}))}</div>`:''):`<div class="rt-empty">${t('rk_hist_none')}</div>`}</div>`;RK.sigL=rkSigLive();return;}
+  top.innerHTML=`<div class="rt-pad">${tabs}</div>`;
+  if(!open.length){mw.hidden=true;rkMapClear();RK.list=[];bot.innerHTML=`<div class="rt-pad"><div class="rt-empty">${t('rk_none')}</div></div>`;RK.sigL=rkSigLive();return;}
+  const L=open.map(rd=>rkCalc(rd,SM));mw.hidden=false;
+  bot.innerHTML=`<div class="rt-pad">${rkLegHTML(true)}${L.map(X=>rkBoxHTML(X,L.length>1)).join('')}${L.length===1?rkClientsHTML(L[0],SM):''}</div>`;RK.list=L;rkLocDom();RK.sigL=rkSigLive();rkMapDraw('l|'+L.map(X=>X.rd.id).join(','));}
+/* el renglón «Última ubicación / Sin señal desde…» de cada recorrido en curso */
+function rkLocDom(){try{document.querySelectorAll('#rkdlg [data-rkloc]').forEach(el=>{const rd=rjRounds().find(x=>x.id===el.dataset.rkloc);if(!rd)return;const L=rkLoc(rd);el.textContent=rkLocTxt(L);el.className='rk-loc'+(L.k==='ok'?' ok':L.k==='wait'||L.k==='end'?'':' warn');el.dataset.rkk=L.k;});}catch(_){}}
+function rkLocSync(){rkLocDom();rkMarkers();}
+
+/* ---------------- el mapa del seguimiento (el mismo Leaflet de «Rutas», en su propio recuadro) ---------------- */
+function rkMapMsg(k){const m=document.getElementById('rkMapMsg');if(!m)return;m.hidden=!k;m.textContent=k?t(k):'';}
+function rkMapClear(){try{RK_LAY.forEach(l=>{try{RK_MAP&&RK_MAP.removeLayer(l);}catch(_){}});Object.keys(RK_MK).forEach(k=>{try{RK_MAP&&RK_MAP.removeLayer(RK_MK[k]);}catch(_){}});}catch(_){}RK_LAY=[];RK_MK={};if(RK){RK.pins=[];RK.mks=[];}}
+function rkIcon(name,txt,old){return RT_L.divIcon({className:'',html:`<div class="rk-mk${old?' old':''}"><div class="rk-mk-d"></div><div class="rk-mk-l"><b>${rtE(name)}</b><span>${rtE(txt)}</span></div></div>`,iconSize:[22,22],iconAnchor:[11,11]});}
+/* el marcador de cada vendedor: se mueve en su sitio, sin volver a dibujar el mapa */
+function rkMarkers(){const out=[];try{if(!RK||!RK_MAP||!RT_L)return out;const live=new Set(),info=[];
+    (RK.list||[]).forEach(X=>{const rd=X.rd,L=rkLoc(rd);if(L.lat==null){info.push({rd:rd.id,k:L.k});return;}live.add(rd.id);const ll=[L.lat,L.lng],tx=rkMkTxt(L),sg=L.lat+','+L.lng+'|'+tx+'|'+(L.dim?1:0);let m=RK_MK[rd.id];
+      if(!m){m=RT_L.marker(ll,{icon:rkIcon(rkSeller(rd),tx,!!L.dim),zIndexOffset:1000,interactive:false,keyboard:false});m.__sg=sg;RK_MAP.addLayer(m);RK_MK[rd.id]=m;}
+      else if(m.__sg!==sg){m.setLatLng(ll);m.setIcon(rkIcon(rkSeller(rd),tx,!!L.dim));m.__sg=sg;}
+      out.push(ll);info.push({rd:rd.id,k:L.k,lat:L.lat,lng:L.lng,dim:!!L.dim,name:rkSeller(rd),txt:tx});});
+    Object.keys(RK_MK).forEach(k=>{if(!live.has(k)){try{RK_MAP.removeLayer(RK_MK[k]);}catch(_){}delete RK_MK[k];}});RK.mks=info;}catch(_){}return out;}
+async function rkMapDraw(fitKey){const tok=(RK.tok=(RK.tok||0)+1);
+  if(!RK_MAP){rkMapMsg('rt_map_wait');try{await rtLibs();}catch(_){if(RK&&RK.tok===tok)rkMapMsg('rt_map_fail');return;}if(!RK||RK.tok!==tok)return;const el=document.getElementById('rkMap');if(!el||!RT_L)return;
+    if(!RK_MAP){RK_MAP=RT_L.map(el,{zoomControl:true,attributionControl:true}).setView([4.65,-74.1],11);RT_L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(RK_MAP);}}
+  if(!RK||RK.tok!==tok)return;try{RK_MAP.invalidateSize();}catch(_){}
+  RK_LAY.forEach(l=>{try{RK_MAP.removeLayer(l);}catch(_){}});RK_LAY=[];rkMapMsg('');const pts=[],pins=[];
+  (RK.list||[]).forEach(X=>{const g=RT_L.layerGroup(),line=[];
+    X.stops.forEach((id,i)=>{const c=rtCli(id);if(!c||!rtHas(c))return;const st=X.S.get(''+id)||{st:'pend'},col=RJ_COL[st.st],ll=[+c.loc.lat,+c.loc.lng];
+      const m=RT_L.marker(ll,{icon:rtIcon(col,i+1,false),title:rtName(c),rtid:c.id});m.bindPopup(()=>rkPopup(c,st),{maxWidth:240});g.addLayer(m);line.push(ll);pts.push(ll);pins.push({rd:X.rd.id,id:c.id,n:i+1,color:col,st:st.st});});
+    RK_MAP.addLayer(g);RK_LAY.push(g);if(line.length>1){const pl=RT_L.polyline(line,{color:X.color||RT_GRAY,weight:3,opacity:.6,dashArray:'6 6'});RK_MAP.addLayer(pl);RK_LAY.push(pl);}});
+  RK.pins=pins;rkMarkers().forEach(ll=>pts.push(ll));
+  if(pts.length&&RK.fitSig!==fitKey){RK.fitSig=fitKey;try{RK_MAP.fitBounds(pts,{padding:[38,38],maxZoom:16});}catch(_){}}
+  if(!pts.length)rkMapMsg('rt_map_none');setTimeout(()=>{try{RK_MAP&&RK_MAP.invalidateSize();}catch(_){}},80);RK.drawn=tok;}
+function rkPopup(c,st){const d=document.createElement('div');d.className='rt-pop';let det='';try{det=rkDet(st,new Map(rjSalesAll().map(s=>[''+s.id,s])));}catch(_){}
+  d.innerHTML=`<b>${rtE(rtName(c))}</b>${c.biz?`<span>${rtE(c.biz)}</span>`:''}<span>${rtE((''+(c.hood||'')).trim()||t('rt_no_hood'))}</span><span>${t('rj_'+st.st)}</span>${det?`<span>${rtE(det)}</span>`:''}`;return d;}
+window.addEventListener('online',()=>{try{const w=document.getElementById('rkMapW');if(RK&&!RK_MAP&&w&&!w.hidden)rkRender();}catch(_){}});
+
+/* ---------------- la entrada en «Rutas», toques, filtros y avisos ---------------- */
+function rkBtnSync(){try{if(typeof RT==='undefined'||!RT||RT.view!=='home'||!rkAdmin())return;const pad=document.querySelector('#rtTop .rt-pad');if(!pad)return;let b=document.getElementById('rkOpenBtn');
+    if(!b||b.parentNode!==pad){b=document.createElement('button');b.id='rkOpenBtn';b.className='btn rk-open';b.dataset.rk='open';pad.insertBefore(b,pad.firstChild);}
+    const n=rkOpenRounds().length;if(b.dataset.n!==''+n){b.dataset.n=''+n;b.innerHTML=`<i class="rk-dot${n?' on':''}"></i><span>${rtE(n?ti('rk_btn',{n}):t('rk_btn0'))}</span>`;}}catch(_){}}
+{const _rr=rtRender;rtRender=function(){const x=_rr.apply(this,arguments);rkBtnSync();return x;};}
+{const _rd=render;render=function(){const x=_rd.apply(this,arguments);try{if(rkOn()){if(isSeller()){clearTimeout(RK_S.r);RK_S.r=setTimeout(()=>{try{rkEndIfClosed();rkIndSync();if(rjOpenRound())rkTick(false);}catch(_){}},500);}else if(RK)rkCheck();else rkBtnSync();}else rkIndSync();}catch(_){}return x;};}
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-rk]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.rk,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
+    if(k==='open')return rkOpen();if(!RK)return;
+    if(k==='x')return rkBack();
+    if(k==='view'){RK.view=v==='hist'?'hist':'live';RK.rd=null;RK.fitSig='';return rkRender();}
+    if(k==='rd'){RK.from=RK.view==='hist'?'hist':'live';RK.view='round';RK.rd=v;RK.fitSig='';rkRender();try{document.getElementById('rkBody').scrollTop=0;}catch(_){}return;}
+  }catch(er){console.error('mods277 toque',er);}},true);
+document.addEventListener('change',e=>{try{const el=e.target;if(!el||!el.id||!RK||RK.view!=='hist')return;
+    if(el.id==='rkFSeller'){RK.h.seller=el.value||'';return rkRender();}
+    if(el.id==='rkFRoute'){RK.h.route=el.value||'';return rkRender();}
+    if(el.id==='rkFDay'){RK.h.day=el.value||'';return rkRender();}
+  }catch(_){}},true);
 
 </script>

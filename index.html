@@ -7134,8 +7134,8 @@ function saleCartHTML(){invCapCart();   /* mods245b: lo que llega de antes tambi
         <div class="cfield"><span class="cfl">${t('sale_subtotal')} ${moneySym()}</span><span class="csub num">${emp?'...':moneyNum(acxIs(i.id)?0:sub)}</span></div>
       </div>
       ${pn?`<div class="cpx">${svg(IC_TAG)}<span>${(''+pn).replace(/</g,'&lt;')}</span></div>`:''}${adjCap(i.id)}${cBrkHTML(i.id)?`<div class="cbrk">${cBrkHTML(i.id)}</div>`:''}
-      <div class="crow-ico"><button class="cico info" data-act="cinfo:${i.id}" title="${t('ic_info')}"><span class="ci-i">i</span></button><span class="crow-mid">${pkXpList(p,i.id).length?`<button class="cico tag" data-act="ctag:${i.id}" title="${t('ic_price')}">${svg(IC_TAG)}</button>`:''}<button class="cico pct" data-act="cdisc:${i.id}" title="${t('ic_disc')}"><span class="ci-pct">+%</span></button></span>${acxBtn(i.id)}<button class="cico del" data-cdel="${i.id}" title="${t('remove')}">${trash}</button></div>
-      ${acxRowNote(i.id)}${invAdjNote(i.id)}<div class="cwarn"${over?'':' hidden'}>${cwarnTri()}<span>${t('sale_over_stock')}</span></div>
+      <div class="crow-ico"><button class="cico info" data-act="cinfo:${i.id}" title="${t('ic_info')}"><span class="ci-i">i</span></button><span class="crow-mid">${pkXpList(p,i.id).length?`<button class="cico tag" data-act="ctag:${i.id}" title="${t('ic_price')}">${svg(IC_TAG)}</button>`:''}<button class="cico pct" data-act="cdisc:${i.id}" title="${t('ic_disc')}"><span class="ci-pct">+%</span></button></span><button class="cico del" data-cdel="${i.id}" title="${t('remove')}">${trash}</button></div>
+      ${invAdjNote(i.id)}<div class="cwarn"${over?'':' hidden'}>${cwarnTri()}<span>${t('sale_over_stock')}</span></div>
     </div>`;}).join('');
   const st=state.saleStatus||'pagado';
   const seg=`<div class="segrow"><button class="seg ${st==='pagado'?'on':''}" data-act="salestatus:pagado">${st==='pagado'?svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'):svg('<circle cx="12" cy="12" r="9"/>')} ${t('sale_paid')}</button><button class="seg ${st==='cobrar'?'on':''}" data-act="salestatus:cobrar">${st==='cobrar'?svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>'):svg('<circle cx="12" cy="12" r="9"/>')} ${t('sale_pending')}</button></div>`;
@@ -7149,9 +7149,10 @@ function saleCartHTML(){invCapCart();   /* mods245b: lo que llega de antes tambi
     ${opts().manualDate&&!state.editSale?`<div class="fld"><span class="fl">${t('sale_date')}</span><input autocomplete="off" class="inp" id="saleDateIn" type="date" value="${exEsc(state.saleDate||todayISO())}"></div>`:''}
     <div class="cfld tagrow"><div class="sellike tagsel" data-act="saletagpick"><span class="${state.saleTag?'':'ph'}">${state.saleTag?exEsc(state.saleTag):t('sale_label')+' '+opt}</span>${state.saleTag?`<button class="clrx" data-act="saletagclr">✕</button>`:chev}</div><button class="helpq" data-act="saletaghelp" aria-label="?">?</button></div>
     <div class="cfld"><textarea class="inp" id="saleNote" rows="2" placeholder="${t('sale_note')} ${opt}">${(state.saleNote||'')}</textarea></div>`;
-  const actions=`<div class="saveact"><button class="cancelbtn" data-act="salecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn" data-act="savesale">${svg('<path d="M5 12l5 5L20 7"/>')} ${state.editSale?t('sale_edit_save'):t('save')}</button></div>`;
+  const actions=`<div class="saveact"><button class="cancelbtn" data-act="salecancel">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="savebtn${acxAllOn()?' acx':''}" data-act="savesale">${svg('<path d="M5 12l5 5L20 7"/>')} ${state.editSale?t('sale_edit_save'):(acxAllOn()?t('acx_save'):t('save'))}</button></div>`;   /* mods279 */
   const cobro=cob&&!state.editSale?cobroHTML():'';
-  return `<div class="cartwrap">${rows}${svcRowsHTML()}${acxNoteField()}${state.quoteMode?'':seg}${total}${cobro}${state.quoteMode?quoteFieldsHTML():fields}${state.quoteMode?quoteActionsHTML():actions}</div>`;
+  const _ax=acxAllOn();   /* mods279: una sola taza para toda la venta */
+  return `<div class="cartwrap">${rows}${svcRowsHTML()}${acxNoteField()}${state.quoteMode||_ax?'':seg}${total}${_ax?'':cobro}${state.quoteMode?quoteFieldsHTML():(_ax?'':fields)}${state.quoteMode?'':acxAllBtn()}${state.quoteMode?quoteActionsHTML():actions}</div>`;
 }
 /* ---------------- Editar una venta del historial ----------------
    Carga la venta en "Nueva venta" (cantidad, precio, quitar, agregar con "Seleccione el producto",
@@ -17315,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261121083454';
+const APP_VERSION='20261122100444';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -21580,7 +21581,7 @@ async function lvCheck(id,bg){
 function acxOn(){try{return localStorage.getItem('abanico.acx')!=='0';}catch(_){return true;}}
 const ACX_CUP_D='<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.6a2.4 2.4 0 0 1 0 4.8H16"/><path d="M7.6 2.8c-.9 1.1.9 1.9 0 3.1M11.4 2.8c-.9 1.1.9 1.9 0 3.1"/><path d="M3 21.6h14"/>';
 function acxCup(cls){return '<svg viewBox="0 0 24 24" class="acx-cup'+(cls?' '+cls:'')+'" aria-hidden="true">'+ACX_CUP_D+'</svg>';}
-var ACX_STASH=null,ACX_BUSY=false,ACX_RECON=false;
+var ACX_BUSY=false,ACX_RECON=false,ACX_ASK=false;   /* mods279: ya no se apartan líneas (no hay venta + autoconsumo en un mismo guardado) */
 (function(){try{
   const s=document.createElement('style');s.id='acxStyle';s.textContent=`
   :root{--cafe:#8a5a2b;--cafe-bg:#f7efe5;--cafe-line:#dcc6ab}
@@ -21662,25 +21663,28 @@ function acxAdmin(){try{return !!state.profile&&state.profile.kind==='tienda'&&!
 function acxSellerOk(){try{return isSeller()&&!isTat()&&opts().acxSellers===true;}catch(_){return false;}}
 /* ¿se muestra la taza en este carrito? (no en cotizaciones, ni al editar una venta guardada) */
 function acxShow(){try{return acxOn()&&!!state.profile&&!state.quoteMode&&!state.editSale&&(acxAdmin()||acxSellerOk());}catch(_){return false;}}
-function acxIs(id){try{return !!(state.cartAc&&state.cartAc[''+id])&&acxShow();}catch(_){return false;}}
-function acxMarked(){return cartItems().filter(i=>acxIs(i.id));}
+/* mods279: UNA sola marca para todo el carrito (state.cartAc['*']). Vale solo si hay productos y ningún servicio */
+function acxCan(){try{const c=state.cart||{};return Object.keys(c).some(k=>c[k]!=null&&+c[k]>=0)&&svcCartItems().length===0;}catch(_){return false;}}
+function acxAllOn(){try{return !!(state.cartAc&&state.cartAc['*'])&&acxShow()&&acxCan();}catch(_){return false;}}
+function acxIs(id){try{return acxAllOn()&&state.cart[''+id]!=null;}catch(_){return false;}}
+function acxMarked(){return acxAllOn()?cartItems():[];}
 function acxWho(){try{if(isSeller()&&state.profile.seller)return (''+(state.profile.seller.name||'')).trim().toUpperCase();}catch(_){}
   const e=(AUTH&&AUTH.email)||'';return ((e.split('@')[0]||'')||((state.profile&&state.profile.name)||'')).toUpperCase();}
 function acxDKey(){return 'abanico.acx.draft.'+(currentDataId()||'');}
 function acxDraft(){try{const m=state.cartAc||{};if(Object.keys(m).length)localStorage.setItem(acxDKey(),JSON.stringify({ac:m,note:state.acxNote||''}));else localStorage.removeItem(acxDKey());}catch(_){}}
-/* las marcas siguen al carrito: una línea que ya no está pierde su marca */
-function acxPrune(){try{const m=state.cartAc;if(!m)return;let ch=false;Object.keys(m).forEach(k=>{if(!state.cart||state.cart[k]==null){delete m[k];ch=true;}});
-  if(!Object.keys(m).length&&state.acxNote){state.acxNote='';ch=true;}if(ch)acxDraft();}catch(_){}}
-function acxToggle(id){if(!acxShow())return;const k=''+id;if(!state.cart||state.cart[k]==null)return;
-  const e=document.getElementById('acxNote');if(e)state.acxNote=e.value;
-  const m=Object.assign({},state.cartAc||{});if(m[k])delete m[k];else m[k]=1;state.cartAc=m;acxDraft();
-  try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}
-/* piezas de la fila del carrito (las llama saleCartHTML) */
-function acxBtn(id){if(!acxShow())return '';const on=acxIs(id);
-  return `<button class="cico acx${on?' on':''}" data-act="acx:${id}" title="${exEsc(t('acx_btn'))}" aria-label="${exEsc(t('acx_name'))}" aria-pressed="${on}">${acxCup()}</button>`;}
-function acxRowNote(id){return acxIs(id)?`<div class="acx-note">${acxCup()}<span>${exEsc(t('acx_row'))}</span></div>`:'';}
-function acxNoteField(){acxPrune();if(!acxShow())return '';const n=acxMarked().length;if(!n)return '';
-  return `<div class="acx-fld"><div class="acx-h">${acxCup()}<span>${exEsc(t('acx_name'))}</span><small>${exEsc(ti('acx_n',{n}))}</small></div>
+/* la marca sigue al carrito: sin productos, o con un servicio, se apaga. Las marcas por producto de antes de mods279 se descartan */
+function acxPrune(){try{const m=state.cartAc;if(!m||!Object.keys(m).length||!acxShow())return;if(m['*']&&acxCan())return;state.cartAc={};state.acxNote='';acxDraft();}catch(_){}}
+function acxToggle(){if(!acxShow())return;
+  if(!cartRows().length){toast(t('acx_need'));return;}
+  if(svcCartItems().length){toast(t('acx_svc'));return;}
+  if(state.cartAc&&state.cartAc['*']){state.cartAc={};state.acxNote='';}else{state.cartAc={'*':1};state.acxNote='';}
+  acxDraft();try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();}
+/* el botón de la taza (lo llama saleCartHTML, justo encima de Cancelar/Guardar) */
+function acxAllBtn(){if(!acxShow())return '';const on=acxAllOn(),sv=svcCartItems().length>0,off=!on&&(sv||!cartRows().length);
+  return `<div class="acx-allrow"><button class="acx-all${on?' on':''}${off?' off':''}" data-act="acxall" aria-pressed="${on}"${off?' aria-disabled="true"':''}>${acxCup()}<span>${exEsc(t(on?'acx_all_on':'acx_all'))}</span></button>${sv?`<div class="acx-allhint">${exEsc(t('acx_svc'))}</div>`:''}</div>`;}
+/* el aviso «Todos estos productos van a autoconsumo», con la nota (lo llama saleCartHTML, debajo de los productos) */
+function acxNoteField(){acxPrune();if(!acxAllOn())return '';const n=acxMarked().length;
+  return `<div class="acx-fld"><div class="acx-note acx-allnote">${acxCup()}<span>${exEsc(t('acx_all_note'))}</span></div><div class="acx-h">${acxCup()}<span>${exEsc(t('acx_name'))}</span><small>${exEsc(ti('acx_n',{n}))}</small></div>
     <input class="inp" id="acxNote" autocomplete="off" maxlength="120" placeholder="${exEsc(t('acx_note_ph'))}" value="${exEsc(state.acxNote||'')}"></div>`;}
 function acxQtyTxt(r){const p=P(+r.pid);return qtyLoc(+r.qty||0)+' '+(r.m!=null?(r.m?'m':'u'):baseShort(p));}
 
@@ -21747,46 +21751,34 @@ addEventListener('online',()=>{setTimeout(()=>{try{acxReconcile();}catch(_){}},2
 setInterval(()=>{try{if(!document.hidden&&currentDataId()&&(state.autoCons||[]).some(r=>r&&r.st==='pend'&&!r.del&&r.dev===deviceId()))acxReconcile();}catch(_){}},45000);
 setTimeout(()=>{try{acxReconcile();}catch(_){}},8000);
 
-/* ---------------- guardar: venta de siempre + autoconsumo aparte ---------------- */
+/* ---------------- guardar: todo el carrito a autoconsumo, con su pregunta (mods279) ---------------- */
 function acxClearCart(){state.cart={};state.cartPrice={};state.scart={};state.scPrice={};state.scName={};state.cartAdj={};state.saleDate='';state.saleAddr='';state.saleClient='';state.salePay='';state.saleTag='';state.saleNote='';
   state.saleStatus='pagado';state.saleInit='';state.saleSched=[];state.salePayCleared=false;state.saleMix=null;state.saleFromQuote=null;state.cartAc={};state.acxNote='';acxDraft();}
-/* la venta no se guardó: las líneas apartadas vuelven al carrito, con su marca */
-function acxRestore(){const S=ACX_STASH;if(!S)return;ACX_STASH=null;
-  try{const pkm=cartPkMap();Object.keys(S.keep).forEach(k=>{if(state.cart[k]==null){state.cart[k]=S.keep[k];if(S.pk[k]&&!pkm[k])pkm[k]=S.pk[k];}});
-    state.cartAc=Object.assign({},S.marks);state.acxNote=S.note||'';acxDraft();render();}catch(e){console.error('mods274 devolver',e);}}
-function acxWatch(){const S=ACX_STASH;if(!S)return;const t0=Date.now();
-  const tick=()=>{if(ACX_STASH!==S)return;   /* ya lo resolvió saleSaveTail */
-    const busy=(typeof SQ_SAVING!=='undefined'&&SQ_SAVING)||(typeof LG_BUSY!=='undefined'&&LG_BUSY);
-    if(busy&&Date.now()-t0<180000){setTimeout(tick,120);return;}acxRestore();};
-  setTimeout(tick,0);}
+function acxSig(){try{return JSON.stringify([state.cart,cartPkMap(),state.scart]);}catch(_){return '';}}
 {const _ss=saveSale;saveSale=function(){
-  if(!acxShow())return _ss.apply(this,arguments);
-  const M=acxMarked();if(!M.length)return _ss.apply(this,arguments);   /* venta normal: el guardado de siempre, sin tocar */
-  if(ACX_BUSY||ACX_STASH||(typeof LG_BUSY!=='undefined'&&LG_BUSY)||(typeof SQ_SAVING!=='undefined'&&SQ_SAVING)){toast(t('acx_dup'));return;}
+  if(!acxShow()||!acxAllOn())return _ss.apply(this,arguments);   /* venta normal: el guardado de siempre, sin tocar */
+  if(ACX_BUSY||ACX_ASK||(typeof LG_BUSY!=='undefined'&&LG_BUSY)||(typeof SQ_SAVING!=='undefined'&&SQ_SAVING)){toast(t('acx_dup'));return;}
   {const e=document.getElementById('acxNote');if(e)state.acxNote=e.value;}
-  /* los frenos de la venta, con el carrito COMPLETO (también lo que va a autoconsumo tiene que alcanzar) */
+  /* los mismos frenos de la venta (línea en 0, enteros, «No alcanza el inventario», caja cerrada) */
   if(typeof cjSaleBlock==='function'&&cjSaleBlock())return;if(salesLoadingBlock())return;if(qtSoldBlock())return;
   if(lgNeedAsk()){LG_ASKED[currentDataId()]=1;return lgRefresh().then(()=>saveSale());}
   if(cartZeroBlock())return;if(cartIntBlock())return;if(invCartBlock())return;if(invAdjAsk(()=>saveSale()))return;
-  const lines=M.map(acxLine),note=(''+(state.acxNote||'')).trim();
-  const hayVenta=cartItems().some(i=>!acxIs(i.id))||svcCartItems().length>0;
-  if(!hayVenta){   /* todo es autoconsumo: sin venta, sin folio, sin forma de pago, sin comprobante */
+  const n=acxMarked().length;if(!n)return;
+  const sig=acxSig();ACX_ASK=true;
+  return appConfirm(ti(n===1?'acx_ask_1':'acx_ask_n',{n})).then(ok=>{ACX_ASK=false;if(!ok)return;
+    if(!acxAllOn()||acxSig()!==sig){render();return;}   /* el carrito cambió mientras se preguntaba: no se registra nada */
+    const lines=acxMarked().map(acxLine),note=(''+(state.acxNote||'')).trim();if(!lines.length)return;
+    /* sin venta, sin folio, sin forma de pago, sin comprobante */
     acxClearCart();try{saveCartDraft();}catch(_){}render();
-    return acxRegister(lines,note,null).catch(e=>{console.error('mods274 registrar',e);});}
-  /* venta + autoconsumo: se apartan las líneas marcadas y lo demás sigue por el guardado de la venta de siempre */
-  const keep={},pk={},pkm=cartPkMap();M.forEach(i=>{const k=''+i.id;keep[k]=state.cart[k];if(pkm[k])pk[k]=pkm[k];});
-  ACX_STASH={lines,note,keep,pk,marks:Object.assign({},state.cartAc||{})};
-  M.forEach(i=>{delete state.cart[''+i.id];});
-  let r;try{r=_ss.apply(this,arguments);}catch(e){acxRestore();throw e;}
-  acxWatch();return r;};}
-/* la venta quedó guardada: ahora sí se registran los autoconsumos que iban con ella */
-{const _st=saleSaveTail;saleSaveTail=function(sale){const S=ACX_STASH;ACX_STASH=null;const r=_st.apply(this,arguments);
+    return acxRegister(lines,note,null);}).catch(e=>{ACX_ASK=false;console.error('mods279 registrar',e);});};}
+/* una venta guardada limpia la marca */
+{const _st=saleSaveTail;saleSaveTail=function(sale){const r=_st.apply(this,arguments);
   try{state.cartAc={};state.acxNote='';acxDraft();}catch(_){}
-  if(S)acxRegister(S.lines,S.note,(sale&&sale.id)||'venta').catch(e=>{console.error('mods274 registrar',e);});
   return r;};}
+/* el pedido en curso vuelve con su taza; uno con tazas por producto (antes de mods279) vuelve como venta normal */
 {const _rc=restoreCartDraft;restoreCartDraft=function(id){const r=_rc.apply(this,arguments);
   try{state.cartAc={};state.acxNote='';if(r==='sale'){const d=JSON.parse(localStorage.getItem('abanico.acx.draft.'+id)||'null');
-    if(d&&d.ac){const m={};Object.keys(d.ac).forEach(k=>{if(state.cart&&state.cart[k]!=null)m[k]=1;});state.cartAc=m;state.acxNote=Object.keys(m).length?(''+(d.note||'')):'';}}}catch(_){}
+    if(d&&d.ac&&d.ac['*']){state.cartAc={'*':1};state.acxNote=''+(d.note||'');}}}catch(_){}
   return r;};}
 
 /* ---------------- anular (solo el administrador) ---------------- */
@@ -21862,7 +21854,7 @@ function acxRep(){const f=acxRepState(),all=acxRepAll();
 /* ---------------- toques y campos ---------------- */
 document.addEventListener('click',e=>{const el=e.target&&e.target.closest&&e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act||'';
   const go=f=>{e.preventDefault();e.stopPropagation();f();};
-  if(a.indexOf('acx:')===0)return go(()=>acxToggle(a.slice(4)));if(a==='acxok')return go(acxDoneClose);
+  if(a==='acxall')return go(()=>acxToggle());if(a==='acxok')return go(acxDoneClose);   /* mods279 */
   if(a.indexOf('acxvoid:')===0)return go(()=>{acxVoid(a.slice(8));});
   if(a.indexOf('acxview:')===0)return go(()=>{acxRepState().view=a.slice(8)==='prod'?'prod':'list';try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}render();});},true);
 document.addEventListener('input',e=>{const el=e.target;if(!el)return;
@@ -22692,4 +22684,29 @@ document.addEventListener('change',e=>{try{const el=e.target;if(!el||!el.id||!RK
 
 
 /* ==== mods278 (2026-11-20): el ALIAS del cliente deja de usarse; en su lugar, el «Nombre del negocio» (ediciones en el código de arriba: ver cambios/mods278.js). El dato viejo `alias` se conserva en cada registro. ==== */
+
+
+/* ==== mods279 (2026-11-21): AUTOCONSUMO CON UNA SOLA TAZA PARA TODA LA VENTA (parte B de «Tres integraciones»). Las ediciones están en el
+   carrito de la venta y en el bloque de mods274 (ver cambios/mods279.js). Aquí, solo los textos y los estilos nuevos. ==== */
+(function(){try{
+  const s=document.createElement('style');s.id='acxStyle279';s.textContent=`
+  .acx-allrow{margin:6px 0 2px}
+  .acx-all{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;min-height:54px;border:1.5px solid var(--cafe);border-radius:14px;background:var(--card);color:var(--cafe);font:700 15.5px var(--ui);cursor:pointer;padding:8px 12px}
+  .acx-all .acx-cup{width:26px;height:26px}
+  .acx-all.on{background:var(--cafe);color:#fff}
+  .acx-all.on .acx-cup{stroke:#fff}
+  .acx-all.off{opacity:.45}
+  .acx-allhint{font-size:12.5px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.3}
+  .acx-fld .acx-allnote{margin:0 0 10px;font-size:14px}
+  .savebtn.acx{background:var(--cafe)}`;
+  document.head.appendChild(s);
+  Object.assign(I18N.es,{acx_all:'Autoconsumo',acx_all_on:'Quitar autoconsumo',acx_all_note:'Todos estos productos van a autoconsumo',acx_save:'Guardar autoconsumo',
+    acx_ask_1:'Vas a registrar 1 producto como autoconsumo.\n\nNo es una venta: no se cobra y sale del inventario.',
+    acx_ask_n:'Vas a registrar {n} productos como autoconsumo.\n\nNo es una venta: no se cobra y sale del inventario.',
+    acx_svc:'El autoconsumo no se puede usar con servicios en el carrito.',acx_need:'Agrega productos para usar el autoconsumo.'});
+  Object.assign(I18N.en,{acx_all:'Own use',acx_all_on:'Remove own use',acx_all_note:'All these products go to own use',acx_save:'Save own use',
+    acx_ask_1:'You are about to register 1 product as own use.\n\nIt is not a sale: it is not charged and it leaves the stock.',
+    acx_ask_n:'You are about to register {n} products as own use.\n\nIt is not a sale: it is not charged and it leaves the stock.',
+    acx_svc:'Own use cannot be used with services in the cart.',acx_need:'Add products to use own use.'});
+}catch(e){console.error('mods279 arranque',e);}})();
 </script>

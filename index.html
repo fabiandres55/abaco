@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261123062908';
+const APP_VERSION='20261123202839';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -22879,4 +22879,169 @@ document.addEventListener('input',e=>{try{const el=e.target;if(!el||!el.dataset|
     pgr_over:'The other methods add up to {a} and the total is {t}: they cannot exceed the total. Change is only given in cash.',
     pgr_short:'Left to pay: {f}. Complete the payment to save, or switch the sale to "On credit".'});
 }catch(e){console.error('mods281 arranque',e);}})();
+
+/* ==== mods282 (2026-11-23): UBICACIÓN DEL CLIENTE PUESTA A MANO (dueño) y MAPA A TAMAÑO COMPLETO ====
+   Pedido de Fabio (23-nov): «en Rutas debe estar la opción para el dueño de poner la ubicación a mano (desde cualquier lugar, sin ir hasta
+   donde el cliente)» y «que el mapa de la ruta se vea de tamaño completo si el dueño así lo quiere». «Autorizo» (23-nov).
+   1. «Poner en el mapa» (solo el dueño: rtAdmin): una ventana con el mapa a pantalla completa; se toca el punto (el pin se puede arrastrar) o
+      se pegan coordenadas o un enlace de Google Maps. Se llega desde la ficha del cliente (se guarda con el Guardar de siempre), desde
+      Rutas → «Sin ubicación» y desde el globo de un cliente en el mapa (en estos dos se guarda de una vez).
+      La ubicación va en el MISMO campo del cliente (loc), con precisión 0 y la marca `man:1` (puesta a mano). Sin tablas ni cambios de base.
+   2. Un botón en la esquina de los mapas del dueño (clientes y rutas, editar ruta, Seguimiento) lo amplía a toda la ventana y lo reduce.
+      Atrás primero reduce el mapa y después cierra la ventana.
+   No se edita ninguna función: se envuelven cgLocDraw, cgExtra, openCliForm, rtNolocHTML, rtPopup, rtRender, rtClose y rkClose.
+   Interruptores por equipo: localStorage 'abanico.lm'='0' (sin «Poner en el mapa») y 'abanico.mb'='0' (sin el botón de ampliar). */
+function lmOn(){try{return localStorage.getItem('abanico.lm')!=='0';}catch(_){return true;}}
+function mbOn(){try{return localStorage.getItem('abanico.mb')!=='0';}catch(_){return true;}}
+function lmCan(){try{return lmOn()&&typeof cgOn==='function'&&cgOn()&&typeof rtAdmin==='function'&&rtAdmin();}catch(_){return false;}}
+var LM=null,LM_MAP=null,LM_MK=null;
+const LM_PIN='<path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>';
+const MB_OUT='<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>',MB_IN='<path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>';
+function lmRound(n){return Math.round((+n)*1e6)/1e6;}
+function lmPair(a,b){a=+(''+a).replace(',','.');b=+(''+b).replace(',','.');
+  if(!isFinite(a)||!isFinite(b)||Math.abs(a)>90||Math.abs(b)>180||(a===0&&b===0))return null;return {lat:lmRound(a),lng:lmRound(b)};}
+/* lee coordenadas de un texto pegado: «4.438889, -75.232222», grados con N/S/E/O, grados-minutos-segundos, o un enlace largo de mapas.
+   Devuelve {lat,lng}, o {err:'short'} (enlace corto: no trae coordenadas), {err:'nolink'} (enlace sin coordenadas) o null (no hay nada que leer). */
+function lmParse(txt){let s=(''+(txt==null?'':txt)).trim();if(!s)return null;
+  try{s=decodeURIComponent(s);}catch(_){}
+  const D='(-?[0-9]{1,3}(?:[.][0-9]+)?)';let m;
+  if((m=s.match(new RegExp('!3d'+D+'!4d'+D))))return lmPair(m[1],m[2])||{err:'nolink'};   /* el punto exacto del lugar en un enlace de Google Maps */
+  if((m=s.match(new RegExp('[?&](?:q|query|ll|sll|destination|daddr|center)=(?:loc:)?'+D+' ?[,+ ] ?'+D,'i'))))return lmPair(m[1],m[2])||{err:'nolink'};
+  if((m=s.match(new RegExp('^geo:'+D+','+D,'i'))))return lmPair(m[1],m[2])||{err:'nolink'};
+  if((m=s.match(new RegExp('@'+D+','+D))))return lmPair(m[1],m[2])||{err:'nolink'};
+  if(/^https?:[/][/]/i.test(s)||/(^|[^a-z])(goo[.]gl|maps[.]app)/i.test(s))return {err:/goo[.]gl|maps[.]app[.]goo/i.test(s)?'short':'nolink'};
+  const neg=h=>/[SWOswo]/.test(h||'');
+  const G=[...s.matchAll(/([0-9]{1,3}) ?° ?([0-9]{1,2}) ?['′] ?([0-9]{1,2}(?:[.,][0-9]+)?) ?(?:"|″|'')? ?([NSEWOnsewo])/g)];   /* grados, minutos y segundos */
+  if(G.length>=2){const v=G.slice(0,2).map(g=>(+g[1]+(+g[2])/60+(+(''+g[3]).replace(',','.'))/3600)*(neg(g[4])?-1:1));return lmPair(v[0],v[1]);}
+  const N=[...s.matchAll(/(-?[0-9]{1,3}[.,][0-9]{2,}) ?°? ?([NSEWOnsewo](?![A-Za-z]))?/g)];   /* decimales (con punto o con coma), con o sin letra */
+  if(N.length>=2){const v=N.slice(0,2).map(g=>{let x=+(''+g[1]).replace(',','.');if(neg(g[2])&&x>0)x=-x;return x;});return lmPair(v[0],v[1]);}
+  return null;}
+function lmLast(){try{const o=JSON.parse(localStorage.getItem('abanico.lm.last')||'null');return o&&lmPair(o.lat,o.lng)?o:null;}catch(_){return null;}}
+function lmMsg(k,err){const e=document.getElementById('lmMapMsg');if(!e)return;e.hidden=!k;e.textContent=k?t(k):'';}
+function lmPaint(){if(!LM)return;const st=document.getElementById('lmSt'),ok=document.getElementById('lmOk');if(!st||!ok)return;
+  st.className='lm-st'+(LM.err?' err':'');st.textContent=LM.err?LM.err:(LM.pos?ti('lm_at',{c:LM.pos.lat.toFixed(6)+', '+LM.pos.lng.toFixed(6)}):t('lm_none'));
+  ok.disabled=!LM.pos;ok.textContent=t(LM.direct?'lm_save':'lm_use');}
+function lmMark(){if(!LM||!LM.pos||!LM_MAP||!RT_L)return;const ll=[LM.pos.lat,LM.pos.lng];
+  if(LM_MK){try{LM_MK.setLatLng(ll);}catch(_){}return;}
+  LM_MK=RT_L.marker(ll,{icon:rtIcon('#e53935',0,false),draggable:true,autoPan:true,keyboard:false}).addTo(LM_MAP);
+  LM_MK.on('dragend',()=>{try{if(!LM||!LM_MK)return;const p=LM_MK.getLatLng();LM.pos={lat:lmRound(p.lat),lng:lmRound(p.lng)};LM.err='';lmPaint();}catch(_){}});}
+function lmSet(lat,lng,go){if(!LM)return;const p=lmPair(lat,lng);if(!p)return;LM.pos=p;LM.err='';lmMark();
+  if(go&&LM_MAP){try{LM_MAP.setView([p.lat,p.lng],Math.max(LM_MAP.getZoom()||0,17));}catch(_){}}lmPaint();}
+async function lmMapDraw(){if(!LM)return;const tok=(LM.tok=(LM.tok||0)+1);
+  if(!LM_MAP){lmMsg('rt_map_wait');try{await rtLibs();}catch(_){if(LM&&LM.tok===tok)lmMsg('lm_map_fail');return;}
+    if(!LM||LM.tok!==tok)return;const el=document.getElementById('lmMap');if(!el||!RT_L)return;
+    if(!LM_MAP){LM_MAP=RT_L.map(el,{zoomControl:true,attributionControl:true}).setView([4.65,-74.1],11);
+      RT_L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(LM_MAP);
+      LM_MAP.on('click',e=>{try{if(LM&&e&&e.latlng)lmSet(e.latlng.lat,e.latlng.lng,false);}catch(_){}});}}
+  if(!LM||LM.tok!==tok)return;lmMsg('');try{LM_MAP.invalidateSize();}catch(_){}
+  try{if(LM.pos){lmMark();LM_MAP.setView([LM.pos.lat,LM.pos.lng],17);}
+    else{const pts=rtClients().filter(rtHas).map(c=>[+c.loc.lat,+c.loc.lng]),last=lmLast();
+      if(last)LM_MAP.setView([last.lat,last.lng],+last.z||15);else if(pts.length>1)LM_MAP.fitBounds(pts,{padding:[30,30],maxZoom:15});else if(pts.length===1)LM_MAP.setView(pts[0],15);else LM_MAP.setView([4.65,-74.1],11);}}catch(_){}
+  setTimeout(()=>{try{LM_MAP&&LM_MAP.invalidateSize();}catch(_){}},80);}
+/* o = {id, name, pos (la ubicación que ya tiene), direct (se guarda de una vez), onOk(loc)} */
+function lmOpen(o){if(!lmCan()||!o||typeof o.onOk!=='function')return;const d=document.getElementById('lmdlg');if(!d)return;
+  LM={id:o.id,name:''+(o.name||''),pos:(o.pos&&cgLocOk(o.pos))?{lat:lmRound(o.pos.lat),lng:lmRound(o.pos.lng)}:null,direct:!!o.direct,onOk:o.onOk,err:'',tok:0};
+  document.getElementById('lmTitle').textContent=LM.name?ti('lm_title',{n:LM.name}):t('lm_title0');
+  const q=document.getElementById('lmQ');q.value='';q.placeholder=t('lm_paste_ph');document.getElementById('lmGo').textContent=t('lm_go');document.getElementById('lmHint').textContent=t('lm_hint');
+  lmPaint();d.classList.add('on');lmMapDraw();}
+function lmClose(){const d=document.getElementById('lmdlg');if(d)d.classList.remove('on');LM=null;try{if(LM_MK&&LM_MAP)LM_MAP.removeLayer(LM_MK);}catch(_){}LM_MK=null;
+  try{const q=document.getElementById('lmQ');if(q)q.blur();}catch(_){}}
+function lmGo(){if(!LM)return;const q=document.getElementById('lmQ'),r=lmParse(q?q.value:'');
+  if(!r||r.err){LM.err=t(!r?'lm_bad':r.err==='short'?'lm_short':'lm_nolink');lmPaint();return;}
+  try{q.blur();}catch(_){}lmSet(r.lat,r.lng,true);}
+function lmAccept(){if(!LM)return;if(!LM.pos){LM.err=t('lm_none');lmPaint();return;}
+  const p={lat:LM.pos.lat,lng:LM.pos.lng,acc:0,at:new Date().toISOString(),man:1},f=LM.onOk;
+  try{localStorage.setItem('abanico.lm.last',JSON.stringify({lat:p.lat,lng:p.lng,z:LM_MAP?Math.min(17,LM_MAP.getZoom()||15):15}));}catch(_){}
+  lmClose();try{f(p);}catch(e){console.error('mods282 guardar',e);}}
+/* desde Rutas: se guarda de una vez en el cliente (igual que al guardar su ficha: el campo loc y persist) */
+function lmPut(id){const c=rtCli(id);if(!c||!lmCan())return;try{RT_MAP&&RT_MAP.closePopup();}catch(_){}
+  lmOpen({id:c.id,name:rtName(c),pos:c.loc,direct:true,onOk:p=>{const x=rtCli(id);if(!x)return;x.loc=p;persist();render();toast(ti('lm_saved',{n:rtName(x)}));try{if(RT)rtRender();}catch(_){}}});}
+/* desde la ficha: queda en el formulario y se guarda con «Guardar», como la que se toma con el GPS */
+function lmForm(){if(!lmCan()||typeof CG==='undefined')return;const nm=((document.getElementById('cf_cli_name')||{}).value||'').trim();
+  lmOpen({id:state.cliEdit||null,name:nm,pos:CG.loc,direct:false,onOk:p=>{CG.tok++;CG.loc=p;cgLocDraw('');}});}
+/* la ficha: el botón y, si la ubicación se puso a mano, el letrero lo dice */
+function lmFormSync(st){const box=document.getElementById('cgLocBox');if(!box)return;const l=CG.loc,has=cgLocOk(l);
+  if(has&&l.man){const b=box.querySelector('#cgLocSt b');if(b){const nuevo=!(CG.loc0&&CG.loc0.at===l.at&&+CG.loc0.lat===+l.lat&&+CG.loc0.lng===+l.lng);b.textContent=ti(nuevo?'lm_loc_new':'lm_loc_saved',{d:cgWhen(l.at)});}}
+  if(st==='busy'||!lmCan()||box.querySelector('[data-lm="form"]'))return;
+  const h=box.querySelector('.cg-hint'),btn=document.createElement('button');btn.type='button';btn.className='cg-b lm-b';btn.dataset.lm='form';btn.innerHTML=svg(LM_PIN)+exEsc(t(has?'lm_btn_fix':'lm_btn'));
+  const n=document.createElement('div');n.className='cg-hint lm-hint2';n.textContent=t('lm_form_hint');
+  if(h){box.insertBefore(btn,h);box.appendChild(n);}else{box.appendChild(btn);box.appendChild(n);}}
+{const _d=cgLocDraw;cgLocDraw=function(st,msg){const r=_d.apply(this,arguments);try{lmFormSync(st);}catch(e){try{console.error('mods282 ficha',e);}catch(_){}}return r;};}
+{const _e=cgExtra;cgExtra=function(){const o=_e.apply(this,arguments);try{if(o&&o.loc&&CG.loc&&CG.loc.man)o.loc.man=1;}catch(_){}return o;};}
+{const _o=openCliForm;openCliForm=function(id){const r=_o.apply(this,arguments);try{const c=id?cliById(id):null;if(c&&c.loc&&c.loc.man&&CG.loc){CG.loc.man=1;if(CG.loc0)CG.loc0.man=1;cgLocDraw('');}}catch(e){try{console.error('mods282 abrir',e);}catch(_){}}return r;};}
+/* Rutas: «Sin ubicación» y el globo del mapa */
+{const _n=rtNolocHTML;rtNolocHTML=function(){let h=_n.apply(this,arguments);try{if(lmCan())h=h.replace(/<button class="rt-mini" data-rt="cli:([^"]*)">/g,(m,id)=>'<button class="rt-mini lm-mini" data-lm="put:'+id+'">'+svg(LM_PIN)+exEsc(t('lm_btn_short'))+'</button>'+m);}catch(_){}return h;};}
+{const _p=rtPopup;rtPopup=function(c){const d=_p.apply(this,arguments);try{if(lmCan()&&d&&c&&!(RT&&RT.view==='edit')){const b=document.createElement('button');b.className='sec';b.dataset.lm='put:'+c.id;b.textContent=t('lm_pop');d.appendChild(b);}}catch(_){}return d;};}
+{const _r=rtRender;rtRender=function(){const x=_r.apply(this,arguments);try{if(RT&&RT.view!=='edit'&&RT.tab==='noloc'&&lmCan()){const p=document.querySelector('#rtTop .rt-pad');
+    if(p&&!p.querySelector('.lm-help')){const n=document.createElement('div');n.className='osub lm-help';n.textContent=t('lm_noloc_help');p.appendChild(n);}}}catch(_){}return x;};}
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-lm]');if(!b)return;e.preventDefault();e.stopPropagation();const a=b.dataset.lm||'';
+  if(a==='x')return lmClose();if(a==='ok')return lmAccept();if(a==='go')return lmGo();if(a==='form')return lmForm();if(a.indexOf('put:')===0)return lmPut(a.slice(4));}catch(err){console.error('mods282 toque',err);}},true);
+document.addEventListener('keydown',e=>{try{if(e.key==='Enter'&&e.target&&e.target.id==='lmQ'){e.preventDefault();lmGo();}}catch(_){}},true);
+document.addEventListener('paste',e=>{try{if(e.target&&e.target.id==='lmQ')setTimeout(()=>{try{if(LM&&lmParse(document.getElementById('lmQ').value))lmGo();}catch(_){}},0);}catch(_){}},true);
+
+/* ---------------- el mapa a tamaño completo ---------------- */
+function mbMap(id){return id==='rtMapW'?RT_MAP:id==='rkMapW'?(typeof RK_MAP!=='undefined'?RK_MAP:null):null;}
+function mbIs(id){const w=document.getElementById(id);return !!(w&&!w.hidden&&w.classList.contains('mb-big'));}
+function mbSet(id,on){const w=document.getElementById(id);if(!w)return;on=!!on;if(w.classList.contains('mb-big')===on)return;w.classList.toggle('mb-big',on);
+  const b=w.querySelector('.mb-btn');if(b){b.innerHTML=svg(on?MB_IN:MB_OUT);b.setAttribute('aria-label',t(on?'mb_small':'mb_big'));b.title=t(on?'mb_small':'mb_big');}
+  [60,320].forEach(ms=>setTimeout(()=>{try{const m=mbMap(id);if(m)m.invalidateSize();}catch(_){}},ms));}
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-mb]');if(!b)return;e.preventDefault();e.stopPropagation();const id=b.dataset.mb;mbSet(id,!mbIs(id));}catch(err){console.error('mods282 mapa',err);}},true);
+{const _c=rtClose;rtClose=function(){try{mbSet('rtMapW',false);}catch(_){}return _c.apply(this,arguments);};}
+if(typeof rkClose==='function'){const _k=rkClose;rkClose=function(){try{mbSet('rkMapW',false);}catch(_){}return _k.apply(this,arguments);};}
+/* ---------------- (23-nov, visto en la tanda) el pago rápido de mods281: escribir sin que se suelte el campo ----------------
+   Cuando llega un cambio del servidor, sbScheduleRender rehace la pantalla; ya esperaba si se estaba escribiendo una cantidad, un precio,
+   el cliente o la nota (sbTyping), pero los campos del pago rápido quedaron por fuera: si llegaba algo justo al escribir un valor, el campo
+   perdía el foco (en el celular se cerraba el teclado; lo escrito no se perdía). Aquí esos campos también cuentan: el redibujo espera a que
+   se salga del campo, igual que con los demás. sbTyping solo la usa sbScheduleRender. Se apaga con localStorage 'abanico.pgrt'='0'. */
+function pgrTyping(){try{const a=document.activeElement,b=document.getElementById('pgrBox');return !!a&&!!b&&a!==document.body&&b.contains(a)&&!!a.classList&&a.classList.contains('pgr-in');}catch(_){return false;}}
+function pgrTypingOn(){try{return localStorage.getItem('abanico.pgrt')!=='0';}catch(_){return true;}}
+{const _t=sbTyping;sbTyping=function(){if(pgrTypingOn()&&pgrTyping())return true;return _t.apply(this,arguments);};}
+
+(function(){try{
+  const css=document.createElement('style');css.id='lmStyle';css.textContent=`
+  #lmdlg{z-index:17}
+  .lm-body{flex:1;min-height:0;display:flex;flex-direction:column}
+  .lm-top{flex:none;display:flex;gap:8px;padding:10px 14px}
+  .lm-top .inp{flex:1;min-width:0}
+  .lm-go{flex:none;border:none;border-radius:10px;background:var(--pri);color:#fff;font:600 14px var(--ui);padding:0 16px;min-height:44px;cursor:pointer}
+  .lm-mapw{position:relative;flex:1;min-height:160px;background:#dfe3e6;z-index:0;border-top:1px solid var(--line)}
+  #lmMap{position:absolute;inset:0}
+  .lm-bot{flex:none;display:flex;flex-direction:column;gap:6px;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--card)}
+  .lm-st{font-size:13.5px;line-height:1.35;color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+  .lm-st.err{color:var(--red)}
+  .lm-hint{font-size:12px;line-height:1.35;color:var(--muted)}
+  .lm-ok{border:none;border-radius:12px;background:#2e7d4f;color:#fff;font:700 15px var(--ui);padding:13px 10px;min-height:48px;cursor:pointer}
+  .lm-ok:disabled{opacity:.45;cursor:default}
+  .cg-b.lm-b{width:100%}
+  .rt-mini.lm-mini{display:inline-flex;align-items:center;gap:4px;border-color:#2e7d4f;color:#2e7d4f;white-space:nowrap}
+  .rt-mini.lm-mini svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+  .rt-row .rt-mini{flex:none}
+  .mb-btn{position:absolute;top:10px;right:10px;z-index:650;   /* encima de los pines (600) y debajo del globo del cliente (700): el globo no queda tapado */width:44px;height:44px;padding:0;border:2px solid rgba(0,0,0,.2);background-clip:padding-box;border-radius:10px;background-color:#fff;color:#222;display:grid;place-items:center;cursor:pointer}
+  .mb-btn[hidden]{display:none}
+  .mb-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .rt-mapw.mb-big{position:absolute;inset:0;height:auto;min-height:0;margin:0;border:0;border-radius:0;z-index:40}
+  .rt-mapw.mb-big .mb-btn{top:calc(10px + env(safe-area-inset-top,0px))}
+  .rt-mapw.mb-big .leaflet-top{top:env(safe-area-inset-top,0px)}`;
+  document.head.appendChild(css);
+  Object.assign(I18N.es,{lm_btn:'Poner en el mapa',lm_btn_fix:'Corregir en el mapa',lm_btn_short:'En el mapa',lm_pop:'Corregir ubicación',lm_title:'Ubicación de {n}',lm_title0:'Ubicación del cliente',
+    lm_paste_ph:'Pegar coordenadas o enlace de Google Maps',lm_go:'Ir',lm_hint:'Toca el mapa donde queda el negocio. El pin se puede arrastrar.',lm_none:'Aún no has marcado el punto',lm_at:'Punto marcado: {c}',
+    lm_use:'Usar esta ubicación',lm_save:'Guardar ubicación',lm_saved:'Ubicación guardada: {n}',lm_bad:'No reconocí coordenadas en ese texto. Ejemplo: 4.438889, -75.232222',
+    lm_short:'Ese enlace corto no trae las coordenadas. Ábrelo y copia las coordenadas del lugar o el enlace largo.',lm_nolink:'Ese enlace no trae coordenadas. Copia las coordenadas del lugar (ejemplo: 4.438889, -75.232222).',
+    lm_map_fail:'No se pudo cargar el mapa. Revisa la conexión; aún puedes pegar las coordenadas.',lm_loc_new:'Ubicación puesta a mano · {d}. Se guarda al tocar Guardar.',lm_loc_saved:'Ubicación puesta a mano · {d}',
+    lm_form_hint:'También puedes marcar el punto en el mapa sin estar en el negocio del cliente.',lm_noloc_help:'O toca «En el mapa» para ubicar al cliente desde aquí, sin ir hasta su negocio.',mb_big:'Ampliar el mapa',mb_small:'Reducir el mapa'});
+  Object.assign(I18N.en,{lm_btn:'Set on the map',lm_btn_fix:'Fix on the map',lm_btn_short:'On the map',lm_pop:'Fix location',lm_title:'Location of {n}',lm_title0:'Client location',
+    lm_paste_ph:'Paste coordinates or a Google Maps link',lm_go:'Go',lm_hint:'Tap the map where the business is. You can drag the pin.',lm_none:'You have not marked the point yet',lm_at:'Marked point: {c}',
+    lm_use:'Use this location',lm_save:'Save location',lm_saved:'Location saved: {n}',lm_bad:'I could not find coordinates in that text. Example: 4.438889, -75.232222',
+    lm_short:'That short link does not carry the coordinates. Open it and copy the coordinates of the place or the long link.',lm_nolink:'That link has no coordinates. Copy the coordinates of the place (example: 4.438889, -75.232222).',
+    lm_map_fail:'The map could not be loaded. Check the connection; you can still paste the coordinates.',lm_loc_new:'Location set by hand · {d}. It is saved when you tap Save.',lm_loc_saved:'Location set by hand · {d}',
+    lm_form_hint:'You can also mark the point on the map without being at the client\'s business.',lm_noloc_help:'Or tap «On the map» to locate the client from here, without going to the business.',mb_big:'Enlarge the map',mb_small:'Shrink the map'});
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('lmdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="lmdlg"><div class="histbar"><button class="sheet-x" data-lm="x">✕</button><span class="histbar-t" id="lmTitle"></span></div><div class="lm-body"><div class="lm-top"><input class="inp" id="lmQ" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"><button type="button" class="lm-go" id="lmGo" data-lm="go"></button></div><div class="lm-mapw"><div id="lmMap"></div><div class="rt-mapmsg" id="lmMapMsg" hidden></div></div><div class="lm-bot"><div class="lm-st" id="lmSt" role="status"></div><div class="lm-hint" id="lmHint"></div><button type="button" class="lm-ok" id="lmOk" data-lm="ok" disabled></button></div></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.lmdlg=()=>lmClose();}catch(_){}
+  /* el botón de ampliar en los mapas del dueño; Atrás primero reduce */
+  ['rtMapW','rkMapW'].forEach(id=>{const w=document.getElementById(id);if(!w||w.querySelector('.mb-btn'))return;
+    const b=document.createElement('button');b.type='button';b.className='mb-btn';b.dataset.mb=id;b.hidden=!mbOn();b.innerHTML=svg(MB_OUT);b.setAttribute('aria-label',t('mb_big'));b.title=t('mb_big');w.appendChild(b);
+    try{new MutationObserver(()=>{if(w.hidden&&w.classList.contains('mb-big'))mbSet(id,false);}).observe(w,{attributes:true,attributeFilter:['hidden']});}catch(_){}});
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE){[['rtdlg','rtMapW'],['rkdlg','rkMapW']].forEach(([d,w])=>{const f=BACK_CLOSE[d];if(typeof f!=='function')return;BACK_CLOSE[d]=()=>{if(mbIs(w)){mbSet(w,false);return;}return f();};});}}catch(_){}
+}catch(e){console.error('mods282 arranque',e);}})();
 </script>

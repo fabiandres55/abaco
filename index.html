@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261123202839';
+const APP_VERSION='20261124103531';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23044,4 +23044,197 @@ function pgrTypingOn(){try{return localStorage.getItem('abanico.pgrt')!=='0';}ca
     try{new MutationObserver(()=>{if(w.hidden&&w.classList.contains('mb-big'))mbSet(id,false);}).observe(w,{attributes:true,attributeFilter:['hidden']});}catch(_){}});
   try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE){[['rtdlg','rtMapW'],['rkdlg','rkMapW']].forEach(([d,w])=>{const f=BACK_CLOSE[d];if(typeof f!=='function')return;BACK_CLOSE[d]=()=>{if(mbIs(w)){mbSet(w,false);return;}return f();};});}}catch(_){}
 }catch(e){console.error('mods282 arranque',e);}})();
+
+/* ==== mods283 (2026-11-23): PARTE A de «Tres integraciones» — AVISO CLARO CUANDO NO HAY INVENTARIO EN UNA COTIZACIÓN ====
+   Pedido de Fabio (23-nov, documento «Tres integraciones: aviso de inventario en cotizaciones, historial completo del producto y porcentaje
+   de ganancia como alerta»; «Autorizado» a la parte A el 23-nov).
+   Diagnóstico: al armar una cotización la app no revisaba el inventario; al pasarla a venta, invCapCart (mods245b) recortaba cada línea a lo
+   disponible y BORRABA la que no tenía existencias, con un mensaje temporal de 2,2 s. La cotización no guardaba qué se pidió y qué se vendió.
+   QUÉ HACE
+   A1. Una ventana (#qsdlg) que no se cierra sola: lista cada producto que no alcanza («disponible 2, pides 3») con sus opciones:
+       «Ir al inventario» (solo el equipo de la tienda, no un vendedor, y si Inventario no está con PIN), «Ajustar a lo disponible»
+       (si hay algo), «Dejarlo en la cotización» y «Quitar producto». Sale al agregar el producto a la cotización y al guardar la cotización.
+   A2. «Ir al inventario» abre ENCIMA la misma ventana de editar existencias del inventario (pfOpen('qty') → pfOk/pfAdd: el mismo registro
+       invLogAdd y, con el libro, lgStockOut). La cotización no se mueve; al cerrar se revisa de nuevo el inventario.
+   A3. Etiqueta roja «Sin inventario» / «Solo hay N» en la línea: al armar la cotización, al abrirla después y al aprobarla. Se quita sola.
+   A4. Al pasar la cotización a venta ya no se recorta ni se borra nada en silencio: sale la misma ventana ANTES de poder guardar la venta,
+       y la venta no se guarda hasta que cada producto quede resuelto (el guardado de siempre sigue validando el inventario).
+       Al guardarse la venta, la cotización guarda dentro de sí misma (q.conv = {at, rows:[{pid,name,asked,sold,how}]}) lo que se pidió y lo
+       que se vendió de cada producto que cambió. Sin tablas nuevas ni cambios de base; las cotizaciones ya guardadas no se reescriben.
+   NO SE EDITA ninguna función: se envuelven render, cartLiveRefresh, cqtyCommit, saleAdd, invCapCart, saveSale, saveQuote, startQuote,
+   quoteEnd, openQuote, qeSave, closePF y saleSaveTail. La aprobación de cotizaciones de vendedor (mods262) queda como estaba.
+   Apagarlo en un equipo: localStorage 'abanico.qs'='0' (todo vuelve a como estaba; lo ya guardado en q.conv se sigue viendo). */
+function qsOn(){try{return localStorage.getItem('abanico.qs')!=='0';}catch(_){return true;}}
+var QS=null,QS_KEEP={},QS_HOW={},QS_T=0,QS_PF=null;
+/* dónde se está: 'quote' = armando o editando una cotización · 'sale' = una venta que viene de una cotización · '' = lo demás (nada cambia) */
+function qsCtx(){try{if(!qsOn()||state.screen!=='nueva'||state.poMode||state.editSale||QT_SIGN)return '';
+  if(state.quoteMode)return 'quote';if(state.saleFromQuote!=null&&quoteById(state.saleFromQuote))return 'sale';}catch(_){}return '';}
+/* quién puede corregir existencias desde aquí: el equipo de la tienda (no un vendedor), y solo si Inventario no pide PIN en este momento */
+function qsCanInv(){try{return !isSeller()&&typeof pfOpen==='function'&&!lockNeeds('inventario');}catch(_){return false;}}
+/* lo que SALE por producto con el carrito de ahora, en la unidad base (lo mismo que compara el guardado de la venta) */
+function qsNeed(){const nd={};cartRows().forEach(i=>{if(i.q>0)nd[i.id]=(nd[i.id]||0)+cBaseQ(i);});return nd;}
+function qsShort(){return invShort(qsNeed());}   /* [{p, need, have}] */
+/* los que todavía esperan una respuesta */
+function qsPending(){const c=qsCtx();if(!c)return [];const L=qsShort();return c==='quote'?L.filter(x=>!QS_KEEP[x.p.id]):L;}
+function qsMax(id){try{return invMaxQ(id);}catch(_){return 0;}}   /* lo máximo de la línea, en SU unidad (empaques si va por presentación) */
+function qsTagTxt(x){return invM(x.have)<=0?t('qs_none'):ti('qs_only',{n:qtyLoc(x.have)+invU(x.p)});}
+
+/* ---------- la ventana ---------- */
+function qsPaint(L){const d=document.getElementById('qsdlg'),b=document.getElementById('qsBody');if(!d||!b||!QS)return;
+  const sale=QS.ctx==='sale',q=sale?quoteById(state.saleFromQuote):null,inv=qsCanInv(),sc=b.scrollTop;
+  document.getElementById('qsTitle').textContent=t('qs_title');
+  const cards=L.map(x=>{const id=x.p.id,k=cPk(id),m=qsMax(id),u=invU(x.p);
+    const need=qtyLoc(x.need)+u+(k?' ('+qtyLoc(+state.cart[id]||0)+' '+(k.n||'')+')':''),have=qtyLoc(Math.max(0,+x.have||0))+u;
+    return `<div class="qs-card" data-qsrow="${exEsc(id)}"><div class="qs-n">${exEsc(invNm(x.p))}${x.p.key?` <span class="qs-k">${exEsc(x.p.key)}</span>`:''}</div>`+
+      `<div class="qs-l">${exEsc(ti('qs_line',{have,need}))}</div><div class="qs-b">`+
+      (inv?`<button type="button" class="qs-o inv" data-qs="inv:${exEsc(id)}">${exEsc(t('qs_inv'))}</button>`:'')+
+      (m>0?`<button type="button" class="qs-o" data-qs="fit:${exEsc(id)}">${exEsc(ti('qs_fit',{n:qtyLoc(m)+(k?' '+(k.n||''):u)}))}</button>`:'')+
+      `<button type="button" class="qs-o" data-qs="keep:${exEsc(id)}">${exEsc(t(sale?'qs_keep_s':'qs_keep'))}</button>`+
+      `<button type="button" class="qs-o del" data-qs="rm:${exEsc(id)}">${exEsc(t('qs_rm'))}</button></div></div>`;}).join('');
+  b.innerHTML=`<div class="qs-intro">${exEsc(sale?ti('qs_intro_s',{n:q?q.folio:''}):t('qs_intro_q'))}</div>`+cards;b.scrollTop=sc;
+  const f=document.getElementById('qsFoot');if(f){f.hidden=!sale;f.innerHTML=sale?`<button type="button" class="qs-o" data-qs="cancel">${exEsc(t('qs_cancel'))}</button>`:'';}}
+/* abre la ventana si hay algo por responder. then = lo que sigue cuando todo quede resuelto (guardar la cotización) */
+function qsOpen(then){const c=qsCtx();if(!c)return false;const L=qsPending();if(!L.length)return false;const d=document.getElementById('qsdlg');if(!d)return false;
+  if(!QS)QS={ctx:c,then:null};QS.ctx=c;if(typeof then==='function')QS.then=then;qsPaint(L);d.classList.add('on');
+  try{const a=document.activeElement;if(a&&a.blur&&a!==document.body&&!d.contains(a))a.blur();}catch(_){}return true;}
+function qsClose(){const d=document.getElementById('qsdlg');if(d)d.classList.remove('on');QS=null;}
+function qsDone(){const f=QS&&QS.then;qsClose();if(typeof f==='function')setTimeout(()=>{try{f();}catch(e){console.error('mods283 seguir',e);}},0);}
+/* vuelve a revisar el inventario: se va de la lista lo que ya alcanza; sin nada pendiente, la ventana se cierra */
+function qsRefresh(){if(!QS||QS_PF)return;const c=qsCtx();if(!c){qsClose();return;}QS.ctx=c;const L=qsPending();if(!L.length){qsDone();return;}qsPaint(L);}
+function qsScan(){const c=qsCtx();if(!c||QS_PF)return;
+  if(c==='quote')Object.keys(QS_KEEP).forEach(id=>{if(!state.cart||state.cart[id]==null)delete QS_KEEP[id];});   /* un producto quitado y vuelto a agregar se pregunta otra vez */
+  const a=document.activeElement;if(a&&a.getAttribute&&a.getAttribute('data-cqty')!=null)return;   /* mientras se escribe la cantidad no se interrumpe: se revisa al salir del campo */
+  qsOpen();}
+function qsKick(){clearTimeout(QS_T);QS_T=setTimeout(()=>{try{if(QS)qsRefresh();else qsScan();}catch(e){console.error('mods283 revisar',e);}},0);}
+/* la lista «Seleccione el producto», si está abierta, muestra las cantidades de ahora */
+function qsPick(){try{const d=document.getElementById('saleproddlg');if(!d||!d.classList.contains('on')||state.pickMode!=='sale')return;const b=document.getElementById('saleprodBody'),sc=b?b.scrollTop:0;fillSaleProd();if(b)b.scrollTop=sc;}catch(_){}}
+function qsDrop(id){delete state.cart[id];['cartPrice','cartTxt','cartAdj','cartAt'].forEach(k=>{if(state[k])delete state[k][id];});try{delete cartPkMap()[id];}catch(_){}if(state.invAdj)delete state.invAdj[id];}
+function qsHow(id,how){if(!QS||QS.ctx!=='sale')return;const qid=state.saleFromQuote;if(qid==null)return;(QS_HOW[qid]||(QS_HOW[qid]={}))[id]=how;}
+function qsAfter(){try{state._keep=document.getElementById('screen').scrollTop;}catch(_){}try{render();}catch(e){console.error('mods283 dibujar',e);}
+  qsPick();if(QS&&QS.ctx==='sale'){try{saveCartDraft();}catch(_){}}qsRefresh();}
+function qsAct(a,id){if(!QS)return;if(a==='cancel'){if(QS.ctx==='sale')qsCancelSale();return;}
+  const p=P(+id)||P(id);if(!p||state.cart[p.id]==null){qsRefresh();return;}
+  if(a==='inv')return qsInv(p.id);
+  if(a==='fit'){const m=qsMax(p.id);if(!(m>0))return;state.cart[p.id]=m;if(state.cartTxt)delete state.cartTxt[p.id];if(state.invAdj)delete state.invAdj[p.id];qsHow(p.id,'fit');}
+  else if(a==='keep'){if(QS.ctx==='quote')QS_KEEP[p.id]=1;else{qsHow(p.id,'keep');qsDrop(p.id);}}
+  else if(a==='rm'){qsHow(p.id,'rm');qsDrop(p.id);}
+  else return;
+  qsAfter();}
+/* venta que viene de una cotización: cancelar = no se crea la venta; se vuelve a la cotización, que queda como estaba */
+function qsCancelSale(){const qid=state.saleFromQuote;qsClose();if(qid!=null)delete QS_HOW[qid];state.saleFromQuote=null;saleClearCart();try{saveCartDraft();}catch(_){}
+  go('quotes');try{if(qid!=null&&quoteById(qid))openQuote(qid);}catch(e){console.error('mods283 volver',e);}}
+/* Atrás: en la cotización, lo que falta por responder se deja como está (con su etiqueta roja); en la venta, se cancela */
+function qsBack(){if(!QS)return;if(QS.ctx==='sale')return qsCancelSale();qsPending().forEach(x=>{QS_KEEP[x.p.id]=1;});qsClose();}
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-qs]');if(!b)return;e.preventDefault();e.stopPropagation();
+  const a=b.dataset.qs||'',i=a.indexOf(':');qsAct(i<0?a:a.slice(0,i),i<0?null:a.slice(i+1));}catch(err){console.error('mods283 toque',err);}},true);
+
+/* ---------- «Ir al inventario»: la ventana de editar existencias del inventario, encima ---------- */
+function qsInv(id){const p=P(+id)||P(id);if(!p||QS_PF||!qsCanInv())return;
+  try{if(document.getElementById('pdetdlg').classList.contains('on'))return;}catch(_){}
+  QS_PF={id:p.id,pd:PDET_ID};PDET_ID=p.id;
+  try{pfOpen('qty');}catch(e){PDET_ID=QS_PF.pd;QS_PF=null;console.error('mods283 inventario',e);return;}
+  if(!PF){PDET_ID=QS_PF.pd;QS_PF=null;return;}
+  try{const c=document.getElementById('pfcard'),tt=c&&c.querySelector('.pf-t');if(tt){const s=document.createElement('div');s.className='qs-pfn';s.textContent=invNm(p)+(p.key?' · '+p.key:'');tt.insertAdjacentElement('afterend',s);}}catch(_){}}
+/* al cerrarse esa ventana (guardó o no): se deja todo como estaba y se revisa de nuevo. Va un instante después porque pfOk llama a pdSave justo después de cerrar */
+{const _c=closePF;closePF=function(){const r=_c.apply(this,arguments);if(QS_PF){const x=QS_PF;setTimeout(()=>{
+    try{QS_PF=null;if(PDET_ID===x.id&&!document.getElementById('pdetdlg').classList.contains('on'))PDET_ID=x.pd;}catch(_){QS_PF=null;}
+    try{qsCartTags();qsQuoteTags();qsPick();qsRefresh();}catch(e){console.error('mods283 al volver',e);}},0);}return r;};}
+
+/* ---------- la etiqueta roja ---------- */
+/* al armar la cotización: en cada línea del pedido */
+function qsCartTags(){try{const body=document.getElementById('body');if(!body)return;const sh={};if(qsCtx()==='quote')qsShort().forEach(x=>{sh[x.p.id]=x;});
+  body.querySelectorAll('.cartwrap [data-crow]').forEach(r=>{const x=sh[r.getAttribute('data-crow')];let tg=null;for(const e of r.children){if(e.classList&&e.classList.contains('qs-tag')){tg=e;break;}}
+    if(!x){if(tg)tg.remove();return;}
+    if(!tg){tg=document.createElement('div');tg.className='qs-tag';const nm=r.querySelector('.crow-name');if(nm)nm.insertAdjacentElement('afterend',tg);else r.insertBefore(tg,r.firstChild);}
+    const tx=qsTagTxt(x);if(tg.textContent!==tx)tg.textContent=tx;});}catch(e){try{console.error('mods283 etiquetas',e);}catch(_){}}}
+function qsConvTxt(r){const u=r.m?' m':'',a=qtyLoc(+r.asked||0)+u,b=qtyLoc(+r.sold||0)+u;
+  if(!(+r.sold>0))return ti(r.how==='rm'?'qs_cv_rm':r.how==='keep'?'qs_cv_keep':'qs_cv_zero',{a});return ti('qs_cv_fit',{a,b});}
+/* en el detalle de la cotización: la etiqueta mientras no se ha vendido; si ya se vendió, lo que se pidió y lo que se vendió */
+function qsQuoteTags(){try{const dl=document.getElementById('quotedlg'),b=document.getElementById('quoteBody');if(!dl||!b||!dl.classList.contains('on')||state.poOpen)return;
+  const q=quoteById(state.qtOpen);b.querySelectorAll('.qs-tag,.qs-conv,.qs-convh').forEach(e=>e.remove());if(!q)return;
+  let list=null;for(const e of b.querySelectorAll('.list')){if(!e.classList.contains('qe-rml')){list=e;break;}}if(!list)return;
+  const rows=[...list.children].filter(e=>e.classList&&e.classList.contains('row')),L=alphaLines(q.lines||[]);if(!rows.length||rows.length!==L.length)return;
+  const put=(row,cls,txt)=>{const tt=row.querySelector('.t');const s=document.createElement('span');s.className=cls;s.textContent=txt;if(tt&&tt.parentNode)tt.parentNode.appendChild(s);else row.appendChild(s);};
+  const st=quoteStatus(q);
+  if(st==='sold'){const cv=q.conv;if(!cv||!Array.isArray(cv.rows)||!cv.rows.length)return;const by={};cv.rows.forEach(r=>{if(r)by[r.pid]=r;});let n=0;
+    L.forEach((l,i)=>{const p=qeProd(l),r=(p&&by[p.id])||(l.pid!=null&&by[l.pid])||null;if(!r)return;put(rows[i],'qs-conv',qsConvTxt(r));n++;});
+    if(n){const h=document.createElement('div');h.className='qs-convh';h.textContent=ti('qs_cv_h',{s:q.soldSale});const sh=list.previousElementSibling;if(sh&&sh.parentNode)sh.parentNode.insertBefore(h,sh);}
+    return;}
+  if(st==='rej'||!qsOn())return;const sh={};invShort(qeNeed(q)).forEach(x=>{sh[x.p.id]=x;});
+  L.forEach((l,i)=>{const p=qeProd(l),x=p&&sh[p.id];if(x)put(rows[i],'qs-tag',qsTagTxt(x));});}catch(e){try{console.error('mods283 detalle',e);}catch(_){}}}
+
+/* ---------- al guardarse la venta: la cotización guarda qué se pidió y qué se vendió ---------- */
+function qsRecord(sale){if(!qsOn())return;const f=sale&&sale.fromQuote;if(f==null)return;const q=quotesLive().find(y=>''+y.folio===''+f);if(!q)return;
+  const sold={};(sale.items||[]).forEach(i=>{if(i)sold[i.id]=q3((sold[i.id]||0)+(+i.q||0));});
+  const asked={},nm={};(q.lines||[]).forEach(l=>{const p=qeProd(l);if(!p)return;asked[p.id]=q3((asked[p.id]||0)+(+l.q||0));if(nm[p.id]==null)nm[p.id]=l.name||p.name||'';});
+  const how=QS_HOW[q.id]||{},rows=[];
+  Object.keys(asked).forEach(id=>{const a=asked[id],s=q3(sold[id]||0);if(invM(a)===invM(s))return;const p=P(+id)||P(id);
+    const r={pid:p?p.id:id,name:nm[id],asked:a,sold:s};if(p&&isDist(p))r.m=1;if(how[id])r.how=how[id];rows.push(r);});
+  delete QS_HOW[q.id];
+  if(rows.length){q.conv={at:Date.now(),rows};q.edited=Date.now();}else if(q.conv){delete q.conv;q.edited=Date.now();}}
+
+/* ---------- envoltorios ---------- */
+{const _r=render;render=function(){const x=_r.apply(this,arguments);try{qsCartTags();qsQuoteTags();if(QS||qsCtx())qsKick();}catch(e){try{console.error('mods283 render',e);}catch(_){}}return x;};}
+{const _l=cartLiveRefresh;cartLiveRefresh=function(){const x=_l.apply(this,arguments);try{qsCartTags();}catch(_){}return x;};}
+{const _c=cqtyCommit;cqtyCommit=function(){const x=_c.apply(this,arguments);try{if(qsCtx())qsKick();}catch(_){}return x;};}
+{const _a=saleAdd;saleAdd=function(){const x=_a.apply(this,arguments);try{if(qsCtx()==='quote')qsKick();}catch(_){}return x;};}
+/* la venta que viene de una cotización: si algo no alcanza, NO se recorta ni se borra sola; se pregunta */
+{const _i=invCapCart;invCapCart=function(){try{if(qsCtx()==='sale'&&qsShort().length){qsKick();return;}}catch(e){try{console.error('mods283 tope',e);}catch(_){}}return _i.apply(this,arguments);};}
+{const _s=saveSale;saveSale=function(){try{if(qsCtx()==='sale'&&qsShort().length&&qsOpen())return;}catch(e){try{console.error('mods283 guardar venta',e);}catch(_){}}return _s.apply(this,arguments);};}
+{const _q=saveQuote;saveQuote=function(){try{if(qsCtx()==='quote'&&qsPending().length&&qsOpen(()=>saveQuote()))return;}catch(e){try{console.error('mods283 guardar cotización',e);}catch(_){}}return _q.apply(this,arguments);};}
+/* al abrir para editar una cotización ya guardada, lo que ya estaba sin inventario no se vuelve a preguntar (conserva su etiqueta) */
+{const _s=startQuote;startQuote=function(id){const was=!!state.quoteMode,r=_s.apply(this,arguments);try{if(!was&&state.quoteMode){QS_KEEP={};if(id&&qsOn())qsShort().forEach(x=>{QS_KEEP[x.p.id]=1;});}}catch(_){}return r;};}
+{const _e=quoteEnd;quoteEnd=function(){try{QS_KEEP={};if(QS&&QS.ctx==='quote')qsClose();}catch(_){}return _e.apply(this,arguments);};}
+{const _o=openQuote;openQuote=function(){const r=_o.apply(this,arguments);qsQuoteTags();return r;};}
+if(typeof qeSave==='function'){const _v=qeSave;qeSave=function(){const r=_v.apply(this,arguments);setTimeout(qsQuoteTags,0);return r;};}
+{const _t=saleSaveTail;saleSaveTail=function(sale){try{qsRecord(sale);}catch(e){try{console.error('mods283 registro',e);}catch(_){}}return _t.apply(this,arguments);};}
+/* «Vendida» de la cotización (24-nov, pedido de Fabio: «Sí, corrígelo»). Defecto de mods267: cuando el servidor confirma una venta en cola que viene de una
+   cotización, qtMarkSold la marca vendida en memoria y el guardado que seguía no corría; el «Vendida» no se guardaba ni subía hasta el siguiente guardado
+   de cualquier cosa. sqSend NO se edita: aquí solo se guarda (persist) cuando esa confirmación acaba de marcar la cotización. No toca venta, inventario ni dinero. */
+function qsOpenQuote(x){try{const f=x&&x.sale&&x.sale.fromQuote;if(f==null)return null;const q=quotesLive().find(y=>''+y.folio===''+f);return q&&q.soldSale==null?f:null;}catch(_){return null;}}
+{const _s=sqSend;sqSend=async function(id,x){const f=qsOn()?qsOpenQuote(x):null;const r=await _s.apply(this,arguments);
+  try{if(r==='ok'&&f!=null&&currentDataId()===id){const q=quotesLive().find(y=>''+y.folio===''+f);if(q&&q.soldSale!=null)persist();}}catch(e){try{console.error('mods283 vendida',e);}catch(_){}}
+  return r;};}
+
+(function(){try{
+  const css=document.createElement('style');css.id='qsStyle';css.textContent=`
+  :root{--qs-red:#c8452f}
+  html[data-theme="dark"]{--qs-red:#d9563f}
+  #qsdlg{z-index:19}
+  #qsdlg .histbar{min-height:56px}
+  .qs-intro{font-size:14px;line-height:1.4;color:var(--ink);margin:0 0 12px}
+  .qs-card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px;margin-bottom:12px}
+  .qs-n{font-weight:700;font-size:15px;line-height:1.3;color:var(--ink);overflow-wrap:anywhere}
+  .qs-k{font-weight:500;color:var(--muted);font-size:13px}
+  .qs-l{margin-top:3px;font-size:14px;font-weight:700;color:var(--qs-red)}
+  .qs-b{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+  .qs-o{width:100%;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14.5px var(--ui);padding:8px 10px;cursor:pointer;text-align:center}
+  .qs-o:active{background:var(--sel)}
+  .qs-o.inv{border-color:#2e7d4f;color:#2e7d4f}
+  html[data-theme="dark"] .qs-o.inv{border-color:#5fbf8a;color:#5fbf8a}
+  .qs-o.del{color:var(--qs-red)}
+  .qs-foot{flex:none;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--card)}
+  .qs-foot[hidden]{display:none}
+  .qs-tag{display:inline-block;margin:0 0 8px;padding:3px 10px;border-radius:999px;background:var(--qs-red);color:#fff;font:700 12.5px var(--ui);line-height:1.35}
+  #quoteBody .qs-tag{display:table;margin:4px 0 0}
+  .qs-conv{display:block;margin-top:2px;color:var(--qe-warn,#a15c00);font-weight:600;font-size:12.5px}
+  .qs-convh{margin:10px 0 0;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sel);font-size:13px;color:var(--ink);line-height:1.45}
+  .qs-pfn{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:-8px;overflow-wrap:anywhere}`;
+  document.head.appendChild(css);
+  Object.assign(I18N.es,{qs_title:'Inventario insuficiente',qs_intro_q:'Estos productos no tienen inventario suficiente. Elige qué hacer con cada uno.',
+    qs_intro_s:'Antes de crear la venta de la cotización #{n}: estos productos no alcanzan en el inventario. Elige qué hacer con cada uno. No se vende más de lo que hay.',
+    qs_line:'disponible {have}, pides {need}',qs_inv:'Ir al inventario',qs_fit:'Ajustar a lo disponible ({n})',qs_keep:'Dejarlo en la cotización',
+    qs_keep_s:'Dejarlo en la cotización (no entra en esta venta)',qs_rm:'Quitar producto',qs_cancel:'Cancelar y volver a la cotización',
+    qs_none:'Sin inventario',qs_only:'Solo hay {n}',qs_cv_h:'La venta #{s} no llevó todo lo cotizado',qs_cv_fit:'Se pidieron {a} · se vendieron {b}',
+    qs_cv_zero:'Se pidieron {a} · no entró en la venta',qs_cv_keep:'Se pidieron {a} · no entró en la venta: no había inventario',qs_cv_rm:'Se pidieron {a} · se quitó al pasar a venta'});
+  Object.assign(I18N.en,{qs_title:'Not enough stock',qs_intro_q:'These products do not have enough stock. Choose what to do with each one.',
+    qs_intro_s:'Before creating the sale for quote #{n}: these products are short in stock. Choose what to do with each one. You cannot sell more than there is.',
+    qs_line:'available {have}, you ask for {need}',qs_inv:'Go to inventory',qs_fit:'Adjust to available ({n})',qs_keep:'Leave it in the quote',
+    qs_keep_s:'Leave it in the quote (not in this sale)',qs_rm:'Remove product',qs_cancel:'Cancel and go back to the quote',
+    qs_none:'Out of stock',qs_only:'Only {n} left',qs_cv_h:'Sale #{s} did not include everything quoted',qs_cv_fit:'{a} requested · {b} sold',
+    qs_cv_zero:'{a} requested · not in the sale',qs_cv_keep:'{a} requested · not in the sale: no stock',qs_cv_rm:'{a} requested · removed when converting to sale'});
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('qsdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="qsdlg" role="dialog" aria-modal="true"><div class="histbar"><span class="histbar-t" id="qsTitle"></span></div><div class="histbody" id="qsBody"></div><div class="qs-foot" id="qsFoot" hidden></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.qsdlg=()=>qsBack();}catch(_){}
+}catch(e){console.error('mods283 arranque',e);}})();
 </script>

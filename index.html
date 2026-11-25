@@ -16010,7 +16010,7 @@ function ntfRender(av){
   {const fb=document.querySelector('#notifdlg [data-act="ntffilter"]'),hb=document.querySelector('#notifdlg [data-act="ntfhelp"]');if(fb)fb.setAttribute('aria-label',t('ntf_filter'));if(hb)hb.setAttribute('aria-label',t('ntf_help_lbl'));}
   const avH=f==='all'?(av||[]).map(n=>{
     const act=(n.kind==='request'&&!n.done)?`<div style="display:flex;gap:6px;margin-top:9px"><button class="add-btn" data-act="approve:${n.reqId}">${t('approve')}</button><button class="add-btn" style="border-color:var(--red);color:var(--red)" data-act="deny:${n.reqId}">${t('deny')}</button></div>`:'';
-    if(n.kind==='visits'&&typeof vsNtfCard==='function')return vsNtfCard(n);   /* mods266 */if(n.kind==='sale'&&n.sale)return notifSaleCard(n);
+    if(n.kind==='gain'&&typeof gvNtfCard==='function')return gvNtfCard(n);   /* mods285 */if(n.kind==='visits'&&typeof vsNtfCard==='function')return vsNtfCard(n);   /* mods266 */if(n.kind==='sale'&&n.sale)return notifSaleCard(n);
     return `<div class="notirow ${n.read?'':'unread'}"><div class="ntext">${exEsc(n.tk?ti(n.tk,n.tp):n.text)}</div>${act}</div>`;
   }).join(''):'';
   let all=[];try{all=ntfItems().filter(x=>f==='all'||x.k===f||(f==='qt'&&x.k==='po'));}catch(_){all=[];}
@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261125080029';
+const APP_VERSION='20261125145507';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23395,4 +23395,174 @@ try{const st=document.createElement('style');st.id='phcss';st.textContent='.ph-c
     ph_folio:'No.',ph_price:'Price',ph_client:'Customer',ph_seller:'Seller',ph_purchase:'Purchase',ph_prov:'Supplier',ph_pres:'Pack',ph_why:'Reason:',ph_from_to:'From',ph_left:'Left',ph_by:'By',ph_by_none:'No record of who',ph_owner:'Owner',ph_doc_gone:'(the document is gone)',ph_refs:'Quotes and purchase orders',ph_ref_note:'Reference only: does not move stock',
     ph_c_date:'Date and time',ph_c_kind:'Type',ph_c_qty:'Quantity',ph_c_left:'Left',ph_c_detail:'Detail',ph_c_by:'Who'});
 }catch(e){try{console.error('mods284 textos',e);}catch(_){}}
+
+/* ==== mods285 (2026-11-25): PARTE C — EL PORCENTAJE DE GANANCIA AVISA, NO CAMBIA PRECIOS ====
+   Pedido de Fabio (documento «Tres integraciones», parte C; «Sí» el 25-nov a las tres recomendaciones:
+   1 producto sin precio de venta: la Venta queda vacía y se ofrece el precio con el mínimo · 2 si el porcentaje de antes ya estaba
+   bajo el mínimo, el precio sugerido usa el mayor de los dos · 3 sin mínimo configurado no hay rojo; amarillo si baja).
+   QUÉ HACE (solo en la pantalla de Compras; la Orden de Compra no cambia)
+   C1. El Precio de Venta ya NO se mueve solo. Antes (mods260) al cambiar el Precio de Compra —escrito o salido del Subtotal— la Venta
+       seguía al porcentaje de la fila, y un producto sin precio de venta empezaba en el mínimo. Ahora la Venta se queda como estaba y
+       lo que se recalcula es el porcentaje. La Venta solo cambia si el dueño la escribe, escribe un porcentaje o toca «Aplicar».
+   C2. Tres estados del porcentaje (misma fórmula de siempre: (Venta − Compra) ÷ Compra × 100, un decimal):
+       verde = igual o mayor al mínimo y no bajó · amarillo = bajó frente al que tenía el producto, pero sigue en el mínimo o encima ·
+       rojo = por debajo del mínimo. «El que tenía» = los precios guardados del producto (o de la presentación) antes de esta compra.
+   C3. En amarillo o rojo la fila muestra «Precio sugerido para mantener el X %: $Y» con «Aplicar». Solo ese botón cambia el precio.
+   C4. Al guardar una compra con productos en amarillo o rojo: una ventana que no se cierra sola (primero los rojos), con «Ajustar precio»
+       por producto (la misma ventanita de precio de la ficha) y «Continuar»; el mismo resumen queda en la campana. Nunca bloquea guardar.
+   CÓMO: envuelve funciones que ya existían, sin editarlas: pgFollow, pgInit, pgCls, pgPaint (mods260), pcRowsHTML, saveCompra, closePF y pvTop.
+   saveCompra por dentro queda igual: se mira la fila antes y la compra guardada después. No cambia existencias ni la sincronización.
+   Nada nuevo en los datos guardados de la tienda: el resumen vive en la lista de avisos de la campana, como los demás avisos.
+   Apagarlo en un equipo: localStorage 'abanico.gv'='0' (Compras queda exactamente como en lo publicado). */
+function gvOn(){try{return localStorage.getItem('abanico.gv')!=='0';}catch(_){return true;}}
+function gvUse(){try{return gvOn()&&typeof pgUse==='function'&&pgUse();}catch(_){return false;}}
+/* ---- C1: el costo cambió → la Venta NO se toca; el porcentaje de la fila pasa a ser el real ---- */
+/* Única excepción, la de siempre: la fila todavía NO tiene precio de venta y el dueño ya escribió un porcentaje → al llegar el costo, la Venta
+   es la de ESE porcentaje (lo escribió él). Vale mientras sigue escribiendo en el mismo campo (PG_HOLD es el mismo desde que entró). */
+let GV_NS=null;
+{const _f=pgFollow;pgFollow=function(id,g){if(!gvOn())return _f.apply(this,arguments);
+  try{if(typeof g==='number'&&typeof pgG(id)==='number'&&((PG_HOLD&&GV_NS===PG_HOLD&&PG_HOLD.id===id)||!(pgS(id)>0))){GV_NS=PG_HOLD||null;return _f.apply(this,arguments);}
+    pgFromSale(id);}catch(_){}};}
+/* producto sin precio de venta: ya no se llena solo con el mínimo (se ofrece como precio sugerido) */
+{const _i=pgInit;pgInit=function(id){if(!gvOn())return _i.apply(this,arguments);};}
+/* ---- C2: los tres estados ---- */
+function gvTxt(v){return fTxt(pgR1(+v||0))+' %';}
+/* el porcentaje que el producto tenía antes de esta compra: con sus precios guardados (los de la presentación, si la línea va por presentación) */
+function gvBefore(id){try{const c=+pcHabC(id)||0,s=+pcHabS(id)||0;return c>0&&s>0?(s-c)/c*100:null;}catch(_){return null;}}
+/* precio en pesos enteros que da por lo menos ese porcentaje (con un decimal) */
+function gvPrice(c,x){let y=Math.max(0,Math.round(c*(1+x/100)));const t1=pgR1(x);for(let i=0;i<5&&c>0&&pgR1((y-c)/c*100)<t1;i++)y++;return y;}
+/* estado de la fila: st = '' (sin color) · ok · warn · bad; x, y = porcentaje y precio sugeridos (k: keep = el de antes, min = el mínimo) */
+function gvState(id){const o={st:'',v:null,b:null,m:null,down:false,x:null,y:null,k:''};
+  const v=pgVal(id),m=pgMin(),b=gvBefore(id),c=pgC(id),s=pgS(id);o.v=v;o.m=m;o.b=b;
+  if(v==null){if(c>0&&!(s>0)&&m!=null){o.x=m;o.k='min';o.y=gvPrice(c,m);}return o;}
+  const v1=pgR1(v),b1=b==null?null:pgR1(b);o.down=b1!=null&&v1<b1;
+  if(m!=null&&v1<m)o.st='bad';else if(o.down)o.st='warn';else o.st=m!=null?'ok':'';
+  if(o.st==='bad'||o.st==='warn'){const keep=b!=null&&(m==null||b>=m),x=keep?b:m;
+    if(x!=null){const y=gvPrice(c,x);if(y>s){o.x=x;o.y=y;o.k=keep?'keep':'min';}}}
+  return o;}
+{const _c=pgCls;pgCls=function(id){if(!gvOn())return _c.apply(this,arguments);try{const s=gvState(id).st;return s?' '+s:'';}catch(_){return _c.apply(this,arguments);}};}
+/* ---- C3: la línea de la fila (lo que pasó y el precio sugerido) ---- */
+function gvMsg(o){if(o.st==='warn')return ti('gv_down',{a:gvTxt(o.b),b:gvTxt(o.v)});
+  if(o.st==='bad')return o.down?ti('gv_down_min',{a:gvTxt(o.b),b:gvTxt(o.v),m:gvTxt(o.m)}):ti('gv_under',{m:gvTxt(o.m)});return '';}
+function gvLineHTML(id){try{const o=gvState(id),msg=gvMsg(o);
+  const sug=o.y!=null?`<div class="gv-r"><span class="gv-s">${exEsc(ti(o.k==='keep'?'gv_sug_keep':'gv_sug_min',{x:gvTxt(o.x),y:money(o.y)}))}</span><button type="button" class="gv-ap" data-gv="ap:${id}">${exEsc(t('gv_apply'))}</button></div>`:'';
+  return `<div class="gvline${o.st?' '+o.st:''}" data-gvline="${id}"${msg||sug?'':' hidden'}>${msg?`<div class="gv-m">${exEsc(msg)}</div>`:''}${sug}</div>`;}catch(_){return '';}}
+/* al dibujar las tarjetas: la línea va después de los campos, antes de los íconos de la fila */
+{const _r=pcRowsHTML;pcRowsHTML=function(){const h=_r.apply(this,arguments);
+  try{if(!gvUse()||typeof h!=='string')return h;const ids=pcItemsRecent().filter(i=>P(i.id)).map(i=>i.id),M='<div class="crow-ico pcico">',a=h.split(M);
+    if(a.length!==ids.length+1)return h;let o=a[0];for(let k=0;k<ids.length;k++)o+=gvLineHTML(ids[k])+M+a[k+1];return o;}catch(_){return h;}};}
+/* después de cada recálculo de la fila (pgPaint ya pintó los campos y el color del porcentaje): la línea */
+function gvPaint(id){try{if(!gvUse())return;const el=document.querySelector('#body [data-gvline="'+id+'"]');if(!el)return;const h=gvLineHTML(id);if(el.__gv===h)return;
+  const d=document.createElement('div');d.innerHTML=h;const n=d.firstElementChild;if(!n)return;n.__gv=h;el.replaceWith(n);}catch(_){}}
+{const _p=pgPaint;pgPaint=function(id){const r=_p.apply(this,arguments);gvPaint(id);return r;};}
+/* «Aplicar»: lo único que cambia el precio de venta sin que el dueño lo escriba */
+function gvApply(id){try{if(!gvUse()||!state.pcart||state.pcart[id]==null)return;const o=gvState(id);if(o.y==null)return;
+  pgMap('pprice')[id]=o.y;if(state.pcSaleTxt)delete state.pcSaleTxt[id];pgFromSale(id);pcLiveRefresh(id);try{saveCartDraft();}catch(_){}}catch(e){try{console.error('mods285 aplicar',e);}catch(_){}}}
+/* ---- C4: el resumen al guardar ---- */
+let GV=null,GV_PF=null;
+function gvCollect(){const L=[];pcItemsRecent().filter(i=>i.q>0).forEach(i=>{const p=P(i.id);if(!p)return;const o=gvState(i.id);if(o.st!=='warn'&&o.st!=='bad')return;const k=pcPkOf(i.id);
+  L.push({id:i.id,n:pNmV(p)+(k&&k.n?' ('+k.n+')':''),b:o.b==null?null:pgR1(o.b),v:pgR1(o.v),m:o.m,st:o.st,pk:k?k.id:null});});
+  return L.filter(r=>r.st==='bad').concat(L.filter(r=>r.st!=='bad'));}
+/* el porcentaje del producto AHORA (después de guardar, o después de ajustar su precio) */
+function gvNow(r){try{const p=P(+r.id)||P(r.id);if(!p)return null;let c,s;if(r.pk!=null){const ps=presById(p,r.pk);if(!ps)return null;c=+presHabC(p,ps)||0;s=+presHab(p,ps)||0;}else{c=+p.cost||0;s=+p.price||0;}return c>0&&s>0?(s-c)/c*100:null;}catch(_){return null;}}
+function gvRowMsg(r){const dn=r.b!=null&&r.v<r.b;if(r.st==='bad')return dn?ti('gv_down_min',{a:gvTxt(r.b),b:gvTxt(r.v),m:gvTxt(r.m)}):ti('gv_under_at',{b:gvTxt(r.v),m:gvTxt(r.m)});return ti('gv_down',{a:gvTxt(r.b),b:gvTxt(r.v)});}
+function gvCanAdj(){try{return !isSeller()&&typeof pfOpen==='function'&&!lockNeeds('inventario');}catch(_){return false;}}
+function gvDlgPaint(){const b=document.getElementById('gvBody');if(!b||!GV)return;const sc=b.scrollTop,adj=gvCanAdj();
+  document.getElementById('gvTitle').textContent=ti('gv_title',{n:GV.f==null?'':GV.f});
+  const cards=GV.rows.map(r=>{const now=gvNow(r),n1=now==null?null:pgR1(now),ch=n1!=null&&n1!==r.v,ok=ch&&(r.m==null||n1>=r.m)&&(r.b==null||n1>=r.b),st=ch?(ok?'ok':(r.m!=null&&n1<r.m?'bad':'warn')):r.st;
+    return `<div class="gv-card ${st}" data-gvrow="${exEsc(r.id)}"><div class="gv-n">${exEsc(r.n)}</div><div class="gv-l ${r.st}">${exEsc(gvRowMsg(r))}</div>`+
+      (ch?`<div class="gv-l ${st}">${exEsc(ti('gv_now',{x:gvTxt(n1)}))}</div>`:'')+
+      (r.pk!=null?`<div class="gv-k">${exEsc(t('gv_pk'))}</div>`:(adj?`<button type="button" class="gv-o" data-gv="adj:${exEsc(r.id)}">${exEsc(t('gv_adj'))}</button>`:''))+`</div>`;}).join('');
+  b.innerHTML=`<div class="gv-intro">${exEsc(t('gv_intro'))}</div>`+cards;b.scrollTop=sc;
+  const f=document.getElementById('gvFoot');if(f)f.innerHTML=`<button type="button" class="gv-o go" data-gv="close">${exEsc(t('gv_go'))}</button>`;}
+function gvOpen(x){const d=document.getElementById('gvdlg');if(!d||!x||!Array.isArray(x.rows)||!x.rows.length)return false;GV={f:x.f,rows:x.rows};gvDlgPaint();d.classList.add('on');
+  try{const a=document.activeElement;if(a&&a.blur&&a!==document.body&&!d.contains(a))a.blur();}catch(_){}return true;}
+function gvClose(){const d=document.getElementById('gvdlg');if(d)d.classList.remove('on');GV=null;}
+/* «Ajustar precio»: la ventanita de precio de la ficha del producto, encima (el mismo camino y el mismo registro de siempre) */
+function gvAdj(id){const p=P(+id)||P(id);if(!p||GV_PF||!gvCanAdj())return;
+  try{if(document.getElementById('pdetdlg').classList.contains('on'))return;}catch(_){}
+  GV_PF={id:p.id,pd:PDET_ID};PDET_ID=p.id;
+  try{pfOpen('price');}catch(e){PDET_ID=GV_PF.pd;GV_PF=null;console.error('mods285 precio',e);return;}
+  if(!PF){PDET_ID=GV_PF.pd;GV_PF=null;return;}
+  try{const c=document.getElementById('pfcard'),tt=c&&c.querySelector('.pf-t');if(tt){const s=document.createElement('div');s.className='gv-pfn';s.textContent=pNmV(p)+(p.key?' · '+p.key:'');tt.insertAdjacentElement('afterend',s);}}catch(_){}}
+{const _c=closePF;closePF=function(){const r=_c.apply(this,arguments);if(GV_PF){const x=GV_PF;setTimeout(()=>{
+    try{GV_PF=null;if(PDET_ID===x.id&&!document.getElementById('pdetdlg').classList.contains('on'))PDET_ID=x.pd;}catch(_){GV_PF=null;}
+    try{if(GV)gvDlgPaint();}catch(e){console.error('mods285 al volver',e);}},0);}return r;};}
+/* El recibo de la compra queda abierto DEBAJO del resumen. La app cierra el recibo cuando se toca fuera de su tarjeta (pvTop, mods185) y se traga ese toque:
+   con el resumen encima, un toque en «Continuar» contaba como «fuera del recibo». Mientras el resumen está abierto, esa regla no aplica. */
+{const _t=pvTop;pvTop=function(){try{if(gvOn()){const d=document.getElementById('gvdlg');if(d&&d.classList.contains('on'))return null;}}catch(_){}return _t.apply(this,arguments);};}
+/* la compra: se mira la pantalla ANTES de guardar; si se guardó, el resumen y el aviso de la campana. Guardar nunca se detiene por esto */
+{const _s=saveCompra;saveCompra=function(){
+  let pre=null,old=null;try{if(gvUse()&&!isSeller()){pre=gvCollect();old=new Set((state.purchases||[]).map(x=>x&&x.id));}}catch(_){pre=null;}
+  const r=_s.apply(this,arguments);
+  try{if(pre&&pre.length&&old){const pu=(state.purchases||[]).find(x=>x&&!old.has(x.id));if(pu)gvAfterSave(pu,pre);}}catch(e){try{console.error('mods285 resumen',e);}catch(_){}}
+  return r;};}
+function gvAfterSave(pu,rows){const id=currentDataId();
+  try{pushNotif(id,Object.assign({kind:'gain',gv:{f:pu.folio,id:pu.id,rows}},nt(rows.length===1?'gv_ntf_1':'gv_ntf',{n:pu.folio,k:rows.length})));const bd=document.getElementById('bellDot');if(bd)bd.hidden=false;}catch(e){try{console.error('mods285 campana',e);}catch(_){}}
+  gvOpen({f:pu.folio,rows});}
+/* la tarjeta del resumen en la campana; al tocarla se abre otra vez la ventana */
+function gvNtfCard(n){try{const d=n.gv||{},R=Array.isArray(d.rows)?d.rows:[];
+  return `<div class="notirow gv-ntf ${n.read?'':'unread'}" data-gv="ntf:${exEsc(n.nid)}"><div class="ntext"><b>${exEsc(t('gv_ntf_tag'))}</b> · ${exEsc(n.tk?ti(n.tk,n.tp):n.text)}</div>`+
+    R.map(r=>`<div class="gv-nl ${r.st==='bad'?'bad':'warn'}">${exEsc(r.n)}: ${exEsc(r.b==null?'':gvTxt(r.b)+' → ')}${exEsc(gvTxt(r.v))}</div>`).join('')+`<div class="gv-ntf-go">${exEsc(t('gv_ntf_go'))} ›</div></div>`;}
+  catch(_){return `<div class="notirow ${n.read?'':'unread'}"><div class="ntext">${exEsc(n.text||'')}</div></div>`;}}
+function gvFromBell(nid){try{const n=loadNotif(currentDataId()).find(x=>x&&''+x.nid===''+nid);const d=n&&n.gv;if(!d||!Array.isArray(d.rows)||!d.rows.length)return;const x={f:d.f,rows:d.rows.map(r=>Object.assign({},r))};
+  try{closeNotifs();}catch(_){}gvOpen(x);}catch(e){try{console.error('mods285 campana abrir',e);}catch(_){}}}
+document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-gv]');if(!b||!gvOn())return;e.preventDefault();e.stopPropagation();
+  const a=''+b.dataset.gv,i=a.indexOf(':'),k=i<0?a:a.slice(0,i),v=i<0?'':a.slice(i+1);
+  if(k==='ap')return gvApply(+v);if(k==='adj')return gvAdj(v);if(k==='close')return gvClose();if(k==='ntf')return gvFromBell(v);}catch(err){try{console.error('mods285 toque',err);}catch(_){}}});
+(function(){try{
+  const css=document.createElement('style');css.id='gvStyle';css.textContent=`
+  :root{--gv-warn:#8a5a00;--gv-warn-bg:#fff3cf}
+  html[data-theme="dark"]{--gv-warn:#f2c14e;--gv-warn-bg:#3d3214}
+  .pcrow .cinp.pgin.warn{color:var(--gv-warn);background:var(--gv-warn-bg);border-color:var(--gv-warn)}
+  .gvline{margin:8px 0 2px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:13px;line-height:1.35;color:var(--ink)}
+  .gvline[hidden]{display:none}
+  .gvline.warn{border-color:var(--gv-warn);background:var(--gv-warn-bg)}
+  .gvline.bad{border-color:var(--pg-bad);background:var(--pg-bad-bg)}
+  .gv-m{font-weight:700}
+  .gvline.warn .gv-m{color:var(--gv-warn)}
+  .gvline.bad .gv-m{color:var(--pg-bad)}
+  .gv-r{display:flex;align-items:center;gap:8px}
+  .gv-m+.gv-r{margin-top:6px}
+  .gv-s{flex:1;min-width:0;overflow-wrap:anywhere}
+  .gv-ap{flex:none;min-height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--pg-ok);background:var(--card);color:var(--pg-ok);font:700 13.5px var(--ui);cursor:pointer}
+  .gv-ap:active{background:var(--sel)}
+  #gvdlg{z-index:19}
+  #gvdlg .histbar{min-height:56px}
+  .gv-intro{font-size:14px;line-height:1.4;color:var(--ink);margin:0 0 12px}
+  .gv-card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px;margin-bottom:12px;border-left-width:5px}
+  .gv-card.bad{border-left-color:var(--pg-bad)}
+  .gv-card.warn{border-left-color:var(--gv-warn)}
+  .gv-card.ok{border-left-color:var(--pg-ok)}
+  .gv-n{font-weight:700;font-size:15px;line-height:1.3;color:var(--ink);overflow-wrap:anywhere}
+  .gv-l{margin-top:3px;font-size:14px;font-weight:700}
+  .gv-l.bad{color:var(--pg-bad)}
+  .gv-l.warn{color:var(--gv-warn)}
+  .gv-l.ok{color:var(--pg-ok)}
+  .gv-k{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.35}
+  .gv-o{width:100%;min-height:46px;margin-top:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14.5px var(--ui);padding:8px 10px;cursor:pointer;text-align:center}
+  .gv-o:active{background:var(--sel)}
+  .gv-o.go{margin-top:0;border-color:var(--pg-ok);color:var(--pg-ok);font-weight:700}
+  .gv-foot{flex:none;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--card)}
+  .gv-pfn{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:-8px;overflow-wrap:anywhere}
+  .gv-ntf{cursor:pointer}
+  .gv-nl{font-size:13px;margin-top:3px;font-weight:600}
+  .gv-nl.bad{color:var(--pg-bad)}
+  .gv-nl.warn{color:var(--gv-warn)}
+  .gv-ntf-go{margin-top:6px;font-size:13px;font-weight:700;color:var(--pg-ok)}`;
+  document.head.appendChild(css);
+  Object.assign(I18N.es,{gv_down:'Bajó de {a} a {b}',gv_down_min:'Bajó de {a} a {b}: por debajo del mínimo ({m})',gv_under:'Por debajo del mínimo ({m})',gv_under_at:'{b}: por debajo del mínimo ({m})',
+    gv_sug_keep:'Precio sugerido para mantener el {x}: {y}',gv_sug_min:'Precio sugerido con el mínimo ({x}): {y}',gv_apply:'Aplicar',
+    gv_title:'Ganancia de la compra #{n}',gv_intro:'La compra ya se guardó. En estos productos la ganancia bajó. El precio de venta no cambió: tú decides si lo ajustas.',
+    gv_now:'Ahora: {x}',gv_adj:'Ajustar precio',gv_pk:'Va por presentación: su precio se ajusta en la ficha del producto.',gv_go:'Continuar',
+    gv_ntf:'Compra #{n}: {k} productos con menos ganancia',gv_ntf_1:'Compra #{n}: 1 producto con menos ganancia',gv_ntf_tag:'Ganancia',gv_ntf_go:'Ver resumen'});
+  Object.assign(I18N.en,{gv_down:'Dropped from {a} to {b}',gv_down_min:'Dropped from {a} to {b}: below the minimum ({m})',gv_under:'Below the minimum ({m})',gv_under_at:'{b}: below the minimum ({m})',
+    gv_sug_keep:'Suggested price to keep {x}: {y}',gv_sug_min:'Suggested price at the minimum ({x}): {y}',gv_apply:'Apply',
+    gv_title:'Profit on purchase #{n}',gv_intro:'The purchase is saved. Profit dropped on these products. The sale price did not change: you decide whether to adjust it.',
+    gv_now:'Now: {x}',gv_adj:'Adjust price',gv_pk:'Bought by pack: adjust its price in the product page.',gv_go:'Continue',
+    gv_ntf:'Purchase #{n}: {k} products with lower profit',gv_ntf_1:'Purchase #{n}: 1 product with lower profit',gv_ntf_tag:'Profit',gv_ntf_go:'See summary'});
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('gvdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="gvdlg" role="dialog" aria-modal="true"><div class="histbar"><span class="histbar-t" id="gvTitle"></span></div><div class="histbody" id="gvBody"></div><div class="gv-foot" id="gvFoot"></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.gvdlg=()=>gvClose();}catch(_){}
+}catch(e){console.error('mods285 arranque',e);}})();
 </script>

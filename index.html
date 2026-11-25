@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261124103531';
+const APP_VERSION='20261125080029';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23237,4 +23237,162 @@ function qsOpenQuote(x){try{const f=x&&x.sale&&x.sale.fromQuote;if(f==null)retur
   if(host&&!document.getElementById('qsdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="qsdlg" role="dialog" aria-modal="true"><div class="histbar"><span class="histbar-t" id="qsTitle"></span></div><div class="histbody" id="qsBody"></div><div class="qs-foot" id="qsFoot" hidden></div></div>`);
   try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.qsdlg=()=>qsBack();}catch(_){}
 }catch(e){console.error('mods283 arranque',e);}})();
+/* ==== mods284 (2026-11-24): PARTE B de «Tres integraciones» — HISTORIAL COMPLETO DEL PRODUCTO en Reportes → Productos a Detalle ====
+   Pedido de Fabio (documento «Tres integraciones…», 23-nov; «Autorizo» a la parte B el 24-nov, con: tabla nueva en el servidor,
+   historial con conexión, carga única del pasado y lo que la pantalla ya mostraba se deja debajo).
+   Diagnóstico: la pantalla mostraba un resumen por rango de fechas, sin línea de tiempo. Lo que BAJA existencias ya queda en el libro del
+   servidor (mods239/245). Lo que SUBE (compras, ajustes, creación) y los cambios de precio solo quedaban en invLog (1.500 y ~2 meses).
+   QUÉ HACE
+   B1. Resumen del producto arriba (código, categoría, creado, existencias, precios, % de ganancia, comprado, vendido, últimas fechas, proveedores).
+   B2. Línea de tiempo, del más reciente al más antiguo; al tocar un movimiento se abre su documento.
+   B3. Filtro por tipo y por fechas; exportar el historial filtrado (CSV).
+   B4. Cada entrada nueva de invLog lleva un sello «h» {pid, t, k, ref, d}: el servidor (cambios/mods284/sql/historial.sql) la copia UNA vez
+       a su tabla, que solo se agrega. Las funciones existentes NO se editan: se envuelven para decir de qué tipo es el movimiento.
+   B5. El historial se pide al servidor solo al abrir un producto, de a 30. Nada se guarda dentro del producto.
+   Interruptor: localStorage 'abanico.ph'='0' apaga todo (sin sello y sin la sección nueva). Un vendedor no ve el historial. */
+function phOn(){try{return localStorage.getItem('abanico.ph')!=='0';}catch(_){return true;}}
+function phCan(){try{return phOn()&&!isSeller();}catch(_){return false;}}
+var PH_CTX=null,PH_PEND=[],PH={pid:null},PH_PAGE=30;
+/* ---- B4: el sello de cada movimiento ---- */
+{const _f=invLogAdd;invLogAdd=function(tipo,p,old){const a=(state.invLog||[])[0],a0=a?a.id:null;const r=_f.apply(this,arguments);
+  try{if(phOn()&&p){const e=(state.invLog||[])[0];if(e&&e.id!==a0&&!e.h){const c=PH_CTX||{};e.h={pid:''+p.id,t:Date.now(),k:c.k||'ajuste'};if(c.ref!=null)e.h.ref=''+c.ref;if(c.late)PH_PEND.push(e);}}}catch(e){try{console.error('mods284 sello',e);}catch(_){}}
+  return r;};}
+function phWith(c,fn,self,args){const prev=PH_CTX;PH_CTX=c;let r;try{r=fn.apply(self,args);}catch(e){PH_CTX=prev;throw e;}
+  if(r&&typeof r.then==='function')return r.finally(()=>{if(PH_CTX===c)PH_CTX=prev;});PH_CTX=prev;return r;}
+{const _f=saveCompra;saveCompra=function(){const p0=(state.purchases||[])[0];PH_PEND=[];return phWith({k:'compra',late:1,p0:p0?p0.id:null},_f,this,arguments);};}
+{const _f=purIeClose;purIeClose=function(){let ref=null;try{ref=ITEMS_ED&&ITEMS_ED.id;}catch(_){}return phWith({k:'compra_editada',ref},_f,this,arguments);};}
+{const _f=purDelete;purDelete=function(id){return phWith({k:'compra_borrada',ref:id},_f,this,arguments);};}
+{const _f=saveMerma;saveMerma=function(){return phWith({k:'merma'},_f,this,arguments);};}
+{const _f=acxHist;acxHist=function(){return phWith({k:'autoconsumo'},_f,this,arguments);};}
+/* la compra nace después de sus líneas: al guardar, las líneas pendientes reciben el número de la compra y el proveedor */
+{const _f=persist;persist=function(){try{if(PH_PEND.length){const c=PH_CTX;if(c&&c.late){const pu=(state.purchases||[])[0];if(pu&&pu.id!==c.p0){const d={};if(pu.provider)d.prov=''+pu.provider;if(pu.folio!=null)d.fol=pu.folio;
+      PH_PEND.forEach(e=>{if(e&&e.h){e.h.ref=''+pu.id;if(d.prov||d.fol!=null)e.h.d=d;}});PH_PEND=[];}}else PH_PEND=[];}}catch(_){PH_PEND=[];}
+  return _f.apply(this,arguments);};}
+/* ---- B4b (24-nov, Fabio: «Sí, que quede»): IMPORTAR productos desde un archivo también deja registro ----
+   importProducts cambia existencias, costo y precio sin pasar por invLog (su tope de 1.500 no aguanta un archivo de miles, y ese registro
+   alimenta la tabla «compra» del respaldo: no se toca). Va por un camino propio: se compara cada producto antes y después de importar y las
+   diferencias se mandan al servidor por tandas (relax_prod_hist_import). Sin conexión esperan en el equipo y salen al volver.
+   No cambia ningún producto ni la forma de importar: solo mira y anota. */
+const PH_IK='abanico.phimp',PH_ICH=400;var PH_IMEM=[],PH_IBUSY=false;
+function phImpQ(){try{const a=JSON.parse(localStorage.getItem(PH_IK)||'[]');return Array.isArray(a)?a.filter(b=>b&&b.s&&b.b&&Array.isArray(b.r)):[];}catch(_){return [];}}
+function phImpQSave(a){try{if(a.length)localStorage.setItem(PH_IK,JSON.stringify(a));else localStorage.removeItem(PH_IK);return true;}catch(_){return false;}}
+function phImpNote(snap){const id=currentDataId();if(!id)return;const rows=[],df=(a,b)=>Math.abs((+a||0)-(+b||0))>1e-9;
+  (state.products||[]).forEach(p=>{if(!p||p.del)return;const n=invSnap(p),o=snap.get(p.id);
+    if(!o)rows.push([''+p.id,1,0,n.q,0,n.c,0,n.v]);else if(df(o.q,n.q)||df(o.c,n.c)||df(o.v,n.v))rows.push([''+p.id,0,o.q,n.q,o.c,n.c,o.v,n.v]);});
+  if(!rows.length)return;const b={s:id,b:'IM'+uidPart()+Date.now().toString(36),t:Date.now(),r:rows};
+  const q=phImpQ();q.push(b);if(!phImpQSave(q))PH_IMEM.push(b);   /* sin espacio en el equipo: queda en memoria y sale si hay conexión */
+  setTimeout(phImpFlush,0);}
+function phImpDone(b,n,drop){const q=phImpQ(),i=q.findIndex(x=>x.b===b.b);
+  if(i>=0){if(drop)q.splice(i,1);else{q[i].r=q[i].r.slice(n);if(!q[i].r.length)q.splice(i,1);}phImpQSave(q);}
+  const j=PH_IMEM.findIndex(x=>x.b===b.b);if(j>=0){if(drop)PH_IMEM.splice(j,1);else{PH_IMEM[j].r=PH_IMEM[j].r.slice(n);if(!PH_IMEM[j].r.length)PH_IMEM.splice(j,1);}}}
+async function phImpFlush(){if(PH_IBUSY)return;PH_IBUSY=true;
+  try{for(let g=0;g<200;g++){const b=phImpQ()[0]||PH_IMEM[0];if(!b)break;if(!b.r.length){phImpDone(b,0,true);continue;}
+      const part=b.r.slice(0,PH_ICH);const r=await lgCall('relax_prod_hist_import',{p_store:b.s,p_batch:b.b,p_at:new Date(+b.t||Date.now()).toISOString(),p_rows:part});
+      if(r&&r.data&&r.data.ok)phImpDone(b,part.length,false);
+      else if(r&&r.error){const m=''+(r.error.message||''),c=''+(r.error.code||'');   /* el servidor no tiene el historial, o esta cuenta no es de esa tienda: no se insiste */
+        if(c==='PGRST202'||/Could not find the function/i.test(m)||/relax_forbidden|relax_hist/.test(m))phImpDone(b,0,true);break;}
+      else break;}   /* sin conexión: se reintenta al volver */
+  }catch(e){try{console.error('mods284 importar envío',e);}catch(_){}}finally{PH_IBUSY=false;}}
+{const _f=importProducts;importProducts=function(list,stay,rest){let snap=null;
+  try{if(phOn()&&currentDataId()){snap=new Map();(state.products||[]).forEach(p=>{if(p&&!p.del)snap.set(p.id,invSnap(p));});}}catch(_){snap=null;}
+  const r=_f.apply(this,arguments);
+  try{if(snap&&r)phImpNote(snap);}catch(e){try{console.error('mods284 importar',e);}catch(_){}}
+  return r;};}
+try{addEventListener('online',()=>{setTimeout(phImpFlush,1500);});setTimeout(phImpFlush,7000);}catch(_){}
+/* ---- lectura por partes ---- */
+function phArgs(more){const a={p_store:currentDataId(),p_product:''+PH.pid,p_limit:PH_PAGE};const K=phKinds(PH.f);if(K)a.p_kinds=K;
+  if(PH.from)a.p_from=new Date(PH.from+'T00:00:00').toISOString();if(PH.to){const d=new Date(PH.to+'T00:00:00');d.setDate(d.getDate()+1);a.p_to=d.toISOString();}
+  if(more&&PH.rows&&PH.rows.length){const l=PH.rows[PH.rows.length-1];a.p_at=l.at;a.p_id=l.id;}return a;}
+const PH_F={all:null,venta:['venta','venta_edit','venta_anul'],compra:['compra','compra_editada','compra_borrada','entrada'],ajuste:['ajuste','ajuste_cero'],precio:['precio'],merma:['merma','autoconsumo'],crea:['crea','borra']};
+function phKinds(f){return PH_F[f]||null;}
+async function phLoad(more){const pid=PH.pid,tok=PH.tok=(PH.tok||0)+1;if(pid==null)return;PH.busy=true;PH.err='';phPaint();
+  let r;try{r=await lgCall('relax_prod_hist_read',phArgs(more));}catch(e){r={error:{message:''+e}};}
+  if(PH.pid!==pid||PH.tok!==tok)return;PH.busy=false;
+  if(r&&r.data&&Array.isArray(r.data.rows)){const d=r.data;PH.rows=more?(PH.rows||[]).concat(d.rows):d.rows;PH.more=!!d.more;PH.tot=d.tot||null;PH.since=d.since||null;PH.past=!!d.past;PH.created=d.created||null;PH.ok=true;}
+  else PH.err=r&&r.net?'net':'srv';
+  phPaint();}
+function phKick(pid){if(PH.pid===pid)return;PH={pid,rows:null,more:false,busy:true,f:'all',from:'',to:'',tok:0};setTimeout(()=>{if(PH.pid===pid)phLoad(false);},0);}
+function phPaint(){try{const b=document.getElementById('phbox');if(!b||PH.pid==null||+b.dataset.pid!==+PH.pid)return;const p=P(+PH.pid);if(!p)return;const act=document.activeElement,aid=act&&act.id;b.innerHTML=phHTML(p);if(aid){const el=document.getElementById(aid);if(el&&b.contains(el))try{el.focus({preventScroll:true});}catch(_){}}}catch(e){try{console.error('mods284 pintar',e);}catch(_){}}}
+/* ---- textos ---- */
+function phDT(s){try{const d=new Date(s);if(isNaN(d))return '';const z=n=>String(n).padStart(2,'0');return z(d.getDate())+'/'+z(d.getMonth()+1)+'/'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes());}catch(_){return '';}}
+function phD(s){return phDT(s).slice(0,10);}
+function phQ(n,p){return qtyLoc(Math.abs(+n||0))+' '+baseShort(p);}
+function phPct(c,v){c=+c||0;v=+v||0;if(!(c>0))return '—';return (Math.round((v-c)/c*1000)/10).toLocaleString('es-CO')+' %';}
+function phKindTxt(r){const k=r.kind;if((k==='entrada'||k==='ajuste')&&r.det&&r.det.imp)return t('ph_k_importa');if(k==='merma'&&/^AC/.test(''+(r.op_key||'')))return t('ph_k_autoconsumo');const m={crea:'ph_k_crea',borra:'ph_k_borra',compra:'ph_k_compra',entrada:'ph_k_entrada',ajuste:'ph_k_ajuste',ajuste_cero:'ph_k_ajuste',precio:'ph_k_precio',venta:'ph_k_venta',venta_edit:'ph_k_venta_edit',venta_anul:'ph_k_venta_anul',merma:'ph_k_merma',autoconsumo:'ph_k_autoconsumo',compra_borrada:'ph_k_compra_borrada',compra_editada:'ph_k_compra_editada'};return t(m[k]||'ph_k_otro');}
+function phSale(ref){return ref==null?null:(state.sales||[]).find(x=>x&&''+x.id===''+ref)||null;}
+function phPur(ref){return ref==null?null:(state.purchases||[]).find(x=>x&&''+x.id===''+ref)||null;}
+function phItem(doc,pid){return doc&&Array.isArray(doc.items)?doc.items.find(i=>i&&''+i.id===''+pid)||null:null;}
+/* el detalle de cada movimiento sale de lo que ya está en memoria (la venta, la compra): no se pide nada más */
+function phDetail(r,p){const o=[];const k=r.kind;
+  if(k==='venta'||k==='venta_edit'||k==='venta_anul'){const s=phSale(r.ref);if(s){o.push(t('ph_folio')+' '+(s.folio!=null?s.folio:s.id));const it=phItem(s,p.id);if(it&&it.price!=null)o.push(t('ph_price')+' '+money(+it.price||0));else if(r.det&&r.det.price!=null)o.push(t('ph_price')+' '+money(+r.det.price||0));if((''+(s.client||'')).trim())o.push(t('ph_client')+' '+s.client);const v=saleVendLbl(s);if(v)o.push(t('ph_seller')+' '+v);}else{if(r.det&&r.det.price!=null)o.push(t('ph_price')+' '+money(+r.det.price||0));if(r.ref)o.push(t('ph_doc_gone'));}}
+  else if(k==='compra'||k==='compra_editada'||k==='compra_borrada'){const u=phPur(r.ref);const d=r.det||{};const fol=u?u.folio:d.fol;const pv=u?(u.provider||''):(d.prov||'');if(fol!=null)o.push(t('ph_purchase')+' '+fol);if(pv)o.push(t('ph_prov')+' '+pv);const it=phItem(u,p.id);if(it&&it.pk&&it.pk.n)o.push(t('ph_pres')+' '+it.pk.n+(it.pk.c?' × '+qtyLoc(it.pk.c):''));if(k==='compra'&&r.cost_new!=null)o.push(t('ph_cost')+' '+money(+r.cost_new||0));if(!u&&r.ref&&k!=='compra_borrada')o.push(t('ph_doc_gone'));}
+  else if(k==='precio'){if(+r.cost_old!==+r.cost_new)o.push(t('ph_cost')+' '+money(+r.cost_old||0)+' → '+money(+r.cost_new||0));if(+r.price_old!==+r.price_new)o.push(t('ph_sale')+' '+money(+r.price_old||0)+' → '+money(+r.price_new||0));o.push(t('ph_gain')+' '+phPct(r.cost_new,r.price_new));}
+  else if(k==='crea'){o.push(t('ph_cost')+' '+money(+r.cost_new||0));o.push(t('ph_sale')+' '+money(+r.price_new||0));}
+  else if(k==='merma'&&/^AC/.test(''+(r.op_key||''))){const a=(state.autoCons||[]).find(x=>x&&''+x.op===''+r.op_key&&''+x.pid===''+p.id);if(a&&a.note)o.push(t('ph_why')+' '+a.note);}
+  else if(k==='merma'||k==='autoconsumo'){const d=phD(r.at);const m=(state.mermas||[]).find(x=>x&&!x.del&&''+x.pid===''+p.id&&phD((x.date||'')+'T'+(x.time||'00:00'))===d&&Math.abs((+x.qty||0)-Math.abs(+r.qty||0))<1e-6);if(m&&m.note)o.push(t('ph_why')+' '+m.note);else if(r.det&&r.det.note)o.push(t('ph_why')+' '+r.det.note);}
+  if((k==='ajuste'||k==='entrada'||k==='ajuste_cero')&&r.before!=null)o.push(t('ph_from_to')+' '+qtyLoc(+r.before||0)+' → '+qtyLoc(+r.after||0));
+  if((k==='crea'||k==='precio')&&r.det&&r.det.imp)o.push(t('ph_imp'));
+  return o;}
+function phRowHTML(r,i,p){const q=r.qty==null||!+r.qty?'':'<b class="ph-q '+(+r.qty>0?'in':'out')+'">'+(+r.qty>0?'+':'−')+exEsc(phQ(r.qty,p))+'</b>';const d=phDetail(r,p);
+  const open=((r.kind==='venta'||r.kind==='venta_edit')&&phSale(r.ref))||((r.kind==='compra'||r.kind==='compra_editada')&&phPur(r.ref));
+  return '<div class="ph-row'+(open?' tap':'')+'" data-ph="open:'+i+'"><div class="ph-l1"><span class="ph-dt">'+exEsc(phDT(r.at))+'</span>'+q+'</div><div class="ph-l2"><b>'+exEsc(phKindTxt(r))+'</b>'+(d.length?' · '+exEsc(d.join(' · ')):'')+'</div><div class="ph-l3">'+(r.after!=null?exEsc(t('ph_left')+' '+qtyLoc(+r.after||0)+' '+baseShort(p))+' · ':'')+exEsc(r.src==='pasado'?t('ph_by_none'):t('ph_by')+' '+(r.who||t('ph_owner')))+'</div></div>';}
+/* cotizaciones y órdenes de compra donde aparece: solo referencia (no mueven inventario); salen de lo que ya está en memoria */
+function phRefs(p){const out=[];try{(state.quotes||[]).forEach(q=>{if(!q||q.del)return;const it=(q.items||q.lines||[]).find(i=>i&&''+(i.id!=null?i.id:i.pid)===''+p.id);if(it)out.push({k:'q',id:q.id,d:q.date||q.issue||'',n:q.folio,q:+it.q||0});});
+  (state.porders||[]).forEach(o=>{if(!o||o.del)return;const it=(o.lines||o.items||[]).find(i=>i&&''+(i.pid!=null?i.pid:i.id)===''+p.id);if(it)out.push({k:'o',id:o.id,d:o.issue||o.date||'',n:o.folio,q:+it.q||0});});}catch(_){}
+  return out.sort((a,b)=>(''+b.d).localeCompare(''+a.d)).slice(0,10);}
+function phHTML(p){const kv=(l,v)=>'<div><span>'+exEsc(l)+'</span><b class="num">'+exEsc(v)+'</b></div>';const T=PH.tot||{};const sec=s=>'<div class="g5sec">'+exEsc(s)+'</div>';
+  let h='<div class="g5pcard ph-card"><div class="ph-name">'+exEsc(pNmV(p))+'</div>'
+    +'<div class="g5kv c3">'+kv(t('ph_code'),p.key||'—')+kv(t('f_category'),catName(p.cat))+kv(t('ph_created'),PH.created?phD(PH.created):t('ph_nodata'))+'</div>'
+    +'<div class="g5kv c3">'+kv(t('ph_stock'),qtyLoc(+p.stock||0)+' '+baseShort(p))+kv(t('ph_cost'),money(+p.cost||0))+kv(t('ph_sale'),money(+p.price||0))+'</div>'
+    +'<div class="g5kv c3">'+kv(t('ph_gain'),phPct(p.cost,p.price))+kv(t('ph_bought'),PH.ok?qtyLoc(+T.bought||0):'…')+kv(t('ph_sold'),PH.ok?qtyLoc(+T.sold||0):'…')+'</div>'
+    +'<div class="g5kv c2">'+kv(t('ph_last_buy'),T.last_buy?phD(T.last_buy):'—')+kv(t('ph_last_sale'),T.last_sale?phD(T.last_sale):'—')+'</div>'
+    +'<div class="ph-provs"><span>'+exEsc(t('ph_provs'))+'</span> '+exEsc(Array.isArray(T.provs)&&T.provs.length?T.provs.join(', '):'—')+'</div>'
+    +(PH.ok&&PH.since&&!PH.past?'<div class="ph-note">'+exEsc(ti('ph_tot_since',{d:phD(PH.since)}))+'</div>':'')+'</div>';
+  h+='<div class="g5pcard ph-card">'+sec(t('ph_title'))+'<div class="ph-filt"><select id="phF" data-phc="f">'+Object.keys(PH_F).map(k=>'<option value="'+k+'"'+(PH.f===k?' selected':'')+'>'+exEsc(t('ph_f_'+k))+'</option>').join('')+'</select>'
+    +'<input type="date" id="phFrom" data-phc="from" value="'+exEsc(PH.from||'')+'" aria-label="'+exEsc(t('ph_from'))+'"><input type="date" id="phTo" data-phc="to" value="'+exEsc(PH.to||'')+'" aria-label="'+exEsc(t('ph_to'))+'">'
+    +'<button class="ph-btn" data-ph="csv">'+exEsc(t('ph_export'))+'</button></div>';
+  if(PH.err)h+='<div class="ph-msg">'+exEsc(t(PH.err==='net'?'ph_need_net':'ph_err'))+' <button class="ph-btn" data-ph="retry">'+exEsc(t('ph_retry'))+'</button></div>';
+  else if(!PH.rows)h+='<div class="ph-msg">'+exEsc(t('ph_loading'))+'</div>';
+  else{const S=PH.since?+new Date(PH.since):0;let cut=false;const line=()=>'<div class="ph-end">'+exEsc(ti('ph_no_before',{d:phD(PH.since)}))+'</div>';h+=PH.rows.length?PH.rows.map((r,i)=>{let x='';if(S&&!cut&&+new Date(r.at)<S){cut=true;x=line();}return x+phRowHTML(r,i,p);}).join(''):'<div class="ph-msg">'+exEsc(t('ph_empty'))+'</div>';
+    if(PH.more)h+='<button class="ph-more" data-ph="more"'+(PH.busy?' disabled':'')+'>'+exEsc(t(PH.busy?'ph_loading':'ph_more'))+'</button>';
+    else if(PH.since&&!cut&&PH.rows.length)h+=line();}
+  const R=PH.f==='all'?phRefs(p):[];if(R.length)h+=sec(t('ph_refs'))+R.map(x=>'<div class="ph-row tap" data-ph="ref:'+x.k+':'+exEsc(x.id)+'"><div class="ph-l2"><b>'+exEsc(t(x.k==='q'?'ph_k_quote':'ph_k_po'))+(x.n!=null?' #'+exEsc(x.n):'')+'</b> · '+exEsc(x.d)+' · '+exEsc(phQ(x.q,p))+'</div><div class="ph-l3">'+exEsc(t('ph_ref_note'))+'</div></div>').join('');
+  return h+'</div>';}
+/* ---- la sección dentro del reporte: el resumen nuevo y el historial arriba; lo que ya había, debajo ---- */
+{const _f=repProdDetail;repProdDetail=function(){const h=_f.apply(this,arguments);
+  try{if(!phCan()||typeof h!=='string')return h;const v=state.repPick&&state.repPick.prod_detail;const p=v&&P(+(''+v).slice(1));if(!p){PH={pid:null};return h;}
+    phKick(p.id);const box='<div id="phbox" data-pid="'+p.id+'">'+phHTML(p)+'</div>';const pk=g5PdPicker();
+    return pk&&h.indexOf(pk)===0?pk+box+h.slice(pk.length):h+box;}catch(e){try{console.error('mods284 reporte',e);}catch(_){}return h;}};
+  try{REP_RENDER.prod_detail=repProdDetail;}catch(_){}}   /* la pantalla llama a la función por esta tabla */
+/* ---- toques y filtros ---- */
+async function phExport(){const p=P(+PH.pid);if(!p||!PH.ok)return;toast(t('rp_generating'));
+  let rows=(PH.rows||[]).slice(),more=PH.more,guard=0;const base=phArgs(false);base.p_limit=200;
+  while(more&&guard++<200){const l=rows[rows.length-1];const r=await lgCall('relax_prod_hist_read',Object.assign({},base,{p_at:l.at,p_id:l.id}));if(!r||!r.data||!Array.isArray(r.data.rows)){toast(t('ph_need_net'));return;}rows=rows.concat(r.data.rows);more=!!r.data.more;}
+  const head=[t('ph_c_date'),t('ph_c_kind'),t('ph_c_qty'),t('ph_c_left'),t('ph_c_detail'),t('ph_c_by')];
+  const out=[[t('ph_title')+' · '+pNmV(p),p.key||''],head].concat(rows.map(r=>[phDT(r.at),phKindTxt(r),r.qty==null?'':+r.qty,r.after==null?'':+r.after,phDetail(r,p).join(' · '),r.src==='pasado'?'':(r.who||t('ph_owner'))]));
+  const csv=String.fromCharCode(65279)+out.map(row=>row.map(ioCsvCell).join(',')).join('\r\n');
+  saveWithPicker(t('ph_title')+' '+pNmV(p)+' '+todayISO()+'.csv','text/csv',csv).then(ok=>{if(ok)toast(t('io_done_exp'));});}
+addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.target.closest('[data-ph]');if(!b||!phCan())return;const a=(''+b.dataset.ph).split(':');
+  if(a[0]==='more'){if(!PH.busy)phLoad(true);}
+  else if(a[0]==='retry'){phLoad(false);}
+  else if(a[0]==='csv'){phExport();}
+  else if(a[0]==='open'){const r=(PH.rows||[])[+a[1]];if(!r)return;if((r.kind==='venta'||r.kind==='venta_edit')&&phSale(r.ref))openSaleDet(r.ref);else if((r.kind==='compra'||r.kind==='compra_editada')&&phPur(r.ref))openPurchaseDet(r.ref);}
+  else if(a[0]==='ref'){const id=a.slice(2).join(':');if(a[1]==='q')openQuote(id);else openPO(id);}
+}catch(err){try{console.error('mods284 toque',err);}catch(_){}}});
+addEventListener('change',e=>{try{const el=e.target;if(!el||!el.dataset||!el.dataset.phc||!phCan()||PH.pid==null)return;const k=el.dataset.phc;if(k==='f')PH.f=PH_F.hasOwnProperty(el.value)?el.value:'all';else if(k==='from')PH.from=el.value||'';else if(k==='to')PH.to=el.value||'';PH.rows=null;phLoad(false);}catch(_){}});
+/* ---- estilos y textos ---- */
+try{const st=document.createElement('style');st.id='phcss';st.textContent='.ph-card{padding:10px 10px 8px}.ph-name{font-weight:700;font-size:15px;margin:0 0 8px;text-align:center}.ph-card .g5kv{margin-bottom:8px}.ph-provs,.ph-note,.ph-end,.ph-msg{font-size:12px;opacity:.8;margin:4px 2px;text-align:center}.ph-provs span{font-weight:700}.ph-filt{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}.ph-filt select,.ph-filt input{flex:1 1 30%;min-width:0;height:38px;border:1px solid rgba(128,128,128,.4);border-radius:8px;background:transparent;color:inherit;font-size:13px;padding:0 6px}.ph-btn{height:38px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:transparent;color:inherit;font-size:13px;padding:0 12px;font-weight:600}.ph-row{border-top:1px solid rgba(128,128,128,.25);padding:8px 2px}.ph-row.tap{cursor:pointer}.ph-l1{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;opacity:.85}.ph-q{font-size:14px;opacity:1}.ph-q.in{color:#1b8a4b}.ph-q.out{color:#c0392b}.ph-l2{font-size:13.5px;margin-top:2px;word-break:break-word}.ph-l3{font-size:12px;opacity:.75;margin-top:2px}.ph-more{display:block;width:100%;height:44px;margin:8px 0 4px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:transparent;color:inherit;font-weight:700;font-size:14px}.ph-end{padding:10px 0 4px;font-style:italic}';document.head.appendChild(st);
+  Object.assign(I18N.es,{ph_title:'Historial del producto',ph_code:'Código',ph_created:'Creado',ph_nodata:'Sin registro',ph_stock:'Existencias',ph_cost:'P. compra',ph_sale:'P. venta',ph_gain:'Ganancia',ph_bought:'Comprado',ph_sold:'Vendido',ph_last_buy:'Última compra',ph_last_sale:'Última venta',ph_provs:'Proveedores:',ph_tot_since:'Comprado, vendido y fechas: con registro desde el {d}.',
+    ph_f_all:'Todos',ph_f_venta:'Ventas',ph_f_compra:'Compras',ph_f_ajuste:'Ajustes',ph_f_precio:'Precios',ph_f_merma:'Merma y autoconsumo',ph_f_crea:'Creación',ph_from:'Desde',ph_to:'Hasta',ph_export:'Exportar',ph_loading:'Cargando…',ph_empty:'Sin movimientos con este filtro.',ph_more:'Ver más',ph_retry:'Reintentar',
+    ph_need_net:'El historial necesita conexión a internet.',ph_err:'No se pudo cargar el historial.',ph_no_before:'Sin registro detallado antes del {d}',
+    ph_k_crea:'Creación del producto',ph_k_borra:'Producto eliminado',ph_k_compra:'Compra',ph_k_entrada:'Entrada de inventario',ph_k_ajuste:'Ajuste manual',ph_k_precio:'Cambio de precio',ph_k_venta:'Venta',ph_k_venta_edit:'Venta editada',ph_k_venta_anul:'Venta anulada',ph_k_merma:'Merma',ph_k_autoconsumo:'Autoconsumo',ph_k_compra_borrada:'Compra eliminada',ph_k_compra_editada:'Compra editada',ph_k_otro:'Movimiento',ph_k_importa:'Importación desde archivo',ph_imp:'Importado desde un archivo',ph_k_quote:'Cotización',ph_k_po:'Orden de compra',
+    ph_folio:'Folio',ph_price:'Precio',ph_client:'Cliente',ph_seller:'Vendedor',ph_purchase:'Compra',ph_prov:'Proveedor',ph_pres:'Presentación',ph_why:'Motivo:',ph_from_to:'De',ph_left:'Quedaron',ph_by:'Por',ph_by_none:'Sin registro de quién',ph_owner:'Dueño',ph_doc_gone:'(el documento ya no está)',ph_refs:'Cotizaciones y órdenes de compra',ph_ref_note:'Solo referencia: no mueve inventario',
+    ph_c_date:'Fecha y hora',ph_c_kind:'Tipo',ph_c_qty:'Cantidad',ph_c_left:'Quedaron',ph_c_detail:'Detalle',ph_c_by:'Quién'});
+  Object.assign(I18N.en,{ph_title:'Product history',ph_code:'Code',ph_created:'Created',ph_nodata:'No record',ph_stock:'Stock',ph_cost:'Cost',ph_sale:'Price',ph_gain:'Margin',ph_bought:'Bought',ph_sold:'Sold',ph_last_buy:'Last purchase',ph_last_sale:'Last sale',ph_provs:'Suppliers:',ph_tot_since:'Bought, sold and dates: recorded since {d}.',
+    ph_f_all:'All',ph_f_venta:'Sales',ph_f_compra:'Purchases',ph_f_ajuste:'Adjustments',ph_f_precio:'Prices',ph_f_merma:'Shrinkage and own use',ph_f_crea:'Creation',ph_from:'From',ph_to:'To',ph_export:'Export',ph_loading:'Loading…',ph_empty:'No movements with this filter.',ph_more:'See more',ph_retry:'Retry',
+    ph_need_net:'The history needs an internet connection.',ph_err:'The history could not be loaded.',ph_no_before:'No detailed record before {d}',
+    ph_k_crea:'Product created',ph_k_borra:'Product deleted',ph_k_compra:'Purchase',ph_k_entrada:'Stock entry',ph_k_ajuste:'Manual adjustment',ph_k_precio:'Price change',ph_k_venta:'Sale',ph_k_venta_edit:'Sale edited',ph_k_venta_anul:'Sale voided',ph_k_merma:'Shrinkage',ph_k_autoconsumo:'Own use',ph_k_compra_borrada:'Purchase deleted',ph_k_compra_editada:'Purchase edited',ph_k_otro:'Movement',ph_k_importa:'Imported from a file',ph_imp:'Imported from a file',ph_k_quote:'Quote',ph_k_po:'Purchase order',
+    ph_folio:'No.',ph_price:'Price',ph_client:'Customer',ph_seller:'Seller',ph_purchase:'Purchase',ph_prov:'Supplier',ph_pres:'Pack',ph_why:'Reason:',ph_from_to:'From',ph_left:'Left',ph_by:'By',ph_by_none:'No record of who',ph_owner:'Owner',ph_doc_gone:'(the document is gone)',ph_refs:'Quotes and purchase orders',ph_ref_note:'Reference only: does not move stock',
+    ph_c_date:'Date and time',ph_c_kind:'Type',ph_c_qty:'Quantity',ph_c_left:'Left',ph_c_detail:'Detail',ph_c_by:'Who'});
+}catch(e){try{console.error('mods284 textos',e);}catch(_){}}
 </script>

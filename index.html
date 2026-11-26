@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261126050306';
+const APP_VERSION='20261126155210';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23869,4 +23869,56 @@ function acyPaint(){try{document.querySelectorAll('.acy-b').forEach(e=>e.remove(
   .appbar .iconbtn.acy-b.on .acx-cup{stroke:var(--cafe)}`;
   document.head.appendChild(css);
 }catch(e){console.error('mods287 arranque',e);}})();
+/* ==== mods288 (2026-11-26): LA ETIQUETA DE LA VENTA DEJA DE MOSTRARSE (parte C de «Cuatro ajustes») ====
+   Pedido de Fabio (documento del 25-nov; diagnóstico del 26-nov en cambios/mods288/DIAGNOSTICO_parteC.md; «Autorizo» al plan).
+   La etiqueta de la venta (s.tag) deja de VERSE; no se borra ni se reescribe ninguna guardada.
+   C1. Ventas: el campo «Etiqueta (opcional)» y su «?» no se muestran; la venta nueva se guarda sin etiqueta. Al editar una venta
+       antigua, la etiqueta que tenía se conserva tal cual (no se ve, pero no se pierde).
+   C2. Historial de Ventas: la fila de la etiqueta de cada tarjeta no se muestra y la opción «Etiqueta» sale del menú de filtros
+       (los demás filtros hacen lo mismo de antes: el número que devuelve el menú se corrige para la función de siempre).
+   C3. Detalle de la venta pagada y de la venta por cobrar: la fila de la etiqueta (con su ✕ y su lápiz) no se muestra.
+   C4. Reporte Clientes: la etiqueta sale de la tarjeta de cada venta y de la tabla de ventas del PDF.
+   C5. Reporte Ventas por cobrar: si la venta no tiene dirección, la línea de nota ya no muestra la etiqueta.
+   C6. Reporte Etiquetas: sale de la lista de reportes (decisión de Fabio, 26-nov: «1 b»); no se borra nada y el interruptor lo devuelve.
+   NO se toca: la factura y el ticket (no la mostraban), la columna «Etiqueta» del CSV del historial (decisión de Fabio: «2 a», se
+   deja), la copia para Mi Negocio, la etiqueta del cliente y la etiqueta verde de precio.
+   Interruptor: localStorage abanico.nt = '0' → todo como antes (al recargar). Prefijo nt. Envuelve render, saveSale, histCardHTML,
+   histSearch, appMenu, g8SaleCard, srCard, MN_PDF.clients y mnRepTable; vigila #saleBody para ocultar la fila del detalle. */
+function ntOn(){try{return localStorage.getItem('abanico.nt')!=='0';}catch(_){return true;}}
+let NT_HS=0,NT_PDF=0;
+/* C1: el campo de la etiqueta en Ventas */
+function ntPaint(){try{if(!ntOn())return;document.querySelectorAll('#body .tagsel').forEach(e=>{const r=e.closest('.tagrow')||e.parentNode;if(r&&!r.classList.contains('nt-x'))r.classList.add('nt-x');});}catch(_){}}
+function ntGuard(){try{if(ntOn()&&state.screen==='nueva'&&!state.editSale&&!state.quoteMode&&state.saleTag)state.saleTag='';}catch(_){}
+  try{if(ntOn()&&state.repSel&&state.repSel.tags)delete state.repSel.tags;}catch(_){}}   /* C6: el Reporte Etiquetas no queda elegido */
+{const _r=render;render=function(){ntGuard();const r=_r.apply(this,arguments);ntPaint();return r;};}
+{const _v=saveSale;saveSale=function(){ntGuard();return _v.apply(this,arguments);};}
+/* C2: la tarjeta del historial y su menú de filtros */
+{const _h=histCardHTML;histCardHTML=function(s){const h=_h.apply(this,arguments);if(!ntOn())return h;try{
+  const a='<div class="scard-row">'+svg(S_FAN)+'<span>',i=h.indexOf(a);if(i<0)return h;const j=h.indexOf('</div>',i);if(j<0)return h;return h.slice(0,i)+h.slice(j+6);}catch(_){return h;}};}
+{const _a=appMenu;appMenu=function(title,labels){const hs=NT_HS;NT_HS=0;
+  if(hs&&ntOn()&&Array.isArray(labels)&&labels.length===9&&labels[6]===t('sale_label')){const L=labels.slice();L.splice(6,1);
+    return Promise.resolve(_a.call(this,title,L)).then(k=>(typeof k==='number'&&k>=6)?k+1:k);}
+  return _a.apply(this,arguments);};}
+{const _s=histSearch;histSearch=async function(){NT_HS=1;try{return await _s.apply(this,arguments);}finally{NT_HS=0;}};}
+/* C3: el detalle de la venta (pagada: fila con sdtag; por cobrar: .g3rd-tag, por CSS) */
+function ntDet(){try{if(!ntOn())return;const b=document.getElementById('saleBody');if(!b)return;
+  b.querySelectorAll('[data-act^="sdtag:"]').forEach(x=>{const l=x.closest('.sd-line');if(l&&!l.classList.contains('nt-x'))l.classList.add('nt-x');});}catch(_){}}
+/* C4: Reporte Clientes, tarjeta y PDF */
+{const _g=g8SaleCard;g8SaleCard=function(s){const h=_g.apply(this,arguments);if(!ntOn())return h;try{
+  const a='<span>'+svgF(MN_IC.toys)+'<em>',i=h.indexOf(a);if(i<0)return h;const j=h.indexOf('</em></span>',i);if(j<0)return h;return h.slice(0,i)+h.slice(j+12);}catch(_){return h;}};}
+{const _c=MN_PDF.clients;if(typeof _c==='function')MN_PDF.clients=async function(){NT_PDF=1;try{return await _c.apply(this,arguments);}finally{NT_PDF=0;}};}
+{const _t=mnRepTable;mnRepTable=function(doc,y,head,rows,o){
+  if(NT_PDF&&ntOn()&&head==null&&Array.isArray(rows)&&rows.length&&rows.every(r=>Array.isArray(r)&&r.length===6)&&o&&Array.isArray(o.w)&&o.w.length===6){
+    const W=o.w.reduce((a,b)=>a+b,0);rows=rows.map(r=>r.filter((_,i)=>i!==3));o=Object.assign({},o,{w:Array(5).fill(W/5),al:Array(5).fill('center')});}
+  return _t.call(this,doc,y,head,rows,o);};}
+/* C5: Reporte Ventas por cobrar (la nota usaba la etiqueta cuando no hay dirección) */
+{const _c=srCard;srCard=function(s){if(ntOn()&&s&&!s.addr&&(''+(s.tag||'')).trim()){const a=[...arguments];a[0]=Object.assign({},s,{tag:''});return _c.apply(this,a);}return _c.apply(this,arguments);};}
+(function(){try{
+  if(!ntOn())return;
+  document.body.classList.add('nt-on');
+  const b=document.getElementById('saleBody');if(b&&typeof MutationObserver==='function'){new MutationObserver(ntDet).observe(b,{childList:true,subtree:true});ntDet();}
+  const css=document.createElement('style');css.id='ntxStyle';css.textContent=`
+  body.nt-on .tagrow.nt-x,body.nt-on .sd-line.nt-x,body.nt-on .g3rd-tag,body.nt-on .reptile[data-reptile="tags"]{display:none!important}`;
+  document.head.appendChild(css);
+}catch(e){console.error('mods288 arranque',e);}})();
 </script>

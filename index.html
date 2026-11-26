@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261125203028';
+const APP_VERSION='20261126050306';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23826,4 +23826,47 @@ function abInitApply(sale){try{if(!sale||sale.status!=='cobrar'||!Array.isArray(
   if(host&&!document.getElementById('abdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="abdlg" role="dialog" aria-modal="true"><div class="histbar"><button type="button" class="sheet-x" data-ab="close" aria-label="✕">✕</button><span class="histbar-t" id="abTitle"></span></div><div class="histbody" id="abBody"></div><div class="ab-foot" id="abFoot"><button type="button" class="ab-save" data-ab="save">${exEsc(t('ab_save'))}</button></div></div>`);
   try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.abdlg=()=>abClose();}catch(_){}
 }catch(e){console.error('mods286 arranque',e);}})();
+
+/* ==== mods287 (2026-11-25): BOTÓN DE AUTOCONSUMO MÁS DISCRETO Y ESTADO QUE SIEMPRE EMPIEZA APAGADO (parte B de «Cuatro ajustes») ====
+   Pedido de Fabio (documento del 25-nov; «Autorizo» al plan).
+   B1. La taza deja de ser el botón ancho con texto que estaba encima de Cancelar/Guardar: pasa a ser un botón pequeño, solo el ícono, en color
+       neutro cuando está apagada, arriba en la pantalla de Ventas. Encendida se resalta. El aviso «Todos estos productos van a autoconsumo» y el
+       botón «Guardar autoconsumo» no cambian.
+   B2. El autoconsumo se apaga solo: al anular o cancelar la venta, al quedar el carrito sin productos, después de guardar, al salir de la pantalla
+       de Ventas, y al cargar un pedido en curso, una cotización o una venta guardada. Con el carrito vacío la taza está apagada y desactivada.
+   Causa del error: la marca (state.cartAc['*']) solo se limpiaba al guardar o cuando se dibujaba el carrito sin productos; con el carrito vacío
+   la pantalla no dibuja el carrito, así que la marca quedaba viva y reaparecía al agregar el siguiente producto.
+   Nada existente se edita: se envuelven acxAllBtn, render, saleCancel, saleClearCart, restoreCartDraft, quoteLinesToCart y lgPendOpen.
+   Registrar, anular y el reporte de autoconsumo no se tocan. Sin base de datos. Apagar en un equipo: localStorage 'abanico.acy'='0'. */
+function acyOn(){try{return localStorage.getItem('abanico.acy')!=='0';}catch(_){return true;}}
+function acyPos(){try{return localStorage.getItem('abanico.acypos')==='barra'?'barra':'fila';}catch(_){return 'fila';}}
+function acyOff(){try{const m=state.cartAc;if(m&&Object.keys(m).length){state.cartAc={};state.acxNote='';acxDraft();}}catch(_){}}
+/* la marca solo vale en la pantalla de la venta nueva y con productos en el carrito */
+function acyGuard(){try{if(!acyOn())return;const m=state.cartAc;if(!m||!Object.keys(m).length)return;
+  if(state.screen!=='nueva'||state.quoteMode||state.editSale||!acxCan())acyOff();}catch(_){}}
+function acyBtnHTML(cls){const on=acxAllOn(),off=!on&&!acxCan();
+  return '<button type="button" class="'+cls+' acy-b'+(on?' on':'')+(off?' off':'')+'" data-act="acxall" aria-pressed="'+on+'"'+(off?' aria-disabled="true"':'')+' aria-label="'+exEsc(t(on?'acx_all_on':'acx_all'))+'" title="'+exEsc(t(on?'acx_all_on':'acx_all'))+'">'+acxCup()+'</button>';}
+function acyPaint(){try{document.querySelectorAll('.acy-b').forEach(e=>e.remove());if(!acyOn()||state.screen!=='nueva'||!acxShow())return;
+  if(acyPos()==='barra'){const n=document.querySelector('.appbar [data-act="notifs"]');if(n)n.insertAdjacentHTML('beforebegin',acyBtnHTML('iconbtn'));}
+  else{const s=document.querySelector('#screen .invhead [data-act="scan:sale"]');if(s)s.insertAdjacentHTML('afterend',acyBtnHTML('round'));}
+ }catch(e){try{console.error('mods287 taza',e);}catch(_){}}}
+{const _b=acxAllBtn;acxAllBtn=function(){if(!acyOn())return _b.apply(this,arguments);return '';};}
+{const _r=render;render=function(){acyGuard();const r=_r.apply(this,arguments);acyPaint();return r;};}
+{const _c=saleCancel;saleCancel=async function(){const r=await _c.apply(this,arguments);try{if(acyOn()&&!saleHas()){acyOff();acyPaint();}}catch(_){}return r;};}
+{const _c=saleClearCart;saleClearCart=function(){const r=_c.apply(this,arguments);if(acyOn())acyOff();return r;};}
+/* un pedido en curso, una cotización o una venta guardada vuelven con la taza apagada */
+{const _rc=restoreCartDraft;restoreCartDraft=function(id){const r=_rc.apply(this,arguments);if(acyOn())acyOff();return r;};}
+{const _q=quoteLinesToCart;quoteLinesToCart=function(){if(acyOn())acyOff();return _q.apply(this,arguments);};}
+{const _l=lgPendOpen;lgPendOpen=function(){if(acyOn())acyOff();return _l.apply(this,arguments);};}
+(function(){try{
+  const css=document.createElement('style');css.id='acyStyle';css.textContent=`
+  .acy-b .acx-cup{width:21px;height:21px;fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .acy-b.off{opacity:.4}
+  .round.acy-b.on{background:var(--cafe);border-color:var(--cafe)}
+  .round.acy-b.on .acx-cup{stroke:#fff}
+  .appbar .iconbtn.acy-b .acx-cup{width:23px;height:23px;stroke:#fff}
+  .appbar .iconbtn.acy-b.on{background:#fff;border-radius:50%}
+  .appbar .iconbtn.acy-b.on .acx-cup{stroke:var(--cafe)}`;
+  document.head.appendChild(css);
+}catch(e){console.error('mods287 arranque',e);}})();
 </script>

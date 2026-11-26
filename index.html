@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261125145507';
+const APP_VERSION='20261125203028';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23565,4 +23565,265 @@ document.addEventListener('click',e=>{try{const b=e.target&&e.target.closest&&e.
   if(host&&!document.getElementById('gvdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="gvdlg" role="dialog" aria-modal="true"><div class="histbar"><span class="histbar-t" id="gvTitle"></span></div><div class="histbody" id="gvBody"></div><div class="gv-foot" id="gvFoot"></div></div>`);
   try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.gvdlg=()=>gvClose();}catch(_){}
 }catch(e){console.error('mods285 arranque',e);}})();
+
+/* ==== mods286 (2026-11-25): PAGO MIXTO EN LAS VENTAS POR COBRAR (parte A de «Cuatro ajustes») ====
+   Pedido de Fabio (documento del 25-nov; «Autorizado» con las cinco recomendaciones).
+   Al registrar un pago de una venta por cobrar se abre la misma pantalla del pago rápido: «Valor a pagar» (propone el saldo y se puede
+   bajar para un abono), una fila por medio, billetes y monedas para el efectivo y el cambio. Lo mismo al dar el pago inicial al crear la venta.
+   CÓMO SE GUARDA (sin tablas, sin SQL, sin cambiar lo ya guardado): cada medio del pago es una entrada más de `pays`, con las mismas claves de
+   siempre {f,h,p,id,m}; las de un mismo pago comparten `g` (grupo) y llevan `u` (quién lo recibió). La de efectivo lleva además `rec` (recibido),
+   `cam` (cambio) y `den` (billetes y monedas). Así el cierre de caja, «Formas de pago», «Mi caja», el ticket de abonos, una versión anterior de
+   la app y el guardia del servidor leen cada entrada como un abono de un solo medio: nada se cuenta dos veces.
+   El estado guardado no cambia de forma ('cobrar' / 'pagado'); «Abonada» se calcula al mostrar.
+   Nada existente se edita: se envuelven openPayAdd, delPay, openSaleDet, openRecvDet, mxLines, rcPayPairs, cobroHTML, mpgSaveBlock, sqSave,
+   lgConfirm, saleSaveTail y pvTop. Apagar en un equipo: localStorage 'abanico.ab'='0' (queda como v20261125145507). */
+function abOn(){try{return localStorage.getItem('abanico.ab')!=='0';}catch(_){return true;}}
+function abCashM(){try{const L=mxMethods();const d=payDef();if(d&&mxCash(d)&&L.indexOf(d)>=0)return d;return mpgCashDef()||'';}catch(_){return '';}}
+function abOthers(){try{return mxMethods().filter(m=>!mxCash(m));}catch(_){return [];}}
+function abUse(){try{return abOn()&&typeof mpgOn==='function'&&mpgOn()&&abCashM()!=='';}catch(_){return false;}}
+function abInitUse(){try{return abUse()&&!state.quoteMode&&!state.editSale&&(state.saleStatus||'pagado')==='cobrar';}catch(_){return false;}}
+let AB=null;   /* el pago que se está registrando en la ventana: {mode:'pay',id,amt,v,den,cash,full,more,bills,busy} */
+function abNew(mode){return {mode,id:'',amt:'',v:{},den:{},cash:'',full:abCashM(),more:false,bills:false,busy:false};}
+/* el pago inicial de la venta nueva: vive en state.abInit mientras «Pago inicial» tenga un valor */
+function abInitSt(){let P=state.abInit;if(!(saleInitAmt()>0)){state.abInit=null;P=null;}
+  if(!P||typeof P!=='object'||!P.v||!P.den){P=abNew('init');try{const sp=state.salePay;if(sp&&abOthers().indexOf(sp)>=0)P.full=sp;}catch(_){}state.abInit=P;}return P;}
+function abSt(mode){return mode==='init'?abInitSt():AB;}
+function abSale(P){return P&&P.id?recGet('sale',P.id):null;}
+function abMoney(c){return money(c/100);}
+/* hasta dónde se puede cobrar (centavos): el saldo de la venta; en la venta nueva, su total */
+function abDueC(P){if(P.mode==='init')return toC(cartTotal());const s=abSale(P);return s?toC(recDue('sale',s)):0;}
+/* el valor a pagar (centavos) */
+function abTotC(P){if(P.mode==='init')return toC(saleInitAmt());const raw=(''+(P.amt==null?'':P.amt)).trim();if(!raw||!/^[0-9.,]+$/.test(raw))return 0;return toC(mcNum(raw));}
+/* la cuenta: los otros medios por su valor exacto y sin pasar del valor a pagar; el cambio solo sale del efectivo */
+function abCalc(P){const cashM=abCashM(),due=abDueC(P),tot=abTotC(P);const R={tot,due,err:'',non:[],nonC:0,cashC:0,need:0,falta:0,cam:0,cashM,ok:false,sum:0};let bad=false;
+  if(P.mode!=='init'){const ra=(''+(P.amt==null?'':P.amt)).trim();if(ra&&!/^[0-9.,]+$/.test(ra))bad=true;}
+  if(P.full){if(P.full===cashM)R.cashC=tot;else if(tot>0)R.non=[{pay:P.full,c:tot}];}
+  else{abOthers().forEach(m=>{const raw=(''+(P.v[m]==null?'':P.v[m])).trim();if(!raw)return;if(!/^[0-9.,]+$/.test(raw)){bad=true;return;}const c=toC(mcNum(raw));if(c>0)R.non.push({pay:m,c});});
+    const rc=(''+(P.cash==null?'':P.cash)).trim();if(rc){if(!/^[0-9.,]+$/.test(rc))bad=true;else R.cashC=toC(mcNum(rc));}}
+  R.nonC=R.non.reduce((a,x)=>a+x.c,0);R.need=Math.max(0,tot-R.nonC);R.sum=R.nonC+R.cashC;
+  if(bad)R.err=t('mx_bad');
+  else if(P.mode!=='init'&&tot>due)R.err=ti('ab_over_due',{v:abMoney(tot),d:abMoney(due)});
+  else if(P.mode==='init'&&tot>0&&tot>=due)R.err=t('init_too_much');
+  else if(tot>0&&R.nonC>tot)R.err=ti('ab_over',{a:abMoney(R.nonC),t:abMoney(tot)});
+  else if(tot>0&&R.nonC>0&&R.need===0&&R.cashC>0)R.err=t('mx_cash_unneeded');
+  R.falta=R.err?0:Math.max(0,R.need-R.cashC);R.cam=R.err?0:Math.max(0,R.cashC-R.need);
+  R.ok=!R.err&&tot>0&&R.falta===0;return R;}
+/* las partes del pago: una por medio; el efectivo entra por lo que cubre (recibido menos cambio) */
+function abParts(R,P){const L=R.non.map(x=>({m:x.pay,p:x.c/100}));
+  if(R.need>0){const e={m:R.cashM,p:R.need/100,rec:R.cashC/100,cam:R.cam/100};
+    try{const s=pgrDenSum(P);if(s>0&&toC(s)===R.cashC){e.den={};Object.keys(P.den).forEach(k=>{if(+P.den[k]>0)e.den[k]=+P.den[k];});}}catch(_){}
+    L.push(e);}
+  return L;}
+function abWho(){try{if(isSeller()){const v=state.profile&&state.profile.seller;return {k:'seller',id:(v&&v.id)||'',n:(v&&v.name)||''};}
+  const id=(state.profile&&state.profile.uid)||null;return id?{k:'owner',id}:{k:'owner'};}catch(_){return {k:'owner'};}}
+function abWhoLbl(u){if(!u||typeof u!=='object')return '';if(u.k==='seller')return ''+(u.n||t('vd_seller'));return t('ab_admin');}
+function abEntries(R,P,f,h){const g='G'+uidPart(),u=abWho();
+  return abParts(R,P).map(x=>{const e={f,h,p:x.p,id:'Y'+uidPart(),m:x.m,g,u};if(x.rec!=null){e.rec=x.rec;e.cam=x.cam;}if(x.den)e.den=x.den;return e;});}
+/* ---------------- la pantalla (los mismos estilos del pago rápido) ---------------- */
+function abBtnHTML(n,P,coin){const k=+P.den[n]||0;const src=(typeof PGR_IMG==='object'&&PGR_IMG&&PGR_IMG[n])||'';
+  return '<div class="pgr-bw'+(coin?' c':'')+'"><button type="button" class="pgr-b" data-ab="b:'+n+'" aria-label="'+exEsc(money(n))+'">'+(src?'<img src="'+src+'" alt="">':'<span class="pgr-noimg">'+exEsc(money(n))+'</span>')+'<img class="pgr-lg" src="icon-192.png" alt=""></button>'+
+    (k?'<span class="pgr-k">×'+k+'</span><button type="button" class="pgr-m" data-ab="bm:'+n+'" aria-label="−">−</button>':'')+'<span class="pgr-pie num">'+exEsc(money(n))+'</span></div>';}
+function abFaltaHTML(R){return '<span>'+exEsc(t('pgr_falta'))+'</span><b class="num">'+(R.err||!(R.tot>0)?'—':exEsc(abMoney(R.falta)))+'</b>';}
+function abSumHTML(R){if(R.err||!(R.tot>0)||(!R.cashC&&!R.nonC))return '';const L=[];const mix=R.non.length>0&&R.cashC>0;
+  if(mix)L.push([payLbl(R.cashM),abMoney(Math.min(R.cashC,R.need))]);if(mix||R.non.length>1)R.non.forEach(x=>L.push([payLbl(x.pay),abMoney(x.c)]));
+  if(R.cashC>0){L.push([t('pgr_paid_with'),abMoney(R.cashC)]);L.push([t('mpg_chg'),abMoney(R.cam),'g']);}
+  if(!L.length)return '';return L.map(x=>'<div class="pgr-res'+(x[2]?' g':'')+'"><span>'+exEsc(x[0])+'</span><b class="num">'+exEsc(x[1])+'</b></div>').join('');}
+function abCashSub(R,P){if(R.nonC>0&&R.need>0)return ti('pgr_cash_need',{v:abMoney(R.need)});return R.cashC>0?'':t('pgr_cash_hint');}
+/* «Abonar solo lo recibido»: cuando lo anotado no alcanza el valor a pagar, deja el valor a pagar en lo anotado */
+function abFitHTML(R){return (!R.err&&R.sum>0&&(R.falta>0||R.tot===0))?'<button type="button" class="ab-fit" data-ab="fit">'+exEsc(ti('ab_fit',{v:abMoney(R.sum)}))+'</button>':'';}
+function abBills(P){return '<div class="pgr-lab"><span>'+exEsc(t('pgr_bills'))+'</span><button type="button" class="pgr-clr" data-ab="clr">'+exEsc(t('pgr_clear'))+'</button></div><div class="pgr-bil">'+PGR_BILLS.map(n=>abBtnHTML(n,P,false)).join('')+'</div><div class="pgr-lab"><span>'+exEsc(t('pgr_coins'))+'</span></div><div class="pgr-mon">'+PGR_COINS.map(n=>abBtnHTML(n,P,true)).join('')+'</div>';}
+function abPanelHTML(P){const R=abCalc(P),cashM=R.cashM,O=abOthers(),fullCash=P.full===cashM,TOP=(typeof PGR_TOP==='number'?PGR_TOP:4);
+  const shown=P.more?O:O.filter((m,i)=>i<TOP||P.full===m||(''+(P.v[m]||'')).trim()!=='');
+  const inp=(key,val,on)=>'<input class="inp num pgr-in'+(on?' on':'')+'" data-abin="'+exEsc(key)+'" type="text" inputmode="decimal" data-uns="1" autocomplete="off" enterkeyhint="done" placeholder="'+exEsc(moneySym())+' 0" value="'+exEsc(val)+'">';
+  const fullTxt=R.tot>0?pgrTxt(R.tot/100):'';const cashVal=fullCash?fullTxt:(P.cash||'');const showB=P.bills||pgrDenSum(P)>0;
+  const amt=P.mode==='init'?'':'<div class="pgr-card"><div class="pgr-row ab-amt"><span class="pgr-n">'+exEsc(t('ab_amt'))+'<small data-abid="duesub">'+exEsc(ti('ab_due_sub',{d:abMoney(R.due)}))+'</small></span>'+inp('amt',P.amt||'',R.tot>0)+'</div></div>';
+  const cashRow='<div class="pgr-row" data-ab="bills"><span class="pgr-n">'+exEsc(R.cashC>0&&!fullCash?ti('mx_given',{m:payLbl(cashM)}):payLbl(cashM))+'<small data-abid="cashsub">'+exEsc(abCashSub(R,P))+'</small></span>'+inp('cash',cashVal,R.cashC>0)+'</div>';
+  const rows=shown.map(m=>{const i=O.indexOf(m);const val=P.full===m?fullTxt:(P.v[m]||'');const has=(''+val).trim()!=='';
+    return '<div class="pgr-row" data-ab="fill:'+i+'"><span class="pgr-n">'+exEsc(payLbl(m))+(has?'':'<small>'+exEsc(t('pgr_fill_hint'))+'</small>')+'</span>'+inp('m'+i,val,has)+'</div>';}).join('');
+  const more=O.length>shown.length?'<button type="button" class="pgr-more" data-ab="more">'+exEsc(ti('pgr_more',{n:O.length-shown.length}))+'</button>':'';
+  const sum=abSumHTML(R),fit=abFitHTML(R);
+  return '<div class="pgr ab-box" data-abmode="'+P.mode+'">'+amt+
+    '<div class="pgr-falta '+(R.falta>0||R.err||!(R.tot>0)?'no':'ok')+'" data-abid="falta">'+abFaltaHTML(R)+'</div><div class="pgr-err" data-abid="err"'+(R.err?'':' hidden')+'>'+exEsc(R.err||'')+'</div>'+
+    '<div data-abid="fit"'+(fit?'':' hidden')+'>'+fit+'</div>'+
+    '<button type="button" class="pgr-full'+(fullCash?' on':'')+'" data-ab="full"><span class="pgr-cb">'+(fullCash?svg('<path d="M5 12l5 5L20 7"/>'):'')+'</span>'+exEsc(ti('pgr_full',{m:payLbl(cashM)}))+'</button>'+
+    '<div class="pgr-card">'+cashRow+'<div data-abid="bills">'+(showB?abBills(P):'')+'</div>'+rows+more+'</div><div class="pgr-card pgr-sum" data-abid="sum"'+(sum?'':' hidden')+'>'+sum+'</div></div>';}
+function abBox(mode){return document.querySelector(mode==='init'?'#abInitBox .ab-box':'#abBody .ab-box');}
+/* mientras se escribe: se pinta sin reemplazar el campo que tiene el foco */
+function abPaint(mode){try{const P=abSt(mode);if(!P)return;const box=abBox(mode);if(!box)return;const R=abCalc(P),cashM=R.cashM,O=abOthers(),fullCash=P.full===cashM,foc=document.activeElement;
+  const q=k=>box.querySelector('[data-abid="'+k+'"]');const fullTxt=R.tot>0?pgrTxt(R.tot/100):'';
+  const f=q('falta');if(f){f.className='pgr-falta '+(R.falta>0||R.err||!(R.tot>0)?'no':'ok');f.innerHTML=abFaltaHTML(R);}
+  const e=q('err');if(e){e.hidden=!R.err;e.textContent=R.err||'';}
+  const ft=q('fit');if(ft){const h=abFitHTML(R);ft.hidden=!h;ft.innerHTML=h;}
+  const s=q('sum');if(s){const h=abSumHTML(R);s.hidden=!h;s.innerHTML=h;}
+  const c=q('cashsub');if(c)c.textContent=abCashSub(R,P);
+  const ds=q('duesub');if(ds)ds.textContent=ti('ab_due_sub',{d:abMoney(R.due)});
+  const ai=box.querySelector('[data-abin="amt"]');if(ai){if(ai!==foc&&ai.value!==(P.amt||''))ai.value=P.amt||'';ai.classList.toggle('on',R.tot>0);}
+  const fb=box.querySelector('.pgr-full');if(fb&&fb.classList.contains('on')!==fullCash){fb.classList.toggle('on',fullCash);const cb=fb.querySelector('.pgr-cb');if(cb)cb.innerHTML=fullCash?svg('<path d="M5 12l5 5L20 7"/>'):'';}
+  const ci=box.querySelector('[data-abin="cash"]');if(ci){if(ci!==foc){const v=fullCash?fullTxt:(P.cash||'');if(ci.value!==v)ci.value=v;}ci.classList.toggle('on',R.cashC>0);}
+  const cn=box.querySelector('[data-ab="bills"] .pgr-n');if(cn&&cn.firstChild&&cn.firstChild.nodeType===3){const tx=R.cashC>0&&!fullCash?ti('mx_given',{m:payLbl(cashM)}):payLbl(cashM);if(cn.firstChild.nodeValue!==tx)cn.firstChild.nodeValue=tx;}
+  box.querySelectorAll('[data-ab^="fill:"]').forEach(row=>{const m=O[+row.dataset.ab.slice(5)],el=row.querySelector('.pgr-in');if(!m||!el)return;
+    if(el!==foc){const v=P.full===m?fullTxt:(P.v[m]||'');if(el.value!==v)el.value=v;}const has=(''+el.value).trim()!=='';el.classList.toggle('on',has);
+    const n=row.querySelector('.pgr-n'),sm=n&&n.querySelector('small');if(has&&sm)sm.remove();else if(!has&&!sm&&n){const x=document.createElement('small');x.textContent=t('pgr_fill_hint');n.appendChild(x);}});
+  const bl=q('bills');if(bl&&bl.querySelector('.pgr-k')&&!pgrDenSum(P))bl.innerHTML=(P.bills?abBills(P):'');
+  if(mode==='pay')abFootPaint(R);
+ }catch(err){console.error('mods286 pintar',err);}}
+function abFootPaint(R){try{const b=document.querySelector('#abFoot .ab-save');if(!b)return;R=R||(AB?abCalc(AB):null);b.classList.toggle('off',!(R&&R.ok));const tx=t('ab_save');if(b.textContent!==tx)b.textContent=tx;}catch(_){}}
+function abDlgPaint(){const P=AB,d=document.getElementById('abdlg');if(!P||!d)return;const s=abSale(P);if(!s){abClose();return;}
+  const tot=recTotal('sale',s),pg=recPaid('sale',s),due=recDue('sale',s);const body=document.getElementById('abBody'),sc=body.scrollTop;
+  document.getElementById('abTitle').textContent=ti('ab_title',{n:s.folio||s.id});
+  const bx=(l,v,c)=>'<div class="ab-bx'+(c?' '+c:'')+'"><span>'+exEsc(l)+'</span><b class="num">'+exEsc(money(v))+'</b></div>';
+  body.innerHTML='<div class="ab-head">'+(s.client?'<div class="ab-cli">'+exEsc(s.client)+'</div>':'')+'<div class="ab-bxs">'+bx(t('ab_total'),tot)+bx(t('ab_paid'),pg)+bx(t('ab_due'),due,'d')+'</div></div>'+abPanelHTML(P);
+  body.scrollTop=sc;abFootPaint();}
+function abRender(mode){try{if(mode==='init'){const h=document.getElementById('abInitBox');if(h)h.innerHTML=saleInitAmt()>0?abPanelHTML(abInitSt()):'';}else abDlgPaint();}catch(e){console.error('mods286 dibujar',e);}}
+function abSetAmt(P,v){const tx=pgrTxt(v);if(P.mode==='init'){state.saleInit=tx;const el=document.getElementById('saleInit');if(el)el.value=tx;const d=document.getElementById('saleDebt');if(d)d.textContent=money(Math.max(0,cartTotal()-saleInitAmt()));}else P.amt=tx;}
+function abOpen(id){const r=recGet('sale',id);if(!r)return;const due=recDue('sale',r);if(due<=0.5)return;
+  if(typeof cjBlocked==='function'&&cjBlocked()){appAlert(t('cj_blocked'));return;}
+  const d=document.getElementById('abdlg');if(!d)return;AB=abNew('pay');AB.id=r.id;AB.amt=pgrTxt(due);
+  document.getElementById('abBody').scrollTop=0;abDlgPaint();d.classList.add('on');
+  try{const a=document.activeElement;if(a&&a.blur&&a!==document.body&&!d.contains(a))a.blur();}catch(_){}}
+function abClose(){const d=document.getElementById('abdlg');if(d)d.classList.remove('on');AB=null;}
+/* los toques del panel: las mismas reglas del pago rápido, contra el valor a pagar */
+function abAct(mode,a){const i=a.indexOf(':'),k=i<0?a:a.slice(0,i),arg=i<0?'':a.slice(i+1);
+  if(k==='save')return abSave();if(k==='close')return abClose();
+  const P=abSt(mode);if(!P)return;const cashM=abCashM(),O=abOthers();
+  if(k==='full'){if(P.full===cashM)P.full='';else{P.full=cashM;P.v={};P.den={};P.cash='';}}
+  else if(k==='bills'){P.bills=!(P.bills||pgrDenSum(P)>0);if(!P.bills&&pgrDenSum(P)>0)P.bills=true;}
+  else if(k==='b'||k==='bm'){const n=+arg;if(!(n>0))return;if(P.full){P.full='';P.cash='';}if(!pgrDenSum(P)&&k==='b')P.den={};
+    const c=Math.max(0,(+P.den[n]||0)+(k==='b'?1:-1));if(c)P.den[n]=c;else delete P.den[n];const s=pgrDenSum(P);P.cash=s?pgrTxt(s):'';P.bills=true;}
+  else if(k==='clr'){P.den={};P.cash='';if(P.full===cashM)P.full='';}
+  else if(k==='more'){P.more=true;}
+  else if(k==='fill'){const m=O[+arg];if(!m)return;if(P.full===m)return;if((''+(P.v[m]||'')).trim()!=='')return;
+    if(P.full===cashM){P.full=m;P.v={};P.den={};P.cash='';}
+    else{const R=abCalc(P);if(R.err)return;if(!R.nonC&&!R.cashC){P.full=m;}else if(R.falta>0){if(P.full){const f0=P.full;P.full='';P.v[f0]=pgrTxt(R.tot/100);}P.v[m]=pgrTxt(R.falta/100);}else return;}}
+  else if(k==='fit'){const R=abCalc(P);if(R.err||!(R.sum>0))return;abSetAmt(P,R.sum/100);}
+  else return;
+  abRender(mode);}
+/* guardar el pago: todas sus partes en un solo guardado; el saldo se vuelve a leer en ese instante */
+function abSave(){const P=AB;if(!P||P.busy)return;const r=abSale(P);if(!r){abClose();return;}
+  if(typeof cjBlocked==='function'&&cjBlocked()){appAlert(t('cj_blocked'));return;}
+  const R=abCalc(P);if(R.err){toast(R.err);return;}if(!(R.tot>0)){toast(t('pay_need'));return;}if(R.falta>0){toast(ti('ab_short',{f:abMoney(R.falta)}));return;}
+  P.busy=true;
+  try{const E=abEntries(R,P,todayISO(),g3NowHM());if(!E.length)return;
+    if(!Array.isArray(r.pays)||!r.pays.length)r.pays=[];
+    E.forEach(e=>r.pays.push(e));r.payEdited=new Date().toISOString();
+    const paidNow=recDue('sale',r)<=0.5;recSetPaid('sale',r,paidNow);
+    const sid=r.id,amt=R.tot/100;abClose();recSaveChange('sale');recRefresh('sale',sid);
+    toast(paidNow?t('pay_done_all'):ti('pay_done',{m:money(amt),d:money(recDue('sale',r))}));
+  }catch(e){console.error('mods286 guardar',e);}finally{P.busy=false;}}
+/* la papelera borra el pago entero (todos sus medios), con confirmación */
+async function abDel(sid,g){try{const r=recGet('sale',sid);if(!r||!Array.isArray(r.pays))return;
+  if(typeof cjBlocked==='function'&&cjBlocked()){appAlert(t('cj_blocked'));return;}
+  const grp=r.pays.filter(x=>x&&x.g===g);if(!grp.length)return recRefresh('sale',sid);const tot=grp.reduce((a,x)=>a+(+x.p||0),0);
+  if(!await appConfirm(ti(grp.length>1?'ab_del_confirm':'pay_del_confirm',{m:money(tot),n:grp.length})))return;
+  const c=recGet('sale',sid);if(!c||!Array.isArray(c.pays))return;const n0=c.pays.length;c.pays=c.pays.filter(x=>!(x&&x.g===g));if(c.pays.length===n0)return recRefresh('sale',sid);
+  c.payEdited=new Date().toISOString();recSetPaid('sale',c,recDue('sale',c)<=0.5&&c.pays.length>0);
+  recSaveChange('sale');recRefresh('sale',sid);toast(t('pay_deleted'));}catch(e){console.error('mods286 borrar',e);}}
+{const _d=delPay;delPay=async function(kind,id,i,pid){try{if(kind==='sale'&&abOn()){const r=recGet(kind,id);const x=r&&Array.isArray(r.pays)?(pid?r.pays.find(z=>z&&''+z.id===''+pid):r.pays[i]):null;
+    if(x&&x.g&&r.pays.filter(z=>z&&z.g===x.g).length>1)return abDel(id,x.g);}}catch(e){console.error('mods286 borrar uno',e);}return _d.apply(this,arguments);};}
+/* «Agregar» abre la pantalla nueva; «Confirmar el pago de la deuda» también (toque atrapado antes que los escuchas de antes) */
+{const _op=openPayAdd;openPayAdd=function(kind,id){try{if(kind==='sale'&&abUse()){abOpen(id);return;}}catch(e){console.error('mods286 abrir',e);}return _op.apply(this,arguments);};}
+window.addEventListener('click',e=>{try{const tg=e.target;if(!tg||!tg.closest)return;
+  const el=tg.closest('[data-ab]');
+  if(el){if(tg.closest('.pgr-in'))return;   /* tocar el campo es para escribir */
+    const box=el.closest('.ab-box'),mode=box?box.dataset.abmode:(el.closest('#abdlg')?'pay':'');if(!mode)return;
+    e.preventDefault();e.stopPropagation();abAct(mode,''+el.dataset.ab);return;}
+  const dl=tg.closest('[data-abdel]');if(dl){e.preventDefault();e.stopPropagation();abDel(dl.dataset.absale,dl.dataset.abdel);return;}
+  const pa=tg.closest('[data-act]');if(pa){const a=''+(pa.dataset.act||'');if(a.indexOf('payall:sale:')===0&&abUse()){e.preventDefault();e.stopPropagation();abOpen(decodeURIComponent(a.split(':')[2]||''));}}
+ }catch(err){console.error('mods286 toque',err);}},true);
+document.addEventListener('input',e=>{try{const el=e.target;if(!el||!el.dataset)return;
+  if(el.id==='saleInit'){if(abInitUse())setTimeout(()=>{try{const h=document.getElementById('abInitBox');if(!h)return;const hay=!!h.querySelector('.ab-box'),debe=saleInitAmt()>0;if(hay!==debe)abRender('init');else if(debe)abPaint('init');else state.abInit=null;}catch(_){}},0);return;}
+  if(el.dataset.abin==null||!el.classList.contains('pgr-in'))return;const box=el.closest('.ab-box');if(!box)return;const mode=box.dataset.abmode,P=abSt(mode);if(!P)return;
+  const O=abOthers(),cashM=abCashM(),k=el.dataset.abin;
+  if(k==='amt'){P.amt=el.value;}
+  else{if(P.full){const f0=P.full;P.full='';if(k!=='cash'&&f0!==cashM&&O[+k.slice(1)]!==f0)P.v[f0]=pgrTxt(abTotC(P)/100);}
+    if(k==='cash'){P.cash=el.value;P.den={};}else{const m=O[+k.slice(1)];if(m)P.v[m]=el.value;}}
+  el.classList.toggle('on',(''+el.value).trim()!=='');abPaint(mode);}catch(err){console.error('mods286 escribir',err);}},true);
+/* ---------------- el historial de pagos en el detalle de la venta ---------------- */
+function abState(s){const due=recDue('sale',s),pg=recPaid('sale',s);if(due<=0.5)return 'pagada';return pg>0.005?'abonada':'cobrar';}
+function abDeco(id){try{if(!abOn())return;const s=(state.sales||[]).find(x=>''+x.id===''+id),body=document.getElementById('saleBody');if(!s||!body)return;
+  if(![...body.querySelectorAll('[data-act]')].some(x=>x.dataset.act==='sdpay:'+s.id))return;   /* el detalle a la vista es el de ESTA venta */
+  const pays=Array.isArray(s.pays)?s.pays:[];
+  if((pays.length>0||recDue('sale',s)>0.5)&&!body.querySelector('.ab-st')){const st=abState(s),an=body.querySelector('.g3pd-box')||body.querySelector('.payblock');
+    if(an)an.insertAdjacentHTML('beforebegin','<div class="ab-st '+st+'"><span>'+exEsc(t('ab_st'))+'</span><b>'+exEsc(t('ab_st_'+st))+'</b></div>');}
+  if(!pays.length||body.querySelector('[data-abdeco]'))return;
+  const rows=[...body.querySelectorAll('.payblock .pay-row, .g3pd-pays .g3pd-pr')];if(rows.length!==pays.length)return;
+  const seen={};
+  pays.forEach((p,i)=>{const row=rows[i];if(!p||!row)return;row.setAttribute('data-abdeco','1');
+    if(!p.g){if(!p.m&&!row.querySelector('.mpg-m')){const sp=row.querySelector('.g3pd-prd')||row.querySelector('span');if(sp)sp.insertAdjacentHTML('beforeend','<span class="mpg-m ab-nd" style="font-weight:600"> · '+exEsc(t('ab_nodata'))+'</span>');}return;}
+    if(seen[p.g]){row.remove();return;}seen[p.g]=1;
+    const grp=pays.filter(x=>x&&x.g===p.g),tot=grp.reduce((a,x)=>a+(+x.p||0),0);
+    const mm=row.querySelector('.mpg-m');if(mm)mm.remove();
+    const b=row.querySelector('b.num');if(b)b.textContent=row.classList.contains('g3pd-pr')?moneyNum(tot):money(tot);
+    const del=row.querySelector('[data-act^="paydel:"]');if(del){del.setAttribute('data-abdel',p.g);del.setAttribute('data-absale',s.id);del.removeAttribute('data-act');}
+    const L=[grp.map(x=>(x.m?(''+(payLbl(x.m)||x.m)):t('ab_nodata'))+' '+money(+x.p||0)).join(' · ')];
+    const c=grp.find(x=>x&&x.rec!=null);if(c&&(+c.cam||0)>0.004)L.push(t('mx_received')+' '+money(+c.rec||0)+' · '+t('mx_change')+' '+money(+c.cam||0));
+    const w=abWhoLbl(p.u);if(w)L.push(t('ab_by')+': '+w);
+    row.insertAdjacentHTML('afterend','<div class="ab-sub" data-abdeco="1">'+L.map(x=>'<div>'+exEsc(x)+'</div>').join('')+'</div>');});
+ }catch(e){console.error('mods286 detalle',e);}}
+{const _od=openSaleDet;openSaleDet=async function(id){const r=await _od.apply(this,arguments);abDeco(id);return r;};}
+{const _or=openRecvDet;openRecvDet=async function(id){const r=await _or.apply(this,arguments);abDeco(id);return r;};}
+/* ---------------- el historial de pagos en la factura (todos los formatos pasan por mxLines) ---------------- */
+function abRcItems(s){try{if(!abOn()||!s||!Array.isArray(s.pays))return [];return s.pays.filter(p=>p&&(+p.p||0)>0).map(p=>({d:[p.f,p.h].filter(Boolean).join(' '),m:p.m?(''+(payLbl(p.m)||p.m)):t('ab_nodata'),v:money(+p.p||0)}));}catch(_){return [];}}
+function abRcLines(s){const L=abRcItems(s);return L.length?[t('ab_rc_h')+':'].concat(L.map(x=>x.d+' '+x.m+': '+x.v)):[];}
+{const _ml=mxLines;mxLines=function(s,ui){const L=_ml.apply(this,arguments);try{if(ui)return L;const X=abRcLines(s);return X.length?L.concat(X):L;}catch(_){return L;}};}
+/* en el ticket cada renglón va en dos columnas (rótulo y valor): la fecha y la hora del pago van en su propio renglón, y debajo el medio con su valor, para que nada se corte */
+{const _pp=rcPayPairs;rcPayPairs=function(s){const L=_pp.apply(this,arguments);try{const X=abRcItems(s);if(!X.length||!Array.isArray(L)||L.length<X.length+1)return L;
+  const out=L.slice(0,L.length-X.length-1);out.push([t('ab_rc_h')+':','']);X.forEach(x=>{out.push([x.d,'']);out.push([x.m+':',x.v]);});return out;}catch(_){return L;}};}
+/* ---------------- el pago inicial al crear la venta por cobrar ---------------- */
+{const _ch=cobroHTML;cobroHTML=function(){let h=_ch.apply(this,arguments);try{if(!abInitUse())return h;
+  const a=h.indexOf('<div class="osub mpg-init"');if(a>=0){const b=h.indexOf('</div>',a);if(b>a)h=h.slice(0,a)+h.slice(b+6);}   /* el medio ya no es «el de abajo»: se elige aquí */
+  return h+'<div id="abInitBox">'+(saleInitAmt()>0?abPanelHTML(abInitSt()):'')+'</div>';}catch(e){console.error('mods286 pago inicial',e);return h;}};}
+{const _b=mpgSaveBlock;mpgSaveBlock=function(cobrar){try{if(cobrar&&abInitUse()&&saleInitAmt()>0){const R=abCalc(abInitSt());
+    if(R.err){appAlert(R.err);return true;}if(R.falta>0){appAlert(ti('ab_short',{f:abMoney(R.falta)}));return true;}}}catch(e){console.error('mods286 guardar venta',e);}return _b.apply(this,arguments);};}
+/* la venta sale de saveSale con un solo abono inicial; antes de guardarse o enviarse se reparte en sus medios */
+function abInitApply(sale){try{if(!sale||sale.status!=='cobrar'||!Array.isArray(sale.pays)||sale.pays.length!==1||!abInitUse())return;
+  const p0=sale.pays[0];if(!p0||p0.g)return;const P=state.abInit;if(!P||!(saleInitAmt()>0))return;const R=abCalc(P);if(!R.ok||R.tot!==toC(+p0.p||0))return;
+  const E=abEntries(R,P,p0.f,p0.h);if(!E.length)return;E[0].id=p0.id;sale.pays=E;}catch(e){console.error('mods286 pago inicial al guardar',e);}}
+{const _s=sqSave;sqSave=function(sale){abInitApply(sale);return _s.apply(this,arguments);};}
+{const _l=lgConfirm;lgConfirm=function(sale,ctx){if(!(ctx&&ctx.pend))abInitApply(sale);return _l.apply(this,arguments);};}
+{const _t=saleSaveTail;saleSaveTail=function(sale){abInitApply(sale);try{return _t.apply(this,arguments);}finally{state.abInit=null;}};}
+/* con la pantalla de pago abierta, un toque en ella no cuenta como «tocar fuera» de otra ventana */
+{const _t=pvTop;pvTop=function(){try{const d=document.getElementById('abdlg');if(d&&d.classList.contains('on'))return null;}catch(_){}return _t.apply(this,arguments);};}
+(function(){try{
+  const css=document.createElement('style');css.id='abStyle';css.textContent=`
+  #abdlg{z-index:19}
+  #abdlg .histbar{min-height:56px}
+  .ab-head{margin:0 0 12px}
+  .ab-cli{font-weight:700;font-size:15px;line-height:1.3;margin-bottom:8px;color:var(--ink);overflow-wrap:anywhere}
+  .ab-bxs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .ab-bx{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px 10px;min-width:0}
+  .ab-bx span{display:block;font-size:12px;color:var(--muted);font-weight:700}
+  .ab-bx b{display:block;font-size:15.5px;color:var(--ink);overflow-wrap:anywhere}
+  .ab-bx.d b{color:#b3261e}
+  .ab-fit{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:700 14.5px var(--ui);cursor:pointer;padding:8px 12px}
+  .ab-fit:active{background:var(--sel)}
+  .ab-foot{flex:none;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--card)}
+  .ab-save{width:100%;min-height:50px;border-radius:12px;border:0;background:#2e7d4f;color:#fff;font:700 16px var(--ui);cursor:pointer}
+  .ab-save.off{opacity:.45}
+  .ab-st{display:flex;justify-content:space-between;align-items:center;gap:10px;border-radius:12px;padding:9px 14px;margin:0 0 10px;font-weight:700;font-size:14.5px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+  .g3pd>.ab-st{margin:10px 10px 12px}
+  .ab-st.cobrar b{color:#b3261e}
+  .ab-st.abonada b{color:#8a5a00}
+  html[data-theme="dark"] .ab-st.abonada b{color:#f2c14e}
+  .ab-st.pagada b{color:#1e7a3c}
+  .ab-sub{font-size:12.5px;color:var(--muted);line-height:1.45;padding:0 4px 8px 4px;margin-top:-2px;overflow-wrap:anywhere}
+  #abInitBox{margin-top:10px}
+  #abInitBox:empty{display:none}`;
+  document.head.appendChild(css);
+  Object.assign(I18N.es,{ab_title:'Registrar pago · Venta #{n}',ab_total:'Total',ab_paid:'Pagado',ab_due:'Saldo',ab_amt:'Valor a pagar',ab_due_sub:'saldo pendiente: {d}',
+    ab_over_due:'El valor a pagar ({v}) no puede pasar del saldo pendiente ({d}).',
+    ab_over:'Los otros medios suman {a} y el valor a pagar es {t}: no pueden pasarlo. El cambio solo se da en efectivo.',
+    ab_short:'Falta por pagar {f}. Completa el pago, o baja el valor a pagar para registrar un abono.',ab_fit:'Abonar solo lo recibido: {v}',ab_save:'Guardar pago',
+    ab_st:'Estado',ab_st_cobrar:'Por cobrar',ab_st_abonada:'Abonada',ab_st_pagada:'Pagada',ab_nodata:'Sin dato',ab_by:'Recibió',ab_admin:'Administrador',
+    ab_del_confirm:'¿Eliminar este pago de {m}? Se borra completo, con sus {n} medios.',ab_rc_h:'Pagos'});
+  Object.assign(I18N.en,{ab_title:'Record payment · Sale #{n}',ab_total:'Total',ab_paid:'Paid',ab_due:'Balance',ab_amt:'Amount to pay',ab_due_sub:'balance due: {d}',
+    ab_over_due:'The amount to pay ({v}) cannot exceed the balance due ({d}).',
+    ab_over:'The other methods add up to {a} and the amount to pay is {t}: they cannot exceed it. Change is only given in cash.',
+    ab_short:'Left to pay: {f}. Complete the payment, or lower the amount to pay to record a partial payment.',ab_fit:'Record only what was received: {v}',ab_save:'Save payment',
+    ab_st:'Status',ab_st_cobrar:'On credit',ab_st_abonada:'Partly paid',ab_st_pagada:'Paid',ab_nodata:'No data',ab_by:'Received by',ab_admin:'Administrator',
+    ab_del_confirm:'Delete this payment of {m}? All of it is removed, with its {n} methods.',ab_rc_h:'Payments'});
+  const host=document.getElementById('device');
+  if(host&&!document.getElementById('abdlg'))host.insertAdjacentHTML('beforeend',`<div class="histdlg" id="abdlg" role="dialog" aria-modal="true"><div class="histbar"><button type="button" class="sheet-x" data-ab="close" aria-label="✕">✕</button><span class="histbar-t" id="abTitle"></span></div><div class="histbody" id="abBody"></div><div class="ab-foot" id="abFoot"><button type="button" class="ab-save" data-ab="save">${exEsc(t('ab_save'))}</button></div></div>`);
+  try{if(typeof BACK_CLOSE!=='undefined'&&BACK_CLOSE)BACK_CLOSE.abdlg=()=>abClose();}catch(_){}
+}catch(e){console.error('mods286 arranque',e);}})();
 </script>

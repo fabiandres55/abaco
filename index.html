@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261126155210';
+const APP_VERSION='20261126195256';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23921,4 +23921,71 @@ function ntDet(){try{if(!ntOn())return;const b=document.getElementById('saleBody
   body.nt-on .tagrow.nt-x,body.nt-on .sd-line.nt-x,body.nt-on .g3rd-tag,body.nt-on .reptile[data-reptile="tags"]{display:none!important}`;
   document.head.appendChild(css);
 }catch(e){console.error('mods288 arranque',e);}})();
+/* ==== mods289 (2026-11-26): LA FOTO DEL PRODUCTO SE VE COMPLETA Y SE ABRE EN GRANDE (parte D de «Cuatro ajustes») ====
+   Pedido de Fabio (documento del 25-nov; diagnóstico del 26-nov en cambios/mods289/DIAGNOSTICO_parteD.md; «Autorizado, 1a y 2a»).
+   El recorte era SOLO visual (object-fit: cover): las fotos se guardan completas. No se toca ninguna foto guardada ni cómo se guarda.
+   D1. Todas las fotos de producto se muestran completas (contain), sin deformar, sobre el fondo neutro de su recuadro: inventario,
+       formulario (= vista previa al importar; el recuadro pasa a ser de 220 px de alto), selector de Ventas y Compras (lista y
+       cuadrícula), selección del catálogo de bodega, merma, reserva, vista previa de una copia y reportes («2a»). El tamaño de cada
+       recuadro no cambia (salvo el del formulario). Un producto sin foto sigue con su ícono.
+   D2. Al tocar la foto en la ficha, en el formulario o en la tarjeta del inventario («1a») se abre a pantalla completa: dos dedos,
+       doble toque, rueda del ratón y botones + / − para el zoom; arrastrar para moverla; ✕, Escape o el botón Atrás para cerrar.
+       Se ve primero la miniatura y luego la mejor copia que haya (la maestra de este equipo; si no, la de detalle, que se baja de la
+       nube SOLO al tocar; si no, la miniatura). En los selectores, tocar sigue agregando el producto.
+   D3. Las listas siguen con la miniatura: no se baja nada nuevo al abrir el inventario.
+   Interruptor: localStorage abanico.ix = '0' → todo como antes (al recargar). Prefijo ix. Sin funciones envueltas: un estilo, una
+   ventana nueva (#ixdlg, como las demás .histdlg, para que Atrás la cierre) y un escuchador de toques. */
+function ixOn(){try{return localStorage.getItem('abanico.ix')!=='0';}catch(_){return true;}}
+const IX={s:1,x:0,y:0,p:new Map(),d0:0,s0:1,m0:null,tap:0,tok:0};
+function ixDlg(){let d=document.getElementById('ixdlg');if(d)return d;d=document.createElement('div');d.className='histdlg';d.id='ixdlg';
+  d.innerHTML='<div class="ix-stage"><img class="ix-img" alt=""></div><button type="button" class="ix-x" data-ix="x" aria-label="'+'Cerrar'+'">'+svg('<path d="M6 6l12 12M18 6L6 18"/>')+'</button>'+
+    '<div class="ix-zb"><button type="button" data-ix="-" aria-label="−">'+svg('<path d="M5 12h14"/>')+'</button><button type="button" data-ix="+" aria-label="+">'+svg('<path d="M12 5v14M5 12h14"/>')+'</button></div>';
+  (document.getElementById('device')||document.body).appendChild(d);const st=d.querySelector('.ix-stage');
+  d.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-ix]');if(!b)return;e.stopPropagation();const a=b.getAttribute('data-ix');if(a==='x')ixClose();else ixZoom(a==='+'?IX.s*1.6:IX.s/1.6);});
+  st.addEventListener('pointerdown',e=>{try{st.setPointerCapture(e.pointerId);}catch(_){}IX.p.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(IX.p.size===2){const [a,b]=[...IX.p.values()];IX.d0=Math.hypot(a.x-b.x,a.y-b.y)||1;IX.s0=IX.s;}else IX.m0={x:e.clientX,y:e.clientY,ox:IX.x,oy:IX.y,t:Date.now()};});
+  st.addEventListener('pointermove',e=>{if(!IX.p.has(e.pointerId))return;IX.p.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(IX.p.size>=2){const [a,b]=[...IX.p.values()];ixZoom(IX.s0*(Math.hypot(a.x-b.x,a.y-b.y)||1)/IX.d0);}
+    else if(IX.m0&&IX.s>1){IX.x=IX.m0.ox+(e.clientX-IX.m0.x);IX.y=IX.m0.oy+(e.clientY-IX.m0.y);ixApply();}});
+  const up=e=>{const m=IX.m0;IX.p.delete(e.pointerId);if(IX.p.size)return;
+    if(m&&Math.hypot(e.clientX-m.x,e.clientY-m.y)<12&&Date.now()-m.t<300){const n=Date.now();if(n-IX.tap<320){IX.tap=0;ixZoom(IX.s>1.05?1:2.5);}else IX.tap=n;}IX.m0=null;};
+  st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);
+  st.addEventListener('wheel',e=>{e.preventDefault();ixZoom(IX.s*(e.deltaY<0?1.2:1/1.2));},{passive:false});
+  try{BACK_CLOSE.ixdlg=ixClose;}catch(_){}
+  return d;}
+function ixApply(){const im=document.querySelector('#ixdlg .ix-img');if(!im)return;
+  const st=im.parentNode,w=st.clientWidth,h=st.clientHeight,mx=w*(IX.s-1)/2,my=h*(IX.s-1)/2;IX.x=Math.max(-mx,Math.min(mx,IX.x));IX.y=Math.max(-my,Math.min(my,IX.y));
+  im.style.transform='translate('+IX.x+'px,'+IX.y+'px) scale('+IX.s+')';}
+function ixZoom(s){IX.s=Math.max(1,Math.min(6,s));if(IX.s===1){IX.x=0;IX.y=0;}ixApply();}
+function ixOpen(src,k){if(!src)return;const d=ixDlg(),im=d.querySelector('.ix-img');const tok=++IX.tok;IX.s=1;IX.x=0;IX.y=0;IX.p.clear();IX.m0=null;
+  im.src=src;ixApply();d.classList.add('on');try{navSync();}catch(_){}
+  if(k)Promise.resolve().then(()=>imgBest(k)).then(v=>{if(v&&tok===IX.tok&&d.classList.contains('on')&&im.getAttribute('src')!==v)im.src=v;}).catch(()=>{});}
+function ixClose(){const d=document.getElementById('ixdlg');if(!d||!d.classList.contains('on'))return;IX.tok++;d.classList.remove('on');const im=d.querySelector('.ix-img');if(im)im.removeAttribute('src');try{navSync();}catch(_){}}
+/* la clave de la foto tocada: la del <img>, o la del producto de la tarjeta, la ficha o el formulario */
+function ixKey(im){const a=im.getAttribute('data-imgkey')||im.getAttribute('data-imgd');if(a)return a;
+  try{const c=im.closest('.pcard[data-edit]');if(c){const p=P(+c.dataset.edit);if(p&&!p.img&&p.imgKey)return p.imgKey;}
+    if(im.closest('.pd-img')){const p=pdP();if(p&&!p.img&&p.imgKey)return p.imgKey;}
+    if(im.closest('#formBody')){const f=state.form;if(f&&!f.img&&f.imgKey)return f.imgKey;}}catch(_){}return null;}
+document.addEventListener('click',e=>{if(!ixOn())return;const im=e.target&&e.target.closest&&e.target.closest('.pc-img img,.pd-img img,#formBody .imgdrop.has img');
+  if(!im||!im.getAttribute('src')||!im.naturalWidth)return;e.stopPropagation();e.preventDefault();ixOpen(im.getAttribute('src'),ixKey(im));},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const d=document.getElementById('ixdlg');if(d&&d.classList.contains('on')){e.stopPropagation();e.preventDefault();ixClose();}}},true);
+(function(){try{
+  if(!ixOn())return;
+  document.body.classList.add('ix-on');
+  const css=document.createElement('style');css.id='ixStyle';css.textContent=`
+  body.ix-on .pc-img img,body.ix-on .mnpr-img img,body.ix-on .sptile .spimg img,body.ix-on .cs-p .av img,body.ix-on .mnph img,body.ix-on .g5ph-i img,
+  body.ix-on .g7h-pi img,body.ix-on .g8p .g8pi img,body.ix-on #mermaadddlg .row .av img,body.ix-on #rsvdlg .row .av img,body.ix-on img[data-bkimg],
+  body.ix-on .pd-img img{width:100%!important;height:100%!important;object-fit:contain!important}
+  body.ix-on .pc-img img,body.ix-on .pd-img img{cursor:zoom-in}
+  body.ix-on #formBody .imgdrop.has{background:var(--sel)}
+  body.ix-on #formBody .imgdrop.has img{width:100%;height:220px;max-height:220px;object-fit:contain;cursor:zoom-in}
+  #ixdlg{z-index:70;background:#0b0b0c;overflow:hidden;touch-action:none}
+  #ixdlg .ix-stage{position:absolute;left:0;right:0;top:calc(72px + env(safe-area-inset-top,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));display:grid;place-items:center;overflow:visible;touch-action:none}
+  #ixdlg .ix-img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #ixdlg .ix-x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:2}
+  #ixdlg .ix-zb{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:16px;z-index:2}
+  #ixdlg .ix-zb button{width:52px;height:52px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;cursor:pointer}
+  #ixdlg svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`;
+  document.head.appendChild(css);
+}catch(e){console.error('mods289 arranque',e);}})();
 </script>

@@ -17316,7 +17316,7 @@ function setTheme(v){try{localStorage.setItem('abanico.theme',v);}catch(_){}appl
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themePref()==='auto')applyTheme();});}catch(_){}
 applyTheme();
 /* ---------------- auto-actualización (recarga al publicar versión nueva) ---------------- */
-const APP_VERSION='20261126195256';
+const APP_VERSION='20261128053750';
 // Relax abre sin internet: la app y sus librerías quedan guardadas en el equipo (sw.js)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 function _syncPend(){try{return Object.keys(SB_PENDING).some(k=>!SB_DIRTY[k])||Object.keys(SALES_WAITW).length>0||Object.values(WRITING).some(n=>n>0)||!!FLUSHING;}catch(e){return false;}}   /* subidas por salir o en curso, ventas por guardar */
@@ -23988,4 +23988,140 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const d=document.ge
   #ixdlg svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`;
   document.head.appendChild(css);
 }catch(e){console.error('mods289 arranque',e);}})();
+
+/* ==== mods291 (2026-11-27): EN «REGISTRAR PAGO» DE UNA VENTA POR COBRAR, LO QUE SE ESCRIBE ES LO QUE SE REGISTRA ====
+   Pedido de Fabio (documento del 27-nov; «Autorizado» con 1a, 2a y 3a).
+   Causa: la pantalla de mods286 cobraba contra el campo «Valor a pagar», que se abría con el saldo completo; si lo anotado en los medios no lo
+   alcanzaba, abSave no guardaba («Falta por pagar…»). Para abonar había que bajar ese campo a mano o tocar «Abonar solo lo recibido».
+   Ahora el pago es la suma de los medios: si es menor que el saldo se guarda como abono; si es igual, la venta queda pagada. No puede pasar del
+   saldo. Desaparecen «Valor a pagar», «Abonar solo lo recibido» y el mensaje que bloqueaba. La pantalla dice «Este pago» y «Saldo después de este
+   pago» en color neutro, y el botón dice lo que va a pasar.
+   Efectivo (1a y 3a): la fila del efectivo es lo que se abona; «Pagó con» (escrito o con billetes) es opcional y da el cambio. Con el efectivo
+   vacío y billetes tocados, el abono en efectivo es la suma de los billetes sin pasar del saldo que queda; el resto es cambio. Si «Pagó con» es
+   menor que el efectivo anotado, avisa y no guarda.
+   SOLO el modo 'pay' (la ventana #abdlg). El pago inicial al crear la venta (modo 'init') y el cobro de contado (pago rápido) no cambian (2a).
+   CÓMO SE GUARDA: igual que mods286 (abEntries): las mismas entradas de `pays` {f,h,p,id,m,g,u} y, en la de efectivo, rec, cam y den.
+   Nada existente se edita: se envuelven abCalc, abPanelHTML, abFootPaint, abSave y abOpen. Apagar en un equipo: localStorage 'abanico.ap'='0'
+   (queda como v20261126195256). */
+function apOn(){try{return localStorage.getItem('abanico.ap')!=='0';}catch(_){return true;}}
+function apIs(P){return !!(P&&P.mode==='pay'&&P.ap===1);}
+function apNum(raw){const s=(''+(raw==null?'':raw)).trim();if(!s)return {c:0,bad:false,has:false};if(!/^[0-9.,]+$/.test(s))return {c:0,bad:true,has:true};return {c:toC(mcNum(s)),bad:false,has:true};}
+/* la cuenta: el pago es la suma de los medios; el cambio solo sale del efectivo. Devuelve lo mismo que abCalc para que abParts y abEntries
+   guarden como siempre: need = lo que entra en efectivo, cashC = lo que entregó el cliente, cam = el cambio */
+function apCalc(P){const cashM=abCashM(),due=abDueC(P);const R={tot:0,due,err:'',non:[],nonC:0,cashC:0,need:0,falta:0,cam:0,cashM,ok:false,sum:0,rest:due,paidC:0};let bad=false;
+  abOthers().forEach(m=>{const x=apNum(P.v[m]);if(x.bad){bad=true;return;}if(x.c>0)R.non.push({pay:m,c:x.c});});
+  R.nonC=R.non.reduce((a,x)=>a+x.c,0);
+  const ca=apNum(P.cash);if(ca.bad)bad=true;
+  let paidC=0;const ds=pgrDenSum(P);if(ds>0)paidC=toC(ds);else{const pp=apNum(P.paid);if(pp.bad)bad=true;paidC=pp.c;}
+  R.paidC=paidC;
+  let cashAb=0;if(ca.c>0)cashAb=ca.c;else if(paidC>0)cashAb=Math.min(paidC,Math.max(0,due-R.nonC));
+  R.need=cashAb;R.cashC=cashAb>0?(paidC>0?paidC:cashAb):0;R.tot=R.nonC+cashAb;R.sum=R.tot;
+  if(bad)R.err=t('mx_bad');
+  else if(R.tot>due)R.err=ti('ap_over',{v:abMoney(R.tot),d:abMoney(due)});
+  else if(paidC>0&&cashAb===0)R.err=t('ap_no_cash');
+  else if(ca.c>0&&paidC>0&&paidC<ca.c)R.err=ti('ap_paid_low',{a:abMoney(paidC),b:abMoney(ca.c)});
+  R.cam=R.err?0:Math.max(0,R.cashC-R.need);R.rest=Math.max(0,due-R.tot);
+  R.ok=!R.err&&R.tot>0;return R;}
+function apFullOn(R){return !R.err&&R.tot>0&&R.nonC===0&&R.need===R.due&&R.cam===0;}
+function apBtnHTML(n,P,coin){const k=+P.den[n]||0;const src=(typeof PGR_IMG==='object'&&PGR_IMG&&PGR_IMG[n])||'';
+  return '<div class="pgr-bw'+(coin?' c':'')+'"><button type="button" class="pgr-b" data-ap="b:'+n+'" aria-label="'+exEsc(money(n))+'">'+(src?'<img src="'+src+'" alt="">':'<span class="pgr-noimg">'+exEsc(money(n))+'</span>')+'<img class="pgr-lg" src="icon-192.png" alt=""></button>'+
+    (k?'<span class="pgr-k">×'+k+'</span><button type="button" class="pgr-m" data-ap="bm:'+n+'" aria-label="−">−</button>':'')+'<span class="pgr-pie num">'+exEsc(money(n))+'</span></div>';}
+function apBills(P){return '<div class="pgr-lab"><span>'+exEsc(t('pgr_bills'))+'</span><button type="button" class="pgr-clr" data-ap="clr">'+exEsc(t('pgr_clear'))+'</button></div><div class="pgr-bil">'+PGR_BILLS.map(n=>apBtnHTML(n,P,false)).join('')+'</div><div class="pgr-lab"><span>'+exEsc(t('pgr_coins'))+'</span></div><div class="pgr-mon">'+PGR_COINS.map(n=>apBtnHTML(n,P,true)).join('')+'</div>';}
+function apSumHTML(R){if(R.err||!(R.tot>0))return '';const L=[];
+  if(R.non.length+(R.need>0?1:0)>1){if(R.need>0)L.push([payLbl(R.cashM),abMoney(R.need)]);R.non.forEach(x=>L.push([payLbl(x.pay),abMoney(x.c)]));}
+  if(R.need>0&&R.paidC>0){L.push([t('pgr_paid_with'),abMoney(R.cashC)]);L.push([t('mpg_chg'),abMoney(R.cam),'g']);}
+  if(!L.length)return '';return L.map(x=>'<div class="pgr-res'+(x[2]?' g':'')+'"><span>'+exEsc(x[0])+'</span><b class="num">'+exEsc(x[1])+'</b></div>').join('');}
+function apCashVal(R,P){const s=(''+(P.cash==null?'':P.cash));return s.trim()!==''?s:(R.need>0&&!R.err?pgrTxt(R.need/100):'');}
+function apPaidVal(P){const ds=pgrDenSum(P);return ds>0?pgrTxt(ds):(''+(P.paid==null?'':P.paid));}
+function apPaidShow(R,P){return !!(P.bills||pgrDenSum(P)>0||R.need>0||(''+(P.paid||'')).trim()!=='');}
+function apPanelHTML(P){const R=apCalc(P),cashM=R.cashM,O=abOthers(),TOP=(typeof PGR_TOP==='number'?PGR_TOP:4),full=apFullOn(R);
+  const shown=P.more?O:O.filter((m,i)=>i<TOP||(''+(P.v[m]||'')).trim()!=='');
+  const inp=(key,val,on)=>'<input class="inp num pgr-in'+(on?' on':'')+'" data-apin="'+exEsc(key)+'" type="text" inputmode="decimal" data-uns="1" autocomplete="off" enterkeyhint="done" placeholder="'+exEsc(moneySym())+' 0" value="'+exEsc(val)+'">';
+  const showB=P.bills||pgrDenSum(P)>0;const cv=apCashVal(R,P),pv=apPaidVal(P);
+  const now='<div class="pgr-card ap-now"><div class="ap-l"><span>'+exEsc(t('ap_now'))+'</span><b class="num" data-apid="now">'+exEsc(abMoney(R.tot))+'</b></div><div class="ap-l"><span>'+exEsc(t('ap_rest'))+'</span><b class="num" data-apid="rest">'+(R.err?'—':exEsc(abMoney(R.rest)))+'</b></div></div>';
+  const cashRow='<div class="pgr-row" data-ap="bills"><span class="pgr-n">'+exEsc(payLbl(cashM))+'<small>'+exEsc(t('pgr_cash_hint'))+'</small></span>'+inp('cash',cv,cv!=='')+'</div>';
+  const paidRow='<div class="pgr-row ap-paid" data-apid="paidrow"'+(apPaidShow(R,P)?'':' hidden')+'><span class="pgr-n">'+exEsc(t('pgr_paid_with'))+'<small>'+exEsc(t('ap_paid_hint'))+'</small></span>'+inp('paid',pv,pv!=='')+'</div>';
+  const rows=shown.map(m=>{const i=O.indexOf(m);const val=P.v[m]||'';const has=(''+val).trim()!=='';
+    return '<div class="pgr-row" data-ap="fill:'+i+'"><span class="pgr-n">'+exEsc(payLbl(m))+(has?'':'<small>'+exEsc(t('pgr_fill_hint'))+'</small>')+'</span>'+inp('m'+i,val,has)+'</div>';}).join('');
+  const more=O.length>shown.length?'<button type="button" class="pgr-more" data-ap="more">'+exEsc(ti('pgr_more',{n:O.length-shown.length}))+'</button>':'';
+  const sum=apSumHTML(R);
+  return '<div class="pgr ap-box">'+now+'<div class="pgr-err" data-apid="err"'+(R.err?'':' hidden')+'>'+exEsc(R.err||'')+'</div>'+
+    '<button type="button" class="pgr-full'+(full?' on':'')+'" data-ap="full"><span class="pgr-cb">'+(full?svg('<path d="M5 12l5 5L20 7"/>'):'')+'</span>'+exEsc(ti('pgr_full',{m:payLbl(cashM)}))+'</button>'+
+    '<div class="pgr-card">'+cashRow+paidRow+'<div data-apid="bills">'+(showB?apBills(P):'')+'</div>'+rows+more+'</div><div class="pgr-card pgr-sum" data-apid="sum"'+(sum?'':' hidden')+'>'+sum+'</div></div>';}
+/* mientras se escribe: se pinta sin reemplazar el campo que tiene el foco */
+function apPaint(){try{const P=AB;if(!apIs(P))return;const box=document.querySelector('#abBody .ap-box');if(!box)return;const R=apCalc(P),O=abOthers(),foc=document.activeElement,full=apFullOn(R);
+  const q=k=>box.querySelector('[data-apid="'+k+'"]');
+  const n=q('now');if(n)n.textContent=abMoney(R.tot);const r=q('rest');if(r)r.textContent=R.err?'—':abMoney(R.rest);
+  const e=q('err');if(e){e.hidden=!R.err;e.textContent=R.err||'';}
+  const s=q('sum');if(s){const h=apSumHTML(R);s.hidden=!h;s.innerHTML=h;}
+  const fb=box.querySelector('.pgr-full');if(fb&&fb.classList.contains('on')!==full){fb.classList.toggle('on',full);const cb=fb.querySelector('.pgr-cb');if(cb)cb.innerHTML=full?svg('<path d="M5 12l5 5L20 7"/>'):'';}
+  const ci=box.querySelector('[data-apin="cash"]');if(ci){if(ci!==foc){const v=apCashVal(R,P);if(ci.value!==v)ci.value=v;}ci.classList.toggle('on',(''+ci.value).trim()!=='');}
+  const pr=q('paidrow');if(pr){const sh=apPaidShow(R,P)||pr.contains(foc);if(pr.hidden===sh)pr.hidden=!sh;}
+  const pi=box.querySelector('[data-apin="paid"]');if(pi){if(pi!==foc){const v=apPaidVal(P);if(pi.value!==v)pi.value=v;}pi.classList.toggle('on',(''+pi.value).trim()!=='');}
+  box.querySelectorAll('[data-ap^="fill:"]').forEach(row=>{const m=O[+row.dataset.ap.slice(5)],el=row.querySelector('.pgr-in');if(!m||!el)return;
+    if(el!==foc){const v=P.v[m]||'';if(el.value!==v)el.value=v;}const has=(''+el.value).trim()!=='';el.classList.toggle('on',has);
+    const nn=row.querySelector('.pgr-n'),sm=nn&&nn.querySelector('small');if(has&&sm)sm.remove();else if(!has&&!sm&&nn){const x=document.createElement('small');x.textContent=t('pgr_fill_hint');nn.appendChild(x);}});
+  abFootPaint(R);
+ }catch(err){console.error('mods291 pintar',err);}}
+function apBtnTxt(R){if(!R||!R.ok)return t('ab_save');return ti(R.tot>=R.due?'ap_btn_full':'ap_btn_ab',{v:abMoney(R.tot)});}
+/* los toques del panel */
+function apAct(a){const P=AB;if(!apIs(P))return;const i=a.indexOf(':'),k=i<0?a:a.slice(0,i),arg=i<0?'':a.slice(i+1);const O=abOthers();
+  if(k==='full'){const R=apCalc(P);if(apFullOn(R)){P.cash='';}else{P.v={};P.den={};P.paid='';P.cash=pgrTxt(R.due/100);}}
+  else if(k==='bills'){P.bills=!(P.bills||pgrDenSum(P)>0);if(!P.bills&&pgrDenSum(P)>0)P.bills=true;}
+  else if(k==='b'||k==='bm'){const n=+arg;if(!(n>0))return;if(!pgrDenSum(P)&&k==='b')P.den={};
+    const c=Math.max(0,(+P.den[n]||0)+(k==='b'?1:-1));if(c)P.den[n]=c;else delete P.den[n];const s=pgrDenSum(P);P.paid=s?pgrTxt(s):'';P.bills=true;}
+  else if(k==='clr'){P.den={};P.paid='';}
+  else if(k==='more'){P.more=true;}
+  else if(k==='fill'){const m=O[+arg];if(!m)return;if((''+(P.v[m]||'')).trim()!=='')return;const R=apCalc(P);if(R.err)return;
+    if(apFullOn(R)){P.cash='';P.paid='';P.den={};P.v={};P.v[m]=pgrTxt(R.due/100);}
+    else if(R.rest>0)P.v[m]=pgrTxt(R.rest/100);else return;}
+  else return;
+  abDlgPaint();}
+window.addEventListener('click',e=>{try{const tg=e.target;if(!tg||!tg.closest)return;const el=tg.closest('[data-ap]');if(!el||!el.closest('#abdlg'))return;
+  if(tg.closest('.pgr-in'))return;   /* tocar el campo es para escribir */
+  e.preventDefault();e.stopPropagation();apAct(''+el.dataset.ap);}catch(err){console.error('mods291 toque',err);}},true);
+document.addEventListener('input',e=>{try{const el=e.target;if(!el||!el.dataset||el.dataset.apin==null||!el.classList.contains('pgr-in'))return;if(!el.closest('#abBody .ap-box'))return;
+  const P=AB;if(!apIs(P))return;const O=abOthers(),k=el.dataset.apin;
+  if(k==='cash')P.cash=el.value;else if(k==='paid'){P.paid=el.value;P.den={};}else{const m=O[+k.slice(1)];if(m)P.v[m]=el.value;}
+  el.classList.toggle('on',(''+el.value).trim()!=='');apPaint();}catch(err){console.error('mods291 escribir',err);}},true);
+{const _c=abCalc;abCalc=function(P){if(apIs(P))return apCalc(P);return _c.apply(this,arguments);};}
+{const _p=abPanelHTML;abPanelHTML=function(P){if(apIs(P))return apPanelHTML(P);return _p.apply(this,arguments);};}
+{const _f=abFootPaint;abFootPaint=function(R){if(!apIs(AB))return _f.apply(this,arguments);
+  try{const b=document.querySelector('#abFoot .ab-save');if(!b)return;R=R||apCalc(AB);b.classList.toggle('off',!R.ok);const tx=apBtnTxt(R);if(b.textContent!==tx)b.textContent=tx;}catch(_){}};}
+/* abre vacía: el usuario escribe lo que recibió, o toca «Pago completo» */
+{const _o=abOpen;abOpen=function(id){const r=_o.apply(this,arguments);
+  try{if(apOn()&&AB&&AB.mode==='pay'&&!AB.ap){AB.ap=1;AB.full='';AB.amt='';AB.paid='';AB.cash='';AB.v={};AB.den={};abDlgPaint();}}catch(e){console.error('mods291 abrir',e);}return r;};}
+/* guardar: todas las partes en un solo guardado; el saldo se vuelve a leer en ese instante */
+{const _s=abSave;abSave=function(){const P=AB;if(!apIs(P))return _s.apply(this,arguments);
+  if(P.busy)return;const r=abSale(P);if(!r){abClose();return;}
+  if(typeof cjBlocked==='function'&&cjBlocked()){appAlert(t('cj_blocked'));return;}
+  const R=apCalc(P);if(R.err){toast(R.err);return;}if(!(R.tot>0)){toast(t('pay_need'));return;}
+  P.busy=true;
+  try{const E=abEntries(R,P,todayISO(),g3NowHM());if(!E.length)return;
+    if(Math.round(E.reduce((a,x)=>a+toC(x.p),0))!==R.tot){console.error('mods291 guardar: las partes no suman el pago');toast(t('mx_bad'));return;}
+    if(!Array.isArray(r.pays)||!r.pays.length)r.pays=[];
+    E.forEach(x=>r.pays.push(x));r.payEdited=new Date().toISOString();
+    const paidNow=recDue('sale',r)<=0.5;recSetPaid('sale',r,paidNow);
+    const sid=r.id;abClose();recSaveChange('sale');recRefresh('sale',sid);
+    toast(paidNow?t('pay_done_all'):ti('ap_done',{d:money(recDue('sale',r))}));
+  }catch(e){console.error('mods291 guardar',e);}finally{P.busy=false;}};}
+(function(){try{
+  const css=document.createElement('style');css.id='apStyle';css.textContent=`
+  .ap-now{padding:8px 14px}
+  .ap-l{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:15px;font-weight:700;color:var(--ink)}
+  .ap-l b{font-size:18px;color:var(--ink);overflow-wrap:anywhere;text-align:right}
+  .ap-l+.ap-l{border-top:1px solid var(--line)}
+  .ap-paid[hidden]{display:none}`;
+  document.head.appendChild(css);
+  Object.assign(I18N.es,{ap_now:'Este pago',ap_rest:'Saldo después de este pago',ap_paid_hint:'opcional: para calcular el cambio',
+    ap_btn_ab:'Guardar abono de {v}',ap_btn_full:'Guardar pago completo de {v}',ap_done:'Abono registrado. Saldo pendiente: {d}',
+    ap_over:'Este pago ({v}) no puede pasar del saldo pendiente ({d}).',
+    ap_no_cash:'Los otros medios ya cubren el saldo: no hace falta efectivo.',
+    ap_paid_low:'«Pagó con» ({a}) es menor que el efectivo de este pago ({b}).'});
+  Object.assign(I18N.en,{ap_now:'This payment',ap_rest:'Balance after this payment',ap_paid_hint:'optional: to work out the change',
+    ap_btn_ab:'Save partial payment of {v}',ap_btn_full:'Save full payment of {v}',ap_done:'Partial payment recorded. Balance due: {d}',
+    ap_over:'This payment ({v}) cannot exceed the balance due ({d}).',
+    ap_no_cash:'The other methods already cover the balance: no cash is needed.',
+    ap_paid_low:'"Paid with" ({a}) is less than the cash in this payment ({b}).'});
+}catch(e){console.error('mods291 arranque',e);}})();
 </script>
